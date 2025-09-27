@@ -66,7 +66,7 @@ export async function initCommand(name: string | undefined, options: InitOptions
     console.log(`  cd ${projectName}`);
     console.log(`  # Edit ${options.specsName}/requirements.md to define your project`);
     console.log(`  # Update ${options.specsName}/project.yaml with your configuration`);
-    console.log(`  sdd-init validate  # Validate your specifications`);
+    console.log(`  specpilot validate  # Validate your specifications`);
     
   } catch (error) {
     logger.error(`❌ Failed to initialize project: ${error instanceof Error ? error.message : 'Unknown error'}`);

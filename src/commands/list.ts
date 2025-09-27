@@ -50,8 +50,8 @@ export async function listCommand(options: ListOptions) {
     });
     
     console.log(chalk.cyan('\n📖 Usage:'));
-    console.log('  sdd-init <project-name> --lang <language> --framework <framework>');
-    console.log('  sdd-init my-app --lang typescript --framework react');
+    console.log('  specpilot <project-name> --lang <language> --framework <framework>');
+    console.log('  specpilot my-app --lang typescript --framework react');
     
   } catch (error) {
     logger.error(`❌ Failed to list templates: ${error instanceof Error ? error.message : 'Unknown error'}`);

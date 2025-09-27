@@ -381,7 +381,7 @@ This file contains ALL AI interactions and development prompts, maintaining comp
 #### Prompt: Initial Validation
 **Prompt**: "Validate project specifications and fix any issues"
 
-**Context**: Running sdd-init validation to ensure project compliance
+**Context**: Running specpilot validation to ensure project compliance
 
 **Response**: 
 - Validated project structure

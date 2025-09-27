@@ -95,7 +95,7 @@ specpilot --template-info typescript-react
 
 ### Global Configuration
 
-Create `~/.sdd-init-config.yaml` for global defaults:
+Create `~/.specpilot-config.yaml` for global defaults:
 
 ```yaml
 defaults:
@@ -165,10 +165,10 @@ ai-context:
 
 ### Custom Templates
 
-Create custom templates in `~/.sdd-init-templates/`:
+Create custom templates in `~/.specpilot-templates/`:
 
 ```text
-~/.sdd-init-templates/
+~/.specpilot-templates/
 ├── my-custom-template/
 │   ├── template.yaml
 │   ├── .specs/

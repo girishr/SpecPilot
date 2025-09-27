@@ -10,7 +10,7 @@ import { specifyCommand } from './commands/specify';
 const packageJson = require('../package.json');
 
 program
-  .name('sdd-init')
+  .name('specpilot')
   .description('CLI tool for initializing specification-driven development projects')
   .version(packageJson.version);
 

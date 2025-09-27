@@ -58,7 +58,7 @@ export async function migrateCommand(options: MigrateOptions) {
     
     // Show next steps
     console.log(chalk.cyan('\n📖 Next steps:'));
-    console.log('  sdd-init validate  # Validate migrated structure');
+    console.log('  specpilot validate  # Validate migrated structure');
     console.log('  # Review .specs/ files and update as needed');
     
   } catch (error) {

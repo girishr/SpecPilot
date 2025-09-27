@@ -1,0 +1,178 @@
+openapi: 3.0.3
+info:
+  title: SpecPilot SDD CLI API
+  description: API specification for the SpecPilot SDD CLI tool
+  version: 0.1.0
+  contact:
+    name: SpecPilot SDD CLI Team
+
+servers:
+  - url: https://api.specpilot.dev/v1
+    description: Production server
+
+paths:
+  /projects:
+    post:
+      summary: Initialize a new project
+      description: Creates a new project with specification-driven structure
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - language
+              properties:
+                name:
+                  type: string
+                  description: Project name
+                language:
+                  type: string
+                  enum: [typescript, python, java, go]
+                  description: Programming language
+                framework:
+                  type: string
+                  description: Framework to use
+                specDir:
+                  type: string
+                  default: .specs
+                  description: Custom specs directory name
+      responses:
+        "200":
+          description: Project initialized successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projectId:
+                    type: string
+                  specDir:
+                    type: string
+                  files:
+                    type: array
+                    items:
+                      type: string
+        "400":
+          description: Invalid request parameters
+        "500":
+          description: Internal server error
+
+  /templates:
+    get:
+      summary: List available templates
+      description: Returns list of available project templates
+      responses:
+        "200":
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        language:
+                          type: string
+                        frameworks:
+                          type: array
+                          items:
+                            type: string
+
+  /validate:
+    post:
+      summary: Validate project specs
+      description: Validates the specification files in a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - projectPath
+              properties:
+                projectPath:
+                  type: string
+                  description: Path to project directory
+                strict:
+                  type: boolean
+                  default: false
+                  description: Enable strict validation
+      responses:
+        "200":
+          description: Validation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        file:
+                          type: string
+                        line:
+                          type: integer
+                        message:
+                          type: string
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+
+components:
+  schemas:
+    Project:
+      type: object
+      required:
+        - name
+        - language
+      properties:
+        name:
+          type: string
+          description: Project name
+        language:
+          type: string
+          enum: [typescript, python, java, go]
+          description: Programming language
+        framework:
+          type: string
+          description: Framework used
+        version:
+          type: string
+          description: Project version
+        specDir:
+          type: string
+          default: .specs
+          description: Specs directory name
+
+    ValidationResult:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              file:
+                type: string
+              line:
+                type: integer
+              message:
+                type: string
+        warnings:
+          type: array
+          items:
+            type: string

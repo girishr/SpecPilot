@@ -1,0 +1,26 @@
+project:
+  name: "SpecPilot SDD CLI"
+  description: "CLI tool for initializing specification-driven development projects"
+  language: "typescript"
+  framework: "node"
+  version: "0.1.0"
+  author: "Your Name"
+  license: "MIT"
+
+rules:
+  - "Follow specification-driven development principles"
+  - "Maintain developer freedom and control"
+  - "Use AI assistance for productivity, not automation"
+  - "Keep documentation current and relevant"
+  - "Focus on production-ready code quality"
+  - "MANDATE: Update .specs/prompts.md with ALL AI interactions and development prompts by default"
+  - "MANDATE: Maintain chronological prompt history for complete development traceability"
+
+ai-context:
+  - "Assist with specification writing and validation"
+  - "Provide architectural guidance without dictating decisions"
+  - "Help with code quality and best practices"
+  - "Track development progress and decisions"
+  - "Maintain context across development sessions"
+  - "MANDATE: Automatically log all prompts and responses to .specs/prompts.md"
+  - "MANDATE: Include timestamps and context for all AI interactions"

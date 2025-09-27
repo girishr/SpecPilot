@@ -67,3 +67,6 @@ demo-project/
 test-project/
 final-test/
 *-test*/
+
+# AI prompts and sensitive development data
+.specs/prompts.md

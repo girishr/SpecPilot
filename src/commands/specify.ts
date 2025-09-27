@@ -41,7 +41,7 @@ export async function specifyCommand(description: string | undefined, options: S
     const specsDir = join(options.dir, options.specsName);
     if (!existsSync(specsDir)) {
       logger.error(`❌ Specs directory not found: ${specsDir}`);
-      logger.info('💡 Run "sdd-init init" first to create the project structure.');
+      logger.info('💡 Run "specpilot init" first to create the project structure.');
       process.exit(1);
     }
 
@@ -112,7 +112,7 @@ export async function specifyCommand(description: string | undefined, options: S
     // Show next steps
     console.log(chalk.cyan('\n📖 Next steps:'));
     console.log(`  # Review updated specifications in ${options.specsName}/`);
-    console.log(`  sdd-init validate  # Validate your specifications`);
+    console.log(`  specpilot validate  # Validate your specifications`);
     console.log(`  # Continue development based on the updated requirements`);
 
   } catch (error) {
@@ -178,7 +178,7 @@ function updateContextWithSpecification(currentContent: string, description: str
   const specEntry = `### Latest Specification Update
 **Date**: ${new Date().toISOString().split('T')[0]}
 **Description**: ${description}
-**Source**: sdd-init specify command
+**Source**: specpilot specify command
 
 `;
 
@@ -200,7 +200,7 @@ function updatePromptsLog(currentContent: string, description: string): string {
 #### Prompt: Project Specification
 **Prompt**: "${description}"
 
-**Context**: User provided specification description via sdd-init specify command
+**Context**: User provided specification description via specpilot specify command
 
 **Response**: 
 - Updated requirements.md with project description

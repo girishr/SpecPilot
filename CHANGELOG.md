@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release of SpecPilot SDD CLI
 - **Core Commands**:
-  - `sdd-init <project>` - Initialize new SDD projects
-  - `sdd-init validate` - Validate specifications and mandates
-  - `sdd-init migrate` - Migrate from complex to simplified structure
-  - `sdd-init list` - Show available templates
+  - `specpilot <project>` - Initialize new SDD projects
+  - `specpilot validate` - Validate specifications and mandates
+  - `specpilot migrate` - Migrate from complex to simplified structure
+  - `specpilot list` - Show available templates
 - **Template System**:
 
   - TypeScript templates (Generic, React, Express, Next.js, CLI)

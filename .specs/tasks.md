@@ -6,12 +6,14 @@
 - [ ] Gather user feedback and feature requests
 - [ ] Create video tutorials for SDD approach
 - [ ] Build community around SpecPilot
+- [ ] Force project name
 
 ## Current Sprint
 
 - [ ] Monitor NPM download metrics
 - [ ] Set up GitHub repository with proper documentation
 - [ ] Create issue templates and contribution guidelines
+- [ ] Fix issue with command specpilot validate ⚠️ Warnings: • architecture.md missing sections: Overview, Components, Decisions
 
 ## Completed
 
@@ -36,3 +38,4 @@
 - [x] Add spec update mandate to SpecPilot templates
 - [x] Add metadata update mandate to SpecPilot templates
 - [x] Publish SpecPilot v1.1.0 to NPM
+- [x] Fix CLI list command to display templates correctly

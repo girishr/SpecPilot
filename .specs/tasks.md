@@ -35,3 +35,4 @@
 - [x] Publish to NPM
 - [x] Add spec update mandate to SpecPilot templates
 - [x] Add metadata update mandate to SpecPilot templates
+- [x] Publish SpecPilot v1.1.0 to NPM

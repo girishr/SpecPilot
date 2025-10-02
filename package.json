@@ -1,6 +1,6 @@
 {
   "name": "specpilot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A CLI tool for initializing specification-driven development projects with flexible, production-ready structures.",
   "main": "dist/index.js",
   "bin": {

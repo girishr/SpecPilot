@@ -15,13 +15,27 @@ export interface InitOptions {
   prompts: boolean;
 }
 
-export async function initCommand(name: string | undefined, options: InitOptions) {
+export async function initCommand(name: string, options: InitOptions) {
   const logger = new Logger();
   
   try {
     logger.info('🚀 Initializing SDD project...');
     
-    const projectName = name || 'my-project';
+    // Validate project name
+    if (!name || name.trim() === '') {
+      logger.error('❌ Project name is required and cannot be empty');
+      logger.info('💡 Usage: specpilot init <project-name>');
+      process.exit(1);
+    }
+    
+    const projectName = name.trim();
+    
+    // Validate project name doesn't contain invalid characters
+    if (/[<>:"/\\|?*]/.test(projectName)) {
+      logger.error('❌ Project name contains invalid characters: < > : " / \\ | ? *');
+      logger.info('💡 Please use only letters, numbers, hyphens, and underscores');
+      process.exit(1);
+    }
     
     // Get framework if not provided and prompts enabled
     let framework = options.framework;

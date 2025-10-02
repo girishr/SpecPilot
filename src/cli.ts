@@ -19,7 +19,7 @@ program
   .command('init')
   .alias('i')
   .description('Initialize a new SDD project')
-  .argument('[name]', 'Project name')
+  .argument('<name>', 'Project name (required)')
   .option('-l, --lang <language>', 'Programming language (typescript, python, java)', 'typescript')
   .option('-f, --framework <framework>', 'Framework (react, express, django, spring, etc.)')
   .option('-d, --dir <directory>', 'Target directory', '.')

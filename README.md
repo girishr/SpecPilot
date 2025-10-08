@@ -9,7 +9,7 @@ A CLI tool for initializing specification-driven development projects with flexi
 npm install -g specpilot
 
 # Initialize your first project
-specpilot my-project --lang typescript --framework react
+specpilot init my-project --lang typescript --framework react
 
 # Start coding with full control
 cd my-project
@@ -82,55 +82,39 @@ npm install -g specpilot
 
 ```bash
 # Initialize with default settings (.specs folder)
-specpilot my-project
+specpilot init my-project
 
 # Specify language and framework
-specpilot my-project --lang typescript --framework react
-specpilot my-project --lang python --framework django
-specpilot my-project --lang java --framework spring
+specpilot init my-project --lang typescript --framework react
+specpilot init my-project --lang typescript --framework express
+specpilot init my-project --lang python --framework fastapi
+specpilot init my-project --lang python --framework django
 
-# Use custom spec directory name
-specpilot my-project --spec-dir .project-specs
-specpilot my-project --spec-dir docs/specifications
+# Use a custom specs folder name
+specpilot init my-project --specs-name .project-specs
 
-# Interactive mode (guided setup)
-specpilot --interactive
+# Skip interactive prompts
+specpilot init my-project --no-prompts
 ```
 
-### Advanced Usage
-
-```bash
-# Initialize with specific template
-specpilot my-api --lang typescript --framework express --template rest-api
-
-# Initialize for team collaboration
-specpilot team-project --lang python --framework fastapi --collaboration
-
-# Initialize with custom author and license
-specpilot my-lib --lang typescript --author "Your Name" --license MIT
-```
-
-### Validation and Management
+### Additional Commands
 
 ```bash
 # Validate project specs
-specpilot --validate
-
-# Validate with strict rules and auto-fix
-specpilot --validate --strict --fix
-
-# Check for migration needs
-specpilot --migrate
-
-# Show migration history
-specpilot --migrate --show-history
+specpilot validate --verbose
+specpilot validate --fix
 
 # List available templates
-specpilot --list-templates
+specpilot list
 
-# Show template details
-specpilot --template-info typescript-react
+# Migrate legacy structures (when applicable)
+specpilot migrate --from complex --to simple --backup
+
+# Generate or update specs from a natural language description
+specpilot specify "A simple REST API for todos" --update
 ```
+
+> Tip: Run `specpilot --help` or `specpilot <command> --help` for full options.
 
 ## Configuration
 
@@ -158,7 +142,7 @@ validation:
 
 ### Project Configuration
 
-After initialization, customize `.specs/project.yaml`:
+After initialization, customize `.specs/project/project.yaml`:
 
 ```yaml
 project:
@@ -166,7 +150,7 @@ project:
   description: "My awesome project"
   language: "typescript"
   framework: "react"
-  version: "1.0.0"
+  version: "1.1.1"
 
 rules:
   - "Follow specification-driven development"
@@ -184,25 +168,13 @@ ai-context:
 
 #### TypeScript
 
-- **Generic**: Basic TypeScript project structure
-- **React**: React application with modern tooling
-- **Express**: REST API server setup
-- **Library**: NPM package development
-- **CLI**: Command-line tool development
+- React
+- Express
 
 #### Python
 
-- **Generic**: Basic Python project structure
-- **FastAPI**: Modern API development
-- **Django**: Web application framework
-- **Data Science**: Jupyter, pandas, scikit-learn setup
-- **CLI**: Python command-line tools
-
-#### Java
-
-- **Generic**: Maven/Gradle project structure
-- **Spring Boot**: Microservices development
-- **Android**: Mobile app development
+- FastAPI
+- Django
 
 ### Custom Templates
 
@@ -218,14 +190,12 @@ Create custom templates in `~/.specpilot-templates/`:
 
 ## Features
 
-- **Flexible Structure**: Generates `.specs` directories with customizable layouts
-- **Language Support**: Templates for TypeScript, Python, Java, and more
-- **Spec Validation**: Built-in validation with auto-fix capabilities
+- **Flexible Structure**: Generates `.specs` with customizable, production-ready layout
+- **Language Support**: Templates for TypeScript and Python
+- **Spec Validation**: Built-in validation with optional auto-fix
 - **AI Integration**: Dedicated prompts tracking for development cycles
-- **GitHub Ready**: Structures optimized for version control and collaboration
-- **Migration Support**: Handles structure updates across versions
-- **Custom Templates**: Support for organization-specific templates
-- **Team Collaboration**: Built-in support for team development workflows
+- **Migration Support**: Helps transition older structures
+- **Template Listing**: Discover available language/framework combinations
 
 ## Project Structure
 
@@ -233,17 +203,14 @@ After initialization, your project will have:
 
 ```text
 project-root/
-├── .specs/                    # Specification-driven structure
-│   ├── config/               # Project configuration
-│   ├── architecture/         # System design docs
-│   ├── requirements/         # Feature and user story specs
-│   ├── api/                  # API specifications
-│   ├── tests/                # Test plans and criteria
-│   ├── tasks/                # Task tracking
-│   ├── prompts/              # AI development prompts
-│   └── docs/                 # Development guidelines
-├── src/                      # Your source code
-└── README.md                 # This file
+├── .specs/
+│   ├── project/          # project.yaml, requirements.md, project-plan.md
+│   ├── architecture/     # architecture.md, api.yaml
+│   ├── planning/         # tasks.md, roadmap.md
+│   ├── quality/          # tests.md
+│   └── development/      # docs.md, context.md, prompts.md
+├── src/
+└── README.md
 ```
 
 ## Troubleshooting
@@ -264,13 +231,9 @@ npm config set prefix '~/.npm-global'
 #### Template Not Found
 
 ```bash
-```bash
 # List available templates
-specpilot --list-templates
-
-# Update templates
-specpilot --update-templates
-````
+specpilot list
+```
 
 #### Validation Failures
 
@@ -284,17 +247,13 @@ specpilot --validate --fix
 
 #### Migration Issues
 
-````bash
 ```bash
-# Check current version
+# Show CLI version
 specpilot --version
 
-# Force migration
-specpilot --migrate --force
-
-# Rollback migration
-specpilot --migrate --rollback
-````
+# Migrate legacy structure
+specpilot migrate --from complex --to simple --backup
+```
 
 ### Debug Mode
 
@@ -318,17 +277,21 @@ specpilot --help
 # Command-specific help
 specpilot init --help
 specpilot validate --help
+specpilot list --help
+specpilot migrate --help
+specpilot specify --help
 ```
 
 ## Getting Started
 
-1. **Initialize your project**: `specpilot my-project --lang typescript`
+1. **Initialize your project**: `specpilot init my-project --lang typescript`
 2. **Review the generated `.specs` structure** - This provides your flexible framework
-3. **Customize the specifications** in `.specs/project.yaml` according to your needs
-4. **Document your architecture** in `.specs/architecture.md` (you control the design)
-5. **Track all development prompts** in `.specs/prompts.md` throughout your coding cycle
-6. **Define your requirements** in `.specs/requirements.md` and `.specs/tests.md`
-7. **Start building** your production code in `src/` with full control over implementation
+3. **Customize the specifications** in `.specs/project/project.yaml`
+4. **Document your architecture** in `.specs/architecture/architecture.md`
+5. **Track all development prompts** in `.specs/development/prompts.md`
+6. **Plan your work** in `.specs/planning/tasks.md` and `.specs/planning/roadmap.md`
+7. **Define tests** in `.specs/quality/tests.md`
+8. **Start building** your production code in `src/`
 
 ### Best Practices
 
@@ -340,32 +303,12 @@ specpilot validate --help
 
 ## How to Contribute
 
-We welcome contributions! Please see our contributing guidelines:
+We welcome contributions! Please:
 
-1. **Fork the repository** and create a feature branch
-2. **Follow the existing code style** and add tests for new features
-3. **Update documentation** for any new functionality
-4. **Submit a pull request** with a clear description of changes
-
-### Local Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/specpilot/specpilot.git
-cd specpilot
-
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev -- my-test-project --lang typescript
-
-# Run tests
-npm test
-
-# Build for production
-npm run build
-```
+1. Fork the repo and create a feature branch
+2. Follow the existing code style and add tests for new features
+3. Update documentation for new functionality
+4. Submit a pull request with a clear description
 
 ## Version History
 
@@ -408,37 +351,11 @@ specpilot --validate --team-rules
 
 ### Enterprise Integration
 
-```bash
-# Use corporate templates
-specforge --template-repo https://internal.company.com/templates
-
-# Apply company policies
-specforge --apply-policies company-standards
-
-# Generate compliance reports
-specforge --compliance-report --output report.json
-```
+Your organization can wrap SpecPilot with internal tooling and templates. For now, use `specpilot list` to explore built-ins.
 
 ### API Usage
 
-```javascript
-// Use SpecPilot SDD CLI programmatically
-const { initProject, validateSpecs } = require("specpilot");
-
-// Initialize project
-await initProject({
-  name: "my-project",
-  language: "typescript",
-  framework: "react",
-  specDir: ".specs",
-});
-
-// Validate specifications
-const result = await validateSpecs("./my-project");
-if (!result.valid) {
-  console.error("Validation errors:", result.errors);
-}
-```
+Programmatic API is not currently supported. Use the CLI commands documented above.
 
 ## Contributing
 

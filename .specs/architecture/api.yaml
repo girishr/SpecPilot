@@ -1,8 +1,10 @@
+# SpecPilot SDD CLI API Specification
+# meta: project=SpecPilot language=typescript framework=node updated=2025-10-06
 openapi: 3.0.3
 info:
   title: SpecPilot SDD CLI API
   description: API specification for the SpecPilot SDD CLI tool
-  version: 0.1.0
+  version: 1.1.1
   contact:
     name: SpecPilot SDD CLI Team
 
@@ -30,7 +32,7 @@ paths:
                   description: Project name
                 language:
                   type: string
-                  enum: [typescript, python, java, go]
+                  enum: [typescript, python]
                   description: Programming language
                 framework:
                   type: string
@@ -143,7 +145,7 @@ components:
           description: Project name
         language:
           type: string
-          enum: [typescript, python, java, go]
+          enum: [typescript, python]
           description: Programming language
         framework:
           type: string

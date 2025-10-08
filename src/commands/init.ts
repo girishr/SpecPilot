@@ -37,6 +37,14 @@ export async function initCommand(name: string, options: InitOptions) {
       process.exit(1);
     }
     
+    // Validate supported language
+    const supportedLanguages = ['typescript', 'python'];
+    if (!supportedLanguages.includes(options.lang)) {
+      logger.error(`❌ Language "${options.lang}" is not supported`);
+      logger.info(`💡 Supported languages: ${supportedLanguages.join(', ')}`);
+      process.exit(1);
+    }
+    
     // Get framework if not provided and prompts enabled
     let framework = options.framework;
     if (!framework && options.prompts) {
@@ -91,8 +99,7 @@ export async function initCommand(name: string, options: InitOptions) {
 function getFrameworksForLanguage(language: string): string[] {
   const frameworks: Record<string, string[]> = {
     typescript: ['react', 'express', 'next', 'nest', 'vue', 'angular'],
-    python: ['fastapi', 'django', 'flask', 'streamlit'],
-    java: ['spring-boot', 'spring-mvc', 'android']
+    python: ['fastapi', 'django', 'flask', 'streamlit']
   };
   
   return frameworks[language] || [];

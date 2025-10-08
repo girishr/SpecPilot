@@ -34,15 +34,16 @@ describe('SpecGenerator', () => {
     expect(existsSync(specsDir)).toBe(true);
 
     const requiredFiles = [
-      'project.yaml',
-      'architecture.md',
-      'requirements.md',
-      'api.yaml',
-      'tests.md',
-      'tasks.md',
-      'context.md',
-      'prompts.md',
-      'docs.md'
+      'project/project.yaml',
+      'architecture/architecture.md',
+      'project/requirements.md',
+      'architecture/api.yaml',
+      'quality/tests.md',
+      'planning/tasks.md',
+      'development/context.md',
+      'development/prompts.md',
+      'development/docs.md',
+      'project/project-plan.md'
     ];
 
     for (const file of requiredFiles) {
@@ -51,6 +52,9 @@ describe('SpecGenerator', () => {
       
       const content = readFileSync(filePath, 'utf-8');
       expect(content).toContain('test-project');
+      if (file.endsWith('.md')) {
+        expect(content.startsWith('---')).toBe(true);
+      }
     }
   });
 
@@ -64,7 +68,7 @@ describe('SpecGenerator', () => {
 
     await specGenerator.generateSpecs(options);
 
-    const promptsPath = join(testDir, '.specs', 'prompts.md');
+  const promptsPath = join(testDir, '.specs', 'development', 'prompts.md');
     const content = readFileSync(promptsPath, 'utf-8');
     
     expect(content).toContain('MANDATE');

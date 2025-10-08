@@ -71,21 +71,6 @@ export class TemplateRegistry {
       framework: 'data-science',
       description: 'Jupyter, pandas, scikit-learn setup',
       files: ['project.yaml', 'architecture.md', 'requirements.md', 'api.yaml', 'tests.md', 'tasks.md', 'context.md', 'prompts.md', 'docs.md']
-    },
-    
-    // Java Templates
-    {
-      name: 'generic',
-      language: 'java',
-      description: 'Maven/Gradle project structure',
-      files: ['project.yaml', 'architecture.md', 'requirements.md', 'api.yaml', 'tests.md', 'tasks.md', 'context.md', 'prompts.md', 'docs.md']
-    },
-    {
-      name: 'spring-boot',
-      language: 'java',
-      framework: 'spring-boot',
-      description: 'Microservices development',
-      files: ['project.yaml', 'architecture.md', 'requirements.md', 'api.yaml', 'tests.md', 'tasks.md', 'context.md', 'prompts.md', 'docs.md']
     }
   ];
   

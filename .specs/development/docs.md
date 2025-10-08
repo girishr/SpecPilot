@@ -1,6 +1,14 @@
+---
+fileID: DOC-001
+lastUpdated: 2025-10-05
+version: 1.0
+contributors: [girishr]
+relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
+---
+
 # Development & Deployment Documentation
 
-## Development Guidelines
+## Development Guidelines [DOC-002]
 
 ### Code Standards
 
@@ -72,7 +80,6 @@ echo "✅ Pre-commit check complete"
 
 Use this template when updating specs:
 
-```markdown
 ## Spec Update: [Brief Description]
 
 ### Files Updated
@@ -88,7 +95,6 @@ Use this template when updating specs:
 ### Impact
 
 [How this affects the project]
-```
 
 ##### **CI/CD Integration**
 
@@ -116,7 +122,6 @@ Future enhancement: Add automated checks in CI pipeline to validate spec complet
 
 ```text
 type(scope): description
-
 Types: feat, fix, docs, style, refactor, test, chore
 ```
 

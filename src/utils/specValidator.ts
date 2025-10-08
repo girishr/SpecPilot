@@ -18,15 +18,16 @@ export interface ValidationResult {
 
 export class SpecValidator {
   private requiredFiles = [
-    'project.yaml',
-    'architecture.md',
-    'requirements.md',
-    'api.yaml',
-    'tests.md',
-    'tasks.md',
-    'context.md',
-    'prompts.md',
-    'docs.md'
+    'project/project.yaml',
+    'architecture/architecture.md',
+    'project/requirements.md',
+    'architecture/api.yaml',
+    'quality/tests.md',
+    'planning/tasks.md',
+    'development/context.md',
+    'development/prompts.md',
+    'development/docs.md',
+    'project/project-plan.md'
   ];
 
   async validate(projectDir: string, options: ValidationOptions): Promise<ValidationResult> {
@@ -59,14 +60,17 @@ export class SpecValidator {
       }
     }
 
-    // Validate project.yaml structure
-    await this.validateProjectYaml(specsDir, result);
+  // Validate project.yaml structure
+  await this.validateProjectYaml(specsDir, result);
 
     // Validate mandate compliance
     await this.validateMandates(specsDir, result);
 
     // Validate file content quality
     await this.validateContentQuality(specsDir, result, options.verbose);
+
+  // Validate metadata and cross references
+  await this.validateMetadataAndCrossRefs(specsDir, result);
 
     return result;
   }
@@ -115,7 +119,7 @@ export class SpecValidator {
   }
 
   private async validateProjectYaml(specsDir: string, result: ValidationResult): Promise<void> {
-    const projectYamlPath = join(specsDir, 'project.yaml');
+    const projectYamlPath = join(specsDir, 'project', 'project.yaml');
     
     if (!existsSync(projectYamlPath)) {
       return; // Already handled by file existence check
@@ -132,7 +136,7 @@ export class SpecValidator {
       }
 
       // Check required fields
-      const requiredFields = ['name', 'version', 'language'];
+  const requiredFields = ['name', 'version', 'language'];
       for (const field of requiredFields) {
         if (!projectData[field]) {
           result.errors.push(`project.yaml missing required field: ${field}`);
@@ -171,7 +175,7 @@ export class SpecValidator {
 
   private async validateMandates(specsDir: string, result: ValidationResult): Promise<void> {
     // Check if prompts.md exists and has content
-    const promptsPath = join(specsDir, 'prompts.md');
+    const promptsPath = join(specsDir, 'development', 'prompts.md');
     
     if (!existsSync(promptsPath)) {
       result.errors.push('prompts.md is missing - this violates prompt tracking mandate');
@@ -214,7 +218,7 @@ export class SpecValidator {
   }
 
   private async validateArchitectureContent(specsDir: string, result: ValidationResult, verbose: boolean): Promise<void> {
-    const archPath = join(specsDir, 'architecture.md');
+  const archPath = join(specsDir, 'architecture', 'architecture.md');
     
     if (!existsSync(archPath)) return;
 
@@ -238,7 +242,7 @@ export class SpecValidator {
   }
 
   private async validateRequirementsContent(specsDir: string, result: ValidationResult, verbose: boolean): Promise<void> {
-    const reqPath = join(specsDir, 'requirements.md');
+  const reqPath = join(specsDir, 'project', 'requirements.md');
     
     if (!existsSync(reqPath)) return;
 
@@ -261,7 +265,7 @@ export class SpecValidator {
   }
 
   private async validateTasksContent(specsDir: string, result: ValidationResult, verbose: boolean): Promise<void> {
-    const tasksPath = join(specsDir, 'tasks.md');
+  const tasksPath = join(specsDir, 'planning', 'tasks.md');
     
     if (!existsSync(tasksPath)) return;
 
@@ -338,9 +342,43 @@ export class SpecValidator {
   }
 
   private async createInitialPromptsEntry(specsDir: string): Promise<void> {
-    const promptsPath = join(specsDir, 'prompts.md');
+    const promptsPath = join(specsDir, 'development', 'prompts.md');
     const content = this.getDefaultPromptsContent();
     writeFileSync(promptsPath, content);
+  }
+
+  private async validateMetadataAndCrossRefs(specsDir: string, result: ValidationResult): Promise<void> {
+    const checks: Array<{ file: string; crossRefs?: string[] }> = [
+      { file: 'project/requirements.md', crossRefs: ['architecture/architecture.md', 'architecture/api.yaml', 'project/project.yaml'] },
+      { file: 'planning/tasks.md', crossRefs: ['planning/roadmap.md', 'project/requirements.md', 'project/project.yaml'] },
+      { file: 'planning/roadmap.md', crossRefs: ['planning/tasks.md', 'project/requirements.md'] },
+      { file: 'development/docs.md', crossRefs: ['development/context.md', 'planning/roadmap.md', 'planning/tasks.md', 'project/project.yaml'] },
+      { file: 'development/context.md', crossRefs: ['development/docs.md', 'planning/roadmap.md', 'project/project.yaml'] },
+      { file: 'project/project-plan.md', crossRefs: ['planning/roadmap.md', 'planning/tasks.md'] },
+      { file: 'development/prompts.md', crossRefs: ['development/context.md', 'project/project.yaml'] },
+      { file: 'quality/tests.md', crossRefs: ['project/requirements.md', 'project/project.yaml'] }
+    ];
+
+    for (const { file, crossRefs } of checks) {
+      const p = join(specsDir, file);
+      if (!existsSync(p)) continue;
+      const content = readFileSync(p, 'utf-8');
+      if (file.endsWith('.md')) {
+        if (!/^---\n[\s\S]*?\n---/m.test(content)) {
+          result.errors.push(`${file} is missing YAML front-matter metadata.`);
+          result.isValid = false;
+        }
+        if (crossRefs) {
+          for (const ref of crossRefs) {
+            const needle = ref.split('/').pop()!; // check by filename presence
+            if (!content.includes(needle)) {
+              result.errors.push(`${file} should reference ${ref}`);
+              result.isValid = false;
+            }
+          }
+        }
+      }
+    }
   }
 
   private getDefaultProjectYaml(): string {

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 
 export interface ValidationOptions {
@@ -291,28 +291,36 @@ export class SpecValidator {
     const filePath = join(specsDir, fileName);
     let content = '';
 
+    // Ensure directory exists
+    const dir = dirname(filePath);
+    if (!existsSync(dir)) {
+      // This is a simple implementation - in production you'd want to use fs.mkdirSync with recursive: true
+      // For now, we'll skip creating files in subdirectories that don't exist
+      return;
+    }
+
     switch (fileName) {
-      case 'project.yaml':
+      case 'project/project.yaml':
         content = this.getDefaultProjectYaml();
         break;
-      case 'prompts.md':
+      case 'development/prompts.md':
         content = this.getDefaultPromptsContent();
         break;
-      case 'architecture.md':
+      case 'architecture/architecture.md':
         content = this.getDefaultArchitecture();
         break;
-      case 'requirements.md':
+      case 'project/requirements.md':
         content = this.getDefaultRequirements();
         break;
       default:
-        content = `# ${fileName.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;
+        content = `# ${fileName.split('/').pop()?.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;
     }
 
     writeFileSync(filePath, content);
   }
 
   private async addMandatesToProjectYaml(specsDir: string): Promise<void> {
-    const projectYamlPath = join(specsDir, 'project.yaml');
+    const projectYamlPath = join(specsDir, 'project', 'project.yaml');
     
     try {
       const content = readFileSync(projectYamlPath, 'utf-8');

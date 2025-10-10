@@ -3,7 +3,7 @@ fileID: PLAN-001
 lastUpdated: 2025-10-05
 version: 1.0
 contributors: [girishr]
-relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
+relatedFiles: [planning/roadmap.md, planning/tasks.md]
 ---
 
 # SpecPilot Project Plan (Phase 1)

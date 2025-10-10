@@ -38,24 +38,6 @@ Notes
 4. [CS-004] Add existing .specs folder detection - prevent creating new project if folder already contains .specs; alert user with project info from existing .specs files (project.yaml, requirements.md)
 5. [CS-005] Prompt for developer's name so that wherever "Your Name" appears in spec files, it will be replaced with the developer's name
 6. [CS-006] Prompt for a project description (optional) or use the value given by the user for "Describe what you want to build" as the project description in various spec files
-7. [CS-007] Create project-plan.md file in .specs folder with project timeline, milestones, and task execution dates
-8. [CS-009] Update all .specs file templates and generator logic so every generated spec file includes:
-   - A metadata header (e.g., fileID, lastUpdated, version, contributors, relatedFiles)
-   - Numbered, stable IDs for all major sections/items (e.g., REQ-001, ARCH-002, DOC-003.1)
-   - Document this convention in .specs/docs.md and validate output
-   - Examples:
-     - ## Metadata header:
-       fileID: REQ-001
-       lastUpdated: 2025-10-05
-       version: 1.0
-       contributors: [girishr]
-       relatedFiles: [project.yaml, architecture.md, api.yaml, tasks.md]
-       ***
-     - Section/item IDs:
-       ## Functional Requirements [REQ-002]
-       - Initialize project with `.specs/` structure [REQ-002.1]
-       ## Core Components [ARCH-003]
-       - CLI Parser [ARCH-003.1]
 
 ## Completed
 
@@ -85,3 +67,5 @@ Notes
 24. [CD-024] Force user to input a project name
 25. [CD-025] Remove Java support from codebase and limit to TypeScript/Python only
 26. [CD-026] Optimize .specs structure: introduce subfolders (project/, architecture/, planning/, quality/, development/), add YAML front-matter metadata and cross-references to all generated specs, update validator for new structure and metadata validation, update tests for subfolder structure - CS-008 completed
+27. [CD-027] Update all .specs file templates and generator logic so every generated spec file includes: A metadata header (e.g., fileID, lastUpdated, version, contributors, relatedFiles), Numbered, stable IDs for all major sections/items (e.g., REQ-001, ARCH-002, DOC-003.1), Document this convention in .specs/docs.md and validate output - CS-009 completed
+28. [CD-028] Create project-plan.md file in .specs folder with project timeline, milestones, and task execution dates - CS-007 completed

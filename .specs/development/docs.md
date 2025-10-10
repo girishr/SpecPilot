@@ -3,10 +3,67 @@ fileID: DOC-001
 lastUpdated: 2025-10-05
 version: 1.0
 contributors: [girishr]
-relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
+relatedFiles:
+  [
+    project/project.yaml,
+    development/context.md,
+    planning/roadmap.md,
+    planning/tasks.md,
+  ]
 ---
 
 # Development & Deployment Documentation
+
+## Specification File Conventions [DOC-001.1]
+
+### Metadata Header Format
+
+All specification files in the `.specs/` folder must include a YAML front-matter metadata header at the top of the file. This header provides essential information for tracking, versioning, and cross-referencing.
+
+**Required Fields:**
+
+- `fileID`: Unique identifier for the file (e.g., `REQ-001`, `ARCH-002`, `DOC-003`)
+- `lastUpdated`: Date of last modification in YYYY-MM-DD format
+- `version`: Semantic version number (e.g., `1.0`, `1.1.1`)
+- `contributors`: Array of contributor names (e.g., `[girishr]`)
+- `relatedFiles`: Array of related specification files using subfolder paths (e.g., `[project/project.yaml, architecture/architecture.md]`)
+
+**Example:**
+
+```yaml
+---
+fileID: REQ-001
+lastUpdated: 2025-10-05
+version: 1.0
+contributors: [girishr]
+relatedFiles:
+  [project/project.yaml, architecture/architecture.md, planning/tasks.md]
+---
+```
+
+### Stable ID Format for Sections and Items
+
+All major sections and items within specification files must have numbered, stable IDs to enable consistent referencing and tracking.
+
+**ID Format:**
+
+- **File-level IDs**: `[PREFIX-NNN]` where PREFIX is a 3-4 letter code (e.g., `REQ` for requirements, `ARCH` for architecture, `DOC` for documentation)
+- **Section-level IDs**: `[PREFIX-NNN.S]` where S is a subsection number (e.g., `REQ-001.1`, `ARCH-002.2`)
+- **Item-level IDs**: `[PREFIX-NNN.I]` where I is an item number within a section
+
+**Examples:**
+
+- File ID: `REQ-001` (Requirements file)
+- Section ID: `REQ-002` (Functional Requirements section)
+- Subsection ID: `REQ-002.1` (Specific requirement item)
+- Cross-reference: See [ARCH-003.2] for API details
+
+**Guidelines:**
+
+- IDs must be stable and not change when content is reordered
+- Use sequential numbering starting from 001
+- Reserve prefixes consistently across the project
+- Update IDs only when restructuring major sections
 
 ## Development Guidelines [DOC-002]
 
@@ -96,7 +153,7 @@ Use this template when updating specs:
 
 [How this affects the project]
 
-##### **CI/CD Integration**
+#### CI/CD Integration
 
 Future enhancement: Add automated checks in CI pipeline to validate spec completeness.
 

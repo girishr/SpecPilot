@@ -3,7 +3,7 @@ fileID: CTX-001
 lastUpdated: 2025-10-05
 version: 1.0
 contributors: [girishr]
-relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
+relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 ---
 
 # Project Context & Memory

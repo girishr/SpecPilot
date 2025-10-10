@@ -3,7 +3,7 @@ fileID: PROMPT-001
 lastUpdated: 2025-10-06
 version: 1.0
 contributors: [girishr]
-relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
+relatedFiles: [development/context.md, project/project.yaml]
 ---
 
 # Development Prompts Log

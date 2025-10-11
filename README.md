@@ -2,6 +2,47 @@
 
 A CLI tool for initializing specification-driven development projects with flexible, production-ready structures.
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+- [Description](#description)
+- [Why SpecPilot?](#why-specpilot)
+  - [The Problem with Traditional Development](#the-problem-with-traditional-development)
+  - [The SpecPilot Solution](#the-specpilot-solution)
+  - [🏗️ Analogy: Building a House](#️-analogy-building-a-house)
+  - [💡 Example: Building a Task Management App](#-example-building-a-task-management-app)
+  - [🌟 Why SDD is the Future](#-why-sdd-is-the-future)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Usage Examples](#usage-examples)
+  - [Basic Project Initialization](#basic-project-initialization)
+  - [Additional Commands](#additional-commands)
+- [Configuration](#configuration)
+  - [Global Configuration](#global-configuration)
+  - [Project Configuration](#project-configuration)
+- [Templates](#templates)
+  - [Available Templates](#available-templates)
+  - [Custom Templates](#custom-templates)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+  - [Common Issues](#common-issues)
+  - [Debug Mode](#debug-mode)
+  - [Getting Help](#getting-help)
+- [Getting Started](#getting-started)
+  - [Best Practices](#best-practices)
+- [How to Contribute](#how-to-contribute)
+- [Version History](#version-history)
+- [MIT License](#mit-license)
+- [Extended Configuration](#extended-configuration)
+  - [CI/CD Integration](#cicd-integration)
+  - [Team Collaboration](#team-collaboration)
+  - [Enterprise Integration](#enterprise-integration)
+  - [API Usage](#api-usage)
+- [Contributing](#contributing)
+  - [Development Setup](#development-setup)
+- [License](#license)
+
 ## Quick Start
 
 ```bash
@@ -70,10 +111,27 @@ cd task-manager
 
 **SpecPilot gives you a professional project foundation in seconds, so you can focus on building great features instead of figuring out folder structures.**
 
+## Prerequisites
+
+- **Node.js**: 16.0.0 or higher (18+ recommended)
+- **npm**: 8.0.0 or higher (or yarn 1.22+)
+- **Git**: For version control (recommended)
+- **Operating System**: Windows, macOS, or Linux
+
 ## Installation
 
 ```bash
 npm install -g specpilot
+```
+
+### Verify Installation
+
+```bash
+specpilot --version
+# Should output: 1.1.1 (or current version)
+
+specpilot --help
+# Shows available commands
 ```
 
 ## Usage Examples
@@ -168,17 +226,23 @@ ai-context:
 
 #### TypeScript
 
-- React
-- Express
+- **Generic**: Basic TypeScript project structure
+- **React**: React application with modern tooling
+- **Express**: REST API server setup
 
 #### Python
 
-- FastAPI
-- Django
+- **Generic**: Basic Python project structure  
+- **FastAPI**: Modern API development
+- **Django**: Web application framework
+
+> **Note**: Run `specpilot list` to see all currently available templates and their status.
 
 ### Custom Templates
 
-Create custom templates in `~/.specpilot-templates/`:
+> **Coming Soon**: Custom template support is planned for future releases. Currently, SpecPilot uses built-in templates optimized for specification-driven development.
+
+**Planned custom template structure:**
 
 ```text
 ~/.specpilot-templates/
@@ -239,10 +303,10 @@ specpilot list
 
 ```bash
 # Run with detailed error output
-specpilot --validate --verbose
+specpilot validate --verbose
 
 # Auto-fix common issues
-specpilot --validate --fix
+specpilot validate --fix
 ```
 
 #### Migration Issues
@@ -259,13 +323,13 @@ specpilot migrate --from complex --to simple --backup
 
 ```bash
 # Enable debug logging
-DEBUG=specpilot specpilot my-project
+DEBUG=specpilot specpilot init my-project
 
 # Verbose output
-specpilot my-project --verbose
+specpilot validate --verbose
 
-# Dry run (show what would be created)
-specpilot my-project --dry-run
+# Check what templates are available
+specpilot list --verbose
 ```
 
 ### Getting Help
@@ -297,9 +361,11 @@ specpilot specify --help
 
 - **Start with specifications**: Define what you're building before coding
 - **Keep prompts updated**: Log all AI interactions for future reference
-- **Validate regularly**: Use `specpilot --validate` during development
-- **Customize templates**: Adapt the structure to your team's needs
+- **Validate regularly**: Use `specpilot validate` during development
+- **Follow the subfolder structure**: Organize specs in `project/`, `architecture/`, `planning/`, `quality/`, `development/`
+- **Use stable IDs**: Reference requirements and tasks by their IDs (e.g., `REQ-001`, `TASK-002`)
 - **Version control everything**: Include `.specs/` in your git repository
+- **Update metadata**: Keep `lastUpdated` and `version` fields current in spec files
 
 ## How to Contribute
 
@@ -332,21 +398,24 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
       - run: npm install -g specpilot
-      - run: specpilot --validate --strict
+      - run: specpilot validate --verbose
 ```
 
 ### Team Collaboration
 
 ```bash
-# Initialize for team with shared templates
-specpilot team-project --lang typescript --template team-standard
+# Initialize project for team collaboration
+specpilot init team-project --lang typescript --framework react
 
-# Sync team templates
-specpilot --sync-templates --from git@github.com:company/templates.git
+# Share specs folder structure with team
+git add .specs/
+git commit -m "feat: add specification-driven development structure"
 
-# Validate against team standards
-specpilot --validate --team-rules
+# Team members can validate specs consistently
+specpilot validate --verbose
 ```
 
 ### Enterprise Integration
@@ -355,28 +424,61 @@ Your organization can wrap SpecPilot with internal tooling and templates. For no
 
 ### API Usage
 
-Programmatic API is not currently supported. Use the CLI commands documented above.
+> **Coming Soon**: Programmatic API support is planned for future releases. Currently, SpecPilot is designed as a CLI-first tool.
+
+**Planned programmatic usage:**
+```javascript
+// Future API (not yet available)
+const { initProject, validateSpecs } = require("specpilot");
+
+await initProject({
+  name: "my-project",
+  language: "typescript", 
+  framework: "react"
+});
+```
+
+For now, use the CLI commands or shell integration:
+```bash
+# Use in shell scripts
+specpilot init my-project --lang typescript --no-prompts
+specpilot validate --fix
+```
 
 ## Contributing
 
-This project follows specification-driven development. See `.specs` for contribution guidelines and development setup.
+This project follows specification-driven development principles. Please review our [`.specs/`](.specs/) folder for detailed contribution guidelines, architecture decisions, and development context.
+
+### Quick Contribution Guide
+
+1. **Read the specs**: Review [`.specs/project/requirements.md`](.specs/project/requirements.md) and [`.specs/architecture/architecture.md`](.specs/architecture/architecture.md)
+2. **Check current tasks**: See [`.specs/planning/tasks.md`](.specs/planning/tasks.md) for open issues
+3. **Follow conventions**: Use the metadata format documented in [`.specs/development/docs.md`](.specs/development/docs.md)
+4. **Update specs**: Modify relevant spec files when making changes
+5. **Validate**: Run `specpilot validate` before committing
 
 ### Development Setup
 
 ```bash
 # Clone and setup
-git clone https://github.com/specpilot/specpilot.git
-cd specpilot
+git clone https://github.com/girishr/SpecPilot.git
+cd SpecPilot
 npm install
 
 # Run in development mode
-npm run dev
+npm run dev -- init test-project --lang typescript
 
 # Run tests
 npm test
 
+# Run tests with coverage
+npm run test:coverage
+
 # Build for production
 npm run build
+
+# Test CLI locally
+node cli.js init my-test --lang python
 ```
 
 ## License

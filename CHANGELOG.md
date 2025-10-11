@@ -54,12 +54,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None (initial release)
 
+## [1.1.1] - 2025-10-11
+
+### Added
+
+- **CS-009**: Comprehensive metadata conventions and stable ID system
+- YAML front-matter metadata headers for all spec files
+- Stable ID format for sections and items (REQ-001, ARCH-002, etc.)
+- Enhanced spec validation with cross-reference checking
+- Complete `.specs/` subfolder structure (project/, architecture/, planning/, quality/, development/)
+- Comprehensive documentation in `.specs/development/docs.md`
+
+### Changed
+
+- **README**: Added table of contents, prerequisites, and improved examples
+- **Validator**: Updated to handle subfolder structure and validate metadata
+- **Templates**: Aligned with current TypeScript/Python support
+- **Documentation**: Removed references to unsupported features
+
+### Fixed
+
+- Cross-references now use correct subfolder paths
+- Validation properly detects missing files in subfolder structure
+- Command examples updated to match actual CLI interface
+
 ## [Unreleased]
 
 ### Planned
 
-- Additional language templates (Go, Rust, C#)
+- CS-006: Project description prompting and integration
+- CS-005: Developer name prompting and replacement
+- CS-004: Existing .specs folder detection
+- CS-001-003: Complete template system implementation
 - Custom template directory support
 - Interactive template creation wizard
-- CI/CD integration templates
+- Additional language templates (Go, Rust, C#)
 - Enhanced validation rules

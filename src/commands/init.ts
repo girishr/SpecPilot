@@ -61,6 +61,18 @@ export async function initCommand(name: string, options: InitOptions) {
       }
     }
     
+    // Get developer name for spec attribution
+    let developerName = 'Your Name'; // default
+    if (options.prompts) {
+      const nameResponse = await inquirer.prompt([{
+        type: 'input',
+        name: 'developerName',
+        message: 'Enter your name (for spec file attribution):',
+        default: 'Your Name'
+      }]);
+      developerName = nameResponse.developerName.trim() || 'Your Name';
+    }
+    
     // Create project directory
     const targetDir = join(options.dir, projectName);
     if (!existsSync(targetDir)) {
@@ -118,7 +130,8 @@ export async function initCommand(name: string, options: InitOptions) {
       language: options.lang,
       framework,
       targetDir,
-      specsName: options.specsName
+      specsName: options.specsName,
+      author: developerName
     });
     
     logger.success(`✅ Project "${projectName}" initialized successfully!`);

@@ -1,6 +1,6 @@
 # SpecPilot SDD CLI - Project Configuration
 # fileID: PROJ-001
-# lastUpdated: 2025-10-06
+# lastUpdated: 2025-10-11
 name: "SpecPilot SDD CLI"
 version: "1.1.1"
 language: "typescript"
@@ -22,6 +22,9 @@ rules:
   - "MANDATE: Update .specs/prompts.md with ALL AI interactions and development prompts by default"
   - "MANDATE: Maintain chronological prompt history for complete development traceability"
   - "MANDATE: Keep file metadata and footer sections current (dates, counts, status summaries)"
+  - "MANDATE: Never commit code to git unless prompted by the developer"
+  - "MANDATE: Never push to git unless prompted by the developer"
+  -
 
 ai-context:
   - "Assist with specification writing and validation"

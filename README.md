@@ -232,7 +232,7 @@ ai-context:
 
 #### Python
 
-- **Generic**: Basic Python project structure  
+- **Generic**: Basic Python project structure
 - **FastAPI**: Modern API development
 - **Django**: Web application framework
 
@@ -433,7 +433,7 @@ const { initProject, validateSpecs } = require("specpilot");
 
 await initProject({
   name: "my-project",
-  language: "typescript", 
+  language: "typescript",
   framework: "react"
 });
 ```

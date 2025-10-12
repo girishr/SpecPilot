@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2025-10-06
+lastUpdated: 2025-10-11
 version: 1.0
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
@@ -29,6 +29,7 @@ Notes
 5. [BL-005] Monitor NPM download metrics
 6. [BL-006] Set up GitHub repository with proper documentation
 7. [BL-007] Create issue templates and contribution guidelines
+8. [BL-008] Implement automatic enforcement of project mandates (git hooks for spec validation, automatic prompt logging, pre-commit checks)
 
 ## Current Sprint
 
@@ -38,6 +39,8 @@ Notes
 4. [CS-004] Add existing .specs folder detection - prevent creating new project if folder already contains .specs; alert user with project info from existing .specs files (project.yaml, requirements.md)
 5. [CS-005] Prompt for developer's name so that wherever "Your Name" appears in spec files, it will be replaced with the developer's name
 6. [CS-006] Prompt for a project description (optional) or use the value given by the user for "Describe what you want to build" as the project description in various spec files
+7. [CS-007] Create .specs/AI_GUIDE.md to help AI assistants understand the .specs folder structure and usage
+8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context
 
 ## Completed
 

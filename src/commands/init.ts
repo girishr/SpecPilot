@@ -1,8 +1,9 @@
 import { Command } from 'commander';
 import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
+import * as yaml from 'js-yaml';
 import { TemplateEngine } from '../utils/templateEngine';
 import { SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
@@ -64,6 +65,47 @@ export async function initCommand(name: string, options: InitOptions) {
     const targetDir = join(options.dir, projectName);
     if (!existsSync(targetDir)) {
       mkdirSync(targetDir, { recursive: true });
+    }
+    
+    // Check for existing .specs folder
+    const specsDir = join(targetDir, options.specsName);
+    if (existsSync(specsDir)) {
+      logger.error(`❌ Cannot initialize: ${options.specsName} folder already exists in ${targetDir}`);
+      
+      // Try to read existing project info
+      const projectYamlPath = join(specsDir, 'project', 'project.yaml');
+      const requirementsMdPath = join(specsDir, 'project', 'requirements.md');
+      
+      let projectInfo = '';
+      if (existsSync(projectYamlPath)) {
+        try {
+          const projectData = yaml.load(readFileSync(projectYamlPath, 'utf8')) as any;
+          projectInfo += `\n📋 Existing Project: ${projectData.name || 'Unknown'}`;
+          projectInfo += `\n🔖 Version: ${projectData.version || 'Unknown'}`;
+          projectInfo += `\n💻 Language: ${projectData.language || 'Unknown'}`;
+          projectInfo += `\n🏗️ Framework: ${projectData.framework || 'Unknown'}`;
+          projectInfo += `\n👤 Author: ${projectData.author || 'Unknown'}`;
+        } catch (error) {
+          projectInfo += '\n⚠️ Could not read project.yaml';
+        }
+      }
+      
+      if (existsSync(requirementsMdPath)) {
+        try {
+          const requirementsContent = readFileSync(requirementsMdPath, 'utf8');
+          const lines = requirementsContent.split('\n').slice(0, 5); // First 5 lines
+          projectInfo += `\n📝 Requirements Preview:\n${lines.join('\n')}`;
+        } catch (error) {
+          projectInfo += '\n⚠️ Could not read requirements.md';
+        }
+      }
+      
+      logger.info(chalk.yellow(projectInfo));
+      logger.info(chalk.cyan('\n💡 To continue with this project:'));
+      logger.info(`  cd ${targetDir}`);
+      logger.info(`  specpilot validate  # Check current specs`);
+      logger.info(`  # Edit ${options.specsName}/project/requirements.md`);
+      process.exit(1);
     }
     
     // Initialize template engine and spec generator

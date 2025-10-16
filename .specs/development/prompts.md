@@ -32,6 +32,7 @@ This file contains all AI-assisted development prompts and responses for the Spe
 **Session Timeline**: Multi-day implementation across October 12-16, 2025
 
 **Initial Prompts**:
+
 - "How can I add the .spec folder to an existing folder or project?"
 - "how can we add an option to the specpilot project to create .spec folder to an existing project that does not have a specpilot implemented?"
 - "I don't want to have a separate retrofit command but I want to have features of retrofit"
@@ -45,6 +46,7 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
 **AI Response & Implementation**:
 
 1. **Project Detector Utility** (`src/utils/projectDetector.ts`):
+
    - Auto-detects language/framework from `package.json`, `requirements.txt`, `setup.py`, `pyproject.toml`
    - Extracts project metadata (name, version, author, description, dependencies)
    - Identifies Node.js frameworks (React, Express, Next, Nest, Vue, Angular)
@@ -52,13 +54,15 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
    - Handles both TypeScript and JavaScript projects
 
 2. **Code Analyzer Utility** (`src/utils/codeAnalyzer.ts`):
+
    - **TODO/FIXME Parsing**: Recursively scans codebase for TODO, FIXME, HACK, NOTE comments
    - **Test Analysis**: Detects test frameworks (Jest, Mocha, Pytest, etc.), counts test cases, categorizes tests (unit/integration/e2e)
    - **Architecture Extraction**: Identifies components, directories, file types, and project structure
-   - Smart directory exclusion (node_modules, dist, .git, __pycache__, venv)
+   - Smart directory exclusion (node_modules, dist, .git, **pycache**, venv)
    - Reports line numbers and file locations for discovered items
 
 3. **Add-Specs Command** (`src/commands/add-specs.ts`):
+
    - Creates `.specs` folder in existing project directory
    - Auto-detects project type with fallback to manual input
    - Runs codebase analysis by default (skippable with `--no-analysis`)
@@ -72,19 +76,22 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
    - Options: `--lang`, `--framework`, `--no-analysis`, `--deep-analysis`, `--no-prompts`
 
 **Testing Results**:
+
 - ✅ Basic project: Successfully created `.specs` folder with auto-detection
 - ✅ TODO detection: Found 2 TODOs/FIXMEs in test project with correct line numbers
 - ✅ Auto-detection: Correctly identified TypeScript project from package.json
 - ✅ All existing unit tests pass (2/2)
 
 **Files Modified**:
+
 - `src/utils/projectDetector.ts` (NEW) - 160+ lines
-- `src/utils/codeAnalyzer.ts` (NEW) - 230+ lines  
+- `src/utils/codeAnalyzer.ts` (NEW) - 230+ lines
 - `src/commands/add-specs.ts` (NEW) - 170+ lines
 - `src/cli.ts` - Added command registration
 - `.specs/planning/tasks.md` - Moved CS-009 to completed
 
 **Command Usage**:
+
 ```bash
 # Basic usage (auto-detect and analyze)
 specpilot add-specs
@@ -100,6 +107,7 @@ specpilot add-specs --no-prompts
 ```
 
 **Future Enhancements**:
+
 - Implement `enrichSpecsWithAnalysis()` to write discovered TODOs directly into `tasks.md`
 - Add test information to `tests.md` automatically
 - Generate architecture diagrams from extracted components
@@ -116,6 +124,7 @@ specpilot add-specs --no-prompts
 **Context**: CS-005 required prompting for developer's name during project initialization and replacing "Your Name" placeholders in generated spec files.
 
 **AI Response**:
+
 - Added inquirer prompt for developer name after framework selection
 - Only prompts when interactive mode enabled (`options.prompts`)
 - Defaults to "Your Name" if empty input
@@ -124,18 +133,22 @@ specpilot add-specs --no-prompts
 - Contributors array includes developer's name
 
 **Implementation**:
+
 ```typescript
 // In src/commands/init.ts
-const nameResponse = await inquirer.prompt([{
-  type: 'input',
-  name: 'developerName',
-  message: 'Enter your name (for spec file attribution):',
-  default: 'Your Name'
-}]);
-developerName = nameResponse.developerName.trim() || 'Your Name';
+const nameResponse = await inquirer.prompt([
+  {
+    type: "input",
+    name: "developerName",
+    message: "Enter your name (for spec file attribution):",
+    default: "Your Name",
+  },
+]);
+developerName = nameResponse.developerName.trim() || "Your Name";
 ```
 
 **Files Modified**:
+
 - `src/commands/init.ts` - Added developer name prompt and parameter passing
 - `.specs/planning/tasks.md` - Moved CS-005 to completed as CD-030
 
@@ -152,6 +165,7 @@ developerName = nameResponse.developerName.trim() || 'Your Name';
 **Context**: CS-004 required preventing project initialization if `.specs` folder already exists, with informative error showing existing project details.
 
 **AI Response**:
+
 - Added check for existing `.specs` folder before project generation
 - If found, reads `project.yaml` and `requirements.md` to display project info
 - Shows helpful next steps for continuing with existing project
@@ -159,22 +173,27 @@ developerName = nameResponse.developerName.trim() || 'Your Name';
 - Gracefully handles missing or corrupted files
 
 **Implementation**:
+
 ```typescript
 const specsDir = join(targetDir, options.specsName);
 if (existsSync(specsDir)) {
-  logger.error(`❌ Cannot initialize: ${options.specsName} folder already exists`);
+  logger.error(
+    `❌ Cannot initialize: ${options.specsName} folder already exists`
+  );
   // Display project info from existing files
-  const projectData = yaml.load(readFileSync(projectYamlPath, 'utf8'));
+  const projectData = yaml.load(readFileSync(projectYamlPath, "utf8"));
   // Show name, version, language, framework, author
   process.exit(1);
 }
 ```
 
 **Files Modified**:
+
 - `src/commands/init.ts` - Added `readFileSync` and `js-yaml` imports, existing folder check
 - `.specs/planning/tasks.md` - Moved CS-004 to completed as CD-029
 
 **Error Message Example**:
+
 ```
 ❌ Cannot initialize: .specs folder already exists in /path/to/project
 
@@ -198,6 +217,7 @@ if (existsSync(specsDir)) {
 **Session Overview**: Multiple prompts related to project mandates, release process, and version management.
 
 **Key Prompts**:
+
 1. "add a mandate that tell never to commit code to git unless prompted by the developer"
 2. "is all these rules implemented to specpilot source code?"
 3. "commit the code with relevant comments"
@@ -207,25 +227,29 @@ if (existsSync(specsDir)) {
 **Context**: User wanted to enforce git operation mandates and understand the release workflow.
 
 **Mandate Updates** (`project.yaml`):
+
 - Added: "MANDATE: Never commit code to git unless prompted by the developer"
 - Added: "MANDATE: Never push to git unless prompted by the developer"
 - Updated lastUpdated to 2025-10-11
 
 **Rule Implementation Analysis**:
 Provided comprehensive analysis showing most rules are process guidelines (not code-enforced):
+
 - ❌ Automatic prompt logging - NOT implemented
-- ❌ Git operation controls - NOT implemented  
+- ❌ Git operation controls - NOT implemented
 - ❌ Pre-commit spec validation - NOT implemented
 - ✅ SDD principles - Reflected in architecture
 - ✅ Core functionality - Implemented in CLI
 
 **Release Process**:
+
 - Created GitHub release v1.1.2 via GitHub CLI
 - Published to NPM (authenticated successfully)
 - Updated version in `package.json` and `project.yaml`
 - Provided GitHub Actions workflow template for future automation
 
 **Commits**:
+
 - `0100284` - feat: add project mandates and update task tracking
 - `3134d98` - chore: bump version to 1.1.2 for release
 

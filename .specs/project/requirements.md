@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2025-10-06
+lastUpdated: 2025-10-16
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.0
+version: 1.1
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -16,11 +16,17 @@ relatedFiles:
 
 ## Functional Requirements [REQ-002]
 
-- Initialize project with `.specs/` structure [REQ-002.1]
-- Support multiple programming languages [REQ-002.2]
-- Allow custom spec folder naming [REQ-002.3]
-- Generate basic project templates [REQ-002.4]
-- Validate generated specifications [REQ-002.5]
+- Initialize new projects with `.specs/` structure [REQ-002.1]
+- Add .specs to existing projects with codebase analysis [REQ-002.2]
+- Support TypeScript and Python languages [REQ-002.3]
+- Auto-detect language/framework from project files [REQ-002.4]
+- Scan codebase for TODOs/FIXMEs with line numbers [REQ-002.5]
+- Detect and analyze test frameworks and test counts [REQ-002.6]
+- Extract architecture information (components, directories) [REQ-002.7]
+- Prompt for developer name and use in generated specs [REQ-002.8]
+- Prevent duplicate initialization with informative errors [REQ-002.9]
+- Allow custom spec folder naming [REQ-002.10]
+- Validate generated specifications with cross-reference checking [REQ-002.11]
 
 ## Non-Functional Requirements [REQ-003]
 
@@ -36,4 +42,4 @@ relatedFiles:
 
 ---
 
-_Last updated: 2025-10-06_
+*Last updated: 2025-10-16*

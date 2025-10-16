@@ -78,6 +78,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Validation properly detects missing files in subfolder structure
 - Command examples updated to match actual CLI interface
 
+## [1.1.2] - 2025-10-12
+
+### Added
+
+- **CS-004**: Existing .specs folder detection - Prevents duplicate project initialization with informative error messages
+- **CS-005**: Developer name prompting - Prompts for developer name during init and replaces "Your Name" placeholders in generated specs
+- **CS-009**: Enhanced `add-specs` command - Adds .specs folder to existing projects with intelligent codebase analysis
+- **Project Detector**: Auto-detects language/framework from package.json, requirements.txt, setup.py, pyproject.toml
+- **Code Analyzer**: Scans codebase for TODOs/FIXMEs, analyzes tests, extracts architecture information
+- **Codebase Analysis**: Automatic TODO/FIXME parsing with line numbers and file locations
+- **Test Detection**: Identifies test frameworks (Jest, Pytest, Mocha, etc.) and counts test cases
+- **Architecture Extraction**: Analyzes project structure, components, and file types
+
+### Changed
+
+- **Git Mandates**: Added project rules requiring developer prompts for all git commit/push operations
+- **Init Command**: Now prompts for developer name and displays existing project info if .specs already exists
+- **CLI Commands**: Added `add-specs` command (alias: `add`) with options for --no-analysis and --deep-analysis
+- **Project Detection**: Defaults to TypeScript for Node.js projects when language cannot be explicitly determined
+
+### Fixed
+
+- Existing project initialization now provides helpful next steps instead of silently failing
+- Developer attribution in generated spec files now uses actual developer name
+- Language detection improved for JavaScript/TypeScript projects
+
+### Technical Details
+
+- New utilities: `projectDetector.ts`, `codeAnalyzer.ts`
+- New command: `src/commands/add-specs.ts`
+- Analysis features: TODO parsing, test framework detection, component extraction
+- Smart directory exclusion: node_modules, dist, .git, __pycache__, venv
+
 ## [Unreleased]
 
 ### Planned

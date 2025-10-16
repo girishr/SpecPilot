@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2025-10-12
-version: 1.0
+version: 1.1
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
 ---
@@ -40,7 +40,9 @@ Notes
 5. [CS-005] Prompt for developer's name so that wherever "Your Name" appears in spec files, it will be replaced with the developer's name
 6. [CS-006] Prompt for a project description (optional) or use the value given by the user for "Describe what you want to build" as the project description in various spec files
 7. [CS-007] Create .specs/AI_GUIDE.md to help AI assistants understand the .specs folder structure and usage
-8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context
+8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf and Kiro.
+9. [CS-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
+10. [CS-010] Support for Javascript
 
 ## Completed
 
@@ -74,3 +76,4 @@ Notes
 28. [CD-028] Create project-plan.md file in .specs folder with project timeline, milestones, and task execution dates - CS-007 completed
 29. [CD-029] Add existing .specs folder detection - prevent creating new project if folder already contains .specs; alert user with project info from existing .specs files (project.yaml, requirements.md) - CS-004 completed
 30. [CD-030] Prompt for developer's name so that wherever "Your Name" appears in spec files, it will be replaced with the developer's name - CS-005 completed
+31. [CD-031] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects - CS-009 completed

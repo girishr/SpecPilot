@@ -6,6 +6,7 @@ import { validateCommand } from './commands/validate';
 import { migrateCommand } from './commands/migrate';
 import { listCommand } from './commands/list';
 import { specifyCommand } from './commands/specify';
+import { addSpecsCommand } from './commands/add-specs';
 
 const packageJson = require('../package.json');
 
@@ -68,6 +69,18 @@ program
   .option('--no-prompts', 'Skip interactive prompts')
   .option('-u, --update', 'Regenerate specs with new description')
   .action(specifyCommand);
+
+// Add-specs command
+program
+  .command('add-specs')
+  .alias('add')
+  .description('Add .specs folder to an existing project')
+  .option('-l, --lang <language>', 'Programming language (typescript, python)')
+  .option('-f, --framework <framework>', 'Framework (react, express, django, etc.)')
+  .option('--no-analysis', 'Skip codebase analysis')
+  .option('--deep-analysis', 'Perform thorough codebase analysis')
+  .option('--no-prompts', 'Skip interactive prompts')
+  .action(addSpecsCommand);
 
 // Parse command line arguments
 program.parse();

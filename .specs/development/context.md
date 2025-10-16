@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2025-10-05
-version: 1.0
+lastUpdated: 2025-10-16
+version: 1.1
 contributors: [girishr]
 relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 ---
@@ -10,26 +10,31 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Specification and Planning
-- **Status**: Core structure defined, ready for implementation
-- **Next Steps**: Begin Phase 1 - Project Foundation
+- **Phase**: Active Development (v1.1.2)
+- **Status**: Production-ready with continuous enhancements
+- **Recent Implementations**: CS-004, CS-005, CS-009 (Existing project support, developer attribution, codebase analysis)
+- **Next Steps**: CS-006 (project description), CS-007 (AI Guide), CS-008 (IDE settings), CS-001-003 (template system)
 
 ## Key Decisions [CTX-003]
 
-- **Structure**: Simplified 8-file `.specs/` organization [CTX-003.1]
+- **Structure**: Subfolder-organized `.specs/` with metadata headers [CTX-003.1]
 - **Language**: TypeScript with Node.js runtime [CTX-003.2]
 - **Approach**: Specification-driven development with developer freedom [CTX-003.3]
-- **Templates**: Local storage for offline operation [CTX-003.4]
-- **Validation**: Integrated into CLI commands [CTX-003.5]
+- **Templates**: Built-in templates with intelligent defaults [CTX-003.4]
+- **Validation**: Integrated with cross-reference checking [CTX-003.5]
 - **Developer Control**: Guidelines work better than prescriptions [CTX-003.6]
+- **Existing Projects**: add-specs command with codebase analysis [CTX-003.7]
+- **Git Mandates**: Require explicit developer prompts for all git operations [CTX-003.8]
 
 ## Established Patterns [CTX-004]
 
-- **File Organization**: Flat structure under `.specs/` [CTX-004.1]
+- **File Organization**: Subfolder structure under `.specs/` (project/, architecture/, planning/, quality/, development/) [CTX-004.1]
 - **Naming Convention**: Consistent kebab-case for files [CTX-004.2]
-- **Documentation**: Markdown for all specifications [CTX-004.3]
+- **Documentation**: Markdown with YAML front-matter metadata [CTX-004.3]
 - **Version Control**: Git with conventional commits [CTX-004.4]
 - **Code Style**: TypeScript strict mode with ESLint [CTX-004.5]
+- **Stable IDs**: REQ-###, ARCH-###, TASK-### format for traceability [CTX-004.6]
+- **Cross-References**: Relative paths between related spec files [CTX-004.7]
 
 ## Known Issues [CTX-005]
 
@@ -45,6 +50,10 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **AI Integration**: Prompts tracking provides valuable context [CTX-006.3]
 - **Iterative Design**: Refine structure based on actual usage [CTX-006.4]
 - **Documentation First**: Specs before code improves clarity [CTX-006.5]
+- **Existing Projects**: Detecting and analyzing existing codebases provides immediate value [CTX-006.6]
+- **Metadata Matters**: YAML front-matter enables powerful validation and cross-referencing [CTX-006.7]
+- **TODO Discovery**: Parsing existing TODOs/FIXMEs helps with task prioritization [CTX-006.8]
+- **Git Mandates**: Explicit prompts prevent accidental commits and maintain developer control [CTX-006.9]
 
 ## Development Insights [CTX-007]
 

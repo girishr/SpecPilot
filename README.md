@@ -128,7 +128,7 @@ npm install -g specpilot
 
 ```bash
 specpilot --version
-# Should output: 1.1.1 (or current version)
+# Should output: 1.1.2 (or current version)
 
 specpilot --help
 # Shows available commands
@@ -158,6 +158,12 @@ specpilot init my-project --no-prompts
 ### Additional Commands
 
 ```bash
+# Add .specs folder to an existing project
+specpilot add-specs
+specpilot add-specs --lang typescript --framework react
+specpilot add-specs --no-analysis  # Skip codebase analysis
+specpilot add-specs --no-prompts   # Non-interactive mode
+
 # Validate project specs
 specpilot validate --verbose
 specpilot validate --fix
@@ -256,10 +262,13 @@ ai-context:
 
 - **Flexible Structure**: Generates `.specs` with customizable, production-ready layout
 - **Language Support**: Templates for TypeScript and Python
+- **Existing Project Support**: Add `.specs` to existing projects with `add-specs` command
+- **Intelligent Analysis**: Auto-detect language/framework, scan TODOs/FIXMEs, analyze tests
 - **Spec Validation**: Built-in validation with optional auto-fix
 - **AI Integration**: Dedicated prompts tracking for development cycles
 - **Migration Support**: Helps transition older structures
 - **Template Listing**: Discover available language/framework combinations
+- **Developer Attribution**: Prompts for developer name and personalizes generated specs
 
 ## Project Structure
 

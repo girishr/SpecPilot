@@ -113,6 +113,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.3] - 2025-10-12
 
+### Added
+
+- **CS-010**: JavaScript language support - Added JavaScript templates and detection for Node.js projects
+- **AI Onboarding**: Added AI onboarding prompt to prompts.md for new projects
+- **CS-011**: Enhanced folder structure display - Architecture.md now shows nested directory trees instead of flat lists
+
+### Changed
+
+- **Project Detection**: Improved language detection to distinguish between TypeScript and JavaScript projects
+- **Template Engine**: Added JavaScript-specific templates alongside existing TypeScript templates
+
+### Fixed
+
+- **Architecture Display**: Folder structures now display as proper nested trees with indentation
+- **Language Support**: JavaScript projects are now properly detected and templated
+
 ## [Unreleased]
 
 ### Planned

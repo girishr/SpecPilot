@@ -43,7 +43,6 @@ Notes
 8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf and Kiro.
 9. [CS-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
 10. [CS-010] Support for Javascript
-11. [CS-011] Fix generator to use placeholder for application structure instead of hardcoded fake structure in generated architecture.md files
 
 ## Completed
 

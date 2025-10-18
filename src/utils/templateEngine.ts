@@ -8,6 +8,11 @@ export interface TemplateContext {
   framework?: string;
   author?: string;
   description?: string;
+  architecture?: {
+    components: string[];
+    directories: string; // Changed from string[]
+    fileTypes: Record<string, number>;
+  };
   [key: string]: any;
 }
 
@@ -21,12 +26,15 @@ export class TemplateEngine {
   private registerHelpers(): void {
     // Register custom Handlebars helpers
     Handlebars.registerHelper('uppercase', (str: string) => str.toUpperCase());
-    Handlebars.registerHelper('lowercase', (str: string) => str.toLowerCase());
+    Handlebars.registerHelper('lowercase', (str: string) => str.slice(1));
     Handlebars.registerHelper('capitalize', (str: string) => 
       str.charAt(0).toUpperCase() + str.slice(1)
     );
     Handlebars.registerHelper('currentDate', () => new Date().toISOString().split('T')[0]);
     Handlebars.registerHelper('currentYear', () => new Date().getFullYear());
+    Handlebars.registerHelper('join', (array: string[], separator: string) => 
+      Array.isArray(array) ? array.join(separator) : ''
+    );
   }
   
   loadTemplate(templatePath: string, name: string): void {
@@ -192,14 +200,40 @@ This document outlines the architecture and design decisions for {{projectName}}
 ## Core Components
 
 ### Application Structure
+{{#if architecture}}
+{{#if architecture.directories}}
+Based on analysis of the project structure:
 \`\`\`
-src/
-├── components/     # Reusable components
-├── services/      # Business logic
-├── utils/         # Utility functions
-├── types/         # Type definitions
-└── tests/         # Test files
+{{architecture.directories}}
 \`\`\`
+
+{{#if architecture.components}}
+**Components found**: {{join architecture.components ", "}}
+{{/if}}
+
+{{#if architecture.fileTypes}}
+**File types in project**:
+{{#each architecture.fileTypes}}
+- {{@key}}: {{this}} files
+{{/each}}
+{{/if}}
+{{else}}
+*Project structure analysis not available. Replace the placeholder below with your actual application structure.*
+
+\`\`\`text
+[ADD YOUR APPLICATION STRUCTURE TREE HERE]
+\`\`\`
+{{/if}}
+{{else}}
+*No architecture analysis available. This template was generated without project analysis.*
+
+**Application structure placeholder:**
+\`\`\`text
+[ADD YOUR APPLICATION STRUCTURE TREE HERE]
+\`\`\`
+
+*Replace the placeholder with the directories and files that represent your real application structure. Include annotations for responsibilities when helpful.*
+{{/if}}
 
 ## Design Decisions
 

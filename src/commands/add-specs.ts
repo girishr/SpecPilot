@@ -122,13 +122,9 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       targetDir: projectDir,
       specsName: '.specs',
       author: developerName,
-      description
+      description,
+      analysis: (!options.noAnalysis && analysis) ? analysis : undefined
     });
-    
-    // If analysis was performed, add additional context
-    if (analysis && !options.noAnalysis) {
-      await enrichSpecsWithAnalysis(projectDir, analysis);
-    }
     
     logger.success('✅ .specs folder created successfully!');
     logger.info(`📁 Location: ${specsDir}`);
@@ -159,8 +155,4 @@ function getFrameworksForLanguage(language: string): string[] {
   return frameworks[language] || [];
 }
 
-async function enrichSpecsWithAnalysis(projectDir: string, analysis: any): Promise<void> {
-  // TODO: Add analysis data to spec files
-  // This would append discovered TODOs to tasks.md, test info to tests.md, etc.
-  // For now, this is a placeholder for future enhancement
-}
+

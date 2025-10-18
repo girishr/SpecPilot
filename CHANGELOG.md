@@ -109,7 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New utilities: `projectDetector.ts`, `codeAnalyzer.ts`
 - New command: `src/commands/add-specs.ts`
 - Analysis features: TODO parsing, test framework detection, component extraction
-- Smart directory exclusion: node_modules, dist, .git, __pycache__, venv
+- Smart directory exclusion: node_modules, dist, .git, **pycache**, venv
 
 ## [Unreleased]
 

@@ -43,6 +43,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 ## Data Flow [ARCH-006]
 
 ### Init Command Flow [ARCH-006.1]
+
 1. User runs `specpilot init` with parameters
 2. CLI parses arguments and validates project name
 3. Checks for existing .specs folder (CS-004)
@@ -52,6 +53,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 7. Validator confirms structure integrity
 
 ### Add-Specs Command Flow [ARCH-006.2]
+
 1. User runs `specpilot add-specs` in existing project
 2. Project Detector scans for package.json, requirements.txt, etc.
 3. Auto-detects language, framework, dependencies

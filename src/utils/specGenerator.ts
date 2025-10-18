@@ -10,6 +10,22 @@ export interface SpecGeneratorOptions {
   specsName: string;
   author?: string;
   description?: string;
+  analysis?: {
+    todos: Array<{ file: string; line: number; text: string; type: string }>;
+    tests: {
+      framework?: string;
+      testFiles: string[];
+      testCount: number;
+      hasE2E: boolean;
+      hasUnit: boolean;
+      hasIntegration: boolean;
+    };
+    architecture: {
+      components: string[];
+      directories: string; // Changed from string[]
+      fileTypes: Record<string, number>;
+    };
+  };
 }
 
 export class SpecGenerator {
@@ -30,7 +46,8 @@ export class SpecGenerator {
       author: options.author || 'Your Name',
       description: options.description || `A ${options.language} project${options.framework ? ` using ${options.framework}` : ''}`,
       lastUpdated: '2025-10-05',
-      contributors: [options.author || 'Your Name']
+      contributors: [options.author || 'Your Name'],
+      architecture: options.analysis?.architecture
     };
 
     // Write spec files in correct subfolders

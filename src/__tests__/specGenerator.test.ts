@@ -68,11 +68,27 @@ describe('SpecGenerator', () => {
 
     await specGenerator.generateSpecs(options);
 
-  const promptsPath = join(testDir, '.specs', 'development', 'prompts.md');
+    const promptsPath = join(testDir, '.specs', 'development', 'prompts.md');
     const content = readFileSync(promptsPath, 'utf-8');
     
     expect(content).toContain('MANDATE');
     expect(content).toContain('AI interactions');
     expect(content).toContain('prompts.md');
+  });
+
+  test('should include application structure placeholder when analysis missing', async () => {
+    const options = {
+      projectName: 'test-project',
+      language: 'typescript',
+      targetDir: testDir,
+      specsName: '.specs'
+    };
+
+    await specGenerator.generateSpecs(options);
+
+    const architecturePath = join(testDir, '.specs', 'architecture', 'architecture.md');
+    const content = readFileSync(architecturePath, 'utf-8');
+
+    expect(content).toContain('[ADD YOUR APPLICATION STRUCTURE TREE HERE]');
   });
 });

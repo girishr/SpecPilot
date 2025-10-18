@@ -286,6 +286,18 @@ This file (prompts.md) contains ALL AI interactions for {{projectName}}. Update 
 
 **🚨 MANDATE**: Update with every AI interaction.
 
+## First-Use Onboarding Prompt
+Use the following prompt the very first time you partner with an AI agent after generating the .specs folder:
+
+~~~
+Act as the specification-driven co-pilot for this repository. We just generated the \`.specs/\` directory with SpecPilot SDD. Your job is to inspect the current codebase and fill in every \`.specs\` file with high-signal, implementation-aware details.
+- First, map the project's language, framework, major modules, and any existing tests.
+- Then propose or refine the entries for: \`project/project.yaml\`, \`project/requirements.md\`, \`architecture/architecture.md\`, \`architecture/api.yaml\`, \`planning/tasks.md\`, \`planning/roadmap.md\`, \`quality/tests.md\`, \`development/docs.md\`, \`development/context.md\`, and \`development/prompts.md\`.
+- Capture requirements, architecture decisions, API surface, test strategy, and development context so another engineer (or AI) could continue the project confidently.
+- Highlight any gaps or risks you uncover in the code.
+Use markdown where appropriate, keep IDs stable (e.g., \`REQ-001\`, \`TASK-001\`), and make sure everything is internally consistent. When you're done, summarize what changed and call out anything that needs human follow-up.
+~~~
+
 ## Cross-References
 - Context: ./context.md
 - Project config: ../project/project.yaml

@@ -30,6 +30,7 @@ Notes
 6. [BL-006] Set up GitHub repository with proper documentation
 7. [BL-007] Create issue templates and contribution guidelines
 8. [BL-008] Implement automatic enforcement of project mandates (git hooks for spec validation, automatic prompt logging, pre-commit checks)
+9. [BL-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
 
 ## Current Sprint
 
@@ -41,7 +42,7 @@ Notes
 6. [CS-006] Prompt for a project description (optional) or use the value given by the user for "Describe what you want to build" as the project description in various spec files
 7. [CS-007] Create .specs/AI_GUIDE.md to help AI assistants understand the .specs folder structure and usage
 8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf and Kiro.
-9. [CS-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
+9.
 
 ## Completed
 

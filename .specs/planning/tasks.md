@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2025-10-17
+lastUpdated: 2025-10-18
 version: 1.1
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
@@ -42,7 +42,6 @@ Notes
 7. [CS-007] Create .specs/AI_GUIDE.md to help AI assistants understand the .specs folder structure and usage
 8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf and Kiro.
 9. [CS-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
-10. [CS-010] Support for Javascript
 
 ## Completed
 
@@ -78,3 +77,4 @@ Notes
 30. [CD-030] Prompt for developer's name so that wherever "Your Name" appears in spec files, it will be replaced with the developer's name - CS-005 completed
 31. [CD-031] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects - CS-009 completed
 32. [CD-032] Fix generator to use placeholder for application structure in architecture.md output - CS-011 completed
+33. [CD-033] Add JavaScript language support with auto-detection and templates - CS-010 completed

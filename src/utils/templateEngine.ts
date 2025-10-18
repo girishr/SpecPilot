@@ -71,15 +71,19 @@ export class TemplateEngine {
     const templates: Record<string, string> = {
       // Project.yaml templates
       'typescript-project.yaml': this.getProjectYamlTemplate('typescript'),
+      'javascript-project.yaml': this.getProjectYamlTemplate('javascript'),
       'python-project.yaml': this.getProjectYamlTemplate('python'),
       
       // Architecture templates
       'typescript-architecture.md': this.getArchitectureTemplate('typescript'),
+      'javascript-architecture.md': this.getArchitectureTemplate('javascript'),
       'python-architecture.md': this.getArchitectureTemplate('python'),
       
       // Framework-specific variations
       'typescript-react-project.yaml': this.getProjectYamlTemplate('typescript', 'react'),
       'typescript-express-project.yaml': this.getProjectYamlTemplate('typescript', 'express'),
+      'javascript-react-project.yaml': this.getProjectYamlTemplate('javascript', 'react'),
+      'javascript-express-project.yaml': this.getProjectYamlTemplate('javascript', 'express'),
       'python-django-project.yaml': this.getProjectYamlTemplate('python', 'django'),
       'python-fastapi-project.yaml': this.getProjectYamlTemplate('python', 'fastapi'),
     };
@@ -139,6 +143,7 @@ team:
 # Build and Deployment
 build:
   ${language === 'typescript' ? 'command: "npm run build"' : ''}
+  ${language === 'javascript' ? 'command: "npm start"' : ''}
   ${language === 'python' ? 'command: "python -m build"' : ''}
 
 # Dependencies (framework-specific)
@@ -170,6 +175,25 @@ ${this.getDependencySection(language, framework)}`;
     - "@types/helmet"
     - "typescript"
     - "ts-node"`;
+    }
+    
+    if (language === 'javascript' && framework === 'react') {
+      return `dependencies:
+  runtime:
+    - "react"
+    - "react-dom"
+  development:
+    - "vite"`;
+    }
+    
+    if (language === 'javascript' && framework === 'express') {
+      return `dependencies:
+  runtime:
+    - "express"
+    - "cors"
+    - "helmet"
+  development:
+    - "nodemon"`;
     }
     
     return `dependencies:

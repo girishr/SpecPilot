@@ -12,7 +12,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 
 - **Phase**: Active Development (v1.1.2)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: CS-004, CS-005, CS-009, CS-011 (Existing project support, developer attribution, codebase analysis, folder structure display)
+- **Recent Implementations**: CS-004, CS-005, CS-009, CS-010, CS-011 (Existing project support, developer attribution, codebase analysis, JavaScript support, folder structure display)
 - **Next Steps**: CS-006 (project description), CS-007 (AI Guide), CS-008 (IDE settings), CS-001-003 (template system)
 
 ## Key Decisions [CTX-003]

@@ -42,4 +42,4 @@ relatedFiles:
 
 ---
 
-*Last updated: 2025-10-16*
+_Last updated: 2025-10-16_

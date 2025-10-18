@@ -19,7 +19,7 @@ export interface TestInfo {
 
 export interface ArchitectureInfo {
   components: string[];
-  directories: string[];
+  directories: string; // Changed to string (the tree as text)
   fileTypes: Record<string, number>;
 }
 
@@ -202,26 +202,26 @@ export class CodeAnalyzer {
 
   private extractArchitecture(dir: string): ArchitectureInfo {
     const components: string[] = [];
-    const directories: string[] = [];
     const fileTypes: Record<string, number> = {};
-    
-    this.scanDirectory(dir, components, directories, fileTypes);
+    const directories = this.buildDirectoryTree(dir, components, fileTypes);
     
     return {
       components: [...new Set(components)],
-      directories: directories.filter(d => !this.excludeDirs.includes(d)),
+      directories,
       fileTypes
     };
   }
 
-  private scanDirectory(
+  private buildDirectoryTree(
     dir: string,
     components: string[],
-    directories: string[],
     fileTypes: Record<string, number>,
-    depth: number = 0
-  ): void {
-    if (depth > 3) return; // Limit recursion depth
+    depth: number = 0,
+    prefix: string = ''
+  ): string {
+    let result = '';
+    
+    if (depth > 3) return result; // Limit recursion depth
     
     try {
       const items = readdirSync(dir);
@@ -234,8 +234,8 @@ export class CodeAnalyzer {
           
           if (stat.isDirectory()) {
             if (!this.excludeDirs.includes(item)) {
-              directories.push(item);
-              this.scanDirectory(fullPath, components, directories, fileTypes, depth + 1);
+              result += `${prefix}${item}/\n`;
+              result += this.buildDirectoryTree(fullPath, components, fileTypes, depth + 1, prefix + '  ');
             }
           } else {
             const ext = extname(item);
@@ -247,6 +247,8 @@ export class CodeAnalyzer {
                 components.push(item.replace(ext, ''));
               }
             }
+            // Add files to tree
+            result += `${prefix}${item}\n`;
           }
         } catch (error) {
           continue;
@@ -255,5 +257,7 @@ export class CodeAnalyzer {
     } catch (error) {
       // Skip directories that can't be read
     }
+    
+    return result;
   }
 }

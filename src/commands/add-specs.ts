@@ -48,7 +48,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     let framework = options.framework || projectInfo?.framework;
     
     // Validate language
-    const supportedLanguages = ['typescript', 'python'];
+    const supportedLanguages = ['typescript', 'javascript', 'python'];
     if (!supportedLanguages.includes(language)) {
       logger.error(`❌ Language "${language}" is not supported`);
       logger.info(`💡 Supported languages: ${supportedLanguages.join(', ')}`);

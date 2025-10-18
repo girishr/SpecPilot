@@ -97,8 +97,14 @@ export class ProjectDetector {
     if (pkg.devDependencies?.typescript || pkg.dependencies?.typescript) {
       return 'typescript';
     }
-    // Default to typescript for Node.js projects (most common case)
-    return 'typescript';
+    
+    // Check for TypeScript-specific fields or config
+    if (pkg.types || pkg.typings) {
+      return 'typescript';
+    }
+    
+    // Default to JavaScript for Node.js projects without TypeScript
+    return 'javascript';
   }
 
   private detectFramework(pkg: any): string | undefined {

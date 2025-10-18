@@ -26,7 +26,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 
 - **Template Storage**: Built-in templates for consistent generation [ARCH-004.1]
 - **Structure Flexibility**: Customizable spec folder names [ARCH-004.2]
-- **Language Support**: TypeScript and Python with framework detection [ARCH-004.3]
+- **Language Support**: TypeScript, JavaScript, and Python with framework detection [ARCH-004.3]
 - **Developer Control**: Guidelines, not prescriptions [ARCH-004.4]
 - **Existing Projects**: add-specs command with intelligent analysis [ARCH-004.5]
 - **Folder Structure Display**: Nested tree visualization instead of flat lists [ARCH-004.5.1]

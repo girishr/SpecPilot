@@ -18,7 +18,7 @@ relatedFiles:
 
 - Initialize new projects with `.specs/` structure [REQ-002.1]
 - Add .specs to existing projects with codebase analysis [REQ-002.2]
-- Support TypeScript and Python languages [REQ-002.3]
+- Support TypeScript, JavaScript, and Python languages [REQ-002.3]
 - Auto-detect language/framework from project files [REQ-002.4]
 - Scan codebase for TODOs/FIXMEs with line numbers [REQ-002.5]
 - Detect and analyze test frameworks and test counts [REQ-002.6]

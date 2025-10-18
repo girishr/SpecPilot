@@ -1,6 +1,6 @@
 # SpecPilot SDD CLI - Project Configuration
 # fileID: PROJ-001
-# lastUpdated: 2025-10-16
+# lastUpdated: 2025-10-18
 name: "SpecPilot SDD CLI"
 version: "1.1.2"
 language: "typescript"

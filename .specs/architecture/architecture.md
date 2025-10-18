@@ -1,6 +1,6 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2025-10-16
+lastUpdated: 2025-10-18
 version: 1.1
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, api.yaml, tasks.md]
@@ -20,7 +20,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
 - **Migrator**: Version migration and structure updates [ARCH-003.5]
 - **Project Detector**: Auto-detects language/framework from existing files [ARCH-003.6]
-- **Code Analyzer**: Scans codebase for TODOs, tests, and architecture [ARCH-003.7]
+- **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 
 ## Design Decisions [ARCH-004]
 
@@ -29,6 +29,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Language Support**: TypeScript and Python with framework detection [ARCH-004.3]
 - **Developer Control**: Guidelines, not prescriptions [ARCH-004.4]
 - **Existing Projects**: add-specs command with intelligent analysis [ARCH-004.5]
+- **Folder Structure Display**: Nested tree visualization instead of flat lists [ARCH-004.5.1]
 - **Metadata First**: YAML front-matter for all spec files [ARCH-004.6]
 - **Git Mandates**: Explicit prompts required for all git operations [ARCH-004.7]
 

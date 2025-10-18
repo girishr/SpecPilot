@@ -3,7 +3,7 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2025-10-16
+lastUpdated: 2025-10-18
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
 version: 1.1
@@ -23,6 +23,7 @@ relatedFiles:
 - Scan codebase for TODOs/FIXMEs with line numbers [REQ-002.5]
 - Detect and analyze test frameworks and test counts [REQ-002.6]
 - Extract architecture information (components, directories) [REQ-002.7]
+- Display folder structure as nested tree with proper indentation [REQ-002.7.1]
 - Prompt for developer name and use in generated specs [REQ-002.8]
 - Prevent duplicate initialization with informative errors [REQ-002.9]
 - Allow custom spec folder naming [REQ-002.10]
@@ -42,4 +43,4 @@ relatedFiles:
 
 ---
 
-_Last updated: 2025-10-16_
+_Last updated: 2025-10-18_

@@ -111,6 +111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Analysis features: TODO parsing, test framework detection, component extraction
 - Smart directory exclusion: node_modules, dist, .git, **pycache**, venv
 
+## [1.1.3] - 2025-10-12
+
 ## [Unreleased]
 
 ### Planned

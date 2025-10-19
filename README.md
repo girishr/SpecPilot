@@ -171,12 +171,21 @@ specpilot validate --fix
 # List available templates
 specpilot list
 
-# Migrate legacy structures (when applicable)
+# Migrate legacy structures (only if you have old .project-spec folder)
+# Note: Only use this if you're upgrading from an older SpecPilot version
 specpilot migrate --from complex --to simple --backup
 
 # Generate or update specs from a natural language description
 specpilot specify "A simple REST API for todos" --update
 ```
+
+#### When to Use Which Command
+
+- **`specpilot init <name>`** - Starting a brand new project from scratch
+- **`specpilot add-specs`** - Adding specifications to an existing codebase
+- **`specpilot migrate`** - Upgrading from old .project-spec structure (legacy)
+- **`specpilot validate`** - Checking your specs for errors
+- **`specpilot specify`** - Generating specs from natural language description
 
 > Tip: Run `specpilot --help` or `specpilot <command> --help` for full options.
 
@@ -320,13 +329,33 @@ specpilot validate --fix
 
 #### Migration Issues
 
-```bash
-# Show CLI version
-specpilot --version
+**Error: "Source structure 'complex' not found"**
 
-# Migrate legacy structure
+This means you're trying to migrate from a structure that doesn't exist in your project.
+
+```bash
+# Check what's in your project directory
+ls -la
+
+# For NEW projects, use:
+specpilot init my-project
+
+# For EXISTING projects without specs:
+specpilot add-specs
+
+# Only use migrate if you have an old .project-spec folder:
 specpilot migrate --from complex --to simple --backup
 ```
+
+**When to use migrate:**
+- You have an old `.project-spec` folder from a previous SpecPilot version
+- You're upgrading between SpecPilot structure versions
+- You need to convert between specification formats
+
+**When NOT to use migrate:**
+- Starting a new project (use `init` instead)
+- Adding specs to existing code (use `add-specs` instead)
+- Your project has no specification folder yet
 
 ### Debug Mode
 

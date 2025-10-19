@@ -20,6 +20,31 @@ export async function migrateCommand(options: MigrateOptions) {
     
     const migrator = new ProjectMigrator();
     
+    // Check if migration is actually needed
+    const migrationNeeded = await migrator.checkMigrationNeeded(options.dir, options.from, options.to);
+    
+    if (!migrationNeeded.needed) {
+      if (migrationNeeded.reason === 'no_source') {
+        logger.error(`❌ Source structure "${options.from}" not found in ${options.dir}`);
+        console.log(chalk.yellow('\n💡 When to use migrate:'));
+        console.log('  • Upgrading from old .project-spec to new .specs structure');
+        console.log('  • Converting between different specification formats\n');
+        console.log(chalk.cyan('🚀 For new projects, use:'));
+        console.log(chalk.white('  specpilot init my-project'));
+        console.log(chalk.cyan('\n📦 For existing codebases without specs:'));
+        console.log(chalk.white('  specpilot add-specs'));
+        console.log(chalk.cyan('\n📖 For help:'));
+        console.log(chalk.white('  specpilot migrate --help'));
+        process.exit(1);
+      } else if (migrationNeeded.reason === 'already_migrated') {
+        logger.info('✅ Project is already using the target structure.');
+        console.log(chalk.yellow(`\n⚠️  The "${options.to}" structure already exists.`));
+        console.log(chalk.cyan('\nNext steps:'));
+        console.log('  specpilot validate  # Validate your specs');
+        process.exit(0);
+      }
+    }
+    
     // Validate source structure exists
     const sourceExists = await migrator.validateSource(options.dir, options.from);
     if (!sourceExists) {

@@ -131,6 +131,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CS-012**: Enhanced migrate command with better error messages and guidance
+  - Added migration necessity detection to prevent confusion
+  - Provides helpful suggestions when migrate is used incorrectly
+  - Detects when target structure already exists
+  - Clear documentation on when to use init vs add-specs vs migrate
+
 ### Planned
 
 - CS-006: Project description prompting and integration

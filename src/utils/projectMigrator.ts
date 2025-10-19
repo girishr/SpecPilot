@@ -13,7 +13,42 @@ export interface MigrationResult {
   warnings: string[];
 }
 
+export interface MigrationCheck {
+  needed: boolean;
+  reason: 'no_source' | 'already_migrated' | 'ready' | string;
+  message?: string;
+}
+
 export class ProjectMigrator {
+  async checkMigrationNeeded(projectDir: string, sourceType: string, targetType: string): Promise<MigrationCheck> {
+    const sourceDir = join(projectDir, this.getSourceDirName(sourceType));
+    const targetDir = join(projectDir, this.getTargetDirName(targetType));
+    
+    // Check if source exists
+    if (!existsSync(sourceDir)) {
+      return {
+        needed: false,
+        reason: 'no_source',
+        message: `Source structure "${sourceType}" not found. The directory ${sourceDir} does not exist.`
+      };
+    }
+    
+    // Check if target already exists
+    if (existsSync(targetDir)) {
+      return {
+        needed: false,
+        reason: 'already_migrated',
+        message: `Target structure "${targetType}" already exists at ${targetDir}.`
+      };
+    }
+    
+    return {
+      needed: true,
+      reason: 'ready',
+      message: 'Migration can proceed'
+    };
+  }
+
   async validateSource(projectDir: string, sourceType: string): Promise<boolean> {
     const sourceDir = join(projectDir, this.getSourceDirName(sourceType));
     return existsSync(sourceDir);

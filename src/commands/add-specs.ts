@@ -130,15 +130,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     logger.info(`📁 Location: ${specsDir}`);
     
     // Show next steps
-    console.log(chalk.cyan('\n📖 Next steps:'));
-    console.log(`  # Review and customize your specs:`);
-    console.log(`  ${chalk.dim('cd')} .specs`);
-    console.log(`  ${chalk.dim('#')} Edit project/requirements.md`);
-    console.log(`  ${chalk.dim('#')} Update project/project.yaml`);
-    if (analysis && analysis.todos.length > 0) {
-      console.log(`  ${chalk.dim('#')} Check planning/tasks.md for discovered TODOs`);
-    }
-    console.log(`  \n  specpilot validate  ${chalk.dim('# Validate your specifications')}`);
+    console.log(chalk.cyan('\n� Next: Open .specs/README.md and follow the Quick Start steps to populate your specs with AI.'));
     
   } catch (error) {
     logger.error(`❌ Failed to add specs: ${error instanceof Error ? error.message : 'Unknown error'}`);

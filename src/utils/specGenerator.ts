@@ -424,6 +424,7 @@ When working with AI agents on this codebase:
 - Use the conventions defined in the onboarding prompt
 - Link code changes to tasks (TASK-XXX) and requirements (REQ-XXX)
 - Keep development/context.md current with architectural decisions
+- **🚨 RELEASE MANDATE**: Never commit, push, create tags, publish releases, or publish to npm without explicit user consent and approval
 
 ## Cross-References
 - Context: ./context.md

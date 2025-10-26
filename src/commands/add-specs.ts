@@ -130,7 +130,14 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     logger.info(`📁 Location: ${specsDir}`);
     
     // Show next steps
-    console.log(chalk.cyan('\n� Next: Open .specs/README.md and follow the Quick Start steps to populate your specs with AI.'));
+    console.log(chalk.cyan(`
+🚀 Next steps to populate your specs with AI:
+1. Open .specs/README.md for full guidance
+2. Copy the onboarding prompt from .specs/development/prompts.md
+3. Paste into your AI agent and run it
+4. Review the generated spec files
+
+Your project is now ready for AI-assisted development!`));
     
   } catch (error) {
     logger.error(`❌ Failed to add specs: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -139,7 +139,7 @@ export async function initCommand(name: string, options: InitOptions) {
     logger.info(`📋 Specs: ${join(targetDir, options.specsName)}`);
     
     // Show next steps
-    console.log(chalk.cyan('\n� Next: Open .specs/README.md and follow the Quick Start steps to populate your specs with AI.'));
+    console.log(chalk.cyan('\n🚀 Next: Open .specs/README.md and follow the Quick Start steps to populate your specs with AI.'));
     
   } catch (error) {
     logger.error(`❌ Failed to initialize project: ${error instanceof Error ? error.message : 'Unknown error'}`);

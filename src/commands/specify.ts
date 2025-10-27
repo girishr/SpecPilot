@@ -46,7 +46,7 @@ export async function specifyCommand(description: string | undefined, options: S
     }
 
     // Read existing project.yaml to get current context
-    const projectYamlPath = join(specsDir, 'project.yaml');
+    const projectYamlPath = join(specsDir, 'project', 'project.yaml');
     if (!existsSync(projectYamlPath)) {
       logger.error('❌ project.yaml not found. Please ensure this is a valid SDD project.');
       process.exit(1);
@@ -60,7 +60,7 @@ export async function specifyCommand(description: string | undefined, options: S
     logger.info(`🔍 Found project: ${projectName} (${language}${framework ? ` + ${framework}` : ''})`);
 
     // Update requirements.md with the new description
-    const requirementsPath = join(specsDir, 'requirements.md');
+    const requirementsPath = join(specsDir, 'project', 'requirements.md');
     if (existsSync(requirementsPath)) {
       const currentContent = readFileSync(requirementsPath, 'utf-8');
       const updatedContent = updateRequirementsWithDescription(currentContent, projectDescription, options.update);
@@ -69,7 +69,7 @@ export async function specifyCommand(description: string | undefined, options: S
     }
 
     // Update context.md with the specification
-    const contextPath = join(specsDir, 'context.md');
+    const contextPath = join(specsDir, 'development', 'context.md');
     if (existsSync(contextPath)) {
       const currentContent = readFileSync(contextPath, 'utf-8');
       const updatedContent = updateContextWithSpecification(currentContent, projectDescription);
@@ -78,7 +78,7 @@ export async function specifyCommand(description: string | undefined, options: S
     }
 
     // Update prompts.md to log this interaction
-    const promptsPath = join(specsDir, 'prompts.md');
+    const promptsPath = join(specsDir, 'development', 'prompts.md');
     if (existsSync(promptsPath)) {
       const currentContent = readFileSync(promptsPath, 'utf-8');
       const updatedContent = updatePromptsLog(currentContent, projectDescription);

@@ -131,25 +131,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+
+- CS-008: Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context
+- CS-006: Project description prompting and integration
+- Custom template directory support
+- Interactive template creation wizard
+- Additional language templates (Go, Rust, C#)
+- Enhanced validation rules
+
+## [1.2.2] - 2025-10-27
+
 ### Fixed
 
+- **Specify Command**: Fixed file path references to use correct subfolder structure
+  - Updated project.yaml path from `.specs/project.yaml` to `.specs/project/project.yaml`
+  - Updated requirements.md path to `.specs/project/requirements.md`
+  - Updated context.md path to `.specs/development/context.md`
+  - Updated prompts.md path to `.specs/development/prompts.md`
+  - Resolves "project.yaml not found" error when running specify in valid projects
 - **CS-012**: Enhanced migrate command with better error messages and guidance
   - Added migration necessity detection to prevent confusion
   - Provides helpful suggestions when migrate is used incorrectly
   - Detects when target structure already exists
   - Clear documentation on when to use init vs add-specs vs migrate
 
-### Planned
+### Changed
 
-- CS-008: Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context
-- CS-006: Project description prompting and integration
-- CS-005: Developer name prompting and replacement
-- CS-004: Existing .specs folder detection
-- CS-001-003: Complete template system implementation
-- Custom template directory support
-- Interactive template creation wizard
-- Additional language templates (Go, Rust, C#)
-- Enhanced validation rules
+- **Documentation**: Updated CHANGELOG.md with missing version entries (1.2.1, 1.2.0, 1.1.4)
+- **README**: Fixed unclosed code block causing rendering issues in documentation
 
 ## [1.2.1] - 2025-10-26
 

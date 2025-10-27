@@ -141,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Planned
 
+- CS-008: Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context
 - CS-006: Project description prompting and integration
 - CS-005: Developer name prompting and replacement
 - CS-004: Existing .specs folder detection
@@ -149,3 +150,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive template creation wizard
 - Additional language templates (Go, Rust, C#)
 - Enhanced validation rules
+
+## [1.2.1] - 2025-10-26
+
+### Added
+
+- **AI Onboarding Enhancement**: Comprehensive AI onboarding prompt in generated `.specs/prompts.md`
+- **Project Documentation**: Added `.specs/README.md` with detailed onboarding guidance for AI assistants
+- **Enhanced CLI Messages**: Improved success messages with detailed next steps and project information
+
+### Changed
+
+- **Onboarding Experience**: CLI now provides comprehensive guidance for new users and AI assistants
+- **Documentation**: Enhanced project specs with operational mandates and AI interaction guidelines
+
+### Fixed
+
+- **README.md Rendering**: Fixed unclosed code block causing rendering issues in documentation
+
+## [1.2.0] - 2025-10-26
+
+### Added
+
+- **AI Onboarding Prompt**: Standardized AI onboarding prompt added to all generated `.specs/prompts.md` files
+- **Enhanced Project Guidance**: Improved CLI success messages with detailed next steps for specification-driven development
+
+### Changed
+
+- **Onboarding Process**: Streamlined first-time user experience with comprehensive AI assistant guidance
+- **Documentation Standards**: Updated all generated specs to include AI interaction best practices
+
+## [1.1.4] - 2025-10-25
+
+### Added
+
+- **Project Onboarding Documentation**: Added `.specs/README.md` with comprehensive AI prompt guidance
+- **Enhanced AI Integration**: Improved prompts.md with standardized onboarding content for AI assistants
+
+### Changed
+
+- **CLI Success Messages**: Enhanced with detailed next steps and project structure guidance
+- **Documentation**: Improved AI assistant integration documentation
+
+## [1.1.3] - 2025-10-12

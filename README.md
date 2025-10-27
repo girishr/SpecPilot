@@ -292,8 +292,7 @@ sudo chown -R $USER ~/.npm-global
 npm config set prefix '~/.npm-global'
 ```
 
-````text
-# Configuration examples
+## Configuration examples
 
 #### Template Not Found
 
@@ -333,11 +332,13 @@ specpilot migrate --from complex --to simple --backup
 ```
 
 **When to use migrate:**
+
 - You have an old `.project-spec` folder from a previous SpecPilot version
 - You're upgrading between SpecPilot structure versions
 - You need to convert between specification formats
 
 **When NOT to use migrate:**
+
 - Starting a new project (use `init` instead)
 - Adding specs to existing code (use `add-specs` instead)
 - Your project has no specification folder yet
@@ -424,7 +425,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm install -g specpilot
       - run: specpilot validate --verbose
 ```
@@ -502,4 +503,3 @@ MIT License - see LICENSE file for details.
 ---
 
 _Built with specification-driven development principles for serious production projects._
-````

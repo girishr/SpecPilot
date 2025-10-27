@@ -128,7 +128,7 @@ npm install -g specpilot
 
 ```bash
 specpilot --version
-# Should output: 1.1.2 (or current version)
+# Should output: 1.2.1 (or current version)
 
 specpilot --help
 # Shows available commands
@@ -144,7 +144,7 @@ specpilot init my-project
 
 # Specify language and framework
 specpilot init my-project --lang typescript --framework react
-specpilot init my-project --lang typescript --framework express
+specpilot init my-project --lang javascript --framework express
 specpilot init my-project --lang python --framework fastapi
 specpilot init my-project --lang python --framework django
 
@@ -193,24 +193,13 @@ specpilot specify "A simple REST API for todos" --update
 
 ### Global Configuration
 
-Create `~/.specpilot-config.yaml` for global defaults:
+> **Note**: Global configuration file support (`~/.specpilot-config.yaml`) is not currently implemented. Configuration is done through command-line options and project-level `.specs/project/project.yaml` files.
 
-```yaml
-defaults:
-  specDir: ".specs"
-  author: "Your Name"
-  license: "MIT"
-  aiTracking: true
+**Current configuration options via CLI:**
 
-templates:
-  typescript:
-    framework: "express"
-  python:
-    framework: "fastapi"
-
-validation:
-  strict: true
-  autoFix: true
+```bash
+# Configure via command-line options
+specpilot init my-project --lang typescript --framework react --specs-name .specs
 ```
 
 ### Project Configuration
@@ -239,9 +228,9 @@ ai-context:
 
 ### Available Templates
 
-#### TypeScript
+#### TypeScript / JavaScript
 
-- **Generic**: Basic TypeScript project structure
+- **Generic**: Basic TypeScript/JavaScript project structure
 - **React**: React application with modern tooling
 - **Express**: REST API server setup
 
@@ -251,31 +240,27 @@ ai-context:
 - **FastAPI**: Modern API development
 - **Django**: Web application framework
 
-> **Note**: Run `specpilot list` to see all currently available templates and their status.
+> **Note**: SpecPilot uses built-in templates that are embedded in the code for reliability and consistency. Run `specpilot list` to see all currently available templates.
 
 ### Custom Templates
 
-> **Coming Soon**: Custom template support is planned for future releases. Currently, SpecPilot uses built-in templates optimized for specification-driven development.
+> **Note**: SpecPilot currently uses built-in templates that are embedded in the code for optimal reliability and consistency. Custom external template support is not currently implemented.
 
-**Planned custom template structure:**
+If you need different project structures, you can:
 
-```text
-~/.specpilot-templates/
-├── my-custom-template/
-│   ├── template.yaml
-│   ├── .specs/
-│   └── src/
-```
+1. Use `specpilot init` to create the base `.specs` structure
+2. Manually customize the generated files in `.specs/` to match your needs
+3. Use the built-in templates as a starting point and extend them in your project
 
 ## Features
 
 - **Flexible Structure**: Generates `.specs` with customizable, production-ready layout
-- **Language Support**: Templates for TypeScript and Python
+- **Language Support**: Built-in templates for TypeScript, JavaScript, and Python
 - **Existing Project Support**: Add `.specs` to existing projects with `add-specs` command
 - **Intelligent Analysis**: Auto-detect language/framework, scan TODOs/FIXMEs, analyze tests
 - **Spec Validation**: Built-in validation with optional auto-fix
-- **AI Integration**: Dedicated prompts tracking for development cycles
-- **Migration Support**: Helps transition older structures
+- **AI Integration**: Comprehensive AI onboarding prompt in `.specs/development/prompts.md`
+- **Migration Support**: Helps transition from legacy `.project-spec` structures with helpful error messages
 - **Template Listing**: Discover available language/framework combinations
 - **Developer Attribution**: Prompts for developer name and personalizes generated specs
 
@@ -388,17 +373,19 @@ specpilot specify --help
 
 1. **Initialize your project**: `specpilot init my-project --lang typescript`
 2. **Review the generated `.specs` structure** - This provides your flexible framework
-3. **Customize the specifications** in `.specs/project/project.yaml`
-4. **Document your architecture** in `.specs/architecture/architecture.md`
-5. **Track all development prompts** in `.specs/development/prompts.md`
-6. **Plan your work** in `.specs/planning/tasks.md` and `.specs/planning/roadmap.md`
-7. **Define tests** in `.specs/quality/tests.md`
-8. **Start building** your production code in `src/`
+3. **Use the AI onboarding prompt**: Open `.specs/development/prompts.md` and copy the comprehensive onboarding prompt to have your AI agent populate all spec files
+4. **Customize the specifications** in `.specs/project/project.yaml`
+5. **Document your architecture** in `.specs/architecture/architecture.md`
+6. **Track all development prompts** in `.specs/development/prompts.md`
+7. **Plan your work** in `.specs/planning/tasks.md` and `.specs/planning/roadmap.md`
+8. **Define tests** in `.specs/quality/tests.md`
+9. **Start building** your production code in `src/`
 
 ### Best Practices
 
 - **Start with specifications**: Define what you're building before coding
-- **Keep prompts updated**: Log all AI interactions for future reference
+- **Use the AI onboarding prompt**: Found in `.specs/development/prompts.md` to help AI agents populate your specs with project-specific details
+- **Keep prompts updated**: Log all AI interactions in `.specs/development/prompts.md` for complete traceability
 - **Validate regularly**: Use `specpilot validate` during development
 - **Follow the subfolder structure**: Organize specs in `project/`, `architecture/`, `planning/`, `quality/`, `development/`
 - **Use stable IDs**: Reference requirements and tasks by their IDs (e.g., `REQ-001`, `TASK-002`)
@@ -458,25 +445,14 @@ specpilot validate --verbose
 
 ### Enterprise Integration
 
-Your organization can wrap SpecPilot with internal tooling and templates. For now, use `specpilot list` to explore built-ins.
+> **Note**: SpecPilot is currently a CLI-first tool. Organizations can wrap SpecPilot with internal tooling and scripts. Use `specpilot list` to explore built-in templates and `specpilot --help` for available commands.
 
 ### API Usage
 
-> **Coming Soon**: Programmatic API support is planned for future releases. Currently, SpecPilot is designed as a CLI-first tool.
+> **Note**: Programmatic API support is not currently available. SpecPilot is designed as a CLI-first tool.
 
-**Planned programmatic usage:**
-```javascript
-// Future API (not yet available)
-const { initProject, validateSpecs } = require("specpilot");
+**Use in shell scripts:**
 
-await initProject({
-  name: "my-project",
-  language: "typescript",
-  framework: "react"
-});
-```
-
-For now, use the CLI commands or shell integration:
 ```bash
 # Use in shell scripts
 specpilot init my-project --lang typescript --no-prompts

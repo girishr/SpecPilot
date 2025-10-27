@@ -2,7 +2,7 @@
 
 fileID: TEMPLATE-001
 
-## InstructionslastUpdated: 2025-10-05
+## InstructionslastUpdated: 2025-10-26
 
 Use this template when updating specification files.version: 1.0
 

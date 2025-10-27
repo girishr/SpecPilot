@@ -1,6 +1,6 @@
 ---
 fileID: DOC-001
-lastUpdated: 2025-10-05
+lastUpdated: 2025-10-26
 version: 1.0
 contributors: [girishr]
 relatedFiles:
@@ -33,7 +33,7 @@ All specification files in the `.specs/` folder must include a YAML front-matter
 ```yaml
 ---
 fileID: REQ-001
-lastUpdated: 2025-10-05
+lastUpdated: 2025-10-26
 version: 1.0
 contributors: [girishr]
 relatedFiles:

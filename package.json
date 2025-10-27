@@ -30,13 +30,13 @@
     "email": "contact@specpilot.dev"
   },
   "license": "MIT",
-  "homepage": "https://github.com/specpilot/specpilot#readme",
+  "homepage": "https://github.com/girishr/SpecPilot#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/specpilot/specpilot.git"
+    "url": "https://github.com/girishr/SpecPilot.git"
   },
   "bugs": {
-    "url": "https://github.com/specpilot/specpilot/issues"
+    "url": "https://github.com/girishr/SpecPilot/issues"
   },
   "type": "commonjs",
   "files": [

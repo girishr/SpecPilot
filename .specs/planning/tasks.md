@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2025-10-18
+lastUpdated: 2025-10-26
 version: 1.1
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
@@ -34,15 +34,8 @@ Notes
 
 ## Current Sprint
 
-1. [CS-001] Implement complete template system - templates folder is currently empty, preventing project generation
-2. [CS-002] Use the templates folder to create the files for the respective spec files that will be generated
-3. [CS-003] Limit first release to TypeScript/JavaScript and Python only (removed Go and Java support)
-4. [CS-004] Add existing .specs folder detection - prevent creating new project if folder already contains .specs; alert user with project info from existing .specs files (project.yaml, requirements.md)
-5. [CS-005] Prompt for developer's name so that wherever "Your Name" appears in spec files, it will be replaced with the developer's name
-6. [CS-006] Prompt for a project description (optional) or use the value given by the user for "Describe what you want to build" as the project description in various spec files
-7. [CS-007] Create .specs/AI_GUIDE.md to help AI assistants understand the .specs folder structure and usage
-8. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf and Kiro.
-9.
+1. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf and Kiro.
+2.
 
 ## Completed
 
@@ -79,3 +72,4 @@ Notes
 31. [CD-031] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects - CS-009 completed
 32. [CD-032] Fix generator to use placeholder for application structure in architecture.md output - CS-011 completed
 33. [CD-033] Add JavaScript language support with auto-detection and templates - CS-010 completed
+34. [CD-034] Create comprehensive AI onboarding prompt in .specs/development/prompts.md to help AI assistants understand the .specs folder structure and usage - CS-007 completed via enhanced prompts.md onboarding

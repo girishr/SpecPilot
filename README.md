@@ -128,7 +128,7 @@ npm install -g specpilot
 
 ```bash
 specpilot --version
-# Should output: 1.2.1 (or current version)
+# Should output: 1.2.2 (or current version)
 
 specpilot --help
 # Shows available commands

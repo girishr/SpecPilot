@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2025-10-26
+lastUpdated: 2025-10-28
 version: 1.1
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
@@ -31,6 +31,21 @@ Notes
 7. [BL-007] Create issue templates and contribution guidelines
 8. [BL-008] Implement automatic enforcement of project mandates (git hooks for spec validation, automatic prompt logging, pre-commit checks)
 9. [BL-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
+10. [BL-010] Add security audit, compliance, and scanning features to SpecPilot
+    - 1. Add Security Spec Files
+      - Create .specs/security/ folder with:
+        -- security.md: Security requirements, threat model
+        -- vulnerabilities.yaml: Known issues tracker
+        -- compliance.yaml: Standards compliance (SOC2, GDPR, etc.)
+    - 2. Integrate Security Scanning
+      - Add commands like:
+        -- specpilot audit: Run dependency vulnerability scan
+        -- specpilot scan: Static code analysis
+        -- specpilot compliance: Check compliance requirements
+    - 3. Automated Checks
+      - Integrate with npm audit, snyk, or semgrep
+      - Add to specpilot validate command
+      - CI/CD integration for automated scanning
 
 ## Current Sprint
 

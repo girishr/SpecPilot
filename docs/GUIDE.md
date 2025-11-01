@@ -41,6 +41,7 @@ Specifications → Architecture → Code → Tests → Deployment
 ```
 
 **Key Benefits:**
+
 - **Clarity**: Everyone understands what needs to be built
 - **Consistency**: Standardized project structure across teams
 - **Quality**: Built-in validation and testing frameworks
@@ -148,6 +149,7 @@ specpilot init my-project --no-prompts
 ```
 
 **Options:**
+
 - `--lang, -l`: Language (typescript, javascript, python)
 - `--framework, -f`: Framework (react, express, fastapi, django, etc.)
 - `--prompts, -p`: Enable interactive prompts
@@ -170,6 +172,7 @@ specpilot add-specs --deep-analysis
 ```
 
 **Options:**
+
 - `--no-analysis`: Skip automatic codebase analysis
 - `--deep-analysis`: Perform comprehensive code analysis
 
@@ -189,6 +192,7 @@ specpilot validate --fix
 ```
 
 **Options:**
+
 - `--verbose, -v`: Detailed validation output
 - `--fix`: Automatically fix common issues
 
@@ -205,6 +209,7 @@ specpilot list --verbose
 ```
 
 **Options:**
+
 - `--verbose, -v`: Show detailed template information
 
 #### `specpilot migrate [options]`
@@ -217,11 +222,13 @@ specpilot migrate --from complex --to simple --backup
 ```
 
 **When to use migrate:**
+
 - You have an old `.project-spec` folder from a previous SpecPilot version
 - You're upgrading between SpecPilot structure versions
 - You need to convert between specification formats
 
 **When NOT to use migrate:**
+
 - Starting a new project (use `init` instead)
 - Adding specs to existing code (use `add-specs` instead)
 - Your project has no specification folder yet
@@ -239,6 +246,7 @@ specpilot specify --prompts
 ```
 
 **Options:**
+
 - `--update, -u`: Regenerate specifications with new context
 - `--prompts, -p`: Interactive description input
 
@@ -261,38 +269,38 @@ specpilot list --verbose
 
 ### TypeScript
 
-| Framework | Template | Description |
-|-----------|----------|-------------|
-| Generic | `typescript` | Basic TypeScript project |
-| React | `react` | React SPA with TypeScript |
-| Express | `express` | Node.js REST API with Express |
-| Next.js | `nextjs` | Full-stack Next.js application |
-| CLI | `cli` | Command-line tool |
+| Framework | Template     | Description                    |
+| --------- | ------------ | ------------------------------ |
+| Generic   | `typescript` | Basic TypeScript project       |
+| React     | `react`      | React SPA with TypeScript      |
+| Express   | `express`    | Node.js REST API with Express  |
+| Next.js   | `nextjs`     | Full-stack Next.js application |
+| CLI       | `cli`        | Command-line tool              |
 
 ### JavaScript
 
-| Framework | Template | Description |
-|-----------|----------|-------------|
-| Generic | `javascript` | Basic JavaScript project |
-| React | `react` | React SPA with JavaScript |
-| Express | `express` | Node.js REST API with Express |
-| Next.js | `nextjs` | Full-stack Next.js application |
-| CLI | `cli` | Command-line tool |
+| Framework | Template     | Description                    |
+| --------- | ------------ | ------------------------------ |
+| Generic   | `javascript` | Basic JavaScript project       |
+| React     | `react`      | React SPA with JavaScript      |
+| Express   | `express`    | Node.js REST API with Express  |
+| Next.js   | `nextjs`     | Full-stack Next.js application |
+| CLI       | `cli`        | Command-line tool              |
 
 ### Python
 
-| Framework | Template | Description |
-|-----------|----------|-------------|
-| Generic | `python` | Basic Python project |
-| FastAPI | `fastapi` | Modern REST API with FastAPI |
-| Django | `django` | Full-stack Django application |
-| Data Science | `datascience` | ML/Data Science project |
+| Framework    | Template      | Description                   |
+| ------------ | ------------- | ----------------------------- |
+| Generic      | `python`      | Basic Python project          |
+| FastAPI      | `fastapi`     | Modern REST API with FastAPI  |
+| Django       | `django`      | Full-stack Django application |
+| Data Science | `datascience` | ML/Data Science project       |
 
 ### Java (Planned)
 
-| Framework | Template | Description |
-|-----------|----------|-------------|
-| Generic | `java` | Basic Java project |
+| Framework   | Template     | Description          |
+| ----------- | ------------ | -------------------- |
+| Generic     | `java`       | Basic Java project   |
 | Spring Boot | `springboot` | Spring Boot REST API |
 
 ## Project Structure
@@ -323,25 +331,33 @@ SpecPilot generates a comprehensive `.specs/` folder structure:
 ### Key Files Explained
 
 #### `project.yaml`
+
 Central configuration file containing:
+
 - Project metadata (name, version, language, framework)
 - AI context and operational mandates
 - Cross-references to other specification files
 
 #### `requirements.md`
+
 Functional and non-functional requirements:
+
 - User stories and acceptance criteria
 - Business rules and constraints
 - Performance and security requirements
 
 #### `architecture.md`
+
 Technical architecture decisions:
+
 - System components and relationships
 - Design patterns and principles
 - Technology stack rationale
 
 #### `prompts.md` (MANDATED)
+
 Complete record of all AI interactions:
+
 - Prompts given to AI assistants
 - Responses and code generated
 - Context and reasoning
@@ -452,7 +468,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
       - run: npm install -g specpilot
       - run: specpilot validate --verbose
 ```

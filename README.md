@@ -24,13 +24,13 @@ specpilot validate
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `init <name>` | Initialize new SDD project |
-| `add-specs` | Add specs to existing project |
-| `validate` | Validate specification files |
-| `list` | Show available templates |
-| `migrate` | Migrate between spec versions |
+| Command          | Description                   |
+| ---------------- | ----------------------------- |
+| `init <name>`    | Initialize new SDD project    |
+| `add-specs`      | Add specs to existing project |
+| `validate`       | Validate specification files  |
+| `list`           | Show available templates      |
+| `migrate`        | Migrate between spec versions |
 | `specify <desc>` | Update project specifications |
 
 ### Examples
@@ -49,18 +49,21 @@ specpilot validate --fix
 ## Supported Languages & Frameworks
 
 ### TypeScript
+
 - **React**: SPA applications
 - **Express**: REST APIs
 - **Next.js**: Full-stack apps
 - **CLI**: Command-line tools
 
 ### JavaScript
+
 - **React**: SPA applications
 - **Express**: REST APIs
 - **Next.js**: Full-stack apps
 - **CLI**: Command-line tools
 
 ### Python
+
 - **FastAPI**: Modern REST APIs
 - **Django**: Full-stack applications
 - **Data Science**: ML/Data Science projects
@@ -95,23 +98,28 @@ SpecPilot requires no global configuration. Each project is self-contained with 
 ### Common Issues
 
 #### Permission Errors
+
 ```bash
 sudo chown -R $USER ~/.npm-global
 npm config set prefix '~/.npm-global'
 ```
 
 #### Template Not Found
+
 ```bash
 specpilot list --verbose
 ```
 
 #### Validation Failures
+
 ```bash
 specpilot validate --verbose --fix
 ```
 
 #### Migration Issues
+
 **Error: "Source structure 'complex' not found"**
+
 ```bash
 # For NEW projects, use:
 specpilot init my-project
@@ -124,6 +132,7 @@ specpilot migrate --from complex --to simple --backup
 ```
 
 ### Debug Mode
+
 ```bash
 DEBUG=specpilot specpilot <command>
 ```
@@ -137,6 +146,7 @@ Specifications → Architecture → Code → Tests → Deployment
 ```
 
 **Benefits:**
+
 - **Clarity**: Everyone understands what needs to be built
 - **Consistency**: Standardized structure across projects
 - **Quality**: Built-in validation and testing

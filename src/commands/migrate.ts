@@ -68,23 +68,29 @@ export async function migrateCommand(options: MigrateOptions) {
     
     logger.success('✅ Migration completed successfully!');
     
-    // Show migration summary
-    console.log(chalk.blue('\n📊 Migration Summary:'));
-    console.log(`  Files migrated: ${results.filesMigrated}`);
-    console.log(`  Files merged: ${results.filesMerged}`);
-    console.log(`  Files created: ${results.filesCreated}`);
-    
+    // Show migration summary with logo
+    const summaryContent = [
+      chalk.blue.bold('Migration Summary'),
+      '',
+      chalk.white(`Files migrated: ${results.filesMigrated}`),
+      chalk.white(`Files merged: ${results.filesMerged}`),
+      chalk.white(`Files created: ${results.filesCreated}`)
+    ];
+
     if (results.warnings.length > 0) {
-      console.log(chalk.yellow('\n⚠️  Warnings:'));
+      summaryContent.push('');
+      summaryContent.push(chalk.yellow('⚠️  Warnings:'));
       results.warnings.forEach((warning: string) => {
-        console.log(chalk.yellow(`  • ${warning}`));
+        summaryContent.push(chalk.yellow(`  • ${warning}`));
       });
     }
-    
-    // Show next steps
-    console.log(chalk.cyan('\n📖 Next steps:'));
-    console.log('  specpilot validate  # Validate migrated structure');
-    console.log('  # Review .specs/ files and update as needed');
+
+    summaryContent.push('');
+    summaryContent.push(chalk.cyan('📖 Next steps:'));
+    summaryContent.push(chalk.white('  specpilot validate  # Validate migrated structure'));
+    summaryContent.push(chalk.white('  # Review .specs/ files and update as needed'));
+
+    logger.displayWithLogo(summaryContent);
     
   } catch (error) {
     logger.error(`❌ Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

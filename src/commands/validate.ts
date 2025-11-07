@@ -24,39 +24,52 @@ export async function validateCommand(options: ValidateOptions) {
     });
     
     if (results.isValid) {
-      logger.success('✅ All specifications are valid!');
       if (results.warnings.length > 0) {
-        console.log(chalk.yellow('\n⚠️  Warnings:'));
-        results.warnings.forEach(warning => {
-          console.log(chalk.yellow(`  • ${warning}`));
-        });
+        logger.displayValidationResults(true, [], results.warnings, options.verbose ? {
+          filesChecked: results.filesChecked,
+          errors: results.errors.length,
+          warnings: results.warnings.length,
+          mandatesVerified: results.mandatesVerified
+        } : undefined);
+      } else {
+        logger.displayValidationResults(true, [], [], options.verbose ? {
+          filesChecked: results.filesChecked,
+          errors: results.errors.length,
+          warnings: results.warnings.length,
+          mandatesVerified: results.mandatesVerified
+        } : undefined);
       }
     } else {
-      logger.error('❌ Validation failed!');
-      console.log(chalk.red('\n🚫 Errors:'));
-      results.errors.forEach(error => {
-        console.log(chalk.red(`  • ${error}`));
-      });
-      
       if (options.fix && results.fixable.length > 0) {
         console.log(chalk.blue('\n🔧 Auto-fixing issues...'));
         const fixed = await validator.autoFix(options.dir, results.fixable);
         console.log(chalk.green(`✅ Fixed ${fixed.length} issues`));
+        
+        // Re-validate after fixing
+        const reResults = await validator.validate(options.dir, {
+          fix: false,
+          verbose: options.verbose
+        });
+        
+        logger.displayValidationResults(reResults.isValid, reResults.errors, reResults.warnings, options.verbose ? {
+          filesChecked: reResults.filesChecked,
+          errors: reResults.errors.length,
+          warnings: reResults.warnings.length,
+          mandatesVerified: reResults.mandatesVerified
+        } : undefined);
+      } else {
+        logger.displayValidationResults(false, results.errors, results.warnings, options.verbose ? {
+          filesChecked: results.filesChecked,
+          errors: results.errors.length,
+          warnings: results.warnings.length,
+          mandatesVerified: results.mandatesVerified
+        } : undefined);
+        process.exit(1);
       }
-      
-      process.exit(1);
-    }
-    
-    if (options.verbose) {
-      console.log(chalk.blue('\n📊 Validation Summary:'));
-      console.log(`  Files checked: ${results.filesChecked}`);
-      console.log(`  Errors: ${results.errors.length}`);
-      console.log(`  Warnings: ${results.warnings.length}`);
-      console.log(`  Mandates verified: ${results.mandatesVerified}`);
     }
     
   } catch (error) {
-    logger.error(`❌ Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.displayError('Validation Failed', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }

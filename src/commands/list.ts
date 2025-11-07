@@ -12,45 +12,18 @@ export async function listCommand(options: ListOptions) {
   const logger = new Logger();
   
   try {
-    logger.info('📋 Available Templates:');
-    
     const registry = new TemplateRegistry();
     const templates = await registry.getTemplates(options.lang);
     
     if (templates.length === 0) {
-      logger.warn('⚠️  No templates found');
+      logger.displayInfo('No Templates Found', '⚠️  No templates found matching your criteria');
       return;
     }
     
-    // Group templates by language
-    const grouped = templates.reduce((acc, template) => {
-      if (!acc[template.language]) {
-        acc[template.language] = [];
-      }
-      acc[template.language].push(template);
-      return acc;
-    }, {} as Record<string, typeof templates>);
-    
-    Object.entries(grouped).forEach(([language, langTemplates]) => {
-      console.log(chalk.blue(`\n📦 ${language.toUpperCase()}`));
-      
-      langTemplates.forEach(template => {
-        const name = template.framework ? 
-          `${template.name} (${template.framework})` : 
-          template.name;
-        
-        if (options.verbose) {
-          console.log(chalk.green(`  ✓ ${name}`));
-          console.log(chalk.gray(`    Description: ${template.description}`));
-          console.log(chalk.gray(`    Files: ${template.files.join(', ')}`));
-        } else {
-          console.log(chalk.green(`  ✓ ${name} - ${template.description}`));
-        }
-      });
-    });
+    logger.displayTemplates(templates, options.verbose);
     
   } catch (error) {
-    logger.error(`❌ Failed to list templates: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.displayError('Failed to List Templates', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }

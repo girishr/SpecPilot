@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
+import chalk from 'chalk';
 import { initCommand } from './commands/init';
 import { validateCommand } from './commands/validate';
 import { migrateCommand } from './commands/migrate';
 import { listCommand } from './commands/list';
 import { specifyCommand } from './commands/specify';
 import { addSpecsCommand } from './commands/add-specs';
+import { Logger } from './utils/logger';
 
 const packageJson = require('../package.json');
 
@@ -83,4 +85,14 @@ program
   .action(addSpecsCommand);
 
 // Parse command line arguments
+const args = process.argv.slice(2);
+
+// If no arguments provided, show welcome message
+if (args.length === 0) {
+  const logger = new Logger();
+  logger.displayWelcome();
+  console.log('\n' + chalk.gray('Use --help to see all available commands'));
+  process.exit(0);
+}
+
 program.parse();

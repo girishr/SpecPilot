@@ -22,6 +22,17 @@ specpilot add-specs
 specpilot validate
 ```
 
+### 🚀 Next Steps to Populate Your Specs with AI
+
+After creating a project, follow these steps to populate your specifications using AI:
+
+1. **Open the generated guide**: Check `.specs/README.md` for full guidance
+2. **Copy the onboarding prompt**: Use the prompt from `.specs/development/prompts.md`
+3. **Paste into your AI agent**: ChatGPT, Claude, or other AI assistants
+4. **Review generated spec files**: Examine the AI-generated requirements and architecture
+
+This AI-assisted approach ensures comprehensive, high-quality specifications tailored to your project needs.
+
 ## Commands
 
 | Command          | Description                   |

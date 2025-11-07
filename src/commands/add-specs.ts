@@ -129,15 +129,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     logger.success('✅ .specs folder created successfully!');
     logger.info(`📁 Location: ${specsDir}`);
     
-    // Show next steps
-    console.log(chalk.cyan(`
-🚀 Next steps to populate your specs with AI:
-1. Open .specs/README.md for full guidance
-2. Copy the onboarding prompt from .specs/development/prompts.md
-3. Paste into your AI agent and run it
-4. Review the generated spec files
-
-Your project is now ready for AI-assisted development!`));
+    // Show next steps with logo
+    logger.displayInitSuccess(projectInfo?.name || 'Project', projectDir, specsDir);
     
   } catch (error) {
     logger.error(`❌ Failed to add specs: ${error instanceof Error ? error.message : 'Unknown error'}`);

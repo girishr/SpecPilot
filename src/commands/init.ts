@@ -20,12 +20,9 @@ export async function initCommand(name: string, options: InitOptions) {
   const logger = new Logger();
   
   try {
-    logger.info('🚀 Initializing SDD project...');
-    
     // Validate project name
     if (!name || name.trim() === '') {
-      logger.error('❌ Project name is required and cannot be empty');
-      logger.info('💡 Usage: specpilot init <project-name>');
+      logger.displayError('Invalid Project Name', 'Project name is required and cannot be empty\n\n💡 Usage: specpilot init <project-name>');
       process.exit(1);
     }
     
@@ -33,16 +30,14 @@ export async function initCommand(name: string, options: InitOptions) {
     
     // Validate project name doesn't contain invalid characters
     if (/[<>:"/\\|?*]/.test(projectName)) {
-      logger.error('❌ Project name contains invalid characters: < > : " / \\ | ? *');
-      logger.info('💡 Please use only letters, numbers, hyphens, and underscores');
+      logger.displayError('Invalid Project Name', 'Project name contains invalid characters: < > : " / \\ | ? *\n\n💡 Please use only letters, numbers, hyphens, and underscores');
       process.exit(1);
     }
     
     // Validate supported language
     const supportedLanguages = ['typescript', 'javascript', 'python'];
     if (!supportedLanguages.includes(options.lang)) {
-      logger.error(`❌ Language "${options.lang}" is not supported`);
-      logger.info(`💡 Supported languages: ${supportedLanguages.join(', ')}`);
+      logger.displayError('Unsupported Language', `Language "${options.lang}" is not supported\n\n💡 Supported languages: ${supportedLanguages.join(', ')}`);
       process.exit(1);
     }
     
@@ -51,6 +46,19 @@ export async function initCommand(name: string, options: InitOptions) {
     if (!framework && options.prompts) {
       const frameworks = getFrameworksForLanguage(options.lang);
       if (frameworks.length > 0) {
+        // Display logo before framework selection
+        const frameworkPromptContent = [
+          chalk.blue('🚀 Initializing SDD project...'),
+          '',
+          chalk.blue.bold('Framework Selection'),
+          '',
+          chalk.white(`Project: ${projectName}`),
+          chalk.white(`Language: ${options.lang}`),
+          '',
+          chalk.cyan('Please choose a framework for your project:')
+        ];
+        logger.displayWithLogo(frameworkPromptContent);
+        
         const response = await inquirer.prompt([{
           type: 'list',
           name: 'framework',
@@ -82,23 +90,23 @@ export async function initCommand(name: string, options: InitOptions) {
     // Check for existing .specs folder
     const specsDir = join(targetDir, options.specsName);
     if (existsSync(specsDir)) {
-      logger.error(`❌ Cannot initialize: ${options.specsName} folder already exists in ${targetDir}`);
-      
       // Try to read existing project info
       const projectYamlPath = join(specsDir, 'project', 'project.yaml');
       const requirementsMdPath = join(specsDir, 'project', 'requirements.md');
       
-      let projectInfo = '';
+      let projectInfo = `Project "${projectName}" already exists at ${targetDir}`;
+      
       if (existsSync(projectYamlPath)) {
         try {
           const projectData = yaml.load(readFileSync(projectYamlPath, 'utf8')) as any;
-          projectInfo += `\n📋 Existing Project: ${projectData.name || 'Unknown'}`;
-          projectInfo += `\n🔖 Version: ${projectData.version || 'Unknown'}`;
-          projectInfo += `\n💻 Language: ${projectData.language || 'Unknown'}`;
-          projectInfo += `\n🏗️ Framework: ${projectData.framework || 'Unknown'}`;
-          projectInfo += `\n👤 Author: ${projectData.author || 'Unknown'}`;
+          projectInfo += `\n\n📋 Existing Project Details:`;
+          projectInfo += `\n  Name: ${projectData.name || 'Unknown'}`;
+          projectInfo += `\n  Version: ${projectData.version || 'Unknown'}`;
+          projectInfo += `\n  Language: ${projectData.language || 'Unknown'}`;
+          projectInfo += `\n  Framework: ${projectData.framework || 'Unknown'}`;
+          projectInfo += `\n  Author: ${projectData.author || 'Unknown'}`;
         } catch (error) {
-          projectInfo += '\n⚠️ Could not read project.yaml';
+          projectInfo += '\n\n⚠️ Could not read project.yaml';
         }
       }
       
@@ -106,17 +114,26 @@ export async function initCommand(name: string, options: InitOptions) {
         try {
           const requirementsContent = readFileSync(requirementsMdPath, 'utf8');
           const lines = requirementsContent.split('\n').slice(0, 5); // First 5 lines
-          projectInfo += `\n📝 Requirements Preview:\n${lines.join('\n')}`;
+          projectInfo += `\n\n📝 Requirements Preview:\n${lines.map(line => `  ${line}`).join('\n')}`;
         } catch (error) {
-          projectInfo += '\n⚠️ Could not read requirements.md';
+          projectInfo += '\n\n⚠️ Could not read requirements.md';
         }
       }
       
-      logger.info(chalk.yellow(projectInfo));
-      logger.info(chalk.cyan('\n💡 To continue with this project:'));
-      logger.info(`  cd ${targetDir}`);
-      logger.info(`  specpilot validate  # Check current specs`);
-      logger.info(`  # Edit ${options.specsName}/project/requirements.md`);
+      const existingProjectContent = [
+        chalk.blue('🚀 Initializing SDD project...'),
+        '',
+        chalk.red.bold('Project Already Exists'),
+        '',
+        chalk.yellow(projectInfo),
+        '',
+        chalk.cyan('💡 To continue with this project:'),
+        chalk.white(`  cd ${targetDir}`),
+        chalk.white('  specpilot validate  # Check current specs'),
+        chalk.white(`  # Edit ${options.specsName}/project/requirements.md`)
+      ];
+      
+      logger.displayWithLogo(existingProjectContent);
       process.exit(1);
     }
     
@@ -134,22 +151,11 @@ export async function initCommand(name: string, options: InitOptions) {
       author: developerName
     });
     
-    logger.success(`✅ Project "${projectName}" initialized successfully!`);
-    logger.info(`📁 Location: ${targetDir}`);
-    logger.info(`📋 Specs: ${join(targetDir, options.specsName)}`);
-    
-    // Show next steps
-    console.log(chalk.cyan(`
-🚀 Next steps to populate your specs with AI:
-1. Open .specs/README.md for full guidance
-2. Copy the onboarding prompt from .specs/development/prompts.md
-3. Paste into your AI agent and run it
-4. Review the generated spec files
-
-Your project is now ready for AI-assisted development!`));
+    // Show success with logo (includes initialization message and all details)
+    logger.displayInitSuccess(projectName, targetDir, join(targetDir, options.specsName));
     
   } catch (error) {
-    logger.error(`❌ Failed to initialize project: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.displayError('Initialization Failed', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
 }

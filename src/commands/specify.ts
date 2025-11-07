@@ -109,11 +109,21 @@ export async function specifyCommand(description: string | undefined, options: S
     logger.info(`📁 Specs location: ${specsDir}`);
     logger.info(`📋 Description: "${projectDescription}"`);
 
-    // Show next steps
-    console.log(chalk.cyan('\n📖 Next steps:'));
-    console.log(`  # Review updated specifications in ${options.specsName}/`);
-    console.log(`  specpilot validate  # Validate your specifications`);
-    console.log(`  # Continue development based on the updated requirements`);
+    // Show next steps with logo
+    const nextStepsContent = [
+      chalk.blue.bold('Specification Processed'),
+      '',
+      chalk.green('✅ Successfully updated project specifications'),
+      chalk.white(`📁 Location: ${specsDir}`),
+      chalk.white(`📋 Description: "${projectDescription}"`),
+      '',
+      chalk.cyan('📖 Next steps:'),
+      chalk.white(`  # Review updated specifications in ${options.specsName}/`),
+      chalk.white('  specpilot validate  # Validate your specifications'),
+      chalk.white('  # Continue development based on the updated requirements')
+    ];
+
+    logger.displayWithLogo(nextStepsContent);
 
   } catch (error) {
     logger.error(`❌ Failed to process specification: ${error instanceof Error ? error.message : 'Unknown error'}`);

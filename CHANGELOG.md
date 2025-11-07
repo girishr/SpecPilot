@@ -5,7 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-09-21
+## [1.3.0] - 2025-11-07
+
+### Added
+
+- **Gemini-Style Graphical CLI Interface**: Complete visual overhaul with ASCII art logos
+  - Added `blessed` dependency for advanced terminal UI capabilities
+  - Implemented comprehensive logo display system in `logger.ts`
+  - Added ASCII art SpecPilot logo with vertical layout for professional presentation
+  - Integrated logos across all CLI commands (init, validate, list, migrate, specify, add-specs)
+  - Strategic logo placement before prompts and results for enhanced user experience
+
+### Changed
+
+- **CLI User Experience**: Upgraded from basic text output to branded, graphical interface
+  - All commands now display SpecPilot logo before key interactions
+  - Improved visual consistency across the entire CLI application
+  - Enhanced professional appearance similar to Gemini Code interface
+
+### Fixed
+
+- **Package.json Formatting**: Added missing newline at end of file for proper formatting
+
+## [1.2.2] - 2025-10-27
 
 ### Added
 

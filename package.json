@@ -33,7 +33,7 @@
   "homepage": "https://github.com/girishr/SpecPilot#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/girishr/SpecPilot.git"
+    "url": "git+https://github.com/girishr/SpecPilot.git"
   },
   "bugs": {
     "url": "https://github.com/girishr/SpecPilot/issues"

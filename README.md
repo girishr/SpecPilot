@@ -1,6 +1,6 @@
 # SpecPilot
 
-[![npm version](https://badge.fury.io/js/specpilot.svg)](https://badge.fury.io/js/specpilot)
+[![npm version](https://img.shields.io/npm/v/specpilot.svg)](https://www.npmjs.com/package/specpilot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A CLI tool for initializing specification-driven development projects with flexible, production-ready structures.

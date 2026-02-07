@@ -104,6 +104,36 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
 
 SpecPilot requires no global configuration. Each project is self-contained with settings in `project.yaml`.
 
+### IDE Workspace Settings
+
+SpecPilot generates IDE-specific workspace settings during project initialization. When you run `specpilot init`, you'll be prompted to select your AI IDE:
+
+**Supported IDEs:**
+- **VSCode** - Industry standard with Copilot integration
+- **Cursor** - AI-first code editor with enhanced AI context
+- **Windsurf** - Advanced AI coding assistant
+- **Kiro** - Specialized AI development environment
+- **Antigravity** - AI-powered IDE with context awareness
+
+**Generated Configuration Files:**
+- `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
+- IDE-specific workspace folder setup for code + .specs
+- Extensions recommendations for development
+- AI context configuration for better spec integration
+
+The generated settings automatically configure your IDE to:
+- Include `.specs/` folder in AI context
+- Enable markdown and YAML formatting
+- Configure workspace folders for source code and specifications
+- Integrate with your preferred AI assistant
+
+**Example:**
+```bash
+# During init, you'll be prompted to select your IDE
+specpilot init my-project --lang typescript --framework react
+# Respond with your preferred IDE (vscode, cursor, windsurf, kiro, antigravity)
+```
+
 ## Troubleshooting
 
 ### Common Issues

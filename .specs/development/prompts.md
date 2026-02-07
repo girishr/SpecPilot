@@ -49,7 +49,6 @@ Instead of just adding a placeholder, implement proper folder structure analysis
 **AI Response & Implementation**:
 
 1. **Enhanced Code Analyzer** (`src/utils/codeAnalyzer.ts`):
-
    - Changed `ArchitectureInfo.directories` from `string[]` to `string` (formatted tree text)
    - Replaced flat directory listing with recursive `buildDirectoryTree()` method
    - Added proper indentation (2 spaces) for nested folder display
@@ -57,20 +56,17 @@ Instead of just adding a placeholder, implement proper folder structure analysis
    - Maintained file type counting and component extraction
 
 2. **Updated Template Engine** (`src/utils/templateEngine.ts`):
-
    - Modified `TemplateContext` interface to expect `directories: string`
    - Updated architecture template to display `{{architecture.directories}}` directly
    - Removed complex Handlebars helpers in favor of pre-formatted text
    - Maintained fallback to placeholder when no analysis available
 
 3. **Type System Updates**:
-
    - Updated `SpecGeneratorOptions` interface in `specGenerator.ts`
    - Ensured type consistency across all analysis and generation code
    - Added proper TypeScript compilation checks
 
 4. **Test Coverage** (`src/__tests__/specGenerator.test.ts`):
-
    - Added test case for placeholder behavior when analysis is missing
    - Verified architecture.md contains placeholder text in appropriate scenarios
    - Maintained existing test coverage for all generation scenarios
@@ -128,7 +124,6 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
 **AI Response & Implementation**:
 
 1. **Project Detector Utility** (`src/utils/projectDetector.ts`):
-
    - Auto-detects language/framework from `package.json`, `requirements.txt`, `setup.py`, `pyproject.toml`
    - Extracts project metadata (name, version, author, description, dependencies)
    - Identifies Node.js frameworks (React, Express, Next, Nest, Vue, Angular)
@@ -136,7 +131,6 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
    - Handles both TypeScript and JavaScript projects
 
 2. **Code Analyzer Utility** (`src/utils/codeAnalyzer.ts`):
-
    - **TODO/FIXME Parsing**: Recursively scans codebase for TODO, FIXME, HACK, NOTE comments
    - **Test Analysis**: Detects test frameworks (Jest, Mocha, Pytest, etc.), counts test cases, categorizes tests (unit/integration/e2e)
    - **Architecture Extraction**: Identifies components, directories, file types, and project structure
@@ -144,7 +138,6 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
    - Reports line numbers and file locations for discovered items
 
 3. **Add-Specs Command** (`src/commands/add-specs.ts`):
-
    - Creates `.specs` folder in existing project directory
    - Auto-detects project type with fallback to manual input
    - Runs codebase analysis by default (skippable with `--no-analysis`)
@@ -260,7 +253,7 @@ developerName = nameResponse.developerName.trim() || "Your Name";
 const specsDir = join(targetDir, options.specsName);
 if (existsSync(specsDir)) {
   logger.error(
-    `❌ Cannot initialize: ${options.specsName} folder already exists`
+    `❌ Cannot initialize: ${options.specsName} folder already exists`,
   );
   // Display project info from existing files
   const projectData = yaml.load(readFileSync(projectYamlPath, "utf8"));

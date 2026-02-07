@@ -81,6 +81,18 @@ export async function initCommand(name: string, options: InitOptions) {
       developerName = nameResponse.developerName.trim() || 'Your Name';
     }
     
+    // Get IDE preference for workspace settings
+    let ide = 'vscode'; // default
+    if (options.prompts) {
+      const ideResponse = await inquirer.prompt([{
+        type: 'list',
+        name: 'ide',
+        message: 'Select your AI IDE for SpecPilot context:',
+        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', 'Kiro']
+      }]);
+      ide = ideResponse.ide;
+    }
+    
     // Create project directory
     const targetDir = join(options.dir, projectName);
     if (!existsSync(targetDir)) {
@@ -148,7 +160,8 @@ export async function initCommand(name: string, options: InitOptions) {
       framework,
       targetDir,
       specsName: options.specsName,
-      author: developerName
+      author: developerName,
+      ide
     });
     
     // Show success with logo (includes initialization message and all details)

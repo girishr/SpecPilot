@@ -10,6 +10,7 @@ export interface SpecGeneratorOptions {
   specsName: string;
   author?: string;
   description?: string;
+  ide?: string;
   analysis?: {
     todos: Array<{ file: string; line: number; text: string; type: string }>;
     tests: {
@@ -94,7 +95,8 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
       description: options.description || `A ${options.language} project${options.framework ? ` using ${options.framework}` : ''}`,
       lastUpdated: '2025-10-05',
       contributors: [options.author || 'Your Name'],
-      architecture: options.analysis?.architecture
+      architecture: options.analysis?.architecture,
+      ide: options.ide || 'vscode'
     };
 
     // Generate README.md first
@@ -109,10 +111,13 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
     await this.generateRoadmapMd(join(specsDir, 'planning'), context);
     await this.generateDocsMd(join(specsDir, 'development'), context);
     await this.generateContextMd(join(specsDir, 'development'), context);
-  await this.generateProjectPlanMd(join(specsDir, 'project'), context);
+    await this.generateProjectPlanMd(join(specsDir, 'project'), context);
     await this.generatePromptsMd(join(specsDir, 'development'), context);
     await this.generateTestsMd(join(specsDir, 'quality'), context);
     await this.generateSpecUpdateTemplateMd(specsDir, context);
+    
+    // Generate IDE workspace settings (.vscode/settings.json in project root)
+    await this.generateVSCodeSettings(options.targetDir, context);
   }
   
   private async generateProjectYaml(specsDir: string, context: TemplateContext): Promise<void> {
@@ -509,5 +514,155 @@ This template provides a standardized format for updating specification files wi
     
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'spec-update-template.md'), rendered);
+  }
+
+  private async generateVSCodeSettings(projectDir: string, context: TemplateContext): Promise<void> {
+    const vscodeDir = join(projectDir, '.vscode');
+    mkdirSync(vscodeDir, { recursive: true });
+
+    // VSCode workspace settings with Plan agent integration for SpecPilot context
+    const settings = {
+      // AI agent context settings for Plan mode
+      'chat.agent.enabled': true,
+      'chat.contextAware': true,
+      'chat.includeWorkspaceContext': true,
+      
+      // Configure AI to understand .specs folder structure
+      'prompt.fileContext': ['.specs/**'],
+      'search.exclude': {
+        '**/.specs/*': false // Ensure .specs is searchable for AI agents
+      },
+
+      // Workspace folders configuration
+      'workspace.folders': [
+        {
+          path: '.',
+          name: context.projectName
+        },
+        {
+          path: '.specs',
+          name: `${context.projectName} - Specifications`
+        }
+      ],
+
+      // Markdown and spec file settings
+      '[markdown]': {
+        'editor.wordWrap': 'on',
+        'editor.defaultFormatter': 'esbenp.prettier-vscode'
+      },
+      '[yaml]': {
+        'editor.insertSpaces': true,
+        'editor.tabSize': 2
+      },
+
+      // YAML validation for spec files
+      'yaml.validate': true,
+      'yaml.schemas': {
+        'https://json.schemastore.org/github-workflow.json': '.github/workflows/*.{yml,yaml}',
+        '.specs/**/project.yaml': true
+      },
+
+      // Files to exclude from general search but include for AI
+      'files.exclude': {
+        '**/.git': true,
+        '**/node_modules': true,
+        '**/__pycache__': true
+      },
+
+      // AI assistant recommendations
+      'extensions.recommendations': [
+        'esbenp.prettier-vscode',
+        'redhat.vscode-yaml',
+        'github.copilot'
+      ]
+    };
+
+    // Add Plan agent-specific comment explaining .specs integration
+    const settingsWithComment = `{
+  // SpecPilot AI IDE Configuration
+  // This file configures VS Code to work effectively with SpecPilot specs
+  
+  // For Plan agents: The .specs folder structure is configured as a workspace folder
+  // and included in AI context. Refer to .specs/development/prompts.md for AI guidelines.
+  
+  // Configure AI agent context for SpecPilot specifications
+  "chat.agent.enabled": true,
+  "chat.contextAware": true,
+  "chat.includeWorkspaceContext": true,
+  
+  // Include .specs in AI context for better suggestions
+  "prompt.fileContext": [".specs/**"],
+  
+  // Ensure .specs folder is searchable for AI agents
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Workspace folders - main project + specifications
+  "workspace.folders": [
+    {
+      "path": ".",
+      "name": "${context.projectName}"
+    },
+    {
+      "path": ".specs",
+      "name": "${context.projectName} - Specifications"
+    }
+  ],
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, etc.)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+    ".specs/**/project.yaml": true
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  },
+
+  // Recommended extensions for SpecPilot development
+  "extensions.recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot"
+  ],
+
+  // Note: For full AI onboarding instructions, see .specs/development/prompts.md
+  // Copy the "First-Use Onboarding Prompt" and paste into your AI agent to populate specs
+}`;
+
+    writeFileSync(join(vscodeDir, 'settings.json'), settingsWithComment);
+
+    // Also generate extensions.json with workspace recommendations
+    const extensions = {
+      recommendations: [
+        'esbenp.prettier-vscode',
+        'redhat.vscode-yaml',
+        'github.copilot',
+        'ms-vscode.vscode-typescript-next'
+      ],
+      unwantedRecommendations: []
+    };
+
+    writeFileSync(
+      join(vscodeDir, 'extensions.json'),
+      JSON.stringify(extensions, null, 2)
+    );
   }
 }

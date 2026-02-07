@@ -8,6 +8,7 @@ export interface TemplateContext {
   framework?: string;
   author?: string;
   description?: string;
+  ide?: string;
   architecture?: {
     components: string[];
     directories: string; // Changed from string[]

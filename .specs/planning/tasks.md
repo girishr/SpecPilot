@@ -49,7 +49,7 @@ Notes
 
 ## Current Sprint
 
-1. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf, Antigravity and Kiro. ✅ VSCode implementation completed | 🔄 Cursor implementation in progress
+1. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf, Antigravity and Kiro. ✅ VSCode implementation completed | ✅ Cursor implementation completed | ✅ Windsurf implementation completed | ✅ Antigravity implementation completed | ✅ Kiro implementation completed
 2.
 
 ## Completed

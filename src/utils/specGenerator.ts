@@ -785,20 +785,295 @@ This template provides a standardized format for updating specification files wi
   }
 
   private async generateWindsurfSettings(projectDir: string, context: TemplateContext): Promise<void> {
-    // Placeholder for Windsurf IDE settings
-    // To be implemented when full Windsurf support is added
-    console.log('Windsurf IDE settings generation - coming soon');
+    const windsurfDir = join(projectDir, '.windsurf');
+    mkdirSync(windsurfDir, { recursive: true });
+
+    // Windsurf workspace settings with AI context integration for SpecPilot context
+    const settingsWithComment = `{
+  // SpecPilot AI IDE Configuration for Windsurf
+  // This file configures Windsurf to work effectively with SpecPilot specs
+  
+  // For Windsurf AI: The .specs folder structure is configured for AI context
+  // and included in AI suggestions. Refer to .specs/development/prompts.md for AI guidelines.
+  
+  // Configure Windsurf AI context for SpecPilot specifications
+  "chat.agent.enabled": true,
+  "chat.contextAware": true,
+  "chat.includeWorkspaceContext": true,
+  
+  // Include .specs in AI context for better suggestions
+  "prompt.fileContext": [".specs/**"],
+  
+  // Ensure .specs folder is searchable for Windsurf AI
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Workspace folders - main project + specifications
+  "workspace.folders": [
+    {
+      "path": ".",
+      "name": "${context.projectName}"
+    },
+    {
+      "path": ".specs",
+      "name": "${context.projectName} - Specifications"
+    }
+  ],
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, etc.)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+    ".specs/**/project.yaml": true
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  },
+
+  // Windsurf-specific AI settings
+  "windsurf.aiContext.enabled": true,
+  "windsurf.specs.integration": true,
+  "windsurf.codeCompletion.contextAware": true,
+
+  // Recommended extensions for SpecPilot development
+  "extensions.recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot"
+  ],
+
+  // Note: For full AI onboarding instructions, see .specs/development/prompts.md
+  // Copy the "First-Use Onboarding Prompt" and paste into Windsurf's AI chat to populate specs
+}`;
+
+    writeFileSync(join(windsurfDir, 'settings.json'), settingsWithComment);
+
+    // Generate extensions.json for Windsurf
+    const extensions = {
+      recommendations: [
+        'esbenp.prettier-vscode',
+        'redhat.vscode-yaml',
+        'github.copilot',
+        'ms-vscode.vscode-typescript-next'
+      ],
+      unwantedRecommendations: []
+    };
+
+    writeFileSync(
+      join(windsurfDir, 'extensions.json'),
+      JSON.stringify(extensions, null, 2)
+    );
   }
 
   private async generateKiroSettings(projectDir: string, context: TemplateContext): Promise<void> {
-    // Placeholder for Kiro IDE settings
-    // To be implemented when full Kiro support is added
-    console.log('Kiro IDE settings generation - coming soon');
+    const kiroDir = join(projectDir, '.kiro');
+    mkdirSync(kiroDir, { recursive: true });
+
+    // Kiro workspace settings with AI context integration for SpecPilot context
+    const settingsWithComment = `{
+  // SpecPilot AI IDE Configuration for Kiro
+  // This file configures Kiro to work effectively with SpecPilot specs
+  
+  // For Kiro AI: The .specs folder structure is configured for AI context
+  // and included in AI suggestions. Refer to .specs/development/prompts.md for AI guidelines.
+  
+  // Configure Kiro AI context for SpecPilot specifications
+  "chat.agent.enabled": true,
+  "chat.contextAware": true,
+  "chat.includeWorkspaceContext": true,
+  
+  // Include .specs in AI context for better suggestions
+  "prompt.fileContext": [".specs/**"],
+  
+  // Ensure .specs folder is searchable for Kiro AI
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Workspace folders - main project + specifications
+  "workspace.folders": [
+    {
+      "path": ".",
+      "name": "${context.projectName}"
+    },
+    {
+      "path": ".specs",
+      "name": "${context.projectName} - Specifications"
+    }
+  ],
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, etc.)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+    ".specs/**/project.yaml": true
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  },
+
+  // Kiro-specific AI settings
+  "kiro.ai.contextAware": true,
+  "kiro.specs.enabled": true,
+
+  // Recommended extensions for SpecPilot development
+  "extensions.recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot"
+  ],
+
+  // Note: For full AI onboarding instructions, see .specs/development/prompts.md
+  // Copy the "First-Use Onboarding Prompt" and paste into Kiro's AI chat to populate specs
+}`;
+
+    writeFileSync(join(kiroDir, 'settings.json'), settingsWithComment);
+
+    // Generate extensions.json for Kiro
+    const extensions = {
+      recommendations: [
+        'esbenp.prettier-vscode',
+        'redhat.vscode-yaml',
+        'github.copilot',
+        'ms-vscode.vscode-typescript-next'
+      ],
+      unwantedRecommendations: []
+    };
+
+    writeFileSync(
+      join(kiroDir, 'extensions.json'),
+      JSON.stringify(extensions, null, 2)
+    );
   }
 
   private async generateAntigravitySettings(projectDir: string, context: TemplateContext): Promise<void> {
-    // Placeholder for Antigravity IDE settings
-    // To be implemented when full Antigravity support is added
-    console.log('Antigravity IDE settings generation - coming soon');
+    const antigravityDir = join(projectDir, '.antigravity');
+    mkdirSync(antigravityDir, { recursive: true });
+
+    // Antigravity workspace settings with AI context integration for SpecPilot context
+    const settingsWithComment = `{
+  // SpecPilot AI IDE Configuration for Antigravity
+  // This file configures Antigravity to work effectively with SpecPilot specs
+  
+  // For Antigravity AI: The .specs folder structure is configured for AI context
+  // and included in AI suggestions. Refer to .specs/development/prompts.md for AI guidelines.
+  
+  // Configure Antigravity AI context for SpecPilot specifications
+  "chat.agent.enabled": true,
+  "chat.contextAware": true,
+  "chat.includeWorkspaceContext": true,
+  
+  // Include .specs in AI context for better suggestions
+  "prompt.fileContext": [".specs/**"],
+  
+  // Ensure .specs folder is searchable for Antigravity AI
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Workspace folders - main project + specifications
+  "workspace.folders": [
+    {
+      "path": ".",
+      "name": "${context.projectName}"
+    },
+    {
+      "path": ".specs",
+      "name": "${context.projectName} - Specifications"
+    }
+  ],
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, etc.)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+    ".specs/**/project.yaml": true
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  },
+
+  // Antigravity-specific AI settings
+  "antigravity.ai.enabled": true,
+  "antigravity.contextual": true,
+  "antigravity.specs.integration": true,
+
+  // Recommended extensions for SpecPilot development
+  "extensions.recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot"
+  ],
+
+  // Note: For full AI onboarding instructions, see .specs/development/prompts.md
+  // Copy the "First-Use Onboarding Prompt" and paste into Antigravity's AI chat to populate specs
+}`;
+
+    writeFileSync(join(antigravityDir, 'settings.json'), settingsWithComment);
+
+    // Generate extensions.json for Antigravity
+    const extensions = {
+      recommendations: [
+        'esbenp.prettier-vscode',
+        'redhat.vscode-yaml',
+        'github.copilot',
+        'ms-vscode.vscode-typescript-next'
+      ],
+      unwantedRecommendations: []
+    };
+
+    writeFileSync(
+      join(antigravityDir, 'extensions.json'),
+      JSON.stringify(extensions, null, 2)
+    );
   }
 }

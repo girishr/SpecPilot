@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-02-07
+
+### Added
+
+- **IDE Workspace Settings Generation** (CS-008): Complete support for 5 AI-first code editors
+  - VSCode configuration with Copilot integration settings
+  - Cursor IDE settings with cursor-specific AI context configuration
+  - Windsurf IDE workspace settings with windsurf-specific AI features
+  - Kiro IDE configuration with kiro-specific context awareness
+  - Antigravity IDE settings with antigravity-specific AI integration
+  - IDE selection prompt during project initialization
+  - Automatic generation of IDE-specific workspace folders for code and .specs
+  - IDE-specific `extensions.json` with workspace recommendations
+  - Workspace folder configuration for seamless .specs integration in AI context
+
+### Changed
+
+- Enhanced project initialization to prompt user for preferred AI IDE
+- Improved spec generator with IDE-specific configuration routing
+
 ## [1.3.0] - 2025-11-07
 
 ### Added

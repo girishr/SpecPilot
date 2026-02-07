@@ -116,8 +116,8 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
     await this.generateTestsMd(join(specsDir, 'quality'), context);
     await this.generateSpecUpdateTemplateMd(specsDir, context);
     
-    // Generate IDE workspace settings (.vscode/settings.json in project root)
-    await this.generateVSCodeSettings(options.targetDir, context);
+    // Generate IDE workspace settings based on selected IDE
+    await this.generateIDESettings(options.targetDir, context, options.ide || 'vscode');
   }
   
   private async generateProjectYaml(specsDir: string, context: TemplateContext): Promise<void> {
@@ -664,5 +664,141 @@ This template provides a standardized format for updating specification files wi
       join(vscodeDir, 'extensions.json'),
       JSON.stringify(extensions, null, 2)
     );
+  }
+
+  private async generateIDESettings(projectDir: string, context: TemplateContext, ide: string): Promise<void> {
+    switch (ide.toLowerCase()) {
+      case 'cursor':
+        await this.generateCursorSettings(projectDir, context);
+        break;
+      case 'windsurf':
+        await this.generateWindsurfSettings(projectDir, context);
+        break;
+      case 'kiro':
+        await this.generateKiroSettings(projectDir, context);
+        break;
+      case 'antigravity':
+        await this.generateAntigravitySettings(projectDir, context);
+        break;
+      case 'vscode':
+      default:
+        await this.generateVSCodeSettings(projectDir, context);
+        break;
+    }
+  }
+
+  private async generateCursorSettings(projectDir: string, context: TemplateContext): Promise<void> {
+    const cursorDir = join(projectDir, '.cursor');
+    mkdirSync(cursorDir, { recursive: true });
+
+    // Cursor workspace settings with AI context integration for SpecPilot context
+    const settingsWithComment = `{
+  // SpecPilot AI IDE Configuration for Cursor
+  // This file configures Cursor to work effectively with SpecPilot specs
+  
+  // For Cursor AI: The .specs folder structure is configured for AI context
+  // and included in AI suggestions. Refer to .specs/development/prompts.md for AI guidelines.
+  
+  // Configure Cursor AI context for SpecPilot specifications
+  "chat.agent.enabled": true,
+  "chat.contextAware": true,
+  "chat.includeWorkspaceContext": true,
+  
+  // Include .specs in AI context for better suggestions
+  "prompt.fileContext": [".specs/**"],
+  
+  // Ensure .specs folder is searchable for Cursor AI
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Workspace folders - main project + specifications
+  "workspace.folders": [
+    {
+      "path": ".",
+      "name": "${context.projectName}"
+    },
+    {
+      "path": ".specs",
+      "name": "${context.projectName} - Specifications"
+    }
+  ],
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, etc.)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
+    ".specs/**/project.yaml": true
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  },
+
+  // Cursor-specific AI settings
+  "cursor.aiAccess": true,
+  "cursor.enableAIContext": true,
+
+  // Recommended extensions for SpecPilot development
+  "extensions.recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot"
+  ],
+
+  // Note: For full AI onboarding instructions, see .specs/development/prompts.md
+  // Copy the "First-Use Onboarding Prompt" and paste into Cursor's AI chat to populate specs
+}`;
+
+    writeFileSync(join(cursorDir, 'settings.json'), settingsWithComment);
+
+    // Generate extensions.json for Cursor
+    const extensions = {
+      recommendations: [
+        'esbenp.prettier-vscode',
+        'redhat.vscode-yaml',
+        'github.copilot',
+        'ms-vscode.vscode-typescript-next'
+      ],
+      unwantedRecommendations: []
+    };
+
+    writeFileSync(
+      join(cursorDir, 'extensions.json'),
+      JSON.stringify(extensions, null, 2)
+    );
+  }
+
+  private async generateWindsurfSettings(projectDir: string, context: TemplateContext): Promise<void> {
+    // Placeholder for Windsurf IDE settings
+    // To be implemented when full Windsurf support is added
+    console.log('Windsurf IDE settings generation - coming soon');
+  }
+
+  private async generateKiroSettings(projectDir: string, context: TemplateContext): Promise<void> {
+    // Placeholder for Kiro IDE settings
+    // To be implemented when full Kiro support is added
+    console.log('Kiro IDE settings generation - coming soon');
+  }
+
+  private async generateAntigravitySettings(projectDir: string, context: TemplateContext): Promise<void> {
+    // Placeholder for Antigravity IDE settings
+    // To be implemented when full Antigravity support is added
+    console.log('Antigravity IDE settings generation - coming soon');
   }
 }

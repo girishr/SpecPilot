@@ -12,7 +12,9 @@ This file contains all AI-assisted development prompts and responses for the Spe
 
 ## Latest Entries [PROMPT-002]
 
-- CS-011: Fix Generator for Application Structure Display (October 18, 2025) [PROMPT-002.0]
+- CS-008: IDE Workspace Settings - Cursor Implementation (February 7, 2026) [PROMPT-002.0]
+- CS-008: IDE Workspace Settings - VSCode Implementation (February 7, 2026) [PROMPT-002.0.1]
+- CS-011: Fix Generator for Application Structure Display (October 18, 2025) [PROMPT-002.0.2]
 - CS-009: Enhanced add-specs Command Implementation (October 12-16, 2025) [PROMPT-002.1]
 - CS-005: Developer Name Prompt Implementation (October 12, 2025) [PROMPT-002.0.1]
 - CS-004: Existing .specs Folder Detection (October 12, 2025) [PROMPT-002.0.2]

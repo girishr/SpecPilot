@@ -81,14 +81,14 @@ export async function initCommand(name: string, options: InitOptions) {
       developerName = nameResponse.developerName.trim() || 'Your Name';
     }
     
-    // Get IDE preference for workspace settings
+    // Get IDE/Agent preference for context configuration
     let ide = 'vscode'; // default
     if (options.prompts) {
       const ideResponse = await inquirer.prompt([{
         type: 'list',
         name: 'ide',
-        message: 'Select your AI IDE for SpecPilot context:',
-        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', 'Kiro']
+        message: 'Select your AI IDE/Agent for SpecPilot context:',
+        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', 'Kiro', 'Cowork', 'Codex']
       }]);
       ide = ideResponse.ide;
     }

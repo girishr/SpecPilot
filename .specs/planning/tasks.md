@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2025-10-28
-version: 1.1
+lastUpdated: 2026-02-08
+version: 1.4
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
 ---
@@ -49,8 +49,8 @@ Notes
 
 ## Current Sprint
 
-1. [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf, Antigravity and Kiro. ✅ VSCode implementation completed | ✅ Cursor implementation completed | ✅ Windsurf implementation completed | ✅ Antigravity implementation completed | ✅ Kiro implementation completed
-2.
+1. [CS-012] Plan and implement next major features (template enhancements, performance optimizations)
+2. [CS-013] Gather community feedback and refine existing features based on user experience
 
 ## Completed
 
@@ -88,3 +88,7 @@ Notes
 32. [CD-032] Fix generator to use placeholder for application structure in architecture.md output - CS-011 completed
 33. [CD-033] Add JavaScript language support with auto-detection and templates - CS-010 completed
 34. [CD-034] Create comprehensive AI onboarding prompt in .specs/development/prompts.md to help AI assistants understand the .specs folder structure and usage - CS-007 completed via enhanced prompts.md onboarding
+35. [CD-035] [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf, Antigravity and Kiro. ✅ VSCode implementation completed | ✅ Cursor implementation completed | ✅ Windsurf implementation completed | ✅ Antigravity implementation completed | ✅ Kiro implementation completed
+36. [CD-036] Implement Gemini-style graphical CLI interface with ASCII art logos using blessed library - v1.3.0 completed
+37. [CD-038] Complete multi-IDE workspace settings generation (VSCode, Cursor, Windsurf, Kiro, Antigravity) - v1.4.0 completed
+38. [CD-039] [CS-009] Add cloud-based AI agent integration for Cowork (Claude) and Codex (OpenAI). Generate `.claude/skills/specpilot-project/SKILL.md` for Cowork with project context and development guidelines. Generate `CODEX_INSTRUCTIONS.md` at project root for Codex with architecture overview and development mandates. Add Cowork and Codex as IDE/agent options during `specpilot init` - v1.4.0 completed

@@ -125,6 +125,9 @@ rules:
   - "MANDATE: Update .specs/prompts.md with ALL AI interactions and development prompts by default"
   - "MANDATE: Maintain chronological prompt history for complete development traceability"
   - "MANDATE: Keep file metadata and footer sections current (dates, counts, status summaries)"
+  - "MANDATE: Never commit code to git unless prompted by the developer. Always ask the developer"
+  - "MANDATE: Never push to git unless prompted by the developer. Always ask the developer"
+  - "MANDATE: Never publish to npm unless prompted by the developer. Always ask the developer"
   - "Use semantic versioning for releases"
   - "Keep dependencies up to date"
 

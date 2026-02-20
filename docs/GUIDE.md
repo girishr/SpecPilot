@@ -388,6 +388,42 @@ contributors: [developer-name]
 
 SpecPilot currently does not support custom templates. All templates are built-in and maintained by the SpecPilot team.
 
+### IDE & Agent Configuration
+
+During project initialization, SpecPilot prompts you to select your AI IDE or agent. This configures automatically generated files to integrate `.specs/` context into your chosen environment.
+
+**Desktop IDEs** generate workspace settings:
+- `.vscode/settings.json` for VSCode
+- `.cursor/settings.json` for Cursor
+- `.windsurf/settings.json` for Windsurf
+- `.kiro/settings.json` for Kiro
+- `.antigravity/settings.json` for Antigravity
+
+These files include:
+- Workspace folder configuration
+- File associations for markdown/YAML
+- Extensions recommendations
+- AI context paths pointing to `.specs/` folder
+
+**Cloud Agents** generate instruction files:
+- `.claude/skills/specpilot-project/SKILL.md` for Cowork (Claude)
+  - Provides project context in Skills format
+  - Includes SDD principles and development guidelines
+  - Links to onboarding prompts and key reference files
+
+- `CODEX_INSTRUCTIONS.md` for Codex (OpenAI)
+  - Provides project overview and architecture guidance
+  - Includes development mandates and best practices
+  - Links to `.specs/` folder structure and key files
+
+**To reconfigure your IDE/Agent:**
+Simply run `specpilot init` again with the `--ide` flag:
+```bash
+specpilot init my-project --lang typescript --framework react --ide cursor
+```
+
+Supported values: `vscode`, `cursor`, `windsurf`, `kiro`, `antigravity`, `cowork`, `codex`
+
 ## Troubleshooting
 
 ### Common Issues

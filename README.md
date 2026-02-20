@@ -104,11 +104,11 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
 
 SpecPilot requires no global configuration. Each project is self-contained with settings in `project.yaml`.
 
-### IDE Workspace Settings
+### IDE & Agent Support
 
-SpecPilot generates IDE-specific workspace settings during project initialization. When you run `specpilot init`, you'll be prompted to select your AI IDE:
+SpecPilot generates AI agent configuration files during project initialization. When you run `specpilot init`, you'll be prompted to select your AI IDE/Agent:
 
-**Supported IDEs:**
+**Desktop IDEs (Workspace Settings):**
 
 - **VSCode** - Industry standard with Copilot integration
 - **Cursor** - AI-first code editor with enhanced AI context
@@ -116,26 +116,37 @@ SpecPilot generates IDE-specific workspace settings during project initializatio
 - **Kiro** - Specialized AI development environment
 - **Antigravity** - AI-powered IDE with context awareness
 
+**Cloud-Based AI Agents (Instruction Files):**
+
+- **Cowork** - Anthropic Claude agent with Skills framework
+- **Codex** - OpenAI Codex agent with instruction context
+
 **Generated Configuration Files:**
 
-- `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
+For desktop IDEs: `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
 - IDE-specific workspace folder setup for code + .specs
 - Extensions recommendations for development
 - AI context configuration for better spec integration
 
-The generated settings automatically configure your IDE to:
+For cloud agents:
+- **Cowork**: `.claude/skills/specpilot-project/SKILL.md` with project context and development guidelines
+- **Codex**: `CODEX_INSTRUCTIONS.md` at project root with architecture overview and mandates
+
+The generated settings/instructions automatically configure your AI agent to:
 
 - Include `.specs/` folder in AI context
-- Enable markdown and YAML formatting
-- Configure workspace folders for source code and specifications
-- Integrate with your preferred AI assistant
+- Understand project structure and requirements
+- Follow specification-driven development principles
+- Access development guidelines and onboarding prompts
 
 **Example:**
 
 ```bash
-# During init, you'll be prompted to select your IDE
+# During init, you'll be prompted to select your IDE/Agent
 specpilot init my-project --lang typescript --framework react
-# Respond with your preferred IDE (vscode, cursor, windsurf, kiro, antigravity)
+# Respond with your preferred IDE/Agent:
+# - vscode, cursor, windsurf, kiro, antigravity (desktop)
+# - cowork, codex (cloud agents)
 ```
 
 ## Troubleshooting

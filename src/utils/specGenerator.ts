@@ -356,6 +356,7 @@ You are onboarding as the specification co-pilot for this repository. We just in
 5. **YAML**: Use proper indentation (2 spaces), include all required fields
 6. **Markdown**: Use ATX headers (#), fenced code blocks, and consistent formatting
 7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS. The directory structure is IMMUTABLE.
 
 **File Structure Standards:**
 
@@ -429,6 +430,7 @@ When working with AI agents on this codebase:
 - Use the conventions defined in the onboarding prompt
 - Link code changes to tasks (TASK-XXX) and requirements (REQ-XXX)
 - Keep development/context.md current with architectural decisions
+- **🚨 MANDATE**: Never modify the .specs folder structure or file names - only update file contents
 - **🚨 RELEASE MANDATE**: Never commit, push, create tags, publish releases, or publish to npm without explicit user consent and approval
 
 ## Cross-References
@@ -1121,6 +1123,7 @@ The project uses Specification-Driven Development (SDD). All context lives in th
 # Always follow these mandates:
 - Update .specs/ files when making changes
 - Maintain .specs/ as single source of truth
+- Never modify .specs/ folder structure or file names
 - Document decisions in context.md
 - Update prompts.md with AI interactions
 - Follow stable ID conventions (REQ-###, TASK-###, ARCH-###)
@@ -1221,6 +1224,17 @@ Use stable ID conventions for traceability:
 - **TEST-###**: Test cases
 
 Zero-pad numbers: REQ-001, REQ-042, etc.
+
+### Mandate: Preserve .specs Folder Structure
+**The .specs/ folder structure is IMMUTABLE and must never be altered.**
+- ❌ Do NOT rename files or folders
+- ❌ Do NOT move files between subfolders
+- ❌ Do NOT delete files or folders
+- ❌ Do NOT change file extensions
+- ✅ DO update file CONTENTS and add sections
+- ✅ DO add metadata headers and cross-references
+
+The stable structure ensures AI agents can reliably locate specifications and automation tools function correctly.
 
 ### Mandate: No Git Operations Without Approval
 **Never commit, push, or publish without explicit user approval.**

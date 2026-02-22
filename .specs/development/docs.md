@@ -1,7 +1,7 @@
 ---
 fileID: DOC-001
-lastUpdated: 2025-10-26
-version: 1.0
+lastUpdated: 2026-02-20
+version: 1.1
 contributors: [girishr]
 relatedFiles:
   [
@@ -87,8 +87,45 @@ All major sections and items within specification files must have numbered, stab
 8. **Review**: Self-review before pushing changes
 9. **Documentation**: Update specs as code evolves
 10. **MANDATE: Track ALL AI Prompts**: Update `.specs/prompts.md` with every AI interaction, including timestamps and context
+11. **MANDATE: Preserve .specs Folder Structure**: Never modify the directory structure or file names of the `.specs/` folder. All core spec files (project.yaml, requirements.md, architecture.md, etc.) and subfolders (project/, planning/, development/, quality/) are IMMUTABLE in structure. Only update file CONTENTS, not structure or naming
 
 ### Spec Update Mandate & Enforcement
+
+#### **MANDATE: .specs Folder Structure Integrity** [DOC-002.1]
+
+The `.specs/` folder structure is IMMUTABLE and must not be altered. This includes:
+
+**Protected Structure**:
+
+- Subfolder hierarchy: `project/`, `planning/`, `development/`, `quality/`, `architecture/`, `analysis/` (as defined)
+- Core file names: `project.yaml`, `requirements.md`, `architecture.md`, `api.yaml`, `tests.md`, `context.md`, `docs.md`, `prompts.md`, `tasks.md`
+- All existing files and directories
+
+**What IS Allowed**:
+
+- ✅ Update file CONTENTS
+- ✅ Add metadata headers to existing files
+- ✅ Add new sections within existing files
+- ✅ Expand or refine existing content
+
+**What IS NOT Allowed**:
+
+- ❌ Rename existing files or folders
+- ❌ Move files between subfolders
+- ❌ Delete files or folders
+- ❌ Change file extensions
+- ❌ Create alternative naming conventions
+- ❌ Restructure the subfolder hierarchy
+
+**Rationale**: The consistent, predictable structure ensures:
+
+1. AI agents can reliably locate specifications
+2. Automation and tooling depend on stable paths
+3. Cross-references and links remain valid
+4. Project context preservation is guaranteed
+5. New developers immediately understand organization
+
+**Enforcement**: Any PRs or commits that modify the `.specs/` folder structure will be rejected. Structure preservation is non-negotiable.
 
 #### **MANDATE: .specs Folder Updates**
 

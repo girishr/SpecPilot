@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-02-08
-version: 1.4
+lastUpdated: 2026-02-20
+version: 1.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
 ---
@@ -46,6 +46,49 @@ Notes
       - Integrate with npm audit, snyk, or semgrep
       - Add to specpilot validate command
       - CI/CD integration for automated scanning
+11. [BL-011] CLI Rule Selector - Core Infrastructure
+    - Allow users to choose which development mandates and constraints to include during project initialization
+    - Interactive CLI prompts for rule selection
+    - Save selections to .specs/project.yaml
+    - Support non-interactive mode with config files
+12. [BL-012] Code Quality Rules Configuration
+    - Make TypeScript strict mode level selectable
+    - ESLint enforcement level (off, warn, error)
+    - Prettier formatting enforcement
+    - Code style standard selection
+13. [BL-013] Testing Requirements Configuration
+    - Selectable unit test coverage minimum %
+    - Test-before-code mandate toggle
+    - Integration test requirement levels
+    - Testing framework selection
+14. [BL-014] Documentation Mandates Configuration
+    - JSDoc requirement level selection (none, public-only, all-functions)
+    - README and Changelog update mandates
+    - Spec file update mandate toggle
+    - Spec detail level selection (minimal, standard, comprehensive)
+15. [BL-015] Review & Approval Process Configuration
+    - Mandatory peer reviews toggle
+    - Configurable approvals required
+    - Code review criteria selection
+    - Hotfix approval bypass option
+16. [BL-016] Specification Standards Configuration
+    - Dynamic spec file structure based on selections
+    - Metadata requirement configuration
+    - Spec versioning strategy selection
+17. [BL-017] AI Interaction Tracking Configuration
+    - Optional AI prompt logging mandate
+    - Detail level for prompt documentation (minimal, standard, verbose)
+    - Audit trail consolidation options
+18. [BL-018] Deploy & Release Controls Configuration
+    - Pre-release checklist requirements
+    - Version bump strategy enforcement (semver, manual)
+    - Release notes mandate
+    - Pre-release testing requirements
+19. [BL-019] Architecture & Pattern Rules Configuration
+    - Design pattern enforcement suggestions
+    - Project structure constraint levels
+    - Naming conventions enforcement toggle
+    - Dependency management rules
 
 ## Current Sprint
 

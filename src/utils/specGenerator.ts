@@ -93,7 +93,7 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
       framework: options.framework,
       author: options.author || 'Your Name',
       description: options.description || `A ${options.language} project${options.framework ? ` using ${options.framework}` : ''}`,
-      lastUpdated: '2025-10-05',
+      lastUpdated: new Date().toISOString().split('T')[0],
       contributors: [options.author || 'Your Name'],
       architecture: options.analysis?.architecture,
       ide: options.ide || 'vscode'

@@ -1,4 +1,6 @@
 import chalk from 'chalk';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pkg = require('../../package.json');
 
 export class Logger {
   private readonly logo = [
@@ -46,7 +48,7 @@ export class Logger {
   // Welcome message with logo
   displayWelcome(): void {
     const content = [
-      chalk.blue.bold('SpecPilot CLI v1.2.2'),
+      chalk.blue.bold(`SpecPilot CLI v${pkg.version}`),
       '',
       chalk.green('✓ Welcome to Specification-Driven Development'),
       '',

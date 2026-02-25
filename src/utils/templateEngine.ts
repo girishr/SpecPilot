@@ -27,7 +27,7 @@ export class TemplateEngine {
   private registerHelpers(): void {
     // Register custom Handlebars helpers
     Handlebars.registerHelper('uppercase', (str: string) => str.toUpperCase());
-    Handlebars.registerHelper('lowercase', (str: string) => str.slice(1));
+    Handlebars.registerHelper('lowercase', (str: string) => str.toLowerCase());
     Handlebars.registerHelper('capitalize', (str: string) => 
       str.charAt(0).toUpperCase() + str.slice(1)
     );

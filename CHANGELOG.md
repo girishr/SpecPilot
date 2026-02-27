@@ -58,14 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `specpilot migrate` - Migrate from complex to simplified structure
   - `specpilot list` - Show available templates
 - **Template System**:
-
   - TypeScript templates (Generic, React, Express, Next.js, CLI)
   - Python templates (Generic, FastAPI, Django, Data Science)
   - Java templates (Generic, Spring Boot)
   - Framework-specific content generation
 
 - **Specification Files Generation**:
-
   - Simplified 8-file `.specs/` structure
   - `project.yaml` - Configuration + rules + AI context
   - `architecture.md` - Architecture decisions + patterns

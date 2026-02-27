@@ -219,7 +219,7 @@ Check off items as you complete them:
   ```
 
 - **Effort:** 1–2 hours (can be done as part of FIX-011)
-- [ ] Done
+- [x] Done
 
 ---
 

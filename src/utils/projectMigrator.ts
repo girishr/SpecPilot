@@ -92,8 +92,11 @@ export class ProjectMigrator {
       throw new Error(`Source directory ${sourceDir} does not exist`);
     }
 
-    // Create target directory
+    // Create target directory and all subfolders
     mkdirSync(targetDir, { recursive: true });
+    ['project', 'architecture', 'planning', 'quality', 'development'].forEach(sub =>
+      mkdirSync(join(targetDir, sub), { recursive: true })
+    );
 
     // Migrate files based on source type
     if (options.from === 'complex' || options.from === 'project-spec') {
@@ -182,27 +185,28 @@ export class ProjectMigrator {
 
   private mapComplexToSimpleFile(fileName: string, targetDir: string): string | null {
     const mapping: Record<string, string> = {
-      // Direct mappings
-      'project.yaml': join(targetDir, 'project.yaml'),
-      'architecture.md': join(targetDir, 'architecture.md'),
-      'requirements.md': join(targetDir, 'requirements.md'),
-      'api.yaml': join(targetDir, 'api.yaml'),
-      'tests.md': join(targetDir, 'tests.md'),
-      'tasks.md': join(targetDir, 'tasks.md'),
-      'context.md': join(targetDir, 'context.md'),
-      'prompts.md': join(targetDir, 'prompts.md'),
-      'docs.md': join(targetDir, 'docs.md'),
-      
-      // Complex structure mappings
-      'config/project.yaml': join(targetDir, 'project.yaml'),
-      'specs/architecture/architecture.md': join(targetDir, 'architecture.md'),
-      'specs/features/requirements.md': join(targetDir, 'requirements.md'),
-      'specs/technical/api.yaml': join(targetDir, 'api.yaml'),
-      'specs/technical/tests.md': join(targetDir, 'tests.md'),
-      'tools/tasks.md': join(targetDir, 'tasks.md'),
-      'docs/context.md': join(targetDir, 'context.md'),
-      'docs/prompts.md': join(targetDir, 'prompts.md'),
-      'docs/docs.md': join(targetDir, 'docs.md'),
+      // Direct mappings (flat old structure → new subfolder structure)
+      'project.yaml':    join(targetDir, 'project', 'project.yaml'),
+      'requirements.md': join(targetDir, 'project', 'requirements.md'),
+      'architecture.md': join(targetDir, 'architecture', 'architecture.md'),
+      'api.yaml':        join(targetDir, 'architecture', 'api.yaml'),
+      'tests.md':        join(targetDir, 'quality', 'tests.md'),
+      'tasks.md':        join(targetDir, 'planning', 'tasks.md'),
+      'roadmap.md':      join(targetDir, 'planning', 'roadmap.md'),
+      'context.md':      join(targetDir, 'development', 'context.md'),
+      'prompts.md':      join(targetDir, 'development', 'prompts.md'),
+      'docs.md':         join(targetDir, 'development', 'docs.md'),
+
+      // Complex/legacy structure mappings → new subfolder structure
+      'config/project.yaml':                 join(targetDir, 'project', 'project.yaml'),
+      'specs/features/requirements.md':      join(targetDir, 'project', 'requirements.md'),
+      'specs/architecture/architecture.md':  join(targetDir, 'architecture', 'architecture.md'),
+      'specs/technical/api.yaml':            join(targetDir, 'architecture', 'api.yaml'),
+      'specs/technical/tests.md':            join(targetDir, 'quality', 'tests.md'),
+      'tools/tasks.md':                      join(targetDir, 'planning', 'tasks.md'),
+      'docs/context.md':                     join(targetDir, 'development', 'context.md'),
+      'docs/prompts.md':                     join(targetDir, 'development', 'prompts.md'),
+      'docs/docs.md':                        join(targetDir, 'development', 'docs.md'),
     };
 
     return mapping[fileName] || null;
@@ -218,20 +222,21 @@ export class ProjectMigrator {
   }
 
   private async createMissingSimpleFiles(targetDir: string, result: MigrationResult): Promise<void> {
-    const requiredFiles = [
-      'project.yaml',
-      'architecture.md', 
-      'requirements.md',
-      'api.yaml',
-      'tests.md',
-      'tasks.md',
-      'context.md',
-      'prompts.md',
-      'docs.md'
+    const requiredFiles: Array<{ subfolder: string; file: string }> = [
+      { subfolder: 'project',      file: 'project.yaml' },
+      { subfolder: 'project',      file: 'requirements.md' },
+      { subfolder: 'architecture', file: 'architecture.md' },
+      { subfolder: 'architecture', file: 'api.yaml' },
+      { subfolder: 'quality',      file: 'tests.md' },
+      { subfolder: 'planning',     file: 'tasks.md' },
+      { subfolder: 'planning',     file: 'roadmap.md' },
+      { subfolder: 'development',  file: 'context.md' },
+      { subfolder: 'development',  file: 'prompts.md' },
+      { subfolder: 'development',  file: 'docs.md' },
     ];
 
-    for (const file of requiredFiles) {
-      const filePath = join(targetDir, file);
+    for (const { subfolder, file } of requiredFiles) {
+      const filePath = join(targetDir, subfolder, file);
       if (!existsSync(filePath)) {
         await this.createDefaultFile(filePath, file);
         result.filesCreated++;
@@ -240,7 +245,7 @@ export class ProjectMigrator {
   }
 
   private async createDefaultFile(filePath: string, fileName: string): Promise<void> {
-    let content = '';
+    let content: string;
     
     switch (fileName) {
       case 'project.yaml':

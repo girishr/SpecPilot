@@ -96,7 +96,7 @@ export class SpecValidator {
           await this.createInitialPromptsEntry(specsDir);
           fixed.push(fix);
         }
-      } catch (error) {
+      } catch {
         // Skip fixes that fail
         continue;
       }
@@ -289,7 +289,7 @@ export class SpecValidator {
 
   private async createMissingFile(specsDir: string, fileName: string): Promise<void> {
     const filePath = join(specsDir, fileName);
-    let content = '';
+    let content: string;
 
     // Ensure directory exists
     const dir = dirname(filePath);
@@ -345,7 +345,7 @@ export class SpecValidator {
       writeFileSync(projectYamlPath, updatedContent);
 
     } catch (error) {
-      throw new Error(`Failed to update project.yaml: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to update project.yaml: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
 

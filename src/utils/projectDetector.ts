@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import * as yaml from 'js-yaml';
 
 export interface ProjectInfo {
   name: string;

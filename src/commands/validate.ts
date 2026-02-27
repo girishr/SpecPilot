@@ -1,6 +1,3 @@
-import { Command } from 'commander';
-import { join } from 'path';
-import { existsSync } from 'fs';
 import chalk from 'chalk';
 import { SpecValidator } from '../utils/specValidator';
 import { Logger } from '../utils/logger';

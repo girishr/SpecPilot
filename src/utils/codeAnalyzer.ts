@@ -73,12 +73,12 @@ export class CodeAnalyzer {
               }
             });
           }
-        } catch (error) {
+        } catch {
           // Skip files that can't be read
           continue;
         }
       }
-    } catch (error) {
+    } catch {
       // Skip directories that can't be read
     }
     
@@ -112,14 +112,14 @@ export class CodeAnalyzer {
         }
         
         // Categorize tests
-        if (file.includes('e2e') || file.includes('integration')) {
+        if (file.includes('e2e')) {
           hasE2E = true;
         } else if (file.includes('integration')) {
           hasIntegration = true;
         } else {
           hasUnit = true;
         }
-      } catch (error) {
+      } catch {
         // Skip files that can't be read
       }
     });
@@ -151,11 +151,11 @@ export class CodeAnalyzer {
           } else if (this.isTestFile(item)) {
             testFiles.push(fullPath.replace(dir + '/', ''));
           }
-        } catch (error) {
+        } catch {
           continue;
         }
       }
-    } catch (error) {
+    } catch {
       // Skip directories that can't be read
     }
   }
@@ -181,7 +181,7 @@ export class CodeAnalyzer {
         if (deps.cypress) return 'cypress';
         if (deps.playwright) return 'playwright';
       }
-    } catch (error) {
+    } catch {
       // No package.json or can't read it
     }
     
@@ -193,7 +193,7 @@ export class CodeAnalyzer {
         if (content.includes('pytest')) return 'pytest';
         if (content.includes('unittest')) return 'unittest';
       }
-    } catch (error) {
+    } catch {
       // No requirements.txt
     }
     
@@ -250,11 +250,11 @@ export class CodeAnalyzer {
             // Add files to tree
             result += `${prefix}${item}\n`;
           }
-        } catch (error) {
+        } catch {
           continue;
         }
       }
-    } catch (error) {
+    } catch {
       // Skip directories that can't be read
     }
     

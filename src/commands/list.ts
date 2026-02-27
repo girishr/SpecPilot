@@ -1,5 +1,3 @@
-import { Command } from 'commander';
-import chalk from 'chalk';
 import { TemplateRegistry } from '../utils/templateRegistry';
 import { Logger } from '../utils/logger';
 

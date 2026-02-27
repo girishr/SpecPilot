@@ -1,9 +1,9 @@
-import { Command } from 'commander';
 import { join } from 'path';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import * as yaml from 'js-yaml';
+import { getFrameworksForLanguage } from '../utils/frameworks';
 import { TemplateEngine } from '../utils/templateEngine';
 import { SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
@@ -28,9 +28,15 @@ export async function initCommand(name: string, options: InitOptions) {
     
     const projectName = name.trim();
     
-    // Validate project name doesn't contain invalid characters
-    if (/[<>:"/\\|?*]/.test(projectName)) {
-      logger.displayError('Invalid Project Name', 'Project name contains invalid characters: < > : " / \\ | ? *\n\n💡 Please use only letters, numbers, hyphens, and underscores');
+    // Validate project name length (npm limit)
+    if (projectName.length > 214) {
+      logger.displayError('Invalid Project Name', 'Project name must be 214 characters or fewer');
+      process.exit(1);
+    }
+
+    // Validate project name with allowlist (prevents filesystem issues and Handlebars template injection)
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(projectName)) {
+      logger.displayError('Invalid Project Name', 'Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores\n\n💡 Example: my-project, app_v2, project.name');
       process.exit(1);
     }
     
@@ -117,7 +123,7 @@ export async function initCommand(name: string, options: InitOptions) {
           projectInfo += `\n  Language: ${projectData.language || 'Unknown'}`;
           projectInfo += `\n  Framework: ${projectData.framework || 'Unknown'}`;
           projectInfo += `\n  Author: ${projectData.author || 'Unknown'}`;
-        } catch (error) {
+        } catch {
           projectInfo += '\n\n⚠️ Could not read project.yaml';
         }
       }
@@ -127,7 +133,7 @@ export async function initCommand(name: string, options: InitOptions) {
           const requirementsContent = readFileSync(requirementsMdPath, 'utf8');
           const lines = requirementsContent.split('\n').slice(0, 5); // First 5 lines
           projectInfo += `\n\n📝 Requirements Preview:\n${lines.map(line => `  ${line}`).join('\n')}`;
-        } catch (error) {
+        } catch {
           projectInfo += '\n\n⚠️ Could not read requirements.md';
         }
       }
@@ -171,13 +177,4 @@ export async function initCommand(name: string, options: InitOptions) {
     logger.displayError('Initialization Failed', error instanceof Error ? error.message : 'Unknown error');
     process.exit(1);
   }
-}
-
-function getFrameworksForLanguage(language: string): string[] {
-  const frameworks: Record<string, string[]> = {
-    typescript: ['react', 'express', 'next', 'nest', 'vue', 'angular'],
-    python: ['fastapi', 'django', 'flask', 'streamlit']
-  };
-  
-  return frameworks[language] || [];
 }

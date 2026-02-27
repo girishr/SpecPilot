@@ -87,7 +87,7 @@ Check off items as you complete them:
 - **Problem:** Dead imports. They increase cognitive load and will trigger lint warnings when a linter is added.
 - **Fix:** Remove `import { Command } from 'commander';` from each file. None of them reference `Command` in their code.
 - **Effort:** 5 minutes
-- [ ] Done
+- [x] Done
 
 ---
 
@@ -109,7 +109,7 @@ Check off items as you complete them:
   ```
   Then import from this shared file in both `init.ts` and `add-specs.ts`, removing the local copies.
 - **Effort:** 15 minutes
-- [ ] Done
+- [x] Done
 
 ---
 
@@ -120,7 +120,7 @@ Check off items as you complete them:
 - **Current validation:** `/[<>:"/\\|?*]/.test(projectName)`
 - **Fix:** Replace with allowlist: `/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(projectName)`. Also add a max-length check (e.g., 214 chars, matching npm's limit).
 - **Effort:** 10 minutes
-- [ ] Done
+- [x] Done
 
 ---
 
@@ -145,7 +145,7 @@ Check off items as you complete them:
   ```
   Also ensure target subdirectories are created before copying files.
 - **Effort:** 20 minutes
-- [ ] Done
+- [x] Done
 
 ---
 
@@ -155,7 +155,7 @@ Check off items as you complete them:
 - **Problem:** `## [1.2.2] - 2025-10-27` appears twice with different content. The first instance (line 50) covers the initial release notes. The second (line 185) covers specify command fixes and migration improvements.
 - **Fix:** Merge both entries under a single `[1.2.2]` heading, combining their content. Remove the duplicate.
 - **Effort:** 10 minutes
-- [ ] Done
+- [x] Done
 
 ---
 
@@ -169,7 +169,7 @@ Check off items as you complete them:
   ```
   Create a basic `.eslintrc.json`. Update the script to `"lint": "eslint src/ --ext .ts"`.
 - **Effort:** 30 minutes
-- [ ] Done
+- [x] Done
 
 ---
 

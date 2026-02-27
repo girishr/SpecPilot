@@ -523,63 +523,6 @@ This template provides a standardized format for updating specification files wi
     mkdirSync(vscodeDir, { recursive: true });
 
     // VSCode workspace settings with Plan agent integration for SpecPilot context
-    const settings = {
-      // AI agent context settings for Plan mode
-      'chat.agent.enabled': true,
-      'chat.contextAware': true,
-      'chat.includeWorkspaceContext': true,
-      
-      // Configure AI to understand .specs folder structure
-      'prompt.fileContext': ['.specs/**'],
-      'search.exclude': {
-        '**/.specs/*': false // Ensure .specs is searchable for AI agents
-      },
-
-      // Workspace folders configuration
-      'workspace.folders': [
-        {
-          path: '.',
-          name: context.projectName
-        },
-        {
-          path: '.specs',
-          name: `${context.projectName} - Specifications`
-        }
-      ],
-
-      // Markdown and spec file settings
-      '[markdown]': {
-        'editor.wordWrap': 'on',
-        'editor.defaultFormatter': 'esbenp.prettier-vscode'
-      },
-      '[yaml]': {
-        'editor.insertSpaces': true,
-        'editor.tabSize': 2
-      },
-
-      // YAML validation for spec files
-      'yaml.validate': true,
-      'yaml.schemas': {
-        'https://json.schemastore.org/github-workflow.json': '.github/workflows/*.{yml,yaml}',
-        '.specs/**/project.yaml': true
-      },
-
-      // Files to exclude from general search but include for AI
-      'files.exclude': {
-        '**/.git': true,
-        '**/node_modules': true,
-        '**/__pycache__': true
-      },
-
-      // AI assistant recommendations
-      'extensions.recommendations': [
-        'esbenp.prettier-vscode',
-        'redhat.vscode-yaml',
-        'github.copilot'
-      ]
-    };
-
-    // Add Plan agent-specific comment explaining .specs integration
     const settingsWithComment = `{
   // SpecPilot AI IDE Configuration
   // This file configures VS Code to work effectively with SpecPilot specs

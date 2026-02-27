@@ -1,4 +1,3 @@
-import { Command } from 'commander';
 import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import chalk from 'chalk';

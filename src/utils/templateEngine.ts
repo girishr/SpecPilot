@@ -1,6 +1,5 @@
 import * as Handlebars from 'handlebars';
 import { readFileSync } from 'fs';
-import { join } from 'path';
 
 export interface TemplateContext {
   projectName: string;
@@ -44,7 +43,7 @@ export class TemplateEngine {
       const compiled = Handlebars.compile(content);
       this.templates.set(name, compiled);
     } catch (error) {
-      throw new Error(`Failed to load template ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to load template ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
     }
   }
   

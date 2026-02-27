@@ -1,6 +1,3 @@
-import { Command } from 'commander';
-import { join } from 'path';
-import { existsSync, renameSync } from 'fs';
 import chalk from 'chalk';
 import { ProjectMigrator } from '../utils/projectMigrator';
 import { Logger } from '../utils/logger';

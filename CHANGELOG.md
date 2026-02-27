@@ -96,6 +96,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - None (initial release)
 
+### Fixed
+
+- **Specify Command**: Fixed file path references to use correct subfolder structure
+  - Updated project.yaml path from `.specs/project.yaml` to `.specs/project/project.yaml`
+  - Updated requirements.md path to `.specs/project/requirements.md`
+  - Updated context.md path to `.specs/development/context.md`
+  - Updated prompts.md path to `.specs/development/prompts.md`
+  - Resolves "project.yaml not found" error when running specify in valid projects
+- **CS-012**: Enhanced migrate command with better error messages and guidance
+  - Added migration necessity detection to prevent confusion
+  - Provides helpful suggestions when migrate is used incorrectly
+  - Detects when target structure already exists
+  - Clear documentation on when to use init vs add-specs vs migrate
+
+### Changed
+
+- **Documentation**: Updated CHANGELOG.md with missing version entries (1.2.1, 1.2.0, 1.1.4)
+- **README**: Fixed unclosed code block causing rendering issues in documentation
+
 ## [1.1.1] - 2025-10-11
 
 ### Added
@@ -181,27 +200,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive template creation wizard
 - Additional language templates (Go, Rust, C#)
 - Enhanced validation rules
-
-## [1.2.2] - 2025-10-27
-
-### Fixed
-
-- **Specify Command**: Fixed file path references to use correct subfolder structure
-  - Updated project.yaml path from `.specs/project.yaml` to `.specs/project/project.yaml`
-  - Updated requirements.md path to `.specs/project/requirements.md`
-  - Updated context.md path to `.specs/development/context.md`
-  - Updated prompts.md path to `.specs/development/prompts.md`
-  - Resolves "project.yaml not found" error when running specify in valid projects
-- **CS-012**: Enhanced migrate command with better error messages and guidance
-  - Added migration necessity detection to prevent confusion
-  - Provides helpful suggestions when migrate is used incorrectly
-  - Detects when target structure already exists
-  - Clear documentation on when to use init vs add-specs vs migrate
-
-### Changed
-
-- **Documentation**: Updated CHANGELOG.md with missing version entries (1.2.1, 1.2.0, 1.1.4)
-- **README**: Fixed unclosed code block causing rendering issues in documentation
 
 ## [1.2.1] - 2025-10-26
 

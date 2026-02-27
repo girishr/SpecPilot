@@ -1,9 +1,9 @@
-import { Command } from 'commander';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { ProjectDetector } from '../utils/projectDetector';
+import { getFrameworksForLanguage } from '../utils/frameworks';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
 import { TemplateEngine } from '../utils/templateEngine';
 import { SpecGenerator } from '../utils/specGenerator';
@@ -138,13 +138,5 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
   }
 }
 
-function getFrameworksForLanguage(language: string): string[] {
-  const frameworks: Record<string, string[]> = {
-    typescript: ['react', 'express', 'next', 'nest', 'vue', 'angular'],
-    python: ['fastapi', 'django', 'flask', 'streamlit']
-  };
-  
-  return frameworks[language] || [];
-}
 
 

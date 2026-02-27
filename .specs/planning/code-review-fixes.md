@@ -233,7 +233,7 @@ Check off items as you complete them:
 - **Fix (option A — invest):** Move inline templates from `specGenerator.ts` into actual `.hbs` files in `src/templates/`, organized by language/framework. Load them via `TemplateEngine.loadTemplate()`.
 - **Fix (option B — simplify):** Delete `TemplateRegistry`, delete `templates/` directory, keep `TemplateEngine` only for `renderFromString()` and helpers. Be honest that all frameworks produce the same structure.
 - **Effort:** 2–4 hours depending on direction
-- [ ] Done
+- [x] Done — Chose Option B: deleted `TemplateRegistry` and empty `templates/` dir, removed dead `loadTemplate()`/`render()` from `TemplateEngine`, inlined catalog as a static `TEMPLATES` constant in `list.ts`
 
 ---
 

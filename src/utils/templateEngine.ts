@@ -1,5 +1,4 @@
 import * as Handlebars from 'handlebars';
-import { readFileSync } from 'fs';
 
 export interface TemplateContext {
   projectName: string;
@@ -17,8 +16,6 @@ export interface TemplateContext {
 }
 
 export class TemplateEngine {
-  private templates: Map<string, HandlebarsTemplateDelegate> = new Map();
-  
   constructor() {
     this.registerHelpers();
   }
@@ -35,25 +32,6 @@ export class TemplateEngine {
     Handlebars.registerHelper('join', (array: string[], separator: string) => 
       Array.isArray(array) ? array.join(separator) : ''
     );
-  }
-  
-  loadTemplate(templatePath: string, name: string): void {
-    try {
-      const content = readFileSync(templatePath, 'utf-8');
-      const compiled = Handlebars.compile(content);
-      this.templates.set(name, compiled);
-    } catch (error) {
-      throw new Error(`Failed to load template ${name}: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
-    }
-  }
-  
-  render(templateName: string, context: TemplateContext): string {
-    const template = this.templates.get(templateName);
-    if (!template) {
-      throw new Error(`Template ${templateName} not found`);
-    }
-    
-    return template(context);
   }
   
   renderFromString(templateString: string, context: TemplateContext): string {

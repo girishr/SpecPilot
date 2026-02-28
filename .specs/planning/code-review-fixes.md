@@ -271,7 +271,7 @@ Check off items as you complete them:
   - (A) Merge `project-plan.md` into `roadmap.md` and stop generating it, or
   - (B) Give each file a distinct, documented purpose with clear boundaries (e.g., `tasks.md` = sprint-level work items, `roadmap.md` = quarter-level milestones, `project-plan.md` = project charter/scope)
 - **Effort:** 30 minutes
-- [ ] Done
+- [x] Done — Chose Option B: gave each file a distinct documented purpose via header comments and purpose-appropriate template sections. `project-plan.md` = charter (scope/goals/stakeholders), `roadmap.md` = release milestones (versioned phases), `tasks.md` = sprint tracker (Backlog/In Progress/Completed/Blocked).
 
 ---
 

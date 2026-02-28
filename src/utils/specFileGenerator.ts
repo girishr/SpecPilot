@@ -146,16 +146,40 @@ lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
 
-# {{projectName}} Task Management
+<!--
+  PURPOSE: Sprint-level task tracker — the "what are we doing RIGHT NOW" file.
+  Scope: Individual work items for the current and upcoming sprint.
+  Update cadence: Daily / per PR / per task status change.
 
-## Project Status: 🟡 In Progress
+  Boundary guide:
+  - tasks.md   → specific work items, assignees, sprint status (this file)
+  - roadmap.md → release milestones and quarter-level timeline
+  - project-plan.md → project charter: scope, goals, stakeholders
+-->
+
+# {{projectName}} — Task Tracker
 
 ## Current Sprint
-- [ ] Setup project foundation
-- [ ] Implement core features
+
+### In Progress
+<!-- TASK-XXX: Brief description — assignee, priority: critical|high|medium|low -->
+- [ ] TASK-001: Set up project foundation
+
+### Backlog
+<!-- Prioritised list of upcoming work items -->
+- [ ] TASK-002: Implement core features
+- [ ] TASK-003: Write unit tests
+
+### Completed
+<!-- Move items here (with completion date) rather than deleting them -->
+- [x] TASK-000: Initialise .specs directory ({{currentDate}})
+
+## Blocked
+<!-- Tasks that cannot proceed — note the blocker and owner -->
+_(none)_
 
 ## Cross-References
-- Roadmap: ./roadmap.md
+- Roadmap (milestones): ./roadmap.md
 - Requirements: ../project/requirements.md
 - Project config: ../project/project.yaml
 
@@ -176,17 +200,44 @@ lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
 
-# {{projectName}} Development Roadmap
+<!--
+  PURPOSE: Release-level milestone planner — the "when are we shipping what" file.
+  Scope: Quarter-level phases, version targets, and feature groupings.
+  Update cadence: Per release / per sprint planning session.
 
-## Project Phases
+  Boundary guide:
+  - roadmap.md     → release milestones and quarter-level timeline (this file)
+  - tasks.md       → individual work items and sprint status
+  - project-plan.md → project charter: scope, goals, stakeholders
+-->
 
-### Phase 1: Foundation
-- [x] Project initialization
-- [ ] Core development
+# {{projectName}} — Development Roadmap
+
+## v0.1.0 — Foundation _(current)_
+**Goal:** Get a working skeleton in place.
+- [x] Project initialised
+- [ ] Core data model implemented
+- [ ] Basic CLI / API working
+
+## v0.2.0 — Core Features
+**Goal:** Deliver the primary user-facing functionality.
+- [ ] Feature A
+- [ ] Feature B
+- [ ] Unit test coverage ≥ 80 %
+
+## v1.0.0 — Production Ready
+**Goal:** Stable, documented, deployable release.
+- [ ] All P0/P1 requirements met
+- [ ] Documentation complete
+- [ ] CI/CD pipeline green
+
+## Unscheduled / Icebox
+- [ ] Nice-to-have feature ideas go here
 
 ## Cross-References
-- Tasks: ./tasks.md
+- Sprint tasks: ./tasks.md
 - Requirements: ../project/requirements.md
+- Project charter: ../project/project-plan.md
 
 ---
 *Last updated: {{currentDate}}*`;
@@ -260,14 +311,47 @@ lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
 
-# {{projectName}} Project Plan
+<!--
+  PURPOSE: Project charter — the "why we are building this and what success looks like" file.
+  Scope: Written once at project start; updated only when goals or constraints fundamentally change.
+  Update cadence: Project kick-off, major pivots, or stakeholder reviews.
 
-## Project Overview
-[TODO: Add project planning details]
+  Boundary guide:
+  - project-plan.md → charter: scope, goals, stakeholders, constraints (this file)
+  - roadmap.md      → release milestones and quarter-level timeline
+  - tasks.md        → individual work items and sprint status
+-->
+
+# {{projectName}} — Project Charter
+
+## Project Scope
+{{description}}
+
+**In scope:**
+- [Define what this project will deliver]
+
+**Out of scope:**
+- [Define explicit exclusions to prevent scope creep]
+
+## Goals & Success Criteria
+| Goal | Success Metric | Target |
+|------|---------------|--------|
+| [Primary goal] | [How we measure it] | [Target value] |
+
+## Stakeholders
+| Role | Name | Responsibility |
+|------|------|----------------|
+| Owner | {{author}} | Final decisions, prioritisation |
+| Developer | {{author}} | Implementation |
+
+## Constraints & Assumptions
+- **Tech stack:** {{language}}{{#if framework}} / {{framework}}{{/if}}
+- **Assumptions:** [List key assumptions the plan depends on]
+- **Dependencies:** [External systems, teams, or tools this project relies on]
 
 ## Cross-References
-- Roadmap: ../planning/roadmap.md
-- Tasks: ../planning/tasks.md
+- Release milestones: ../planning/roadmap.md
+- Sprint tasks: ../planning/tasks.md
 
 ---
 *Last updated: {{currentDate}}*`;

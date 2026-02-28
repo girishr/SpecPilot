@@ -287,7 +287,7 @@ Check off items as you complete them:
 - **Risk:** Invalid settings are silently ignored at best, generate warnings at worst, and erode user trust.
 - **Fix:** Research each IDE's actual settings API. Remove or replace any keys that aren't real. Add comments noting which keys are aspirational vs. confirmed.
 - **Effort:** 1–2 hours of research per IDE
-- [ ] Done
+- [x] Done — Removed fabricated base settings (`prompt.fileContext`, `chat.agent.enabled`, `chat.contextAware`, `chat.includeWorkspaceContext`, `workspace.folders`). Replaced with confirmed real VS Code settings only. All IDE-specific override keys (cursor.*, windsurf.*, kiro.*, antigravity.*) are now marked `// ASPIRATIONAL` in both source and generated output so users know they are unconfirmed.
 
 ---
 

@@ -2,22 +2,31 @@ import { join } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
 import { TemplateContext } from './templateEngine';
 
-/** IDE-specific overlay keys appended on top of the shared base settings. */
+/** IDE-specific overlay keys appended on top of the shared base settings.
+ * NOTE: These keys are aspirational — they are NOT confirmed in each IDE's
+ * official documentation. Unknown keys are silently ignored, but they are
+ * included here as hints for IDEs that may adopt spec-aware settings in future.
+ * Remove any keys that cause warnings in your specific IDE version.
+ */
 const IDE_OVERRIDES: Record<string, Record<string, unknown>> = {
   cursor: {
+    // ASPIRATIONAL — not in official Cursor docs
     'cursor.aiAccess': true,
     'cursor.enableAIContext': true,
   },
   windsurf: {
+    // ASPIRATIONAL — not in official Windsurf docs
     'windsurf.aiContext.enabled': true,
     'windsurf.specs.integration': true,
     'windsurf.codeCompletion.contextAware': true,
   },
   kiro: {
+    // ASPIRATIONAL — not in official Kiro docs
     'kiro.ai.contextAware': true,
     'kiro.specs.enabled': true,
   },
   antigravity: {
+    // ASPIRATIONAL — not in official Antigravity docs
     'antigravity.ai.enabled': true,
     'antigravity.contextual': true,
     'antigravity.specs.integration': true,
@@ -82,40 +91,22 @@ export class IdeConfigGenerator {
       .map(([k, v]) => `  "${k}": ${JSON.stringify(v)},`)
       .join('\n');
     const overrideBlock = overrideLines
-      ? `\n  // ${displayName}-specific AI settings\n${overrideLines}\n`
+      ? `\n  // ${displayName}-specific AI settings (ASPIRATIONAL — not confirmed in official docs; unknown keys are silently ignored)\n${overrideLines}\n`
       : '';
 
     return `{
   // SpecPilot AI IDE Configuration${ide !== 'vscode' ? ` for ${displayName}` : ''}
   // This file configures ${displayName} to work effectively with SpecPilot specs
-  
-  // For ${displayName} AI: The .specs folder structure is configured${ide === 'vscode' ? ' as a workspace folder' : ' for AI context'}
-  // and included in AI${ide === 'vscode' ? '' : ' suggestions'}. Refer to .specs/development/prompts.md for AI guidelines.
-  
-  // Configure ${displayName} AI context for SpecPilot specifications
-  "chat.agent.enabled": true,
-  "chat.contextAware": true,
-  "chat.includeWorkspaceContext": true,
-  
-  // Include .specs in AI context for better suggestions
-  "prompt.fileContext": [".specs/**"],
-  
-  // Ensure .specs folder is searchable for ${ide === 'vscode' ? 'AI agents' : `${displayName} AI`}
+
+  // AI CONTEXT: The recommended way to give AI agents access to your .specs files
+  // is via .github/copilot-instructions.md (VS Code Copilot) or your IDE's equivalent
+  // custom instructions file. See .specs/development/prompts.md for guidelines.
+  ${noteComment}
+
+  // Ensure .specs folder is included in workspace search (not excluded)
   "search.exclude": {
     "**/.specs/*": false
   },
-
-  // Workspace folders - main project + specifications
-  "workspace.folders": [
-    {
-      "path": ".",
-      "name": "${context.projectName}"
-    },
-    {
-      "path": ".specs",
-      "name": "${context.projectName} - Specifications"
-    }
-  ],
 
   // Markdown formatting for spec files
   "[markdown]": {
@@ -123,17 +114,16 @@ export class IdeConfigGenerator {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
 
-  // YAML formatting for spec files (project.yaml, etc.)
+  // YAML formatting for spec files (project.yaml, api.yaml)
   "[yaml]": {
     "editor.insertSpaces": true,
     "editor.tabSize": 2
   },
 
-  // YAML validation
+  // YAML validation (requires redhat.vscode-yaml extension)
   "yaml.validate": true,
   "yaml.schemas": {
-    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}",
-    ".specs/**/project.yaml": true
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}"
   },
 
   // General file exclusions
@@ -141,16 +131,7 @@ export class IdeConfigGenerator {
     "**/.git": true,
     "**/node_modules": true,
     "**/__pycache__": true
-  },${overrideBlock}
-  // Recommended extensions for SpecPilot development
-  "extensions.recommendations": [
-    "esbenp.prettier-vscode",
-    "redhat.vscode-yaml",
-    "github.copilot"
-  ],
-
-  // Note: For full AI onboarding instructions, see .specs/development/prompts.md
-  ${noteComment}
+  }${overrideBlock}
 }`;
   }
 }

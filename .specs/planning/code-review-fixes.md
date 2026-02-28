@@ -259,7 +259,7 @@ Check off items as you complete them:
 - **Problem:** `spec-update-template.md` is generated in every project's `.specs/` root but is never referenced by any command, workflow, or documentation. It reads like internal meta-documentation that leaked into user output.
 - **Fix:** Either integrate it into a workflow (e.g., `specpilot update` command) or stop generating it. If you keep it, reference it from `README.md` so users know it exists.
 - **Effort:** 15 minutes
-- [ ] Done
+- [x] Done — Removed `generateSpecUpdateTemplateMd()` call from `generateAll()` and deleted the method. The file was unreferenced by any command, validator, or test.
 
 ---
 

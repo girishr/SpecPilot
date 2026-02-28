@@ -300,7 +300,7 @@ Check off items as you complete them:
   - For `specpilot add-specs` (brownfield): The AI onboarding prompt is appropriate here — position it as "catch up" for existing projects.
   - Update generated `README.md` to reflect this distinction.
 - **Effort:** 1 hour
-- [ ] Done
+- [x] Done — Implemented dual-prompt system: `init` (new project) asks 4 project context questions, bakes answers into a planning-focused onboarding prompt; `add-specs` (existing project) keeps the codebase-analysis prompt. Both prompts always appear in `prompts.md` (primary + reference). Mode-aware README templates guide users to the right prompt. `--no-prompts` falls back to "Not specified" for all context questions.
 
 ---
 

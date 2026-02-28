@@ -9,18 +9,61 @@ import { TemplateEngine, TemplateContext } from './templateEngine';
 export class SpecFileGenerator {
   constructor(private templateEngine: TemplateEngine) {}
 
-  // Consolidated README template - overview + urgent onboarding steps
-  private SPECS_README_TEMPLATE = `# SpecPilot Specifications
+  // ── README templates ────────────────────────────────────────────
+
+  private NEW_PROJECT_README = `# SpecPilot Specifications
+
+This folder contains structured documentation for your project.
+
+## 🚀 Quick Start: Generate Your Specs with AI
+
+Your specs files have been scaffolded with placeholders. Use your AI agent to draft them based on the project description you provided during \`specpilot init\`.
+
+### Step 1: Copy the Onboarding Prompt
+1. Open [\`development/prompts.md\`](development/prompts.md).
+2. Find the **"New Project Onboarding Prompt"** section.
+3. Copy the entire fenced code block (\`\`\`...\`\`\`).
+
+### Step 2: Paste into Your AI Agent
+1. In your IDE (VS Code, Cursor, etc.), open the AI chat.
+2. Paste the prompt and run it.
+3. The AI will draft all spec files based on your project description.
+
+### Step 3: Review & Refine
+- The generated specs are a **starting point** based on the AI's understanding.
+- Review each file — change, add, or remove anything as your project evolves.
+- Add details the AI couldn't know before you start coding.
+- Run \`specpilot validate\` to ensure consistency.
+
+## 📁 File Structure
+- \`project/\`: Metadata and requirements
+- \`architecture/\`: Design and APIs
+- \`planning/\`: Tasks and roadmap
+- \`quality/\`: Testing
+- \`development/\`: Docs and prompts
+
+## 🛠️ Commands
+\\\`\\\`\\\`bash
+# Validate your specs
+specpilot validate
+
+# Add specs to an existing project later
+specpilot add-specs
+\\\`\\\`\\\`
+
+For AI guidelines and prompt history, see [\`development/prompts.md\`](development/prompts.md).`;
+
+  private EXISTING_PROJECT_README = `# SpecPilot Specifications
 
 This folder contains structured documentation for your codebase.
 
 ## 🚀 Quick Start: Populate Your Specs
 
-Your specs are generated but empty. Follow these steps to fill them with AI-assisted details:
+Your specs files have been scaffolded with placeholders. Use your AI agent to populate them by analyzing your existing codebase.
 
 ### Step 1: Copy the Onboarding Prompt
 1. Open [\`development/prompts.md\`](development/prompts.md).
-2. Find the "First-Use Onboarding Prompt" section.
+2. Find the **"Existing Project Onboarding Prompt"** section.
 3. Copy the entire fenced code block (\`\`\`...\`\`\`).
 
 ### Step 2: Paste into Your AI Agent
@@ -68,7 +111,8 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
   }
 
   private async generateReadmeMd(specsDir: string, context: TemplateContext): Promise<void> {
-    const rendered = this.templateEngine.renderFromString(this.SPECS_README_TEMPLATE, context);
+    const template = context.mode === 'existing' ? this.EXISTING_PROJECT_README : this.NEW_PROJECT_README;
+    const rendered = this.templateEngine.renderFromString(template, context);
     writeFileSync(join(specsDir, 'README.md'), rendered);
   }
 
@@ -361,6 +405,137 @@ sourceOfTruth: project/project.yaml
   }
 
   private async generatePromptsMd(specsDir: string, context: TemplateContext): Promise<void> {
+    const isNew = context.mode !== 'existing';
+    const pc = context.projectContext;
+
+    // ── Shared conventions block (used by both prompts) ──────────
+    const conventions = `**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes (REQ-, TASK-, ARCH-, TEST-, etc.) with zero-padded numbers (e.g., REQ-001, TASK-042)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, and consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS. The directory structure is IMMUTABLE.
+
+**File Structure Standards:**
+
+- \\\`project/project.yaml\\\`: name, version, description, tech_stack[], dependencies[], metadata
+- \\\`project/requirements.md\\\`: ## Functional/Non-Functional Requirements with REQ-XXX IDs, priority, status
+- \\\`architecture/architecture.md\\\`: ## Overview, Components, Data Flow, Tech Stack, Decisions (ADR format)
+- \\\`architecture/api.yaml\\\`: OpenAPI 3.0 spec or endpoints list with methods, paths, descriptions
+- \\\`planning/tasks.md\\\`: ## Backlog/In Progress/Completed with TASK-XXX, assignee, priority, dependencies
+- \\\`planning/roadmap.md\\\`: ## Milestones with versions, dates, features, status
+- \\\`quality/tests.md\\\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals, CI/CD integration
+- \\\`development/docs.md\\\`: ## Getting Started, Architecture, API, Deployment, Contributing
+- \\\`development/context.md\\\`: ## Project Context, Key Decisions, Known Issues, Future Considerations`;
+
+    // ── New-project prompt ────────────────────────────────────────
+    const projectContextBlock = pc
+      ? `**Project context (provided by the developer):**
+- **What it does:** ${pc.whatItDoes}
+- **Target users:** ${pc.targetUsers}
+- **Expected scale:** ${pc.expectedScale}
+- **Key constraints:** ${pc.constraints}`
+      : `**Project context:**
+- **What it does:** [DESCRIBE YOUR PROJECT HERE]
+- **Target users:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Key constraints:** Not specified — use your judgment and mark as [ASSUMPTION]`;
+
+    const newProjectPrompt = `You are the specification co-pilot for a new project called "{{projectName}}".
+Tech stack: {{language}}{{#if framework}} / {{framework}}{{/if}}
+
+${projectContextBlock}
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+${conventions}
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a markdown code block:
+\\\\\`\\\\\`\\\\\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\\\\\`\\\\\`\\\\\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of:
+- What you understood about the project
+- Assumptions you made and why
+- Recommended next steps before the developer starts coding
+
+**Important:** These specifications are generated based on the AI's understanding of the project description. They are a draft — the developer should review, change, add, or remove anything as the project evolves. Add more detail into the spec files before starting AI-assisted coding.
+
+Begin drafting now.`;
+
+    // ── Existing-project prompt ──────────────────────────────────
+    const existingProjectPrompt = `You are onboarding as the specification co-pilot for this repository. We just initialized the .specs directory using SpecPilot SDD. Your task is to inspect the codebase and populate all .specs files following these strict conventions:
+
+${conventions}
+
+**Your Process:**
+1. Analyze the codebase: language, framework, structure, existing tests, dependencies
+2. For each .specs file, generate content that:
+   - Reflects the actual implementation state
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project size (small projects = concise specs, large = comprehensive)
+3. Identify gaps: missing tests, undocumented APIs, unclear requirements, architectural debt
+4. Propose actionable next steps in planning/tasks.md
+
+**Output Format:**
+For each file, provide the complete content in a markdown code block:
+\\\\\`\\\\\`\\\\\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\\\\\`\\\\\`\\\\\`
+
+**Constraints:**
+- Maintain the exact file paths and names from the .specs structure
+- Don't invent features that don't exist in the code
+- Flag uncertainties with TODO comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of:
+- What was discovered about the project
+- What's documented vs. what's implemented
+- Critical gaps or risks
+- Recommended immediate actions
+
+Begin your analysis now.`;
+
+    // ── Assemble the full prompts.md ─────────────────────────────
+    const primaryLabel = isNew ? 'New Project' : 'Existing Project';
+    const secondaryLabel = isNew ? 'Existing Project' : 'New Project';
+    const primaryPrompt = isNew ? newProjectPrompt : existingProjectPrompt;
+    const secondaryPrompt = isNew ? existingProjectPrompt : newProjectPrompt;
+    const primaryNote = isNew
+      ? 'Use this prompt to have your AI agent draft all specification files based on your project description.'
+      : 'Use this prompt to have your AI agent analyze your codebase and populate all specification files.';
+    const secondaryNote = isNew
+      ? 'If you later need to re-generate specs from an existing codebase (e.g., after significant implementation), use this prompt instead.'
+      : 'If you start a fresh module or sub-project and want to plan specs before writing code, use this prompt instead.';
+
     const content = `---
 title: Prompts Log
 project: {{projectName}}
@@ -377,67 +552,25 @@ This file (prompts.md) contains ALL AI interactions for {{projectName}}. Update 
 
 **🚨 MANDATE**: Update with every AI interaction.
 
-## First-Use Onboarding Prompt
+## ${primaryLabel} Onboarding Prompt
 
-After generating the \`.specs\` directory, use this prompt to have your AI agent populate all specification files with project-specific details while following established conventions:
+${primaryNote}
 
 ~~~
-You are onboarding as the specification co-pilot for this repository. We just initialized the .specs directory using SpecPilot SDD. Your task is to inspect the codebase and populate all .specs files following these strict conventions:
-
-**Conventions & Rules:**
-1. **IDs**: Use semantic prefixes (REQ-, TASK-, ARCH-, TEST-, etc.) with zero-padded numbers (e.g., REQ-001, TASK-042)
-2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
-3. **Priority values**: Must be: critical, high, medium, low
-4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
-5. **YAML**: Use proper indentation (2 spaces), include all required fields
-6. **Markdown**: Use ATX headers (#), fenced code blocks, and consistent formatting
-7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
-8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS. The directory structure is IMMUTABLE.
-
-**File Structure Standards:**
-
-- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[], metadata
-- \`project/requirements.md\`: ## Functional/Non-Functional Requirements with REQ-XXX IDs, priority, status
-- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Tech Stack, Decisions (ADR format)
-- \`architecture/api.yaml\`: OpenAPI 3.0 spec or endpoints list with methods, paths, descriptions
-- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX, assignee, priority, dependencies
-- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
-- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals, CI/CD integration
-- \`development/docs.md\`: ## Getting Started, Architecture, API, Deployment, Contributing
-- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues, Future Considerations
-
-**Your Process:**
-1. Analyze the codebase: language, framework, structure, existing tests, dependencies
-2. For each .specs file, generate content that:
-   - Reflects the actual implementation state
-   - Follows the conventions above exactly
-   - Maintains internal consistency (cross-references work)
-   - Scales appropriately to project size (small projects = concise specs, large = comprehensive)
-3. Identify gaps: missing tests, undocumented APIs, unclear requirements, architectural debt
-4. Propose actionable next steps in planning/tasks.md
-
-**Output Format:**
-For each file, provide the complete content in a markdown code block:
-\\\`\\\`\\\`markdown
-// filepath: .specs/project/project.yaml
-[full file content]
-\\\`\\\`\\\`
-
-**Constraints:**
-- Maintain the exact file paths and names from the .specs structure
-- Don't invent features that don't exist in the code
-- Flag uncertainties with TODO comments
-- Keep descriptions clear, concise, and technical
-- Ensure all IDs are unique within their domain
-
-After populating all files, provide a summary of:
-- What was discovered about the project
-- What's documented vs. what's implemented
-- Critical gaps or risks
-- Recommended immediate actions
-
-Begin your analysis now.
+${primaryPrompt}
 ~~~
+
+---
+
+## ${secondaryLabel} Onboarding Prompt (Reference)
+
+${secondaryNote}
+
+~~~
+${secondaryPrompt}
+~~~
+
+---
 
 ## Prompt History
 

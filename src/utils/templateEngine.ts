@@ -1,5 +1,12 @@
 import * as Handlebars from 'handlebars';
 
+export interface ProjectContext {
+  whatItDoes: string;
+  targetUsers: string;
+  expectedScale: string;
+  constraints: string;
+}
+
 export interface TemplateContext {
   projectName: string;
   language: string;
@@ -7,6 +14,8 @@ export interface TemplateContext {
   author?: string;
   description?: string;
   ide?: string;
+  mode?: 'new' | 'existing';
+  projectContext?: ProjectContext;
   architecture?: {
     components: string[];
     directories: string; // Changed from string[]

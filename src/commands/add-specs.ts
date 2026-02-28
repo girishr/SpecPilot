@@ -123,7 +123,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       specsName: '.specs',
       author: developerName,
       description,
-      analysis: (!options.noAnalysis && analysis) ? analysis : undefined
+      analysis: (!options.noAnalysis && analysis) ? analysis : undefined,
+      mode: 'existing',
     });
     
     logger.success('✅ .specs folder created successfully!');

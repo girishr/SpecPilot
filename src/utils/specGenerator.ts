@@ -14,6 +14,13 @@ export interface SpecGeneratorOptions {
   author?: string;
   description?: string;
   ide?: string;
+  mode?: 'new' | 'existing';
+  projectContext?: {
+    whatItDoes: string;
+    targetUsers: string;
+    expectedScale: string;
+    constraints: string;
+  };
   analysis?: {
     todos: Array<{ file: string; line: number; text: string; type: string }>;
     tests: {
@@ -60,6 +67,8 @@ export class SpecGenerator {
       contributors: [options.author || 'Your Name'],
       architecture: options.analysis && options.analysis.architecture,
       ide: options.ide || 'vscode',
+      mode: options.mode || 'new',
+      projectContext: options.projectContext,
     };
     await this.specFileGenerator.generateAll(specsDir, context);
     const ide = (options.ide || 'vscode').toLowerCase();

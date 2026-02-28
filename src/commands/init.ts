@@ -99,6 +99,67 @@ export async function initCommand(name: string, options: InitOptions) {
       ide = ideResponse.ide;
     }
     
+    // Project context questions (helps AI generate better specs)
+    const NOT_SPECIFIED = 'Not specified — use your judgment and mark as [ASSUMPTION]';
+    let projectContext = {
+      whatItDoes: NOT_SPECIFIED,
+      targetUsers: NOT_SPECIFIED,
+      expectedScale: NOT_SPECIFIED,
+      constraints: NOT_SPECIFIED,
+    };
+    
+    if (options.prompts) {
+      console.log('');
+      console.log(chalk.blue.bold('📋 Project Context') + chalk.gray(' (helps AI generate better specs)'));
+      console.log('');
+      
+      // Mandatory question — re-prompt if empty
+      let whatItDoes = '';
+      while (!whatItDoes.trim()) {
+        const descResponse = await inquirer.prompt([{
+          type: 'input',
+          name: 'whatItDoes',
+          message: 'What does your project do? (required):',
+        }]);
+        whatItDoes = descResponse.whatItDoes.trim();
+        if (!whatItDoes) {
+          console.log(chalk.yellow('  This is required — a brief sentence about what the project does.'));
+        }
+      }
+      
+      // Optional questions — Enter to skip
+      const optionalResponse = await inquirer.prompt([
+        {
+          type: 'input',
+          name: 'targetUsers',
+          message: 'Who are the target users? (Enter to skip):',
+          default: '',
+          filter: (val: string) => val.trim(),
+        },
+        {
+          type: 'input',
+          name: 'expectedScale',
+          message: 'What\'s the expected scale? (Enter to skip):',
+          default: '',
+          filter: (val: string) => val.trim(),
+        },
+        {
+          type: 'input',
+          name: 'constraints',
+          message: 'Any key constraints or requirements? (Enter to skip):',
+          default: '',
+          filter: (val: string) => val.trim(),
+        },
+      ]);
+      
+      projectContext = {
+        whatItDoes,
+        targetUsers: optionalResponse.targetUsers || NOT_SPECIFIED,
+        expectedScale: optionalResponse.expectedScale || NOT_SPECIFIED,
+        constraints: optionalResponse.constraints || NOT_SPECIFIED,
+      };
+    }
+    
     // Create project directory
     const targetDir = join(options.dir, projectName);
     if (!existsSync(targetDir)) {
@@ -167,7 +228,9 @@ export async function initCommand(name: string, options: InitOptions) {
       targetDir,
       specsName: options.specsName,
       author: developerName,
-      ide
+      ide,
+      mode: 'new',
+      projectContext,
     });
     
     // Show success with logo (includes initialization message and all details)

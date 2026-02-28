@@ -247,7 +247,7 @@ Check off items as you complete them:
   3. `src/__tests__/projectDetector.test.ts` — test Node.js and Python detection
   4. `src/__tests__/templateEngine.test.ts` — test helpers work correctly
 - **Effort:** 4–6 hours
-- [ ] Done
+- [x] Done — Added all 4 test suites (69 new tests, 72 total): specValidator (17), projectMigrator (11), projectDetector (17), templateEngine (24)
 
 ---
 

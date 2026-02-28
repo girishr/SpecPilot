@@ -24,7 +24,7 @@
 - **Problem:** Two copies of the template are interleaved line-by-line, producing garbled output (e.g., `# Spec Update Template---`). Completely unreadable.
 - **Fix:** Delete the file and recreate it with a single clean copy of the template.
 - **Effort:** 10 min
-- [ ] Done
+- [x] Done
 
 ### 2. Replace `architecture/api.yaml` (describes non-existent REST API)
 

@@ -21,12 +21,10 @@
 
 ### TOOL-001: Fix double-write bug in `spec-update-template.md` generation
 
-- **File:** [specGenerator.ts](../../../src/utils/specGenerator.ts#L473-L518)
-- **Problem:** The generated `spec-update-template.md` in SpecPilot's own `.specs/` folder is corrupted — two copies interleaved line-by-line. While the current template code at L473-L518 looks correct (single `writeFileSync` call), the corruption exists in the output. Either a previous version double-wrote the file, or there's a race condition with another write. Verify by running `specpilot init test-project` and inspecting the output.
-- **Fix:** If reproducible, debug the write path. If the current code is clean and the corruption was a one-time artifact, just regenerate SpecPilot's own `.specs/spec-update-template.md`.
-- **Test:** Run `specpilot init test-project` and verify `spec-update-template.md` is not corrupted.
-- **Effort:** 15 min to verify, potentially 30 min to fix
-- [ ] Done
+- **File:** ~~specGenerator.ts L473-L518~~ (method removed in FIX-015)
+- **Problem:** The generated `spec-update-template.md` was corrupted — two copies interleaved.
+- **Status:** Resolved by FIX-015 which removed `generateSpecUpdateTemplateMd()` entirely.
+- [x] Done (resolved via FIX-015)
 
 ---
 
@@ -35,11 +33,10 @@
 ### TOOL-002: Replace OpenAPI `api.yaml` with CLI interface spec
 
 - **Files:**
-  - [specGenerator.ts L180-L189](../../../src/utils/specGenerator.ts#L180-L189) — `generateApiYaml()` writes OpenAPI 3.0 boilerplate
-  - [templateEngine.ts](../../../src/utils/templateEngine.ts) — no api.yaml template (inline in generator)
-  - [specValidator.ts L24](../../../src/utils/specValidator.ts#L24) — `architecture/api.yaml` in required files
-  - [templateRegistry.ts](../../../src/utils/templateRegistry.ts) — `api.yaml` listed in all template file lists
-- **Problem:** Every generated project gets an OpenAPI 3.0 stub (`openapi: 3.0.3`, `info.title`). This is correct for REST API projects but misleading for CLI tools, libraries, desktop apps, and any non-API project. SpecPilot itself is a CLI tool yet generated an api.yaml describing REST endpoints.
+  - ~~specGenerator.ts L180-L189~~ → now `specFileGenerator.ts` `generateApiYaml()`
+  - ~~templateRegistry.ts~~ (deleted in FIX-013)
+  - [specValidator.ts](../../../src/utils/specValidator.ts) — `architecture/api.yaml` in required files
+- **Problem:** Every generated project gets an OpenAPI 3.0 stub. Misleading for CLI tools, libraries, desktop apps.
 - **Fix:**
   1. During `specpilot init`, ask the user: "Does your project expose an API?" (yes → OpenAPI stub, no → CLI/library interface spec)
   2. For CLI projects: generate a `cli-interface.yaml` documenting commands, flags, arguments, exit codes
@@ -128,14 +125,10 @@
 
 ### TOOL-010: Make `spec-update-template.md` useful or stop generating it
 
-- **File:** [specGenerator.ts L473-L518](../../../src/utils/specGenerator.ts#L473-L518) — `generateSpecUpdateTemplateMd()`
-- **Problem:** The template is generated in every project's `.specs/` root but is never referenced by any command, workflow, or validation. It's dead output.
-- **Fix:** Either:
-  - (A) **Remove it:** Delete `generateSpecUpdateTemplateMd()` and its call at L117. One less file to confuse users.
-  - (B) **Wire it up:** Reference it in `specpilot validate` (check if recent changes followed the template), or generate it as a `.github/PULL_REQUEST_TEMPLATE.md` integration.
-  - Recommended: Option A (remove). The content is generic enough that it doesn't need a file.
-- **Effort:** 10 min (option A) or 1 hour (option B)
-- [ ] Done
+- **File:** ~~specGenerator.ts L473-L518~~ (method removed in FIX-015)
+- **Problem:** The template was generated but never referenced by any command.
+- **Status:** Resolved by FIX-015 — method and file both deleted.
+- [x] Done (resolved via FIX-015)
 
 ### TOOL-011: Add archive guidance to generated `prompts.md`
 
@@ -185,14 +178,10 @@
 
 ### TOOL-014: Make onboarding prompt context-aware
 
-- **File:** [specGenerator.ts L346-L415](../../../src/utils/specGenerator.ts#L346-L415) — the onboarding prompt in `generatePromptsMd()`
-- **Problem:** The prompt instructs AI to "analyze the codebase" and fill spec files — this is code-first, not spec-first. For green-field projects (no code yet), this makes no sense.
-- **Fix:**
-  1. Detect if project directory has existing source code (use `codeAnalyzer.ts`)
-  2. For existing codebases: keep the "analyze and populate" prompt
-  3. For green-field projects: generate a "define your requirements first" prompt that's actually spec-first
-- **Effort:** 1 hour
-- [ ] Done
+- **File:** ~~specGenerator.ts L346-L415~~ → now `specFileGenerator.ts` `generatePromptsMd()`
+- **Problem:** The prompt was code-first, not spec-first. For green-field projects, not appropriate.
+- **Status:** Resolved by FIX-018 — dual-prompt system: "new project" gets planning-focused prompt with baked-in project context; "existing project" keeps the analyze-and-populate prompt.
+- [x] Done (resolved via FIX-018)
 
 ### TOOL-015: Add `--dry-run` flag to `specpilot init`
 
@@ -228,12 +217,20 @@
 
 ## Files Modified (Summary)
 
+> **Note:** After FIX-011 (module split) and FIX-013 (TemplateRegistry removal):
+> - `src/utils/specGenerator.ts` is now an 81-line coordinator
+> - `src/utils/specFileGenerator.ts` (642 lines) handles spec file generation
+> - `src/utils/ideConfigGenerator.ts` (137 lines) handles IDE settings
+> - `src/utils/agentConfigGenerator.ts` (238 lines) handles agent configs
+> - `src/utils/templateRegistry.ts` has been deleted
+> - Line numbers below may need updating after each fix
+
 | Source File                           | Fixes Touching It                                          |
 | ------------------------------------- | ---------------------------------------------------------- |
-| `src/utils/specGenerator.ts`          | TOOL-001, 002, 003, 005, 006, 009, 010, 011, 012, 013, 014 |
+| `src/utils/specFileGenerator.ts`      | TOOL-001, 002, 003, 005, 006, 009, 010, 011, 012, 014     |
+| `src/utils/specGenerator.ts`          | TOOL-003 (coordinator)                                     |
 | `src/utils/templateEngine.ts`         | TOOL-004, 007                                              |
 | `src/utils/specValidator.ts`          | TOOL-003, 008, 013                                         |
-| `src/utils/templateRegistry.ts`       | TOOL-002, 003, 013                                         |
 | `src/commands/init.ts`                | TOOL-015                                                   |
 | `src/__tests__/specGenerator.test.ts` | TOOL-002, 003, 010, 013                                    |
 | `docs/GUIDE.md`                       | TOOL-003                                                   |

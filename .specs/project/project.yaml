@@ -1,6 +1,6 @@
 # SpecPilot SDD CLI - Project Configuration
 # fileID: PROJ-001
-# lastUpdated: 2026-02-08
+# lastUpdated: 2026-02-28
 name: "SpecPilot SDD CLI"
 version: "1.4.0"
 language: "typescript"
@@ -25,7 +25,6 @@ rules:
   - "MANDATE: Never commit code to git unless prompted by the developer. Always ask the developer"
   - "MANDATE: Never push to git unless prompted by the developer. Always ask the developer"
   - "MANDATE: Never publish to npm unless prompted by the developer. Always ask the developer"
-  -
 
 ai-context:
   - "Assist with specification writing and validation"

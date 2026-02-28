@@ -13,6 +13,14 @@ export interface SpecifyOptions {
   update: boolean;
 }
 
+/** Holds before/after content for a single file change. */
+interface PendingChange {
+  filePath: string;
+  label: string;
+  before: string;
+  after: string;
+}
+
 export async function specifyCommand(description: string | undefined, options: SpecifyOptions) {
   const logger = new Logger();
 
@@ -58,31 +66,70 @@ export async function specifyCommand(description: string | undefined, options: S
 
     logger.info(`🔍 Found project: ${projectName} (${language}${framework ? ` + ${framework}` : ''})`);
 
-    // Update requirements.md with the new description
+    // ── Collect pending changes (without writing yet) ────────────
+    const pendingChanges: PendingChange[] = [];
+
     const requirementsPath = join(specsDir, 'project', 'requirements.md');
     if (existsSync(requirementsPath)) {
-      const currentContent = readFileSync(requirementsPath, 'utf-8');
-      const updatedContent = updateRequirementsWithDescription(currentContent, projectDescription, options.update);
-      writeFileSync(requirementsPath, updatedContent);
-      logger.success('✅ Updated requirements.md with new description');
+      const before = readFileSync(requirementsPath, 'utf-8');
+      const after = updateRequirementsWithDescription(before, projectDescription, options.update);
+      if (after !== before) {
+        pendingChanges.push({ filePath: requirementsPath, label: 'requirements.md', before, after });
+      }
     }
 
-    // Update context.md with the specification
     const contextPath = join(specsDir, 'development', 'context.md');
     if (existsSync(contextPath)) {
-      const currentContent = readFileSync(contextPath, 'utf-8');
-      const updatedContent = updateContextWithSpecification(currentContent, projectDescription);
-      writeFileSync(contextPath, updatedContent);
-      logger.success('✅ Updated context.md with specification details');
+      const before = readFileSync(contextPath, 'utf-8');
+      const after = updateContextWithSpecification(before, projectDescription);
+      if (after !== before) {
+        pendingChanges.push({ filePath: contextPath, label: 'context.md', before, after });
+      }
     }
 
-    // Update prompts.md to log this interaction
     const promptsPath = join(specsDir, 'development', 'prompts.md');
     if (existsSync(promptsPath)) {
-      const currentContent = readFileSync(promptsPath, 'utf-8');
-      const updatedContent = updatePromptsLog(currentContent, projectDescription);
-      writeFileSync(promptsPath, updatedContent);
-      logger.success('✅ Logged specification in prompts.md');
+      const before = readFileSync(promptsPath, 'utf-8');
+      const after = updatePromptsLog(before, projectDescription);
+      if (after !== before) {
+        pendingChanges.push({ filePath: promptsPath, label: 'prompts.md', before, after });
+      }
+    }
+
+    if (pendingChanges.length === 0) {
+      logger.info('ℹ️  No changes detected — spec files are already up to date.');
+      return;
+    }
+
+    // ── Show diff preview ────────────────────────────────────────
+    console.log('');
+    logger.info(chalk.blue.bold('📋 Proposed changes:'));
+    console.log('');
+
+    for (const change of pendingChanges) {
+      console.log(chalk.cyan(`── ${change.label} ──`));
+      printSimpleDiff(change.before, change.after);
+      console.log('');
+    }
+
+    // ── Ask for confirmation (unless --no-prompts) ───────────────
+    if (options.prompts) {
+      const { confirmed } = await inquirer.prompt([{
+        type: 'confirm',
+        name: 'confirmed',
+        message: `Apply changes to ${pendingChanges.length} file(s)?`,
+        default: true,
+      }]);
+      if (!confirmed) {
+        logger.info('❌ Aborted — no files were modified.');
+        return;
+      }
+    }
+
+    // ── Apply changes ────────────────────────────────────────────
+    for (const change of pendingChanges) {
+      writeFileSync(change.filePath, change.after);
+      logger.success(`✅ Updated ${change.label}`);
     }
 
     // If update flag is set, regenerate specs with new context
@@ -236,5 +283,60 @@ function updatePromptsLog(currentContent: string, description: string): string {
       /(## Overview[\s\S]*?)(\n## |\n*$)/,
       `$1\n\n## Latest Entries\n${promptEntry}$2`
     );
+  }
+}
+
+/**
+ * Print a simple line-level diff between two strings.
+ * Added lines are green with "+", removed lines are red with "−".
+ * Only changed regions (with 2 lines of context) are shown.
+ */
+function printSimpleDiff(before: string, after: string): void {
+  const oldLines = before.split('\n');
+  const newLines = after.split('\n');
+  const maxLen = Math.max(oldLines.length, newLines.length);
+  const CONTEXT = 2;
+
+  // Find which line indices have changes
+  const changedIndices = new Set<number>();
+  for (let i = 0; i < maxLen; i++) {
+    if (oldLines[i] !== newLines[i]) {
+      changedIndices.add(i);
+    }
+  }
+
+  if (changedIndices.size === 0) return;
+
+  // Expand to include context lines
+  const visibleIndices = new Set<number>();
+  for (const idx of changedIndices) {
+    for (let c = idx - CONTEXT; c <= idx + CONTEXT; c++) {
+      if (c >= 0 && c < maxLen) visibleIndices.add(c);
+    }
+  }
+
+  const sortedIndices = [...visibleIndices].sort((a, b) => a - b);
+  let lastPrinted = -2;
+
+  for (const i of sortedIndices) {
+    if (i > lastPrinted + 1) {
+      console.log(chalk.gray('  ...'));
+    }
+    lastPrinted = i;
+
+    const ol = oldLines[i];
+    const nl = newLines[i];
+
+    if (ol === nl) {
+      // Context line — unchanged
+      console.log(chalk.gray(`  ${ol ?? ''}`));
+    } else {
+      if (ol !== undefined) {
+        console.log(chalk.red(`- ${ol}`));
+      }
+      if (nl !== undefined) {
+        console.log(chalk.green(`+ ${nl}`));
+      }
+    }
   }
 }

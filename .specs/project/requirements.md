@@ -3,7 +3,7 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2025-10-26
+lastUpdated: 2026-02-28
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
 version: 1.1

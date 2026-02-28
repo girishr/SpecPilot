@@ -1,180 +1,129 @@
-# SpecPilot SDD CLI API Specification
-# meta: project=SpecPilot language=typescript framework=node updated=2025-10-06
-openapi: 3.0.3
-info:
-  title: SpecPilot SDD CLI API
-  description: API specification for the SpecPilot SDD CLI tool
-  version: 1.1.1
-  contact:
-    name: SpecPilot SDD CLI Team
+# SpecPilot SDD CLI — Interface Specification
+# fileID: API-001
+# lastUpdated: 2026-02-28
+# version: 1.4
+#
+# NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
+# the command-line interface (commands, flags, arguments, exit codes).
 
-servers:
-  - url: https://api.specpilot.dev/v1
-    description: Production server
+cli:
+  binary: specpilot
+  version: 1.4.0
+  runtime: Node.js >= 16
+  install: npm install -g specpilot
 
-paths:
-  /projects:
-    post:
-      summary: Initialize a new project
-      description: Creates a new project with specification-driven structure
-      requestBody:
+commands:
+
+  init:
+    description: Initialize a new project with .specs/ structure
+    usage: specpilot init <project-name> [options]
+    arguments:
+      project-name:
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-                - language
-              properties:
-                name:
-                  type: string
-                  description: Project name
-                language:
-                  type: string
-                  enum: [typescript, python]
-                  description: Programming language
-                framework:
-                  type: string
-                  description: Framework to use
-                specDir:
-                  type: string
-                  default: .specs
-                  description: Custom specs directory name
-      responses:
-        "200":
-          description: Project initialized successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  projectId:
-                    type: string
-                  specDir:
-                    type: string
-                  files:
-                    type: array
-                    items:
-                      type: string
-        "400":
-          description: Invalid request parameters
-        "500":
-          description: Internal server error
+        description: Name of the project directory to create
+        validation: "^[a-zA-Z0-9][a-zA-Z0-9._-]*$ (max 214 chars)"
+    options:
+      --lang:
+        type: string
+        description: Programming language (typescript, javascript, python)
+      --framework:
+        type: string
+        description: Framework (react, express, next, nest, vue, angular, fastapi, django, flask, streamlit)
+      --specs-name:
+        type: string
+        default: .specs
+        description: Custom name for the specs directory
+      --no-prompts:
+        type: boolean
+        description: Skip interactive prompts (use defaults)
+    interactive-prompts:
+      - IDE selection (VSCode, Cursor, Windsurf, Kiro, Antigravity, Cowork, Codex)
+      - "What does your project do?" (mandatory)
+      - "Who are the target users?" (optional)
+      - "Expected scale?" (optional)
+      - "Known constraints or requirements?" (optional)
+    exit-codes:
+      0: Success
+      1: Project already exists or validation error
 
-  /templates:
-    get:
-      summary: List available templates
-      description: Returns list of available project templates
-      responses:
-        "200":
-          description: List of templates
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  templates:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        language:
-                          type: string
-                        frameworks:
-                          type: array
-                          items:
-                            type: string
+  add-specs:
+    description: Add .specs/ folder to an existing project with codebase analysis
+    usage: specpilot add-specs [options]
+    options:
+      --lang:
+        type: string
+        description: Override auto-detected language
+      --framework:
+        type: string
+        description: Override auto-detected framework
+      --no-analysis:
+        type: boolean
+        description: Skip codebase analysis (TODOs, tests, architecture)
+      --deep-analysis:
+        type: boolean
+        description: Enable deep codebase analysis
+      --no-prompts:
+        type: boolean
+        description: Skip interactive prompts
+    exit-codes:
+      0: Success
+      1: .specs/ already exists or error
 
-  /validate:
-    post:
-      summary: Validate project specs
-      description: Validates the specification files in a project
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - projectPath
-              properties:
-                projectPath:
-                  type: string
-                  description: Path to project directory
-                strict:
-                  type: boolean
-                  default: false
-                  description: Enable strict validation
-      responses:
-        "200":
-          description: Validation results
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  valid:
-                    type: boolean
-                  errors:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        file:
-                          type: string
-                        line:
-                          type: integer
-                        message:
-                          type: string
-                  warnings:
-                    type: array
-                    items:
-                      type: string
+  validate:
+    description: Validate .specs/ folder structure and content
+    usage: specpilot validate [options]
+    options:
+      --fix:
+        type: boolean
+        description: Auto-fix issues where possible
+    exit-codes:
+      0: Valid (may have warnings)
+      1: Validation errors found
 
-components:
-  schemas:
-    Project:
-      type: object
-      required:
-        - name
-        - language
-      properties:
-        name:
-          type: string
-          description: Project name
-        language:
-          type: string
-          enum: [typescript, python]
-          description: Programming language
-        framework:
-          type: string
-          description: Framework used
-        version:
-          type: string
-          description: Project version
-        specDir:
-          type: string
-          default: .specs
-          description: Specs directory name
+  list:
+    description: List available language/framework templates
+    usage: specpilot list
+    exit-codes:
+      0: Success
 
-    ValidationResult:
-      type: object
-      properties:
-        valid:
-          type: boolean
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              file:
-                type: string
-              line:
-                type: integer
-              message:
-                type: string
-        warnings:
-          type: array
-          items:
-            type: string
+  migrate:
+    description: Migrate .specs/ folder to the latest structure
+    usage: specpilot migrate [options]
+    options:
+      --from:
+        type: string
+        description: Source structure format (simple or complex)
+      --to:
+        type: string
+        description: Target structure format (simple or complex)
+      --backup:
+        type: boolean
+        default: true
+        description: Create backup before migration
+      --dry-run:
+        type: boolean
+        description: Preview migration without writing
+    exit-codes:
+      0: Success
+      1: Migration error
+
+  specify:
+    description: Update spec files with current project context
+    usage: specpilot specify [options]
+    options:
+      --no-prompts:
+        type: boolean
+        description: Skip confirmation prompt (write directly)
+    behavior:
+      - Collects pending changes to requirements.md, context.md, prompts.md
+      - Shows line-level diff preview before writing
+      - Prompts for confirmation unless --no-prompts is set
+    exit-codes:
+      0: Success (or no changes needed)
+      1: Error
+
+global-options:
+  --version:
+    description: Show SpecPilot version
+  --help:
+    description: Show help for any command

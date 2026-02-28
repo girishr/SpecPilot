@@ -1,6 +1,6 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-02-08
+lastUpdated: 2026-02-28
 version: 1.4
 contributors: [girishr]
 relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
@@ -12,8 +12,8 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 
 - **Phase**: Active Development (v1.4.0)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: CS-008 (IDE workspace settings for 5 AI editors), CS-009 (cloud-based AI agent integration for Cowork and Codex), Gemini-style CLI interface with ASCII logos, CS-004, CS-005, CS-010, CS-011
-- **Next Steps**: CS-012 (future features planning), CS-013 (community feedback), enhanced security and compliance features
+- **Recent Implementations**: 19-fix code review refactoring (FIX-001 through FIX-019), 72 test coverage, module split (specGenerator → specFileGenerator + ideConfigGenerator + agentConfigGenerator), dual onboarding prompts (new/existing), specify diff preview, ESLint integration
+- **Next Steps**: CS-012 (future features planning), CS-013 (community feedback), tool-improvement-plan items (TOOL-001 through TOOL-015)
 
 ## Key Decisions [CTX-003]
 
@@ -28,6 +28,11 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Folder Structure Display**: Show nested tree instead of flat list in architecture.md [CTX-003.9]
 - **AI IDE Integration**: Support for VSCode, Cursor, Windsurf, Kiro, and Antigravity workspace settings; Cowork Skills and Codex instructions for cloud-based AI agents [CTX-003.10]
 - **Visual CLI**: Gemini-style graphical interface with ASCII branding [CTX-003.11]
+- **Module Split**: specGenerator.ts split into specFileGenerator, ideConfigGenerator, agentConfigGenerator for maintainability (FIX-011) [CTX-003.12]
+- **Template Simplification**: Removed TemplateRegistry abstraction; inlined catalog as constant (FIX-013) [CTX-003.13]
+- **Dual Onboarding**: Separate prompts for new projects (planning-focused) and existing projects (analysis-focused) with baked-in project context (FIX-018) [CTX-003.14]
+- **Diff Preview**: specify command shows changes before writing, with confirmation prompt (FIX-019) [CTX-003.15]
+- **IDE Settings**: Fabricated setting keys removed; aspirational keys marked clearly (FIX-017) [CTX-003.16]
 
 ## Established Patterns [CTX-004]
 
@@ -60,6 +65,10 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **User Experience**: Providing real analysis value exceeds placeholder requirements [CTX-006.10]
 - **IDE-Specific Settings**: Multi-IDE support provides flexibility for different AI coding environments [CTX-006.11]
 - **Visual Identity**: Branded CLI interface improves professional perception and user engagement [CTX-006.12]
+- **Code Review Value**: Systematic code review (19 fixes) caught dead code, security gaps, and architecture debt [CTX-006.13]
+- **Module Boundaries**: Splitting large files (1,298 → 3 focused modules) reduces merge conflicts and cognitive load [CTX-006.14]
+- **Test Investment**: Going from 3 to 72 tests caught real alignment issues during the review process [CTX-006.15]
+- **Aspirational vs Real**: Marking unconfirmed IDE settings as ASPIRATIONAL prevents user trust erosion [CTX-006.16]
 
 ## Development Insights [CTX-007]
 

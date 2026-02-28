@@ -1,6 +1,6 @@
 ---
 fileID: DOC-001
-lastUpdated: 2026-02-20
+lastUpdated: 2026-02-28
 version: 1.1
 contributors: [girishr]
 relatedFiles:
@@ -97,7 +97,7 @@ The `.specs/` folder structure is IMMUTABLE and must not be altered. This includ
 
 **Protected Structure**:
 
-- Subfolder hierarchy: `project/`, `planning/`, `development/`, `quality/`, `architecture/`, `analysis/` (as defined)
+- Subfolder hierarchy: `project/`, `planning/`, `development/`, `quality/`, `architecture/` (as defined)
 - Core file names: `project.yaml`, `requirements.md`, `architecture.md`, `api.yaml`, `tests.md`, `context.md`, `docs.md`, `prompts.md`, `tasks.md`
 - All existing files and directories
 
@@ -248,21 +248,26 @@ npm test
 npm install -g specpilot
 
 # Usage
-specpilot my-project --lang typescript
+specpilot init my-project --lang typescript
+specpilot add-specs
+specpilot list
+specpilot validate
 ```
 
 ## API Documentation
 
 ### CLI Commands
 
-- `specpilot [project]`: Initialize new project
-- `specpilot --list-templates`: Show available templates
-- `specpilot --validate`: Validate project specs
-- `specpilot --migrate`: Migrate to newer version
+- `specpilot init <project-name>`: Initialize new project with .specs/ structure
+- `specpilot add-specs`: Add .specs/ to an existing project with codebase analysis
+- `specpilot list`: Show available language/framework templates
+- `specpilot validate [--fix]`: Validate project specs
+- `specpilot migrate [--from <format> --to <format>]`: Migrate to newer structure
+- `specpilot specify`: Update spec files with current project context (shows diff + confirmation)
 
 ### Configuration
 
-Project configuration stored in `.specs/project.yaml`:
+Project configuration stored in `.specs/project/project.yaml`:
 
 ```yaml
 project:

@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2025-10-26
-version: 1.1
+lastUpdated: 2026-02-28
+version: 1.4
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, api.yaml, tasks.md]
 ---
@@ -15,16 +15,20 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 ## Core Components [ARCH-003]
 
 - **CLI Parser**: Command-line argument processing with Commander.js [ARCH-003.1]
-- **Template Engine**: File generation from Handlebars templates [ARCH-003.2]
-- **Spec Generator**: Creates .specs folder structure with metadata [ARCH-003.3]
+- **Template Engine**: Handlebars helpers and `renderFromString()` utility [ARCH-003.2]
+- **Spec Generator**: Thin coordinator that delegates to SpecFileGenerator, IdeConfigGenerator, and AgentConfigGenerator [ARCH-003.3]
+- **Spec File Generator**: Generates `.specs/` markdown and YAML files (prompts.md, README, project.yaml, etc.) [ARCH-003.3.1]
+- **IDE Config Generator**: Generates workspace settings for VSCode, Cursor, Windsurf, Kiro, Antigravity [ARCH-003.3.2]
+- **Agent Config Generator**: Generates Cowork Skills and Codex Instructions [ARCH-003.3.3]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
 - **Migrator**: Version migration and structure updates [ARCH-003.5]
 - **Project Detector**: Auto-detects language/framework from existing files [ARCH-003.6]
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
+- **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
 
 ## Design Decisions [ARCH-004]
 
-- **Template Storage**: Built-in templates for consistent generation [ARCH-004.1]
+- **Template Storage**: Built-in inline templates (no external template files) [ARCH-004.1]
 - **Structure Flexibility**: Customizable spec folder names [ARCH-004.2]
 - **Language Support**: TypeScript, JavaScript, and Python with framework detection [ARCH-004.3]
 - **Developer Control**: Guidelines, not prescriptions [ARCH-004.4]
@@ -32,6 +36,9 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Folder Structure Display**: Nested tree visualization instead of flat lists [ARCH-004.5.1]
 - **Metadata First**: YAML front-matter for all spec files [ARCH-004.6]
 - **Git Mandates**: Explicit prompts required for all git operations [ARCH-004.7]
+- **Module Split**: specGenerator.ts split into 3 focused modules (FIX-011) [ARCH-004.8]
+- **Dual Onboarding**: Separate prompts for new projects (planning-first) and existing projects (codebase-analysis) [ARCH-004.9]
+- **Diff Preview**: specify command shows changes and asks for confirmation before writing [ARCH-004.10]
 
 ## Technology Stack [ARCH-005]
 
@@ -45,13 +52,15 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 
 ### Init Command Flow [ARCH-006.1]
 
-1. User runs `specpilot init` with parameters
-2. CLI parses arguments and validates project name
+1. User runs `specpilot init <project-name>` with parameters
+2. CLI parses arguments and validates project name (allowlist regex)
 3. Checks for existing .specs folder (CS-004)
 4. Prompts for framework and developer name (CS-005)
-5. Template engine generates subfolder structure
-6. Spec files created with YAML metadata and cross-references
-7. Validator confirms structure integrity
+5. Prompts for IDE/agent selection
+6. Asks 4 project context questions (1 mandatory, 3 optional)
+7. Spec File Generator creates subfolder structure with mode-aware prompts
+8. IDE/Agent configs generated based on selection
+9. Validator confirms structure integrity
 
 ### Add-Specs Command Flow [ARCH-006.2]
 
@@ -60,5 +69,14 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 3. Auto-detects language, framework, dependencies
 4. Code Analyzer scans for TODOs, tests, components (unless --no-analysis)
 5. Prompts for missing information
-6. Spec Generator creates .specs with analysis data
+6. Spec Generator creates .specs with analysis data (mode: existing)
 7. Reports discovered items (TODOs, tests, components)
+
+### Specify Command Flow [ARCH-006.3]
+
+1. User runs `specpilot specify` in project with .specs/
+2. Reads current spec files (requirements.md, context.md, prompts.md)
+3. Collects all pending changes into a list
+4. Shows line-level diff preview (added/removed lines with context)
+5. Prompts for confirmation (unless --no-prompts)
+6. Writes approved changes to disk

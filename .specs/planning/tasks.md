@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-02-20
-version: 1.5
+lastUpdated: 2026-02-28
+version: 1.7
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
 ---
@@ -95,6 +95,33 @@ Notes
 1. [CS-012] Plan and implement next major features (template enhancements, performance optimizations)
 2. [CS-013] Gather community feedback and refine existing features based on user experience
 
+### .specs Folder Fixes
+
+3. [CS-014] [SPECS-FIX-7] Archive completed tasks in `planning/tasks.md` — move CD-001 through CD-039 into a `### Completed (Archived)` section or separate `tasks-archive.md`; keep active/upcoming items visible
+4. [CS-015] [SPECS-FIX-8] Delete or merge `project/project-plan.md` — merge unique content (milestones, success criteria) into `roadmap.md`, then delete the file
+5. [CS-016] [SPECS-FIX-10] Scope down `development/docs.md` — keep only spec conventions and dev procedures; move contributing/troubleshooting/support to README
+6. [CS-017] [SPECS-FIX-11] Reduce mandates in `project/project.yaml` — consolidate 15 rules into 5 enforceable mandates to prevent mandate fatigue
+7. [CS-018] [SPECS-FIX-12] Update `project/requirements.md` — add missing features (IDE config, Cowork/Codex, `add-specs`, `specify`), add `## Assumptions` section
+8. [CS-019] [SPECS-FIX-14] Cap/archive `development/prompts.md` — set rolling window (last 30 days), archive older entries to `prompts-archive.md`
+9. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
+10. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
+11. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
+
+### Generated Output Improvements
+
+12. [CS-023] [TOOL-002] Replace generated OpenAPI `api.yaml` with context-aware spec — ask user "Does your project expose an API?" during `specpilot init`; generate CLI interface YAML or OpenAPI stub accordingly
+13. [CS-024] [TOOL-003] Stop generating `project-plan.md` — remove `generateProjectPlanMd()`, merge charter content into `roadmap.md` template, update `specValidator.ts` required files, update tests and docs
+14. [CS-025] [TOOL-004] Reduce generated mandates from 10 to 5 in `templateEngine.ts` project.yaml template
+15. [CS-026] [TOOL-005] Fix `docs.md` template in `specFileGenerator.ts` — replace old flag-style commands (`--list-templates`, `--validate`) with correct subcommands (`list`, `validate`, `migrate`)
+16. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
+17. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
+18. [CS-029] [TOOL-008] Add stale-date warning to `specpilot validate` — parse `lastUpdated` front-matter and emit warning if > 90 days old
+19. [CS-030] [TOOL-009] Add `status: active` field to YAML front-matter of all generated spec files
+20. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to archive entries > 30 days to `prompts-archive.md`
+21. [CS-032] [TOOL-012] Add archive guidance section to generated `tasks.md` template — instruct users to move completed tasks older than 30 days to `tasks-archive.md`
+22. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
+23. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
+
 ## Completed
 
 1. [CD-001] Define project requirements
@@ -132,6 +159,33 @@ Notes
 33. [CD-033] Add JavaScript language support with auto-detection and templates - CS-010 completed
 34. [CD-034] Create comprehensive AI onboarding prompt in .specs/development/prompts.md to help AI assistants understand the .specs folder structure and usage - CS-007 completed via enhanced prompts.md onboarding
 35. [CD-035] [CS-008] Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context. Prompt the user to select his IDE and then generate the workspace setting based on it. The current IDEs to include are vscode, Cursor, Windsurf, Antigravity and Kiro. ✅ VSCode implementation completed | ✅ Cursor implementation completed | ✅ Windsurf implementation completed | ✅ Antigravity implementation completed | ✅ Kiro implementation completed
-36. [CD-036] Implement Gemini-style graphical CLI interface with ASCII art logos using blessed library - v1.3.0 completed
+36. [CD-036] Implement Gemini-style graphical CLI interface with ASCII art logos - v1.3.0 completed
 37. [CD-038] Complete multi-IDE workspace settings generation (VSCode, Cursor, Windsurf, Kiro, Antigravity) - v1.4.0 completed
 38. [CD-039] [CS-009] Add cloud-based AI agent integration for Cowork (Claude) and Codex (OpenAI). Generate `.claude/skills/specpilot-project/SKILL.md` for Cowork with project context and development guidelines. Generate `CODEX_INSTRUCTIONS.md` at project root for Codex with architecture overview and development mandates. Add Cowork and Codex as IDE/agent options during `specpilot init` - v1.4.0 completed
+39. [CD-040] [FIX-001] Remove unused `blessed` dependency from package.json - `npm uninstall blessed`
+40. [CD-041] [FIX-002] Fix broken `lowercase` Handlebars helper — was calling `str.slice(1)` instead of `str.toLowerCase()`
+41. [CD-042] [FIX-003] Fix hardcoded version string in `logger.ts` welcome screen — now reads version dynamically from package.json
+42. [CD-043] [FIX-004] Fix hardcoded date in spec generator — `lastUpdated` now uses `new Date().toISOString().split('T')[0]`
+43. [CD-044] [FIX-005] Remove unused `Command` imports from all 6 command files (`init.ts`, `validate.ts`, `migrate.ts`, `list.ts`, `specify.ts`, `add-specs.ts`)
+44. [CD-045] [FIX-006] Extract duplicated `getFrameworksForLanguage()` into shared `src/utils/frameworks.ts` utility
+45. [CD-046] [FIX-007] Replace project name denylist validation with allowlist regex `^[a-zA-Z0-9][a-zA-Z0-9._-]*$` to prevent Handlebars template injection
+46. [CD-047] [FIX-008] Fix migration file mapping in `projectMigrator.ts` to use correct subfolder paths (`architecture/architecture.md`, `project/requirements.md`, etc.)
+47. [CD-048] [FIX-009] Merge duplicate `[1.2.2]` entries in `CHANGELOG.md`
+48. [CD-049] [FIX-010] Add real ESLint linter — installed `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin`, created `.eslintrc.json`, updated `lint` script
+49. [CD-050] [FIX-011] Split `specGenerator.ts` (1,298 lines) into `specFileGenerator.ts` (642 lines), `ideConfigGenerator.ts` (137 lines), `agentConfigGenerator.ts` (238 lines); `specGenerator.ts` is now an 81-line coordinator
+50. [CD-051] [FIX-012] Deduplicate IDE settings generation — single `getBaseSettings()` + per-IDE `IDE_OVERRIDES` map in `ideConfigGenerator.ts`
+51. [CD-052] [FIX-013] Remove `TemplateRegistry` abstraction and empty `src/templates/` directory; inlined catalog as static `TEMPLATES` constant in `list.ts`
+52. [CD-053] [FIX-014] Add 4 new test suites (69 tests): `specValidator.test.ts` (17), `projectMigrator.test.ts` (11), `projectDetector.test.ts` (17), `templateEngine.test.ts` (24) — total 72 tests
+53. [CD-054] [FIX-015] Remove `generateSpecUpdateTemplateMd()` and its call from `specFileGenerator.ts`; deleted `.specs/spec-update-template.md`
+54. [CD-055] [FIX-016] Give each planning file a distinct documented purpose: `project-plan.md` = charter, `roadmap.md` = release milestones, `tasks.md` = sprint tracker
+55. [CD-056] [FIX-017] Remove fabricated IDE setting keys from `ideConfigGenerator.ts`; mark all IDE-specific override keys as `// ASPIRATIONAL`
+56. [CD-057] [FIX-018] Implement dual onboarding prompt system: `init` (new project) bakes answers to 4 context questions into a planning-focused prompt; `add-specs` (existing project) uses codebase-analysis prompt
+57. [CD-058] [FIX-019] Add diff preview and confirmation to `specify` command — collects changes, shows line-level diff, prompts before writing; `--no-prompts` skips confirmation
+58. [CD-059] [SPECS-FIX-1] Delete corrupted `.specs/spec-update-template.md` — two copies were interleaved line-by-line; file deleted and generation removed (see also CD-054)
+59. [CD-060] [SPECS-FIX-2] Replace `.specs/architecture/api.yaml` — removed fabricated OpenAPI 3.0 REST spec; replaced with CLI interface YAML documenting all 6 commands, flags, arguments, and exit codes
+60. [CD-061] [SPECS-FIX-3] Fix wrong CLI commands in `.specs/development/docs.md` — replaced `--list-templates`, `--validate`, `--migrate` flags with correct subcommands; removed non-existent `analysis/` subfolder reference
+61. [CD-062] [SPECS-FIX-4] Update stale `lastUpdated` dates across 7 `.specs/` files — `requirements.md`, `project-plan.md`, `tests.md`, `prompts.md`, `docs.md`, `context.md`, `project.yaml`, `roadmap.md` all updated to 2026-02-28
+62. [CD-063] [SPECS-FIX-5] Fix duplicate PROMPT IDs in `.specs/development/prompts.md` — re-numbered 6 colliding entries to unique IDs (PROMPT-002.0.4 through 002.1.1, 003.2 through 003.5)
+63. [CD-064] [SPECS-FIX-6] Remove duplicate roadmap entry in `.specs/planning/roadmap.md` — "Cloud-based AI agent integration" line appeared twice consecutively
+64. [CD-065] [SPECS-FIX-9] Remove trailing bare `-` from `.specs/project/project.yaml` rules list (empty list item after last MANDATE rule)
+65. [CD-066] [SPECS-FIX-13] Update `.specs/quality/tests.md` — documented 5 test suites and 72 tests, checked off applicable acceptance criteria, updated date and version

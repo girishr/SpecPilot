@@ -126,16 +126,6 @@ function createValidSpecsDir(baseDir: string): string {
     'Developer documentation.',
   ].join('\n'));
 
-  // project-plan.md — front-matter + refs: roadmap.md, tasks.md
-  writeFileSync(join(specsDir, 'project', 'project-plan.md'), [
-    '---',
-    'title: Project Plan',
-    '---',
-    '# Project Plan',
-    '<!-- refs: roadmap.md tasks.md -->',
-    'Project planning overview.',
-  ].join('\n'));
-
   return specsDir;
 }
 
@@ -184,7 +174,7 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.isValid).toBe(false);
     const missingErrors = result.errors.filter(e => e.startsWith('Missing required file'));
-    expect(missingErrors.length).toBe(10); // all 10 required files missing
+    expect(missingErrors.length).toBe(9); // all 9 required files missing
   });
 
   it('counts only files that exist in filesChecked', async () => {

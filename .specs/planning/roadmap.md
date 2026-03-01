@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-02-28
-version: 1.4
+lastUpdated: 2026-03-01
+version: 1.5
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -41,3 +41,15 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-02-06: IDE selection prompts and configuration generation
 - 2026-02-07: v1.4.0 release with 5 AI IDE support (VSCode, Cursor, Windsurf, Kiro, Antigravity)
 - 2026-02-08: Cloud-based AI agent integration (Cowork Skills, Codex Instructions)
+
+## Objectives [ROADMAP-004]
+
+- Deliver working templates for TypeScript/JavaScript, Python, and Go [ROADMAP-004.1]
+- Enforce safeguards (prevent init in folders that already have .specs/) [ROADMAP-004.2]
+- Ship clear docs and getting-started guidance [ROADMAP-004.3]
+
+## Risks and Mitigations [ROADMAP-005]
+
+- Template scope creep: fix by locking language targets per release [ROADMAP-005.1]
+- Inconsistent docs: fix by validating all spec files before release [ROADMAP-005.2]
+- Cross-platform issues: fix by testing on macOS, Linux, and Windows CI [ROADMAP-005.3]

@@ -223,7 +223,7 @@ Run \`specpilot validate\` to check:
 
 - Full guide: See .specs/README.md for comprehensive documentation
 - API spec: See .specs/architecture/api.yaml
-- Project plan: See .specs/project/project-plan.md
+- Project roadmap: See .specs/planning/roadmap.md
 - Context history: See .specs/development/context.md
 
 ---

@@ -243,12 +243,16 @@ specpilot specify "A REST API for user management" --update
 
 # Interactive specification input
 specpilot specify --prompts
+
+# Skip diff preview — write without confirmation
+specpilot specify "new feature" --no-prompts
 ```
 
 **Options:**
 
 - `--update, -u`: Regenerate specifications with new context
 - `--prompts, -p`: Interactive description input
+- `--no-prompts`: Skip diff preview and write files without confirmation
 
 ### Debug Mode
 
@@ -296,13 +300,6 @@ specpilot list --verbose
 | Django       | `django`      | Full-stack Django application |
 | Data Science | `datascience` | ML/Data Science project       |
 
-### Java (Planned)
-
-| Framework   | Template     | Description          |
-| ----------- | ------------ | -------------------- |
-| Generic     | `java`       | Basic Java project   |
-| Spring Boot | `springboot` | Spring Boot REST API |
-
 ## Project Structure
 
 SpecPilot generates a comprehensive `.specs/` folder structure:
@@ -311,13 +308,12 @@ SpecPilot generates a comprehensive `.specs/` folder structure:
 .specs/
 ├── project/
 │   ├── project.yaml          # Project configuration & rules
-│   ├── requirements.md       # Functional/non-functional requirements
-│   └── project-plan.md       # Timeline, milestones, task tracking
+│   └── requirements.md       # Functional/non-functional requirements
 ├── architecture/
 │   ├── architecture.md       # Architecture decisions & patterns
-│   └── api.yaml             # OpenAPI specifications
+│   └── api.yaml             # API/CLI interface specifications
 ├── planning/
-│   ├── roadmap.md           # Product roadmap & milestones
+│   ├── roadmap.md           # Product roadmap, milestones, objectives & risks
 │   └── tasks.md             # Task tracking (backlog/sprint/completed)
 ├── quality/
 │   ├── tests.md             # Test strategy & coverage plans
@@ -393,6 +389,7 @@ SpecPilot currently does not support custom templates. All templates are built-i
 During project initialization, SpecPilot prompts you to select your AI IDE or agent. This configures automatically generated files to integrate `.specs/` context into your chosen environment.
 
 **Desktop IDEs** generate workspace settings:
+
 - `.vscode/settings.json` for VSCode
 - `.cursor/settings.json` for Cursor
 - `.windsurf/settings.json` for Windsurf
@@ -400,12 +397,14 @@ During project initialization, SpecPilot prompts you to select your AI IDE or ag
 - `.antigravity/settings.json` for Antigravity
 
 These files include:
+
 - Workspace folder configuration
 - File associations for markdown/YAML
 - Extensions recommendations
 - AI context paths pointing to `.specs/` folder
 
 **Cloud Agents** generate instruction files:
+
 - `.claude/skills/specpilot-project/SKILL.md` for Cowork (Claude)
   - Provides project context in Skills format
   - Includes SDD principles and development guidelines
@@ -418,6 +417,7 @@ These files include:
 
 **To reconfigure your IDE/Agent:**
 Simply run `specpilot init` again with the `--ide` flag:
+
 ```bash
 specpilot init my-project --lang typescript --framework react --ide cursor
 ```
@@ -678,7 +678,7 @@ node cli.js init my-test --lang python
 
 - **TypeScript**: Strict mode enabled
 - **Linting**: ESLint configuration
-- **Testing**: Jest with 100% coverage requirement
+- **Testing**: Jest — 72 tests across 5 suites
 - **Commits**: Conventional commit format
 
 ### Pull Request Process

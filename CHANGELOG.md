@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed
+
+- **`project/project-plan.md` removed from generated `.specs/` structure** (CS-024):
+  - `generateProjectPlanMd()` removed from `specFileGenerator.ts`
+  - File no longer generated during `specpilot init` or `specpilot add-specs`
+  - Removed from `specValidator.ts` required files list (9 required files, down from 10)
+  - Removed cross-reference validation rule for `project-plan.md`
+- **`blessed` dependency removed** (FIX-001): Unused terminal UI library removed from `package.json`
+- **`TemplateRegistry` class removed** (FIX-013): Template catalog inlined as static `TEMPLATES` constant in `list.ts`; empty `src/templates/` directory deleted
+- **`spec-update-template.md` generation removed** (FIX-015): Removed `generateSpecUpdateTemplateMd()` and its call from `specFileGenerator.ts`
+
+### Added
+
+- **ESLint linting** (FIX-010): Added `@typescript-eslint/parser` and `@typescript-eslint/eslint-plugin`; created `.eslintrc.json`; updated `lint` script in `package.json`
+- **72 tests across 5 suites** (FIX-014): Added `specValidator.test.ts` (17), `projectMigrator.test.ts` (11), `projectDetector.test.ts` (17), `templateEngine.test.ts` (24); total now 72
+- **Diff preview and confirmation for `specify` command** (FIX-019): Collects all pending changes, shows line-level diff, prompts for confirmation before writing; `--no-prompts` flag skips confirmation
+- **Dual onboarding prompts** (FIX-018): `init` (new project) bakes 4 context-question answers into a planning-focused prompt; `add-specs` (existing project) uses a codebase-analysis prompt
+- **`src/utils/frameworks.ts`** (FIX-006): Extracted shared `getFrameworksForLanguage()` utility from duplicated code across `init.ts` and `add-specs.ts`
+
+### Changed
+
+- **`roadmap.md` template expanded** (CS-024): Merged charter content (objectives, success criteria, risks) from removed `project-plan.md` into `roadmap.md`
+- **`agentConfigGenerator.ts`** (CS-024): Codex Instructions template updated to reference `planning/roadmap.md` instead of `project/project-plan.md`
+- **`specGenerator.ts` refactored into 4 files** (FIX-011): Split 1,298-line file into `specFileGenerator.ts` (642 lines), `ideConfigGenerator.ts` (137 lines), `agentConfigGenerator.ts` (238 lines); `specGenerator.ts` is now an 81-line coordinator
+- **IDE settings deduplicated** (FIX-012): Single `getBaseSettings()` + per-IDE `IDE_OVERRIDES` map in `ideConfigGenerator.ts`; all IDE-specific override keys marked `// ASPIRATIONAL`
+- **`tasks.md` template updated** (CS-032): Generated file now uses `BL-###` / `CS-###` / `CD-###` ID convention with numbered list format, ID stability notes, and archive guidance
+
+### Fixed
+
+- **`lowercase` Handlebars helper** (FIX-002): Was calling `str.slice(1)` instead of `str.toLowerCase()`
+- **Hardcoded version string in `logger.ts`** (FIX-003): Welcome screen now reads version dynamically from `package.json`
+- **Hardcoded `lastUpdated` date in spec generator** (FIX-004): Now uses `new Date().toISOString().split('T')[0]` instead of a static date
+- **Unused `Command` imports** (FIX-005): Removed from all 6 command files (`init.ts`, `validate.ts`, `migrate.ts`, `list.ts`, `specify.ts`, `add-specs.ts`)
+- **Project name validation** (FIX-007): Replaced denylist with allowlist regex `^[a-zA-Z0-9][a-zA-Z0-9._-]*$` to prevent Handlebars template injection
+- **Migration file paths** (FIX-008): Corrected subfolder paths in `projectMigrator.ts` (e.g. `architecture/architecture.md`, `project/requirements.md`)
+- **Duplicate `[1.2.2]` CHANGELOG entries** (FIX-009): Merged into single entry
+
 ## [1.4.0] - 2026-02-07
 
 ### Added
@@ -187,17 +226,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Architecture Display**: Folder structures now display as proper nested trees with indentation
 - **Language Support**: JavaScript projects are now properly detected and templated
-
-## [Unreleased]
-
-### Planned
-
-- CS-008: Add workspace settings (.vscode/settings.json) to configure AI IDEs for .specs context
-- CS-006: Project description prompting and integration
-- Custom template directory support
-- Interactive template creation wizard
-- Additional language templates (Go, Rust, C#)
-- Enhanced validation rules
 
 ## [1.2.1] - 2025-10-26
 

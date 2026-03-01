@@ -105,7 +105,6 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
     await this.generateRoadmapMd(join(specsDir, 'planning'), context);
     await this.generateDocsMd(join(specsDir, 'development'), context);
     await this.generateContextMd(join(specsDir, 'development'), context);
-    await this.generateProjectPlanMd(join(specsDir, 'project'), context);
     await this.generatePromptsMd(join(specsDir, 'development'), context);
     await this.generateTestsMd(join(specsDir, 'quality'), context);
   }
@@ -182,53 +181,49 @@ info:
 
   private async generateTasksMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
-title: Tasks
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+fileID: TASKS-001
 lastUpdated: {{currentDate}}
-sourceOfTruth: project/project.yaml
+version: 1.0
+contributors: [{{author}}]
+relatedFiles: [roadmap.md, project.yaml, requirements.md]
 ---
 
-<!--
-  PURPOSE: Sprint-level task tracker — the "what are we doing RIGHT NOW" file.
-  Scope: Individual work items for the current and upcoming sprint.
-  Update cadence: Daily / per PR / per task status change.
+# {{projectName}} — Task Tracking
 
-  Boundary guide:
-  - tasks.md   → specific work items, assignees, sprint status (this file)
-  - roadmap.md → release milestones and quarter-level timeline
-  - project-plan.md → project charter: scope, goals, stakeholders
--->
+Task ID conventions
 
-# {{projectName}} — Task Tracker
+- BL-###: Backlog items
+- CS-###: Current Sprint items
+- CD-###: Completed items
+
+Notes
+
+- IDs are stable; do not change once assigned (even if reordered or moved between sections).
+- Reference tasks by ID in commits, prompts, PRs, and discussions.
+- When moving an item from Backlog to Current Sprint, retain its original BL ID or create a CS mirror that references the BL ID.
+- Archive guidance: when Completed grows large, move older entries to \`tasks-archive.md\` and add a pointer here.
+
+## Backlog
+
+1. [BL-001] Plan initial feature set
+2. [BL-002] Gather user feedback and feature requests
+3. [BL-003] Write documentation and usage guide
 
 ## Current Sprint
 
-### In Progress
-<!-- TASK-XXX: Brief description — assignee, priority: critical|high|medium|low -->
-- [ ] TASK-001: Set up project foundation
+1. [CS-001] Set up project foundation and tooling
+2. [CS-002] Implement core features
+3. [CS-003] Write unit tests
 
-### Backlog
-<!-- Prioritised list of upcoming work items -->
-- [ ] TASK-002: Implement core features
-- [ ] TASK-003: Write unit tests
+## Completed
 
-### Completed
-<!-- Move items here (with completion date) rather than deleting them -->
-- [x] TASK-000: Initialise .specs directory ({{currentDate}})
-
-## Blocked
-<!-- Tasks that cannot proceed — note the blocker and owner -->
-_(none)_
+1. [CD-001] Initialise .specs directory ({{currentDate}})
 
 ## Cross-References
+
 - Roadmap (milestones): ./roadmap.md
 - Requirements: ../project/requirements.md
-- Project config: ../project/project.yaml
-
----
-*Last updated: {{currentDate}}*`;
+- Project config: ../project/project.yaml`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'tasks.md'), rendered);
@@ -246,13 +241,12 @@ sourceOfTruth: project/project.yaml
 
 <!--
   PURPOSE: Release-level milestone planner — the "when are we shipping what" file.
-  Scope: Quarter-level phases, version targets, and feature groupings.
+  Scope: Quarter-level phases, version targets, feature groupings, goals, and risks.
   Update cadence: Per release / per sprint planning session.
 
   Boundary guide:
-  - roadmap.md     → release milestones and quarter-level timeline (this file)
-  - tasks.md       → individual work items and sprint status
-  - project-plan.md → project charter: scope, goals, stakeholders
+  - roadmap.md → release milestones, timeline, objectives, and risks (this file)
+  - tasks.md   → individual work items and sprint status
 -->
 
 # {{projectName}} — Development Roadmap
@@ -278,10 +272,22 @@ sourceOfTruth: project/project.yaml
 ## Unscheduled / Icebox
 - [ ] Nice-to-have feature ideas go here
 
+## Objectives
+- [Primary goal for this project]
+- [Secondary goal]
+
+## Goals & Success Criteria
+| Goal | Success Metric | Target |
+|------|----------------|--------|
+| [Primary goal] | [How we measure it] | [Target value] |
+
+## Risks and Mitigations
+- [Risk 1]: [Mitigation]
+- [Risk 2]: [Mitigation]
+
 ## Cross-References
 - Sprint tasks: ./tasks.md
 - Requirements: ../project/requirements.md
-- Project charter: ../project/project-plan.md
 
 ---
 *Last updated: {{currentDate}}*`;
@@ -343,65 +349,6 @@ sourceOfTruth: project/project.yaml
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'context.md'), rendered);
-  }
-
-  private async generateProjectPlanMd(specsDir: string, context: TemplateContext): Promise<void> {
-    const content = `---
-title: Project Plan
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
-lastUpdated: {{currentDate}}
-sourceOfTruth: project/project.yaml
----
-
-<!--
-  PURPOSE: Project charter — the "why we are building this and what success looks like" file.
-  Scope: Written once at project start; updated only when goals or constraints fundamentally change.
-  Update cadence: Project kick-off, major pivots, or stakeholder reviews.
-
-  Boundary guide:
-  - project-plan.md → charter: scope, goals, stakeholders, constraints (this file)
-  - roadmap.md      → release milestones and quarter-level timeline
-  - tasks.md        → individual work items and sprint status
--->
-
-# {{projectName}} — Project Charter
-
-## Project Scope
-{{description}}
-
-**In scope:**
-- [Define what this project will deliver]
-
-**Out of scope:**
-- [Define explicit exclusions to prevent scope creep]
-
-## Goals & Success Criteria
-| Goal | Success Metric | Target |
-|------|---------------|--------|
-| [Primary goal] | [How we measure it] | [Target value] |
-
-## Stakeholders
-| Role | Name | Responsibility |
-|------|------|----------------|
-| Owner | {{author}} | Final decisions, prioritisation |
-| Developer | {{author}} | Implementation |
-
-## Constraints & Assumptions
-- **Tech stack:** {{language}}{{#if framework}} / {{framework}}{{/if}}
-- **Assumptions:** [List key assumptions the plan depends on]
-- **Dependencies:** [External systems, teams, or tools this project relies on]
-
-## Cross-References
-- Release milestones: ../planning/roadmap.md
-- Sprint tasks: ../planning/tasks.md
-
----
-*Last updated: {{currentDate}}*`;
-
-    const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'project-plan.md'), rendered);
   }
 
   private async generatePromptsMd(specsDir: string, context: TemplateContext): Promise<void> {

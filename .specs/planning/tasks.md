@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-02-28
-version: 1.8
+lastUpdated: 2026-03-01
+version: 1.9
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -97,29 +97,26 @@ Notes
 
 ### .specs Folder Fixes
 
-3. [CS-015] [SPECS-FIX-8] Delete or merge `project/project-plan.md` — merge unique content (milestones, success criteria) into `roadmap.md`, then delete the file
-4. [CS-016] [SPECS-FIX-10] Scope down `development/docs.md` — keep only spec conventions and dev procedures; move contributing/troubleshooting/support to README
-5. [CS-017] [SPECS-FIX-11] Reduce mandates in `project/project.yaml` — consolidate 15 rules into 5 enforceable mandates to prevent mandate fatigue
-7. [CS-018] [SPECS-FIX-12] Update `project/requirements.md` — add missing features (IDE config, Cowork/Codex, `add-specs`, `specify`), add `## Assumptions` section
-8. [CS-019] [SPECS-FIX-14] Cap/archive `development/prompts.md` — set rolling window (last 30 days), archive older entries to `prompts-archive.md`
-9. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
-10. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
-11. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
+3. [CS-016] [SPECS-FIX-10] Scope down `development/docs.md` — keep only spec conventions and dev procedures; move contributing/troubleshooting/support to README
+4. [CS-017] [SPECS-FIX-11] Reduce mandates in `project/project.yaml` — consolidate 15 rules into 5 enforceable mandates to prevent mandate fatigue
+5. [CS-018] [SPECS-FIX-12] Update `project/requirements.md` — add missing features (IDE config, Cowork/Codex, `add-specs`, `specify`), add `## Assumptions` section
+6. [CS-019] [SPECS-FIX-14] Cap/archive `development/prompts.md` — set rolling window (last 30 days), archive older entries to `prompts-archive.md`
+7. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
+8. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
+9. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
 
 ### Generated Output Improvements
 
-12. [CS-023] [TOOL-002] Replace generated OpenAPI `api.yaml` with context-aware spec — ask user "Does your project expose an API?" during `specpilot init`; generate CLI interface YAML or OpenAPI stub accordingly
-13. [CS-024] [TOOL-003] Stop generating `project-plan.md` — remove `generateProjectPlanMd()`, merge charter content into `roadmap.md` template, update `specValidator.ts` required files, update tests and docs
-14. [CS-025] [TOOL-004] Reduce generated mandates from 10 to 5 in `templateEngine.ts` project.yaml template
-15. [CS-026] [TOOL-005] Fix `docs.md` template in `specFileGenerator.ts` — replace old flag-style commands (`--list-templates`, `--validate`) with correct subcommands (`list`, `validate`, `migrate`)
-16. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
-17. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
-18. [CS-029] [TOOL-008] Add stale-date warning to `specpilot validate` — parse `lastUpdated` front-matter and emit warning if > 90 days old
-19. [CS-030] [TOOL-009] Add `status: active` field to YAML front-matter of all generated spec files
-20. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to archive entries > 30 days to `prompts-archive.md`
-21. [CS-032] [TOOL-012] Add archive guidance section to generated `tasks.md` template — instruct users to move completed tasks older than 30 days to `tasks-archive.md`
-22. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
-23. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
+10. [CS-023] [TOOL-002] Replace generated OpenAPI `api.yaml` with context-aware spec — ask user "Does your project expose an API?" during `specpilot init`; generate CLI interface YAML or OpenAPI stub accordingly
+11. [CS-025] [TOOL-004] Reduce generated mandates from 10 to 5 in `templateEngine.ts` project.yaml template
+12. [CS-026] [TOOL-005] Fix `docs.md` template in `specFileGenerator.ts` — replace old flag-style commands (`--list-templates`, `--validate`) with correct subcommands (`list`, `validate`, `migrate`)
+13. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
+14. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
+15. [CS-029] [TOOL-008] Add stale-date warning to `specpilot validate` — parse `lastUpdated` front-matter and emit warning if > 90 days old
+16. [CS-030] [TOOL-009] Add `status: active` field to YAML front-matter of all generated spec files
+17. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to archive entries > 30 days to `prompts-archive.md`
+18. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
+19. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
 
 ## Completed
 
@@ -153,3 +150,7 @@ Notes
 26. [CD-065] [SPECS-FIX-9] Remove trailing bare `-` from `.specs/project/project.yaml` rules list (empty list item after last MANDATE rule)
 27. [CD-066] [SPECS-FIX-13] Update `.specs/quality/tests.md` — documented 5 test suites and 72 tests, checked off applicable acceptance criteria, updated date and version
 28. [CD-067] [CS-014] Archive CD-001–CD-039 to `tasks-archive.md`; replace with pointer in tasks.md; renumber Completed list from CD-040
+29. [CD-068] [CS-015] [SPECS-FIX-8] Delete `project/project-plan.md` — merged Objectives and Risks sections into `planning/roadmap.md` (v1.5), deleted the file
+30. [CD-069] [CS-024] [TOOL-003] Stop generating `project-plan.md` — removed `generateProjectPlanMd()` and its call from `specFileGenerator.ts`; merged charter sections (Objectives, Goals & Success Criteria, Risks) into roadmap template; removed from `specValidator.ts` required files and cross-ref checks; updated `agentConfigGenerator.ts`; updated tests (72 passing)
+31. [CD-070] [CS-032] [TOOL-012] Update generated `tasks.md` template to use `BL-###` / `CS-###` / `CD-###` ID convention with numbered list format, ID stability notes, and archive guidance
+32. [CD-071] Add explicit AI spec-update mandate to both `.specs/project/project.yaml` and generated `project.yaml` template (`templateEngine.ts`): after every code change, proactively update all affected .specs/ files (architecture.md, requirements.md, tests.md, tasks.md, CHANGELOG.md) without being asked

@@ -26,8 +26,7 @@ export class SpecValidator {
     'planning/tasks.md',
     'development/context.md',
     'development/prompts.md',
-    'development/docs.md',
-    'project/project-plan.md'
+    'development/docs.md'
   ];
 
   async validate(projectDir: string, options: ValidationOptions): Promise<ValidationResult> {
@@ -362,7 +361,6 @@ export class SpecValidator {
       { file: 'planning/roadmap.md', crossRefs: ['planning/tasks.md', 'project/requirements.md'] },
       { file: 'development/docs.md', crossRefs: ['development/context.md', 'planning/roadmap.md', 'planning/tasks.md', 'project/project.yaml'] },
       { file: 'development/context.md', crossRefs: ['development/docs.md', 'planning/roadmap.md', 'project/project.yaml'] },
-      { file: 'project/project-plan.md', crossRefs: ['planning/roadmap.md', 'planning/tasks.md'] },
       { file: 'development/prompts.md', crossRefs: ['development/context.md', 'project/project.yaml'] },
       { file: 'quality/tests.md', crossRefs: ['project/requirements.md', 'project/project.yaml'] }
     ];

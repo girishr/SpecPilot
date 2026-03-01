@@ -42,8 +42,7 @@ describe('SpecGenerator', () => {
       'planning/tasks.md',
       'development/context.md',
       'development/prompts.md',
-      'development/docs.md',
-      'project/project-plan.md'
+      'development/docs.md'
     ];
 
     for (const file of requiredFiles) {

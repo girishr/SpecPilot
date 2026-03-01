@@ -107,6 +107,7 @@ rules:
   - "MANDATE: Update .specs/ folder files with every development milestone and code change"
   - "MANDATE: Maintain .specs/ as single source of truth for all project specifications"
   - "MANDATE: Review and update relevant .specs/ files before each commit"
+  - "MANDATE: After every code change, addition, or removal — proactively update all affected .specs/ files without being asked: architecture.md for structural changes, requirements.md for feature additions or removals, tests.md for test changes, tasks.md for task status updates, and CHANGELOG.md for any completed work"
   - "MANDATE: Document decisions, lessons learned, and context in .specs/context.md"
   - "MANDATE: Update .specs/prompts.md with ALL AI interactions and development prompts by default"
   - "MANDATE: Maintain chronological prompt history for complete development traceability"
@@ -123,6 +124,7 @@ ai_context:
   - "All changes should be documented in appropriate .specs/ files"
   - "Follow the established architecture patterns"
   - "Maintain backwards compatibility when possible"
+  - "MANDATE: After every code change — without waiting to be asked — identify which .specs/ files are affected and update them as part of the same task"
   
 # Team Guidelines
 team:

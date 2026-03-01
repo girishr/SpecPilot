@@ -48,12 +48,10 @@
 ### TOOL-003: Stop generating `project-plan.md` (merge into `roadmap.md`)
 
 - **Files:**
-  - [specGenerator.ts L302-L324](../../../src/utils/specGenerator.ts#L302-L324) — `generateProjectPlanMd()`
-  - [specGenerator.ts L114](../../../src/utils/specGenerator.ts#L114) — call site
-  - [specValidator.ts L30](../../../src/utils/specValidator.ts#L30) — in `requiredFiles` array
-  - [specValidator.ts L365](../../../src/utils/specValidator.ts#L365) — cross-reference check
-  - [specGenerator.test.ts L46](../../../src/__tests__/specGenerator.test.ts#L46) — expected in test
-  - [docs/GUIDE.md L315](../../../docs/GUIDE.md#L315) — referenced in guide
+  - [specFileGenerator.ts](../../../src/utils/specFileGenerator.ts) — `generateProjectPlanMd()` removed
+  - [specValidator.ts](../../../src/utils/specValidator.ts) — removed from `requiredFiles` and cross-ref checks
+  - [specGenerator.test.ts](../../../src/__tests__/specGenerator.test.ts) — removed from expected files
+  - [docs/GUIDE.md](../../../docs/GUIDE.md) — folder structure updated
 - **Problem:** Three files do overlapping jobs: `project-plan.md` (milestones), `roadmap.md` (milestones), `tasks.md` (work items). New users won't know where to put what.
 - **Fix:**
   1. Remove `generateProjectPlanMd()` call from the generation pipeline
@@ -61,7 +59,7 @@
   3. Remove `project/project-plan.md` from `specValidator.ts` required files
   4. Update tests and docs
 - **Effort:** 30 min
-- [ ] Done
+- [x] Done (CD-069)
 
 ### TOOL-004: Reduce generated mandates from 10 to 5
 
@@ -201,7 +199,7 @@
 | 2    | TOOL-004 | Reduce mandates to 5                     | —                                |
 | 3    | TOOL-005 | Fix CLI commands in docs.md template     | —                                |
 | 4    | TOOL-010 | Remove or wire up spec-update-template   | —                                |
-| 5    | TOOL-003 | Stop generating project-plan.md          | —                                |
+| 5    | TOOL-003 | Stop generating project-plan.md          | ✅ CD-069                        |
 | 6    | TOOL-002 | Replace api.yaml with context-aware spec | TOOL-003 (fewer files to update) |
 | 7    | TOOL-006 | Add Assumptions to requirements.md       | —                                |
 | 8    | TOOL-007 | Add Assumptions to architecture.md       | —                                |

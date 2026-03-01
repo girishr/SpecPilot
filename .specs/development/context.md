@@ -13,7 +13,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Phase**: Active Development (v1.4.0)
 - **Status**: Production-ready with continuous enhancements
 - **Recent Implementations**: 19-fix code review refactoring (FIX-001 through FIX-019), 72 test coverage, module split (specGenerator → specFileGenerator + ideConfigGenerator + agentConfigGenerator), dual onboarding prompts (new/existing), specify diff preview, ESLint integration
-- **Next Steps**: CS-012 (future features planning), CS-013 (community feedback), tool-improvement-plan items (TOOL-001 through TOOL-015)
+- **Next Steps**: See tasks.md Current Sprint (CS-018 through CS-034) — .specs folder fixes and generated output improvements
 
 ## Key Decisions [CTX-003]
 

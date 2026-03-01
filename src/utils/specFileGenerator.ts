@@ -298,24 +298,73 @@ sourceOfTruth: project/project.yaml
 
   private async generateDocsMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
-title: Development Docs
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+fileID: DOC-001
 lastUpdated: {{currentDate}}
-sourceOfTruth: project/project.yaml
+version: 1.0
+contributors: []
+relatedFiles: [project/project.yaml, development/context.md, planning/roadmap.md, planning/tasks.md]
 ---
 
-# {{projectName}} Development Documentation
+# {{projectName}} \u2014 Development Documentation
 
-## Getting Started
-[TODO: Add development setup instructions]
+## Spec File Conventions
+
+All \`.specs/\` files must include a YAML front-matter header with:
+- \`fileID\`: Unique identifier (e.g., \`REQ-001\`, \`ARCH-001\`)
+- \`lastUpdated\`: Date in YYYY-MM-DD format
+- \`version\`: Semantic version (e.g., \`1.0\`)
+- \`contributors\`: Array of contributor handles
+- \`relatedFiles\`: Array of related spec file paths
+
+Section IDs use the format \`[PREFIX-NNN.S]\` (e.g., \`[REQ-001.1]\`) and must be stable — do not change once assigned.
+
+## Development Procedures
+
+### Workflow
+
+1. Update relevant \`.specs/\` files before committing
+2. Write tests before implementation
+3. Use small, focused commits with conventional commit messages (\`type(scope): description\`)
+4. Log all AI interactions in \`development/prompts.md\`
+
+### Spec Update Checklist (before each commit)
+
+- [ ] \`tasks.md\` \u2014 task status updated
+- [ ] \`context.md\` \u2014 decisions and lessons logged
+- [ ] \`requirements.md\` \u2014 updated if features changed
+- [ ] \`architecture.md\` \u2014 updated if structure changed
+- [ ] \`api.yaml\` \u2014 updated if CLI interface changed
+- [ ] \`tests.md\` \u2014 updated if test strategy changed
+
+## CLI Commands Reference
+
+\\\`\\\`\\\`bash
+# Initialize a new project
+specpilot init <project-name> [--lang <language>] [--framework <framework>] [--no-prompts]
+
+# Add .specs/ to an existing project
+specpilot add-specs
+
+# List available templates
+specpilot list
+
+# Validate spec files
+specpilot validate [--fix]
+
+# Migrate to newer spec structure
+specpilot migrate
+
+# Update specs with current project context (shows diff + confirmation)
+specpilot specify
+\\\`\\\`\\\`
 
 ## Cross-References
 - Context: ./context.md
 - Roadmap: ../planning/roadmap.md
 - Tasks: ../planning/tasks.md
 - Project config: ../project/project.yaml
+
+> For contributing guidelines, troubleshooting, and support, see README.md.
 
 ---
 *Last updated: {{currentDate}}*`;

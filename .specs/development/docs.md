@@ -1,7 +1,7 @@
 ---
 fileID: DOC-001
-lastUpdated: 2026-02-28
-version: 1.1
+lastUpdated: 2026-03-01
+version: 1.2
 contributors: [girishr]
 relatedFiles:
   [
@@ -276,30 +276,4 @@ project:
   framework: "react"
 ```
 
-## Troubleshooting
-
-### Common Issues
-
-- **Permission Errors**: Ensure write access to target directory
-- **Template Not Found**: Check language/framework support
-- **Validation Failures**: Review spec file formatting
-
-### Debug Mode
-
-```bash
-DEBUG=specpilot specpilot my-project
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes following guidelines
-4. Add tests for new functionality
-5. Submit pull request
-
-## Support
-
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
-- **Documentation**: This `.specs/docs.md` file
+> For troubleshooting, contributing guidelines, and support, see [README.md](../../README.md).

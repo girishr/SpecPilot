@@ -101,30 +101,42 @@ description: {{description}}
 
 # Project Rules and AI Context
 rules:
-  - "Follow ${language} best practices and coding standards"
-  - "Write comprehensive tests for all functionality"
-  - "Document all public APIs and interfaces"
-  - "MANDATE: Update .specs/ folder files with every development milestone and code change"
-  - "MANDATE: Maintain .specs/ as single source of truth for all project specifications"
-  - "MANDATE: Review and update relevant .specs/ files before each commit"
-  - "MANDATE: After every code change, addition, or removal — proactively update all affected .specs/ files without being asked: architecture.md for structural changes, requirements.md for feature additions or removals, tests.md for test changes, tasks.md for task status updates, and CHANGELOG.md for any completed work"
-  - "MANDATE: Document decisions, lessons learned, and context in .specs/context.md"
-  - "MANDATE: Update .specs/prompts.md with ALL AI interactions and development prompts by default"
-  - "MANDATE: Maintain chronological prompt history for complete development traceability"
-  - "MANDATE: Keep file metadata and footer sections current (dates, counts, status summaries)"
-  - "MANDATE: Never commit code to git unless prompted by the developer. Always ask the developer"
-  - "MANDATE: Never push to git unless prompted by the developer. Always ask the developer"
-  - "MANDATE: Never publish to npm unless prompted by the developer. Always ask the developer"
-  - "Use semantic versioning for releases"
-  - "Keep dependencies up to date"
+  # ============================================================
+  # 🔴 CRITICAL — Never violate. No exceptions.
+  # ============================================================
+  critical:
+    - "MANDATE: Never commit code to git unless prompted by the developer. Always ask first."
+    - "MANDATE: Never push to git unless prompted by the developer. Always ask first."
+    - "MANDATE: Never deploy, publish, or release the project unless prompted by the developer. Always ask first."
+    - "MANDATE: Never modify the .specs/ folder structure, subfolder names, or file names. Only update file contents."
+    - "MANDATE: After every code change, addition, or removal — proactively update all affected .specs/ files without being asked: architecture.md for structural changes, requirements.md for feature changes, tests.md for test changes, tasks.md for task status, and CHANGELOG.md for completed work."
+
+  # ============================================================
+  # 🟡 PROCESS — Important workflow guides. Follow consistently.
+  # ============================================================
+  process:
+    - "MANDATE: Spec-First Development — all changes start with specification updates before code changes."
+    - "MANDATE: Context Preservation — document all important decisions and learnings in .specs/context.md."
+    - "MANDATE: Progress Tracking — keep tasks.md current with actual development status."
+    - "MANDATE: Track ALL AI Prompts — log every AI interaction in .specs/prompts.md with timestamps and context."
+    - "Follow specification-driven development principles throughout the project lifecycle."
+
+  # ============================================================
+  # 🟢 PREFERENCES — Good practice. Apply where appropriate.
+  # ============================================================
+  preferences:
+    - "Follow ${language} best practices and coding standards."
+    - "Test-Driven — write tests before implementation."
+    - "Incremental — small, focused commits."
+    - "Self-review before pushing changes."
+    - "Use semantic versioning for releases."
 
 # Development Context for AI
 ai_context:
-  - "This is a specification-driven development project"
-  - "All changes should be documented in appropriate .specs/ files"
-  - "Follow the established architecture patterns"
-  - "Maintain backwards compatibility when possible"
-  - "MANDATE: After every code change — without waiting to be asked — identify which .specs/ files are affected and update them as part of the same task"
+  - "This is a specification-driven development project."
+  - "All changes should be documented in appropriate .specs/ files."
+  - "Follow the established architecture patterns."
+  - "Maintain backwards compatibility when possible."
   
 # Team Guidelines
 team:

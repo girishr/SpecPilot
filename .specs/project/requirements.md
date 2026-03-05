@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-02-28
+lastUpdated: 2026-03-05
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.1
+version: 1.2
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -28,6 +28,9 @@ relatedFiles:
 - Prevent duplicate initialization with informative errors [REQ-002.9]
 - Allow custom spec folder naming [REQ-002.10]
 - Validate generated specifications with cross-reference checking [REQ-002.11]
+- Generate `.github/copilot-instructions.md` for every project regardless of IDE choice [REQ-002.12]
+- Generated `prompts.md` must include a Re-Anchor Prompt section for AI context recovery [REQ-002.13]
+- Generated `project.yaml` rules must use tiered structure: critical / process / preferences [REQ-002.14]
 
 ## Non-Functional Requirements [REQ-003]
 
@@ -43,4 +46,4 @@ relatedFiles:
 
 ---
 
-_Last updated: 2025-10-18_
+_Last updated: 2026-03-05_

@@ -57,6 +57,29 @@ describe('SpecGenerator', () => {
     }
   });
 
+  test('should generate .github/copilot-instructions.md with critical mandates', async () => {
+    const options = {
+      projectName: 'test-project',
+      language: 'typescript',
+      targetDir: testDir,
+      specsName: '.specs'
+    };
+
+    await specGenerator.generateSpecs(options);
+
+    const copilotPath = join(testDir, '.github', 'copilot-instructions.md');
+    expect(existsSync(copilotPath)).toBe(true);
+
+    const content = readFileSync(copilotPath, 'utf-8');
+    expect(content).toContain('test-project');
+    expect(content).toContain('NEVER commit');
+    expect(content).toContain('NEVER push');
+    expect(content).toContain('NEVER deploy');
+    expect(content).toContain('NEVER modify');
+    expect(content).toContain('ALWAYS update');
+    expect(content).toContain('.specs/project/project.yaml');
+  });
+
   test('should include mandate in prompts.md', async () => {
     const options = {
       projectName: 'test-project',

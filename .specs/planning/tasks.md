@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-01
-version: 2.3
+lastUpdated: 2026-03-05
+version: 2.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -22,6 +22,7 @@ Notes
 
 ## Backlog
 
+0. [BL-000] fix the .vscode folder for this project. Its does not follow the changed pattern for specpilot CLI.
 1. [BL-001] Plan v1.1.0 features (additional templates, performance optimizations)
 2. [BL-002] Gather user feedback and feature requests
 3. [BL-003] Create video tutorials for SDD approach
@@ -153,3 +154,6 @@ Notes
 34. [CD-073] [CS-016] [SPECS-FIX-10] [TOOL-005] Scope down live `development/docs.md` (remove Troubleshooting, Contributing, Support — redirected to README; v1.2); update generated `docs.md` template with correct front-matter schema, proper CLI subcommands (`list`, `validate`, `migrate`), spec conventions, and dev checklist
 35. [CD-074] [CS-017] [SPECS-FIX-11] Tier `project.yaml` rules into 🔴 critical / 🟡 process / 🟢 preferences; replace npm-specific mandate with generic "Never deploy, publish, or release"; deduplicate ai-context; apply to both live `.specs/project/project.yaml` and generated template in `templateEngine.ts`
 36. [CD-075] [CS-025] [TOOL-004] Retire — superseded by CD-074; tiering the rules into critical/process/preferences achieved a better outcome than simply reducing to 5 mandates
+37. [CD-076] [CS-035] Generate `.github/copilot-instructions.md` during `specpilot init` — new `generateCopilotInstructions()` in `ideConfigGenerator.ts`; called unconditionally from `specGenerator.ts` regardless of IDE choice; contains project name/stack, 5 critical mandates, process mandates, and re-anchor note; adds test coverage in `specGenerator.test.ts`
+38. [CD-077] [CS-036] Add `## Re-Anchor Prompt` section to generated `prompts.md` template and to live `.specs/development/prompts.md` — paste prompt re-establishes critical rules for AI agents mid-session when context drifts after long sessions (> 1 hour / > 20 exchanges)
+39. [CD-078] [CS-037] Documentation audit — updated 5 files to reflect recent feature additions (CD-076/077): `docs/GUIDE.md` (fixed quality/docs.md tree error, added copilot-instructions.md, test count 72→73), `README.md` (added copilot-instructions.md to IDE section), `CHANGELOG.md` (added Unreleased entries for CD-073/074/076/077), `.specs/project/requirements.md` (v1.2, added REQ-002.12–14), `.specs/architecture/architecture.md` (v1.5, new design decisions ARCH-004.11/12, updated init flow)

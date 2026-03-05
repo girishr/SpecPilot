@@ -311,15 +311,14 @@ SpecPilot generates a comprehensive `.specs/` folder structure:
 │   └── requirements.md       # Functional/non-functional requirements
 ├── architecture/
 │   ├── architecture.md       # Architecture decisions & patterns
-│   └── api.yaml             # API/CLI interface specifications
+│   └── api.yaml             # CLI/API interface specifications
 ├── planning/
 │   ├── roadmap.md           # Product roadmap, milestones, objectives & risks
 │   └── tasks.md             # Task tracking (backlog/sprint/completed)
 ├── quality/
-│   ├── tests.md             # Test strategy & coverage plans
-│   └── docs.md              # Development guidelines
+│   └── tests.md             # Test strategy & coverage plans
 └── development/
-    ├── prompts.md           # AI interaction tracking (MANDATED)
+    ├── prompts.md           # AI interaction tracking (MANDATED) + Re-Anchor Prompt
     ├── context.md           # Development memory & learnings
     └── docs.md              # Technical documentation
 ```
@@ -388,7 +387,11 @@ SpecPilot currently does not support custom templates. All templates are built-i
 
 During project initialization, SpecPilot prompts you to select your AI IDE or agent. This configures automatically generated files to integrate `.specs/` context into your chosen environment.
 
-**Desktop IDEs** generate workspace settings:
+**All IDE/Agent selections** also generate:
+
+- `.github/copilot-instructions.md` — critical mandates injected into every AI request automatically (GitHub Copilot, Cursor, and most AI tools read this file on every interaction). Contains project name/stack, 5 critical mandates, process mandates, and a Re-Anchor instruction.
+
+**Desktop IDEs** additionally generate workspace settings:
 
 - `.vscode/settings.json` for VSCode
 - `.cursor/settings.json` for Cursor
@@ -678,7 +681,7 @@ node cli.js init my-test --lang python
 
 - **TypeScript**: Strict mode enabled
 - **Linting**: ESLint configuration
-- **Testing**: Jest — 72 tests across 5 suites
+- **Testing**: Jest — 73 tests across 5 suites
 - **Commits**: Conventional commit format
 
 ### Pull Request Process

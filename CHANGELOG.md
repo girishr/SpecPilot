@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`.github/copilot-instructions.md` generation** (CD-076): New `generateCopilotInstructions()` in `ideConfigGenerator.ts`; called from `specGenerator.ts` unconditionally for every `specpilot init` regardless of IDE choice; contains project name/stack, 5 critical mandates, process mandates, and a Re-Anchor note; 1 new test added (73 total)
+- **Re-Anchor Prompt in generated `prompts.md`** (CD-077): `## Re-Anchor Prompt` section added to `generatePromptsMd()` template — a ready-to-paste prompt that re-establishes all critical rules for AI agents mid-session (triggered when session > 1 hour / > 20 exchanges)
+
+### Changed
+
+- **Tiered `project.yaml` rules** (CD-074): Generated `project.yaml` rules restructured from flat list into three tiers: 🔴 critical (git/deploy gates, .specs immutability, proactive spec-update), 🟡 process (spec-first, context, tracking, prompts), 🟢 preferences (best practices, TDD, semver). npm-specific deploy mandate replaced with generic "Never deploy, publish, or release."
+- **`docs.md` template corrected** (CD-073): `generateDocsMd()` rewritten with correct front-matter schema and CLI subcommands (`list`, `validate`, `migrate`, `specify`)
+
 ### Removed
 
 - **`project/project-plan.md` removed from generated `.specs/` structure** (CS-024):

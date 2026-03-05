@@ -568,6 +568,25 @@ ${secondaryPrompt}
 
 ---
 
+## Re-Anchor Prompt
+
+> Paste this into your AI agent when: the session has been running > 1 hour, you've made > 20 exchanges, or the AI seems to have forgotten project rules.
+
+~~~
+You are working on {{projectName}} ({{language}}{{#if framework}} / {{framework}}{{/if}}).
+
+CRITICAL RULES — re-read these before continuing:
+1. NEVER commit, push, or deploy unless I explicitly ask you to.
+2. NEVER modify .specs/ folder structure or file names — only update file contents.
+3. After EVERY code change, proactively update all affected .specs/ files without being asked.
+4. Spec-First Development — update .specs/ before writing code.
+5. Log this and all AI interactions in .specs/development/prompts.md.
+
+For full project context, read .specs/project/project.yaml.
+~~~
+
+---
+
 ## Prompt History
 
 | Date | User | Prompt Summary | Context |

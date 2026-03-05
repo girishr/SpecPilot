@@ -123,12 +123,20 @@ SpecPilot generates AI agent configuration files during project initialization. 
 
 **Generated Configuration Files:**
 
+For **all** IDE/Agent selections: `.github/copilot-instructions.md`
+
+- Critical mandates injected into every AI request automatically
+- Read on every interaction by GitHub Copilot, Cursor, and most AI tools
+- Contains project name/stack, 5 critical mandates, and a Re-Anchor Prompt reference
+
 For desktop IDEs: `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
+
 - IDE-specific workspace folder setup for code + .specs
 - Extensions recommendations for development
 - AI context configuration for better spec integration
 
 For cloud agents:
+
 - **Cowork**: `.claude/skills/specpilot-project/SKILL.md` with project context and development guidelines
 - **Codex**: `CODEX_INSTRUCTIONS.md` at project root with architecture overview and mandates
 

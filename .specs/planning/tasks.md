@@ -22,7 +22,6 @@ Notes
 
 ## Backlog
 
-0. [BL-000] fix the .vscode folder for this project. Its does not follow the changed pattern for specpilot CLI.
 1. [BL-001] Plan v1.1.0 features (additional templates, performance optimizations)
 2. [BL-002] Gather user feedback and feature requests
 3. [BL-003] Create video tutorials for SDD approach
@@ -157,3 +156,4 @@ Notes
 37. [CD-076] [CS-035] Generate `.github/copilot-instructions.md` during `specpilot init` — new `generateCopilotInstructions()` in `ideConfigGenerator.ts`; called unconditionally from `specGenerator.ts` regardless of IDE choice; contains project name/stack, 5 critical mandates, process mandates, and re-anchor note; adds test coverage in `specGenerator.test.ts`
 38. [CD-077] [CS-036] Add `## Re-Anchor Prompt` section to generated `prompts.md` template and to live `.specs/development/prompts.md` — paste prompt re-establishes critical rules for AI agents mid-session when context drifts after long sessions (> 1 hour / > 20 exchanges)
 39. [CD-078] [CS-037] Documentation audit — updated 5 files to reflect recent feature additions (CD-076/077): `docs/GUIDE.md` (fixed quality/docs.md tree error, added copilot-instructions.md, test count 72→73), `README.md` (added copilot-instructions.md to IDE section), `CHANGELOG.md` (added Unreleased entries for CD-073/074/076/077), `.specs/project/requirements.md` (v1.2, added REQ-002.12–14), `.specs/architecture/architecture.md` (v1.5, new design decisions ARCH-004.11/12, updated init flow)
+40. [CD-079] [BL-000] Fix `.vscode/` folder for SpecPilot project to match new generated pattern — added `settings.json` (AI IDE config, .specs search, markdown/YAML formatting), `extensions.json` (Prettier, YAML, Copilot, TypeScript), fixed `tasks.json` (de-duplicated 4 identical entries, added Build and Build-and-test tasks); also added `.github/copilot-instructions.md`

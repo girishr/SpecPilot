@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-03-05
-version: 1.2
+lastUpdated: 2026-03-07
+version: 1.3
 contributors: [girishr]
 relatedFiles: [development/context.md, project/project.yaml]
 ---
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 
 ## Latest Entries [PROMPT-002]
 
+- CS-018: Rewrite `project/requirements.md` to v1.3 — add IDE config, agent config, specify command, Assumptions section (March 7, 2026) [PROMPT-002.0.0]
 - CS-008: IDE Workspace Settings - Windsurf/Antigravity/Kiro Implementation (February 7, 2026) [PROMPT-002.0]
 - CS-008: IDE Workspace Settings - Cursor Implementation (February 7, 2026) [PROMPT-002.0.1]
 - CS-008: IDE Workspace Settings - VSCode Implementation (February 7, 2026) [PROMPT-002.0.2]

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`project/requirements.md` rewritten to v1.3** (CD-080): Restructured into sub-sections (REQ-002.A–F). Added `specify` command with diff/confirmation [REQ-002.A.6], project context prompts during `init` [REQ-002.B.1], `--no-prompts` flag [REQ-002.B.6], IDE settings generation for VSCode/Cursor/Windsurf/Kiro/Antigravity [REQ-002.E.2], cloud agent config for Cowork/Codex [REQ-002.E.3], dual onboarding prompts [REQ-002.F.4], new `## Assumptions [REQ-004]` section, path-injection NFR [REQ-003.4].
+
 ### Added
 
 - **`.github/copilot-instructions.md` generation** (CD-076): New `generateCopilotInstructions()` in `ideConfigGenerator.ts`; called from `specGenerator.ts` unconditionally for every `specpilot init` regardless of IDE choice; contains project name/stack, 5 critical mandates, process mandates, and a Re-Anchor note; 1 new test added (73 total)

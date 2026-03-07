@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2026-03-07
-version: 2.8
+version: 3.1
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -92,13 +92,13 @@ Notes
 20. [BL-020] Plan and implement next major features (template enhancements, performance optimizations)
 21. [BL-021] Gather community feedback and refine existing features based on user experience
 22. [BL-022] add a short description at the top of each generated specs file that shows what is the purpose of this file. This will help a new dev who is looking thru the specs files to understand what is function of each of this files. This can be along with the front-matter field section.
+23. [BL-023] inspired by this linkedin post try to use the CLAUDE.md Stop stuffing everything into CLAUDE.md. Use it as a router. https://www.linkedin.com/posts/alokkumarsunny_stop-stuffing-everything-into-claudemd-activity-7435312701452632064-9vNa . Also we need to look at how to make use of skills.md
 
 ## Current Sprint
 
 ### .specs Folder Fixes
 
 1. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
-2. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
 
 ### Generated Output Improvements
 
@@ -106,11 +106,10 @@ Notes
 7. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
 8. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
 9. [CS-029] [TOOL-008] Add warnings to `specpilot validate` — (a) parse `lastUpdated` front-matter and warn if > 90 days old; (b) check line count of `prompts.md` (warn if > 300) and `tasks.md` Completed section (warn if > 150) and suggest running `specpilot archive`
-10. [CS-030] [TOOL-009] Add `status: active` field to YAML front-matter of all generated spec files
-11. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to run `specpilot archive` when file exceeds 300 lines; entries will be moved to `prompts-archive.md` automatically; do not generate a stub `prompts-archive.md` during init
-12. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
-13. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
-14. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
+10. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to run `specpilot archive` when file exceeds 300 lines; entries will be moved to `prompts-archive.md` automatically; do not generate a stub `prompts-archive.md` during init
+11. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
+12. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
+13. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
 
 ## Completed
 
@@ -160,3 +159,7 @@ Notes
 41. [CD-080] [CS-018] [SPECS-FIX-12] Rewrote `project/requirements.md` (v1.2 → v1.3) — restructured into labelled sub-sections (REQ-002.A–F), added: `specify` command with diff/confirmation [REQ-002.A.6], project context prompts [REQ-002.B.1], `--no-prompts` flag [REQ-002.B.6], IDE settings generation for VSCode/Cursor/Windsurf/Kiro/Antigravity [REQ-002.E.2], cloud agent config for Cowork/Codex [REQ-002.E.3], dual onboarding prompts [REQ-002.F.4], new `## Assumptions [REQ-004]` section (Node ≥16, npm ≥8, offline-first, etc.), path-injection validation NFR [REQ-003.4]
 42. [CD-081] [CS-019] [SPECS-FIX-14] Archive SpecPilot's own growing `.specs/` files — manually archived `prompts.md` (447 lines → 56 lines) to new `prompts-archive.md`; added 300-line Archive Policy section to `prompts.md`; added 150-line guidance note to `tasks.md` Completed header; no stub files generated during init
 43. [CD-082] [CS-021] [SPECS-FIX-16] Added `## Assumptions [ARCH-007]` section to `architecture/architecture.md` (v1.5 → v1.6) — 7 assumptions: Node.js ≥16 + CommonJS output [ARCH-007.1], cross-platform path.join [ARCH-007.2], no network at runtime [ARCH-007.3], single project root [ARCH-007.4], write access [ARCH-007.5], tsc compilation to dist/ [ARCH-007.6], no global state [ARCH-007.7]
+44. [CD-083] [CS-022] [SPECS-FIX-17] Won't do — all `.specs/` files are currently active; adding `status: active` everywhere is noise with no informational value; status field will be used organically when a file is deprecated or archived
+45. [CD-084] [CS-030] [TOOL-009] Won't do — generating `status: active` on all files creates ignored boilerplate; the field is only meaningful when non-active; users can add it when needed; BL-022 (file purpose descriptions) is a better use of front-matter real estate
+46. [CD-085] [CS-039] [TRUST-001] Add “Read before describe” mandate — added as critical rule #6 to `.github/copilot-instructions.md`; added to live `.specs/project/project.yaml` critical tier; added to generated `project.yaml` template in `templateEngine.ts`; mandate: AI must never describe or quote file contents without first reading via a tool call in the current session
+47. [CD-086] [CS-040] [TRUST-002] Add “never implement unless explicitly asked” mandate — added as critical rule #7 to `.github/copilot-instructions.md`; added to live `.specs/project/project.yaml` critical tier; added to generated `project.yaml` template in `templateEngine.ts`; mandate: AI must not write code or make file changes unless developer explicitly asks; if next step seems obvious, ask first

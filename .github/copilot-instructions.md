@@ -21,6 +21,8 @@
    - Test changes → `quality/tests.md`
    - Task status → `planning/tasks.md`
    - Completed work → `CHANGELOG.md`
+6. **NEVER describe, quote, or reference file contents** without first reading the file via a tool call in this session. If you have not read the file yet, say so explicitly before answering.
+7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.
 
 ## 🟡 Process Mandates
 

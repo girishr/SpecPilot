@@ -19,6 +19,8 @@ rules:
     - "MANDATE: Never deploy, publish, or release the project unless prompted by the developer. Always ask first."
     - "MANDATE: Never modify the .specs/ folder structure, subfolder names, or file names. Only update file contents."
     - "MANDATE: After every code change, addition, or removal — proactively update all affected .specs/ files without being asked: architecture.md for structural changes, requirements.md for feature changes, tests.md for test changes, tasks.md for task status, and CHANGELOG.md for completed work."
+    - "MANDATE: Never describe, quote, or reference file contents without first reading the file via a tool call in this session. If the file has not been read, say so explicitly before answering."
+    - "MANDATE: Never implement, write code, or make file changes unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume."
 
   # ============================================================
   # 🟡 PROCESS — Important workflow guides. Follow consistently.

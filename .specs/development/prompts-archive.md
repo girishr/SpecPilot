@@ -105,7 +105,7 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
    - **TODO/FIXME Parsing**: Recursively scans codebase for TODO, FIXME, HACK, NOTE comments
    - **Test Analysis**: Detects test frameworks (Jest, Mocha, Pytest, etc.), counts test cases, categorizes tests (unit/integration/e2e)
    - **Architecture Extraction**: Identifies components, directories, file types, and project structure
-   - Smart directory exclusion (node_modules, dist, .git, __pycache__, venv)
+   - Smart directory exclusion (node_modules, dist, .git, **pycache**, venv)
    - Reports line numbers and file locations for discovered items
 
 3. **Add-Specs Command** (`src/commands/add-specs.ts`):
@@ -242,7 +242,7 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
 - src/utils/specGenerator.ts
 - src/utils/specValidator.ts
 - src/utils/templateEngine.ts
-- src/__tests__/specGenerator.test.ts
+- src/**tests**/specGenerator.test.ts
 
 **Verification**: TypeScript compilation PASS, Unit tests PASS (2/2)
 

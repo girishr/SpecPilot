@@ -3,7 +3,8 @@ fileID: PROMPT-001
 lastUpdated: 2026-03-07
 version: 1.4
 contributors: [girishr]
-relatedFiles: [development/context.md, development/prompts-archive.md, project/project.yaml]
+relatedFiles:
+  [development/context.md, development/prompts-archive.md, project/project.yaml]
 ---
 
 # Development Prompts Log
@@ -53,4 +54,3 @@ For full project context, read .specs/project/project.yaml.
 This file has a **300-line limit**. When it exceeds 300 lines, run `specpilot archive` to move older detailed entries to [prompts-archive.md](prompts-archive.md). The most recent entries are always kept here.
 
 > Archived entries: [prompts-archive.md](prompts-archive.md) (PROMPT-003 and PROMPT-004 archived 2026-03-07)
-

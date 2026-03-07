@@ -98,8 +98,8 @@ Notes
 ### .specs Folder Fixes
 
 1. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
-3. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
-4. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
+2. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
+3. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
 
 ### Generated Output Improvements
 

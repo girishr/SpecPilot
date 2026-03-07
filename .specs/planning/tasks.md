@@ -102,7 +102,6 @@ Notes
 
 ### Generated Output Improvements
 
-6. [CS-023] [TOOL-002] Replace generated OpenAPI `api.yaml` with context-aware spec — ask user "Does your project expose an API?" during `specpilot init`; generate CLI interface YAML or OpenAPI stub accordingly
 7. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
 8. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
 9. [CS-029] [TOOL-008] Add warnings to `specpilot validate` — (a) parse `lastUpdated` front-matter and warn if > 90 days old; (b) check line count of `prompts.md` (warn if > 300) and `tasks.md` Completed section (warn if > 150) and suggest running `specpilot archive`
@@ -162,4 +161,6 @@ Notes
 44. [CD-083] [CS-022] [SPECS-FIX-17] Won't do — all `.specs/` files are currently active; adding `status: active` everywhere is noise with no informational value; status field will be used organically when a file is deprecated or archived
 45. [CD-084] [CS-030] [TOOL-009] Won't do — generating `status: active` on all files creates ignored boilerplate; the field is only meaningful when non-active; users can add it when needed; BL-022 (file purpose descriptions) is a better use of front-matter real estate
 46. [CD-085] [CS-039] [TRUST-001] Add “Read before describe” mandate — added as critical rule #6 to `.github/copilot-instructions.md`; added to live `.specs/project/project.yaml` critical tier; added to generated `project.yaml` template in `templateEngine.ts`; mandate: AI must never describe or quote file contents without first reading via a tool call in the current session
-47. [CD-086] [CS-040] [TRUST-002] Add “never implement unless explicitly asked” mandate — added as critical rule #7 to `.github/copilot-instructions.md`; added to live `.specs/project/project.yaml` critical tier; added to generated `project.yaml` template in `templateEngine.ts`; mandate: AI must not write code or make file changes unless developer explicitly asks; if next step seems obvious, ask first
+47. [CD-086] [CS-040] [TRUST-002] Add "never implement unless explicitly asked" mandate — added as critical rule #7 to `.github/copilot-instructions.md`; added to live `.specs/project/project.yaml` critical tier; added to generated `project.yaml` template in `templateEngine.ts`; mandate: AI must not write code or make file changes unless developer explicitly asks; if next step seems obvious, ask first
+48. [CD-087] [CS-023] [TOOL-002] Generated `api.yaml` rewritten as dual-section template — `generateApiYaml()` in `specFileGenerator.ts` now produces both a `cli:` section and an OpenAPI 3.0.3 `paths:` section, each preceded by a "remove if not applicable" comment; replaced minimal OpenAPI-only stub; Option B chosen over context-aware prompting
+

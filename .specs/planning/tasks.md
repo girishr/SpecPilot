@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-05
-version: 2.5
+lastUpdated: 2026-03-07
+version: 2.7
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -97,8 +97,7 @@ Notes
 
 ### .specs Folder Fixes
 
-1. [CS-019] [SPECS-FIX-14] Cap/archive `development/prompts.md` — set rolling window (last 30 days), archive older entries to `prompts-archive.md`
-2. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
+1. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
 3. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
 4. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
 
@@ -107,15 +106,17 @@ Notes
 6. [CS-023] [TOOL-002] Replace generated OpenAPI `api.yaml` with context-aware spec — ask user "Does your project expose an API?" during `specpilot init`; generate CLI interface YAML or OpenAPI stub accordingly
 7. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
 8. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
-9. [CS-029] [TOOL-008] Add stale-date warning to `specpilot validate` — parse `lastUpdated` front-matter and emit warning if > 90 days old
+9. [CS-029] [TOOL-008] Add warnings to `specpilot validate` — (a) parse `lastUpdated` front-matter and warn if > 90 days old; (b) check line count of `prompts.md` (warn if > 300) and `tasks.md` Completed section (warn if > 150) and suggest running `specpilot archive`
 10. [CS-030] [TOOL-009] Add `status: active` field to YAML front-matter of all generated spec files
-11. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to archive entries > 30 days to `prompts-archive.md`
+11. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to run `specpilot archive` when file exceeds 300 lines; entries will be moved to `prompts-archive.md` automatically; do not generate a stub `prompts-archive.md` during init
 12. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
 13. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
+14. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
 
 ## Completed
 
 > CD-001 through CD-039 have been archived to [tasks-archive.md](tasks-archive.md).
+> **Line limit**: The Completed section has a 150-line limit. When exceeded, run `specpilot archive` to move older entries to `tasks-archive.md`.
 
 1. [CD-040] [FIX-001] Remove unused `blessed` dependency from package.json - `npm uninstall blessed`
 2. [CD-041] [FIX-002] Fix broken `lowercase` Handlebars helper — was calling `str.slice(1)` instead of `str.toLowerCase()`
@@ -158,3 +159,4 @@ Notes
 39. [CD-078] [CS-037] Documentation audit — updated 5 files to reflect recent feature additions (CD-076/077): `docs/GUIDE.md` (fixed quality/docs.md tree error, added copilot-instructions.md, test count 72→73), `README.md` (added copilot-instructions.md to IDE section), `CHANGELOG.md` (added Unreleased entries for CD-073/074/076/077), `.specs/project/requirements.md` (v1.2, added REQ-002.12–14), `.specs/architecture/architecture.md` (v1.5, new design decisions ARCH-004.11/12, updated init flow)
 40. [CD-079] [BL-000] Fix `.vscode/` folder for SpecPilot project to match new generated pattern — added `settings.json` (AI IDE config, .specs search, markdown/YAML formatting), `extensions.json` (Prettier, YAML, Copilot, TypeScript), fixed `tasks.json` (de-duplicated 4 identical entries, added Build and Build-and-test tasks); also added `.github/copilot-instructions.md`
 41. [CD-080] [CS-018] [SPECS-FIX-12] Rewrote `project/requirements.md` (v1.2 → v1.3) — restructured into labelled sub-sections (REQ-002.A–F), added: `specify` command with diff/confirmation [REQ-002.A.6], project context prompts [REQ-002.B.1], `--no-prompts` flag [REQ-002.B.6], IDE settings generation for VSCode/Cursor/Windsurf/Kiro/Antigravity [REQ-002.E.2], cloud agent config for Cowork/Codex [REQ-002.E.3], dual onboarding prompts [REQ-002.F.4], new `## Assumptions [REQ-004]` section (Node ≥16, npm ≥8, offline-first, etc.), path-injection validation NFR [REQ-003.4]
+42. [CD-081] [CS-019] [SPECS-FIX-14] Archive SpecPilot's own growing `.specs/` files — manually archived `prompts.md` (447 lines → 56 lines) to new `prompts-archive.md`; added 300-line Archive Policy section to `prompts.md`; added 150-line guidance note to `tasks.md` Completed header; no stub files generated during init

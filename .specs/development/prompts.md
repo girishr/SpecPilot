@@ -30,6 +30,7 @@ For full project context, read .specs/project/project.yaml.
 
 ## Latest Entries [PROMPT-002]
 
+- CS-021: Add `## Assumptions [ARCH-007]` section to `architecture/architecture.md` (v1.5→1.6) (March 7, 2026) [PROMPT-002.0.0.2]
 - CS-019: Archive prompts.md (447→56 lines) to prompts-archive.md; add Archive Policy + 150-line note to tasks.md Completed (March 7, 2026) [PROMPT-002.0.0.1]
 - CS-018: Rewrite `project/requirements.md` to v1.3 — add IDE config, agent config, specify command, Assumptions section (March 7, 2026) [PROMPT-002.0.0]
 - CS-008: IDE Workspace Settings - Windsurf/Antigravity/Kiro Implementation (February 7, 2026) [PROMPT-002.0]

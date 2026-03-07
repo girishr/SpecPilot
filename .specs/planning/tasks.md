@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2026-03-07
-version: 2.7
+version: 2.8
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -98,8 +98,7 @@ Notes
 ### .specs Folder Fixes
 
 1. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
-2. [CS-021] [SPECS-FIX-16] Add `## Assumptions` section to `architecture/architecture.md` (Node.js ≥16, CommonJS, cross-platform paths)
-3. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
+2. [CS-022] [SPECS-FIX-17] Add `status: active` front-matter field to all `.specs/` files
 
 ### Generated Output Improvements
 
@@ -160,3 +159,4 @@ Notes
 40. [CD-079] [BL-000] Fix `.vscode/` folder for SpecPilot project to match new generated pattern — added `settings.json` (AI IDE config, .specs search, markdown/YAML formatting), `extensions.json` (Prettier, YAML, Copilot, TypeScript), fixed `tasks.json` (de-duplicated 4 identical entries, added Build and Build-and-test tasks); also added `.github/copilot-instructions.md`
 41. [CD-080] [CS-018] [SPECS-FIX-12] Rewrote `project/requirements.md` (v1.2 → v1.3) — restructured into labelled sub-sections (REQ-002.A–F), added: `specify` command with diff/confirmation [REQ-002.A.6], project context prompts [REQ-002.B.1], `--no-prompts` flag [REQ-002.B.6], IDE settings generation for VSCode/Cursor/Windsurf/Kiro/Antigravity [REQ-002.E.2], cloud agent config for Cowork/Codex [REQ-002.E.3], dual onboarding prompts [REQ-002.F.4], new `## Assumptions [REQ-004]` section (Node ≥16, npm ≥8, offline-first, etc.), path-injection validation NFR [REQ-003.4]
 42. [CD-081] [CS-019] [SPECS-FIX-14] Archive SpecPilot's own growing `.specs/` files — manually archived `prompts.md` (447 lines → 56 lines) to new `prompts-archive.md`; added 300-line Archive Policy section to `prompts.md`; added 150-line guidance note to `tasks.md` Completed header; no stub files generated during init
+43. [CD-082] [CS-021] [SPECS-FIX-16] Added `## Assumptions [ARCH-007]` section to `architecture/architecture.md` (v1.5 → v1.6) — 7 assumptions: Node.js ≥16 + CommonJS output [ARCH-007.1], cross-platform path.join [ARCH-007.2], no network at runtime [ARCH-007.3], single project root [ARCH-007.4], write access [ARCH-007.5], tsc compilation to dist/ [ARCH-007.6], no global state [ARCH-007.7]

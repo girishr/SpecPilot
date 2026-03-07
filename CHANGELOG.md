@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`project/requirements.md` rewritten to v1.3** (CD-080): Restructured into sub-sections (REQ-002.A–F). Added `specify` command with diff/confirmation [REQ-002.A.6], project context prompts during `init` [REQ-002.B.1], `--no-prompts` flag [REQ-002.B.6], IDE settings generation for VSCode/Cursor/Windsurf/Kiro/Antigravity [REQ-002.E.2], cloud agent config for Cowork/Codex [REQ-002.E.3], dual onboarding prompts [REQ-002.F.4], new `## Assumptions [REQ-004]` section, path-injection NFR [REQ-003.4].
 - **`prompts.md` archived and trimmed** (CD-081): Manually archived `prompts.md` (447 lines) to new `prompts-archive.md`; active file trimmed to 56 lines; 300-line Archive Policy section added; `tasks.md` Completed header updated with 150-line limit guidance.
+- **`architecture.md` Assumptions section added** (CD-082): New `## Assumptions [ARCH-007]` section (v1.5 → v1.6) — Node.js ≥16 + CommonJS [ARCH-007.1], cross-platform paths [ARCH-007.2], offline-only [ARCH-007.3], single root [ARCH-007.4], write access [ARCH-007.5], tsc to dist/ [ARCH-007.6], no global state [ARCH-007.7].
 
 ### Added
 

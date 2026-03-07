@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-05
-version: 1.5
+lastUpdated: 2026-03-07
+version: 1.6
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, api.yaml, tasks.md]
 ---
@@ -83,3 +83,17 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 4. Shows line-level diff preview (added/removed lines with context)
 5. Prompts for confirmation (unless --no-prompts)
 6. Writes approved changes to disk
+
+## Assumptions [ARCH-007]
+
+- **Node.js runtime**: Node.js >= 16 is required; the output module format is CommonJS (`"module": "commonjs"` in `tsconfig.json`) [ARCH-007.1]
+- **File paths**: All file path operations use `path.join()` / `path.resolve()` to ensure cross-platform compatibility (macOS, Linux, Windows) [ARCH-007.2]
+- **No network at runtime**: All templates are built-in; no HTTP calls are made during `init`, `add-specs`, or `validate` [ARCH-007.3]
+- **Single project root**: The CLI operates on a single root directory; monorepo support is out of scope [ARCH-007.4]
+- **Write access**: The user has write permission to the target project directory [ARCH-007.5]
+- **TypeScript compilation**: Source is compiled with `tsc` to `dist/`; the published package ships the compiled JS, not the TS source [ARCH-007.6]
+- **No global state**: All generator functions are stateless and receive all inputs as parameters — safe for programmatic use [ARCH-007.7]
+
+---
+
+_Last updated: 2026-03-07_

@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **`README.md` framework and command inaccuracies corrected** (CD-089/CS-042): TypeScript frameworks now lists React, Express, Next.js, Nest.js, Vue, Angular (removed non-existent CLI entry); JavaScript section corrected to React + Express only with a note that no framework prompt is shown; Python section corrected to FastAPI, Django, Flask, Streamlit (removed `Data Science` which was not a valid framework value); `specify` command signature changed from `<desc>` to `[desc]` to reflect optional argument.
+- **Welcome screen missing commands fixed** (CD-090): `migrate` and `specify` added to hardcoded Available Commands list in `displayWelcome()` in `logger.ts`; fixed missing space in `add-specs` entry; commands now listed in logical usage order with consistent column alignment.
+- **README Project Structure expanded** (CD-091): Tree now shows all 10 generated files with inline descriptions; redundant `### Key Files` bullet list removed.
+- **Cross-document doc audit** (CD-092): `docs/GUIDE.md` Project Structure tree updated to match README (alphabetical folders, all 10 files, `copilot-instructions.md` note added); `docs/GUIDE.md` framework tables corrected (TypeScript: added Nest.js/Vue/Angular, removed CLI; JavaScript: React+Express only with note; Python: replaced `Data Science` with Flask and Streamlit); `.specs/development/docs.md` pre-commit checklist and Protected Structure section now reference `.github/copilot-instructions.md`.
 
 ## [1.5.0] - 2026-03-08
 

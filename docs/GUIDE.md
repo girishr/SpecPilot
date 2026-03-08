@@ -273,32 +273,35 @@ specpilot list --verbose
 
 ### TypeScript
 
-| Framework | Template     | Description                    |
-| --------- | ------------ | ------------------------------ |
-| Generic   | `typescript` | Basic TypeScript project       |
-| React     | `react`      | React SPA with TypeScript      |
-| Express   | `express`    | Node.js REST API with Express  |
-| Next.js   | `nextjs`     | Full-stack Next.js application |
-| CLI       | `cli`        | Command-line tool              |
+| Framework | Template     | Description                     |
+| --------- | ------------ | ------------------------------- |
+| Generic   | `typescript` | Basic TypeScript project        |
+| React     | `react`      | React SPA with TypeScript       |
+| Express   | `express`    | Node.js REST API with Express   |
+| Next.js   | `next`       | Full-stack Next.js application  |
+| Nest.js   | `nest`       | Scalable server-side framework  |
+| Vue       | `vue`        | Progressive UI framework        |
+| Angular   | `angular`    | Enterprise SPA framework        |
 
 ### JavaScript
 
-| Framework | Template     | Description                    |
-| --------- | ------------ | ------------------------------ |
-| Generic   | `javascript` | Basic JavaScript project       |
-| React     | `react`      | React SPA with JavaScript      |
-| Express   | `express`    | Node.js REST API with Express  |
-| Next.js   | `nextjs`     | Full-stack Next.js application |
-| CLI       | `cli`        | Command-line tool              |
+| Framework | Template     | Description                     |
+| --------- | ------------ | ------------------------------- |
+| Generic   | `javascript` | Basic JavaScript project        |
+| React     | `react`      | React SPA with JavaScript       |
+| Express   | `express`    | Node.js REST API with Express   |
+
+> Note: no framework prompt is shown for JavaScript — pass `--framework` explicitly if needed.
 
 ### Python
 
-| Framework    | Template      | Description                   |
-| ------------ | ------------- | ----------------------------- |
-| Generic      | `python`      | Basic Python project          |
-| FastAPI      | `fastapi`     | Modern REST API with FastAPI  |
-| Django       | `django`      | Full-stack Django application |
-| Data Science | `datascience` | ML/Data Science project       |
+| Framework  | Template    | Description                   |
+| ---------- | ----------- | ----------------------------- |
+| Generic    | `python`    | Basic Python project          |
+| FastAPI    | `fastapi`   | Modern REST API with FastAPI  |
+| Django     | `django`    | Full-stack Django application |
+| Flask      | `flask`     | Lightweight REST API          |
+| Streamlit  | `streamlit` | Data Science / ML apps        |
 
 ## Project Structure
 
@@ -306,22 +309,26 @@ SpecPilot generates a comprehensive `.specs/` folder structure:
 
 ```
 .specs/
-├── project/
-│   ├── project.yaml          # Project configuration & rules
-│   └── requirements.md       # Functional/non-functional requirements
 ├── architecture/
-│   ├── architecture.md       # Architecture decisions & patterns
-│   └── api.yaml             # CLI/API interface specifications
+│   ├── api.yaml              # CLI / REST API / GraphQL interface spec
+│   └── architecture.md       # Architecture decisions & patterns
+├── development/
+│   ├── context.md            # Development memory & learnings
+│   ├── docs.md               # Dev guidelines, spec conventions, checklist
+│   └── prompts.md            # AI interaction log — MANDATED, update every session
 ├── planning/
-│   ├── roadmap.md           # Product roadmap, milestones, objectives & risks
-│   └── tasks.md             # Task tracking (backlog/sprint/completed)
-├── quality/
-│   └── tests.md             # Test strategy & coverage plans
-└── development/
-    ├── prompts.md           # AI interaction tracking (MANDATED) + Re-Anchor Prompt
-    ├── context.md           # Development memory & learnings
-    └── docs.md              # Technical documentation
+│   ├── roadmap.md            # Release milestones, objectives & risks
+│   └── tasks.md              # Sprint tracker (backlog / current / completed)
+├── project/
+│   ├── project.yaml          # Project config, rules, and AI context (MANDATED)
+│   └── requirements.md       # Functional & non-functional requirements
+└── quality/
+    └── tests.md              # Test strategy, coverage targets, acceptance criteria
 ```
+
+Also generated at project root:
+
+- **`.github/copilot-instructions.md`** — AI mandate enforcement file; read automatically by GitHub Copilot, Cursor, and most AI tools on every interaction. Contains project name/stack, critical mandates, process mandates, and a Re-Anchor Prompt reference.
 
 ### Key Files Explained
 

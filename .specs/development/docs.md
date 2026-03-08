@@ -1,7 +1,7 @@
 ---
 fileID: DOC-001
-lastUpdated: 2026-03-01
-version: 1.2
+lastUpdated: 2026-03-08
+version: 1.3
 contributors: [girishr]
 relatedFiles:
   [
@@ -99,6 +99,7 @@ The `.specs/` folder structure is IMMUTABLE and must not be altered. This includ
 
 - Subfolder hierarchy: `project/`, `planning/`, `development/`, `quality/`, `architecture/` (as defined)
 - Core file names: `project.yaml`, `requirements.md`, `architecture.md`, `api.yaml`, `tests.md`, `context.md`, `docs.md`, `prompts.md`, `tasks.md`
+- Root-level AI config: `.github/copilot-instructions.md` (generated for all IDE/agent selections)
 - All existing files and directories
 
 **What IS Allowed**:
@@ -143,6 +144,7 @@ Before each commit, verify and update:
 - [ ] **`architecture.md`**: Update if code structure or design patterns changed
 - [ ] **`api.yaml`**: Update if CLI interface or commands modified
 - [ ] **`tests.md`**: Update if testing approach or coverage changed
+- [ ] **`.github/copilot-instructions.md`**: Update if critical mandates or project context change
 - [ ] **File Metadata**: Update footer sections (dates, counts, status summaries) in all modified files
 
 #### **Enforcement Mechanisms**

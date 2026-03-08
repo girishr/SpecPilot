@@ -88,20 +88,24 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
 
 ```
 .specs/
-├── project/          # Project config & requirements
-├── architecture/     # System design & API specs
-├── planning/         # Roadmap & task tracking
-├── quality/          # Testing & documentation
-└── development/      # AI prompts & context
+├── architecture/
+│   ├── api.yaml              # CLI / REST API / GraphQL interface spec
+│   └── architecture.md       # System design decisions and patterns
+├── development/
+│   ├── context.md            # Development memory, decisions, learnings
+│   ├── docs.md               # Dev guidelines, spec conventions, checklist
+│   └── prompts.md            # AI interaction log — MANDATED, update every session
+├── planning/
+│   ├── roadmap.md            # Release milestones and objectives
+│   └── tasks.md              # Sprint tracker (backlog / current / completed)
+├── project/
+│   ├── project.yaml          # Project config, rules, and AI context (MANDATED)
+│   └── requirements.md       # Functional & non-functional requirements
+└── quality/
+    └── tests.md              # Test strategy, coverage targets, acceptance criteria
 ```
 
-### Key Files
-
-- **`project.yaml`**: Project configuration and rules
-- **`requirements.md`**: Functional/non-functional requirements
-- **`architecture.md`**: System architecture decisions
-- **`prompts.md`**: AI interaction tracking (MANDATED)
-- **`tasks.md`**: Task management (backlog/sprint/completed)
+> Also generated at project root: `.github/copilot-instructions.md` (AI mandate enforcement)
 
 ## Configuration
 

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **“Read before describe” mandate added** (CD-085/CS-039): Added critical mandate to `copilot-instructions.md`, live `project.yaml`, and generated `project.yaml` template in `templateEngine.ts` — AI must never describe or quote file contents without first reading the file via a tool call; if not read, must say so explicitly.
 - **"Never implement unless asked" mandate added** (CD-086/CS-040): Added as critical rule #7 to `copilot-instructions.md`, live `project.yaml`, and generated `project.yaml` template in `templateEngine.ts` — AI must not write code or make file changes unless developer explicitly asks; if next step seems obvious, ask first.
 - **Generated `api.yaml` is now a dual-section template** (CD-087/CS-023): `generateApiYaml()` in `specFileGenerator.ts` rewritten to produce a generic spec with both a `cli:` section and an OpenAPI 3.0.3 `paths:` section; each section is preceded by a comment instructing the user to remove whichever does not apply; replaces the previous minimal OpenAPI-only stub.
+
 ### Added
 
 - **`.github/copilot-instructions.md` generation** (CD-076): New `generateCopilotInstructions()` in `ideConfigGenerator.ts`; called from `specGenerator.ts` unconditionally for every `specpilot init` regardless of IDE choice; contains project name/stack, 5 critical mandates, process mandates, and a Re-Anchor note; 1 new test added (73 total)

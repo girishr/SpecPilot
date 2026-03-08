@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2026-03-08
-version: 3.2
+version: 3.3
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -111,6 +111,8 @@ Notes
 13. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
 14. [CS-041] [TOOL-017] After the success message in both `init` and `add-specs`, display the generated `.specs/` folder as a tree with a one-line description of each file's purpose — tree is printed immediately after "Project Initialized Successfully!" (`init`) and after the equivalent success message in `add-specs`; each file entry shows its relative path and a short inline description (e.g. `project/project.yaml — configuration, rules, AI context`); descriptions should be hardcoded (not read from disk); extract the tree into a shared helper (e.g. `src/utils/specTreePrinter.ts`) so both commands call the same function; update tests if success output is asserted in either command's test file
 
+### README Fixes
+
 ## Completed
 
 > CD-001 through CD-039 have been archived to [tasks-archive.md](tasks-archive.md).
@@ -165,3 +167,4 @@ Notes
 47. [CD-086] [CS-040] [TRUST-002] Add "never implement unless explicitly asked" mandate — added as critical rule #7 to `.github/copilot-instructions.md`; added to live `.specs/project/project.yaml` critical tier; added to generated `project.yaml` template in `templateEngine.ts`; mandate: AI must not write code or make file changes unless developer explicitly asks; if next step seems obvious, ask first
 48. [CD-087] [CS-023] [TOOL-002] Generated `api.yaml` rewritten as dual-section template — `generateApiYaml()` in `specFileGenerator.ts` now produces both a `cli:` section and an OpenAPI 3.0.3 `paths:` section, each preceded by a "remove if not applicable" comment; replaced minimal OpenAPI-only stub; Option B chosen over context-aware prompting
 49. [CD-088] [TOOL-002] Expand generated `api.yaml` to three-option template — added OPTION C: GraphQL section (`endpoint`, `queries`, `mutations`) alongside OPTION A (REST API / OpenAPI 3.0) and OPTION B (CLI); added top-level `project` and `version` fields; restuctured header with cleaner OPTION A/B/C labelling; `generateApiYaml()` updated in `specFileGenerator.ts`
+50. [CD-089] [CS-042] [DOC-001] Fix 4 `README.md` inaccuracies — (a) TypeScript frameworks: added Nest.js, Vue, Angular; removed non-existent CLI; (b) JavaScript: corrected to React + Express only with a note that no framework prompt is shown; (c) Python: replaced `Data Science` with Flask and Streamlit; (d) `specify` command signature changed from `<desc>` to `[desc]` to reflect optional argument

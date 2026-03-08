@@ -42,7 +42,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `validate`       | Validate specification files  |
 | `list`           | Show available templates      |
 | `migrate`        | Migrate between spec versions |
-| `specify <desc>` | Update project specifications |
+| `specify [desc]` | Update project specifications |
 
 ### Examples
 
@@ -64,20 +64,23 @@ specpilot validate --fix
 - **React**: SPA applications
 - **Express**: REST APIs
 - **Next.js**: Full-stack apps
-- **CLI**: Command-line tools
+- **Nest.js**: Scalable server-side apps
+- **Vue**: Progressive UI framework
+- **Angular**: Enterprise SPA framework
 
 ### JavaScript
 
 - **React**: SPA applications
 - **Express**: REST APIs
-- **Next.js**: Full-stack apps
-- **CLI**: Command-line tools
+
+> Note: no framework prompt is shown for JavaScript — pass `--framework` explicitly if needed.
 
 ### Python
 
 - **FastAPI**: Modern REST APIs
 - **Django**: Full-stack applications
-- **Data Science**: ML/Data Science projects
+- **Flask**: Lightweight REST APIs
+- **Streamlit**: Data Science / ML apps
 
 ## Project Structure
 

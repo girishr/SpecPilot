@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`README.md` framework and command inaccuracies corrected** (CD-089/CS-042): TypeScript frameworks now lists React, Express, Next.js, Nest.js, Vue, Angular (removed non-existent CLI entry); JavaScript section corrected to React + Express only with a note that no framework prompt is shown; Python section corrected to FastAPI, Django, Flask, Streamlit (removed `Data Science` which was not a valid framework value); `specify` command signature changed from `<desc>` to `[desc]` to reflect optional argument.
 ## [1.5.0] - 2026-03-08
 
 ### Changed

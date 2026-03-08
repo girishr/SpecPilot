@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-03-08
+
 ### Changed
 
 - **`project/requirements.md` rewritten to v1.3** (CD-080): Restructured into sub-sections (REQ-002.A–F). Added `specify` command with diff/confirmation [REQ-002.A.6], project context prompts during `init` [REQ-002.B.1], `--no-prompts` flag [REQ-002.B.6], IDE settings generation for VSCode/Cursor/Windsurf/Kiro/Antigravity [REQ-002.E.2], cloud agent config for Cowork/Codex [REQ-002.E.3], dual onboarding prompts [REQ-002.F.4], new `## Assumptions [REQ-004]` section, path-injection NFR [REQ-003.4].

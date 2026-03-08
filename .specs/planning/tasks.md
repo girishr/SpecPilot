@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-07
-version: 3.1
+lastUpdated: 2026-03-08
+version: 3.2
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -109,6 +109,7 @@ Notes
 11. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
 12. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
 13. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
+14. [CS-041] [TOOL-017] After the success message in both `init` and `add-specs`, display the generated `.specs/` folder as a tree with a one-line description of each file's purpose — tree is printed immediately after "Project Initialized Successfully!" (`init`) and after the equivalent success message in `add-specs`; each file entry shows its relative path and a short inline description (e.g. `project/project.yaml — configuration, rules, AI context`); descriptions should be hardcoded (not read from disk); extract the tree into a shared helper (e.g. `src/utils/specTreePrinter.ts`) so both commands call the same function; update tests if success output is asserted in either command's test file
 
 ## Completed
 

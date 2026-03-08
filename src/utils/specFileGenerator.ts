@@ -166,83 +166,66 @@ sourceOfTruth: project/project.yaml
   }
 
   private async generateApiYaml(specsDir: string, context: TemplateContext): Promise<void> {
-    const content = `# {{projectName}} API Specification
+    const content = `# .specs/architecture/api.yaml
+# ------------------------------------------------------------
+# API & Interface Specification
+# Remove the section(s) that don't apply to your project.
 # meta: project={{projectName}} language={{language}} framework={{framework}} updated={{currentDate}}
-#
-# This file contains TWO sections:
-#   SECTION 1 — CLI Interface  (remove entirely if your project is not a CLI tool)
-#   SECTION 2 — REST API       (remove entirely if your project does not expose a REST API)
-# Keep only the section(s) that apply.
+# ------------------------------------------------------------
 
-# ==============================================================
-# SECTION 1: CLI Interface — REMOVE if this is not a CLI tool
-# ==============================================================
-cli:
-  binary: "{{projectName}}"
-  version: "1.0.0"
-  runtime: "Node.js >= 16"          # adjust for your runtime
-  install: "npm install -g {{projectName}}"
+project: "{{projectName}}"
+version: "1.0.0"
+lastUpdated: "{{currentDate}}"
 
-  commands:
-    init:
-      description: "Initialise a new project"
-      usage: "{{projectName}} init [options]"
-      options:
-        - flag: "--name <name>"
-          description: "Project name"
-        - flag: "--help"
-          description: "Show help"
-
-    # Add more commands here following the pattern above
-
-  interactive-prompts:
-    - id: prompt-name
-      trigger: "init command when --name not provided"
-      text: "What is the project name?"
-      type: input
-
-  exit-codes:
-    0: Success
-    1: General error
-    2: Invalid input / missing arguments
-
-# ==============================================================
-# SECTION 2: REST API — REMOVE if this is not a REST API
-# ==============================================================
-openapi: "3.0.3"
+# ============================================================
+# OPTION A: REST API (remove if not a web API project)
+# ============================================================
+openapi: "3.0.0"
 info:
   title: "{{projectName}} API"
-  description: "{{description}}"
   version: "1.0.0"
+  description: "[TODO: Describe your API]"
 
 servers:
   - url: "http://localhost:3000"
     description: "Local development"
-  # - url: "https://api.example.com"
-  #   description: "Production"
 
 paths:
-  /health:
+  /example:
     get:
-      summary: "Health check"
-      operationId: "getHealth"
+      summary: "[TODO: Replace with your first endpoint]"
       responses:
         "200":
-          description: "Service is healthy"
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "ok"
+          description: "Success"
 
-  # Add more paths here following the OpenAPI 3.0 pattern above
+# ============================================================
+# OPTION B: CLI Interface (remove if not a CLI project)
+# ============================================================
+cli:
+  name: "{{projectName}}"
+  version: "1.0.0"
+  commands:
+    - name: "[TODO: first-command]"
+      description: "[TODO: What does this command do?]"
+      arguments:
+        - name: "[TODO: arg]"
+          description: "[TODO: argument description]"
+          required: true
+      options:
+        - flag: "--example <value>"
+          description: "[TODO: option description]"
 
-components:
-  schemas: {}
-  securitySchemes: {}
+# ============================================================
+# OPTION C: GraphQL (remove if not a GraphQL project)
+# ============================================================
+graphql:
+  endpoint: "/graphql"
+  queries:
+    - name: "[TODO: firstQuery]"
+      description: "[TODO: What does this query return?]"
+  mutations:
+    - name: "[TODO: firstMutation]"
+      description: "[TODO: What does this mutation do?]"
 `;
 
     const rendered = this.templateEngine.renderFromString(content, context);

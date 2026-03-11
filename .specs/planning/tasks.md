@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-08
-version: 3.3
+lastUpdated: 2026-03-11
+version: 3.4
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -102,14 +102,12 @@ Notes
 
 ### Generated Output Improvements
 
-7. [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` template in `specFileGenerator.ts`
-8. [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` template in `templateEngine.ts`
-9. [CS-029] [TOOL-008] Add warnings to `specpilot validate` — (a) parse `lastUpdated` front-matter and warn if > 90 days old; (b) check line count of `prompts.md` (warn if > 300) and `tasks.md` Completed section (warn if > 150) and suggest running `specpilot archive`
-10. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to run `specpilot archive` when file exceeds 300 lines; entries will be moved to `prompts-archive.md` automatically; do not generate a stub `prompts-archive.md` during init
-11. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
-12. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
-13. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
-14. [CS-041] [TOOL-017] After the success message in both `init` and `add-specs`, display the generated `.specs/` folder as a tree with a one-line description of each file's purpose — tree is printed immediately after "Project Initialized Successfully!" (`init`) and after the equivalent success message in `add-specs`; each file entry shows its relative path and a short inline description (e.g. `project/project.yaml — configuration, rules, AI context`); descriptions should be hardcoded (not read from disk); extract the tree into a shared helper (e.g. `src/utils/specTreePrinter.ts`) so both commands call the same function; update tests if success output is asserted in either command's test file
+7. [CS-029] [TOOL-008] Add warnings to `specpilot validate` — (a) parse `lastUpdated` front-matter and warn if > 90 days old; (b) check line count of `prompts.md` (warn if > 300) and `tasks.md` Completed section (warn if > 150) and suggest running `specpilot archive`
+8. [CS-031] [TOOL-011] Add archive guidance section to generated `prompts.md` template — instruct users to run `specpilot archive` when file exceeds 300 lines; entries will be moved to `prompts-archive.md` automatically; do not generate a stub `prompts-archive.md` during init
+9. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
+10. [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
+11. [CS-038] [TOOL-016] Add `specpilot archive` command — archives growing `.specs/` files when over line limit: moves older entries from `prompts.md` (> 300 lines) to `prompts-archive.md` and from `tasks.md` Completed section (> 150 lines) to `tasks-archive.md`; appends archived block with a timestamp header; trims active file to keep most-recent entries; prints a report on completion showing files modified, lines moved, and archive file paths; supports `--dry-run` flag to preview without writing; implement in `src/utils/specArchiver.ts` + `src/commands/archive.ts`; add `src/__tests__/specArchiver.test.ts` covering: no-op when under limit, prompts.md over 300, tasks.md Completed over 150, both over limit, archive file created fresh, archive file appended to existing, `--dry-run` output, report format
+12. [CS-041] [TOOL-017] After the success message in both `init` and `add-specs`, display the generated `.specs/` folder as a tree with a one-line description of each file's purpose — tree is printed immediately after "Project Initialized Successfully!" (`init`) and after the equivalent success message in `add-specs`; each file entry shows its relative path and a short inline description (e.g. `project/project.yaml — configuration, rules, AI context`); descriptions should be hardcoded (not read from disk); extract the tree into a shared helper (e.g. `src/utils/specTreePrinter.ts`) so both commands call the same function; update tests if success output is asserted in either command's test file
 
 ### README Fixes
 
@@ -171,3 +169,5 @@ Notes
 51. [CD-090] Fix welcome screen missing commands — `migrate` and `specify` added to hardcoded Available Commands list in `displayWelcome()` in `logger.ts`; fixed missing space before dash in `add-specs` entry; commands reordered in logical usage order with consistent column alignment
 52. [CD-091] Expand README Project Structure tree — all 10 generated files now shown with inline descriptions; redundant `### Key Files` section removed
 53. [CD-092] [DOC-001] Cross-document audit for `.github/copilot-instructions.md` coverage and stale framework tables — (a) `docs/GUIDE.md` Project Structure tree updated to match README (alphabetical folders, all 10 files, `copilot-instructions.md` note added); (b) `docs/GUIDE.md` TypeScript/JavaScript/Python framework tables corrected to match `frameworks.ts` ground truth; (c) `.specs/development/docs.md` Pre-Commit Checklist and Protected Structure section updated to reference `copilot-instructions.md`
+54. [CD-093] [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` — `generateRequirementsMd()` in `specFileGenerator.ts` now includes labelled `## Assumptions` section with 3 reviewer-tagged placeholders; placed before `## Cross-References`
+55. [CD-094] [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` — `getArchitectureTemplate()` in `templateEngine.ts` now appends labelled `## Assumptions` section with 3 reviewer-tagged placeholders; placed after `## Monitoring and Observability`

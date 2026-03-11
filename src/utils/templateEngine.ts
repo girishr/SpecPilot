@@ -285,6 +285,14 @@ Based on analysis of the project structure:
 ## Monitoring and Observability
 [Describe logging, metrics, and monitoring strategy]
 
+## Assumptions
+
+> Label each assumption with [ASSUMPTION] so it can be reviewed and revised.
+
+- [ASSUMPTION] [e.g. Single-region deployment; no multi-region failover required]
+- [ASSUMPTION] [e.g. No backward-compatibility constraints with legacy systems]
+- [ASSUMPTION] [e.g. Runtime environment is controlled; no adversarial input at infrastructure level]
+
 ---
 *Last updated: {{currentDate}}*`;
   }

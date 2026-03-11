@@ -153,6 +153,14 @@ sourceOfTruth: project/project.yaml
 ## Functional Requirements
 [TODO: Add requirements with proper template]
 
+## Assumptions
+
+> Label each assumption with [ASSUMPTION] so it can be reviewed and revised.
+
+- [ASSUMPTION] [e.g. Users have internet access at runtime]
+- [ASSUMPTION] [e.g. Single-user deployment, no multi-tenancy required]
+- [ASSUMPTION] [e.g. Input data is well-formed; no adversarial input expected]
+
 ## Cross-References
 - Architecture: ../architecture/architecture.md
 - API: ../architecture/api.yaml

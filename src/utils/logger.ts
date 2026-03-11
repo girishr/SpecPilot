@@ -4,12 +4,15 @@ const pkg = require('../../package.json');
 
 export class Logger {
   private readonly logo = [
-    '███████ ██████  ███████  ██████ ██████  ██ ██       ██████  ████████ ',
-    '██      ██   ██ ██      ██      ██   ██ ██ ██      ██    ██    ██    ',
-    '███████ ██████  █████   ██      ██████  ██ ██      ██    ██    ██    ',
-    '     ██ ██      ██      ██      ██      ██ ██      ██    ██    ██    ',
-    '███████ ██      ███████  ██████ ██      ██ ███████  ██████     ██    ',
+  '███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗',
+  '██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝',
+  '███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║',
+  '╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║',
+  '███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║',
+  '╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝',
   ];
+
+
 
   info(message: string): void {
     console.log(chalk.blue(message));
@@ -36,7 +39,7 @@ export class Logger {
   // Display with logo on top and content below
   displayWithLogo(content: string[]): void {
     // First print the logo
-    console.log(chalk.blue(this.logo.join('\n')));
+    console.log(chalk.blueBright(this.logo.join('\n')));
     
     // Then print a separator line
     console.log('');

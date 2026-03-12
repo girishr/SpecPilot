@@ -1,9 +1,9 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-07
-version: 1.6
+lastUpdated: 2026-03-12
+version: 1.7
 contributors: [girishr]
-relatedFiles: [project.yaml, requirements.md, api.yaml, tasks.md]
+relatedFiles: [project.yaml, requirements.md, api.yaml, tasks.md, security/threat-model.md, security/security-decisions.md]
 ---
 
 # System Architecture
@@ -41,6 +41,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Diff Preview**: specify command shows changes and asks for confirmation before writing [ARCH-004.10]
 - **Universal Copilot Instructions**: `.github/copilot-instructions.md` always generated regardless of IDE — re-injects critical mandates into every AI request to prevent context drift in long sessions [ARCH-004.11]
 - **Tiered Rules**: Generated `project.yaml` uses 🔴 critical / 🟡 process / 🟢 preferences tiers to give AI tools clear priority signals [ARCH-004.12]
+- **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
 
 ## Technology Stack [ARCH-005]
 
@@ -96,4 +97,4 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 
 ---
 
-_Last updated: 2026-03-07_
+_Last updated: 2026-03-12_

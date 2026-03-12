@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-11
-version: 3.4
+lastUpdated: 2026-03-12
+version: 3.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -22,83 +22,76 @@ Notes
 
 ## Backlog
 
-1. [BL-001] Plan v1.1.0 features (additional templates, performance optimizations)
-2. [BL-002] Gather user feedback and feature requests
 3. [BL-003] Create video tutorials for SDD approach
-4. [BL-004] Build community around SpecPilot
-5. [BL-005] Monitor NPM download metrics
-6. [BL-006] Set up GitHub repository with proper documentation
-7. [BL-007] Create issue templates and contribution guidelines
-8. [BL-008] Implement automatic enforcement of project mandates (git hooks for spec validation, automatic prompt logging, pre-commit checks)
-9. [BL-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
-10. [BL-010] Add security audit, compliance, and scanning features to SpecPilot
-    - 1. Add Security Spec Files
-      - Create .specs/security/ folder with:
-        -- security.md: Security requirements, threat model
-        -- vulnerabilities.yaml: Known issues tracker
-        -- compliance.yaml: Standards compliance (SOC2, GDPR, etc.)
-    - 2. Integrate Security Scanning
-      - Add commands like:
-        -- specpilot audit: Run dependency vulnerability scan
-        -- specpilot scan: Static code analysis
-        -- specpilot compliance: Check compliance requirements
-    - 3. Automated Checks
-      - Integrate with npm audit, snyk, or semgrep
-      - Add to specpilot validate command
-      - CI/CD integration for automated scanning
-11. [BL-011] CLI Rule Selector - Core Infrastructure
-    - Allow users to choose which development mandates and constraints to include during project initialization
-    - Interactive CLI prompts for rule selection
-    - Save selections to .specs/project.yaml
-    - Support non-interactive mode with config files
-12. [BL-012] Code Quality Rules Configuration
-    - Make TypeScript strict mode level selectable
-    - ESLint enforcement level (off, warn, error)
-    - Prettier formatting enforcement
-    - Code style standard selection
-13. [BL-013] Testing Requirements Configuration
+4. [BL-007] Create issue templates and contribution guidelines
+5. [BL-008] Implement automatic enforcement of project mandates (git hooks for spec validation, automatic prompt logging, pre-commit checks)
+6. [BL-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
+7. [BL-010] Add security audit, compliance, and scanning features to SpecPilot
+   - 1. Add Security Spec Files
+     - Create .specs/security/ folder with:
+       -- security.md: Security requirements, threat model
+       -- vulnerabilities.yaml: Known issues tracker
+       -- compliance.yaml: Standards compliance (SOC2, GDPR, etc.)
+   - 2. Integrate Security Scanning
+     - Add commands like:
+       -- specpilot audit: Run dependency vulnerability scan
+       -- specpilot scan: Static code analysis
+       -- specpilot compliance: Check compliance requirements
+   - 3. Automated Checks
+     - Integrate with npm audit, snyk, or semgrep
+     - Add to specpilot validate command
+     - CI/CD integration for automated scanning
+8. [BL-011] CLI Rule Selector - Core Infrastructure
+   - Allow users to choose which development mandates and constraints to include during project initialization
+   - Interactive CLI prompts for rule selection
+   - Save selections to .specs/project.yaml
+   - Support non-interactive mode with config files
+9. [BL-012] Code Quality Rules Configuration
+   - Make TypeScript strict mode level selectable
+   - ESLint enforcement level (off, warn, error)
+   - Prettier formatting enforcement
+   - Code style standard selection
+10. [BL-013] Testing Requirements Configuration
     - Selectable unit test coverage minimum %
     - Test-before-code mandate toggle
     - Integration test requirement levels
     - Testing framework selection
-14. [BL-014] Documentation Mandates Configuration
+11. [BL-014] Documentation Mandates Configuration
     - JSDoc requirement level selection (none, public-only, all-functions)
     - README and Changelog update mandates
     - Spec file update mandate toggle
     - Spec detail level selection (minimal, standard, comprehensive)
-15. [BL-015] Review & Approval Process Configuration
+12. [BL-015] Review & Approval Process Configuration
     - Mandatory peer reviews toggle
     - Configurable approvals required
     - Code review criteria selection
     - Hotfix approval bypass option
-16. [BL-016] Specification Standards Configuration
+13. [BL-016] Specification Standards Configuration
     - Dynamic spec file structure based on selections
     - Metadata requirement configuration
     - Spec versioning strategy selection
-17. [BL-017] AI Interaction Tracking Configuration
+14. [BL-017] AI Interaction Tracking Configuration
     - Optional AI prompt logging mandate
     - Detail level for prompt documentation (minimal, standard, verbose)
     - Audit trail consolidation options
-18. [BL-018] Deploy & Release Controls Configuration
+15. [BL-018] Deploy & Release Controls Configuration
     - Pre-release checklist requirements
     - Version bump strategy enforcement (semver, manual)
     - Release notes mandate
     - Pre-release testing requirements
-19. [BL-019] Architecture & Pattern Rules Configuration
+16. [BL-019] Architecture & Pattern Rules Configuration
     - Design pattern enforcement suggestions
     - Project structure constraint levels
     - Naming conventions enforcement toggle
     - Dependency management rules
-20. [BL-020] Plan and implement next major features (template enhancements, performance optimizations)
-21. [BL-021] Gather community feedback and refine existing features based on user experience
-22. [BL-022] add a short description at the top of each generated specs file that shows what is the purpose of this file. This will help a new dev who is looking thru the specs files to understand what is function of each of this files. This can be along with the front-matter field section.
-23. [BL-023] inspired by this linkedin post try to use the CLAUDE.md Stop stuffing everything into CLAUDE.md. Use it as a router. https://www.linkedin.com/posts/alokkumarsunny_stop-stuffing-everything-into-claudemd-activity-7435312701452632064-9vNa . Also we need to look at how to make use of skills.md
+17. [BL-020] Plan and implement next major features (template enhancements, performance optimizations)
+18. [BL-021] Gather community feedback and refine existing features based on user experience
+19. [BL-022] add a short description at the top of each generated specs file that shows what is the purpose of this file. This will help a new dev who is looking thru the specs files to understand what is function of each of this files. This can be along with the front-matter field section.
+20. [BL-023] inspired by this linkedin post try to use the CLAUDE.md Stop stuffing everything into CLAUDE.md. Use it as a router. https://www.linkedin.com/posts/alokkumarsunny_stop-stuffing-everything-into-claudemd-activity-7435312701452632064-9vNa . Also we need to look at how to make use of skills.md
 
 ## Current Sprint
 
 ### .specs Folder Fixes
-
-1. [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md`
 
 ### Generated Output Improvements
 
@@ -171,3 +164,4 @@ Notes
 53. [CD-092] [DOC-001] Cross-document audit for `.github/copilot-instructions.md` coverage and stale framework tables — (a) `docs/GUIDE.md` Project Structure tree updated to match README (alphabetical folders, all 10 files, `copilot-instructions.md` note added); (b) `docs/GUIDE.md` TypeScript/JavaScript/Python framework tables corrected to match `frameworks.ts` ground truth; (c) `.specs/development/docs.md` Pre-Commit Checklist and Protected Structure section updated to reference `copilot-instructions.md`
 54. [CD-093] [CS-027] [TOOL-006] Add `## Assumptions` section to generated `requirements.md` — `generateRequirementsMd()` in `specFileGenerator.ts` now includes labelled `## Assumptions` section with 3 reviewer-tagged placeholders; placed before `## Cross-References`
 55. [CD-094] [CS-028] [TOOL-007] Add `## Assumptions` section to generated `architecture.md` — `getArchitectureTemplate()` in `templateEngine.ts` now appends labelled `## Assumptions` section with 3 reviewer-tagged placeholders; placed after `## Monitoring and Observability`
+56. [CD-095] [CS-020] [SPECS-FIX-15] Add `.specs/security/` folder — created `threat-model.md` (path traversal [SEC-002.1], template injection [SEC-002.2], supply chain [SEC-002.3]) and `security-decisions.md` (4 ADR entries: allowlist regex, no network, Handlebars escaping, minimal deps); updated `architecture.md` (v1.7, ARCH-004.13) and `docs.md` (v1.4, added `security/` to protected structure)

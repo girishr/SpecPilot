@@ -150,12 +150,13 @@ export class SpecValidator {
       }
 
       // Check for rules section
-      if (!projectData.rules || !Array.isArray(projectData.rules)) {
+      const flatRules = this.flattenRules(projectData.rules);
+      if (!projectData.rules || flatRules.length === 0) {
         result.warnings.push('project.yaml should have a rules section');
       }
 
       // Validate mandates exist
-      const hasMandates = this.checkMandatesInRules(projectData.rules || []);
+      const hasMandates = this.checkMandatesInRules(flatRules);
       if (!hasMandates.hasPromptMandate) {
         result.errors.push('Missing MANDATE for prompt tracking in project.yaml rules');
         result.fixable.push('add-mandates');
@@ -168,6 +169,16 @@ export class SpecValidator {
       result.errors.push(`Failed to parse project.yaml: ${error instanceof Error ? error.message : 'Unknown error'}`);
       result.isValid = false;
     }
+  }
+
+  private flattenRules(rules: unknown): string[] {
+    if (!rules) return [];
+    if (Array.isArray(rules)) return rules as string[];
+    if (typeof rules === 'object') {
+      return Object.values(rules as Record<string, unknown>)
+        .flatMap(v => Array.isArray(v) ? v as string[] : []);
+    }
+    return [];
   }
 
   private checkMandatesInRules(rules: string[]): { hasPromptMandate: boolean } {
@@ -340,9 +351,18 @@ export class SpecValidator {
         "MANDATE: Maintain chronological prompt history for complete development traceability"
       ];
 
+      const flatRules = this.flattenRules(projectData.rules);
       for (const mandate of mandates) {
-        if (!projectData.rules.some((rule: string) => rule.includes('MANDATE') && rule.includes('prompt'))) {
-          projectData.rules.push(mandate);
+        if (!flatRules.some((rule: string) => rule.includes('MANDATE') && rule.includes('prompt'))) {
+          // Push into process sub-array if rules is nested, else push to flat array
+          if (Array.isArray(projectData.rules)) {
+            projectData.rules.push(mandate);
+          } else if (typeof projectData.rules === 'object' && projectData.rules !== null) {
+            const nested = projectData.rules as Record<string, string[]>;
+            if (!Array.isArray(nested['process'])) nested['process'] = [];
+            nested['process'].push(mandate);
+          }
+          flatRules.push(mandate); // keep flatRules in sync to avoid duplicate pushes
         }
       }
 

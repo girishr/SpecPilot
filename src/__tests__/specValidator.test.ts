@@ -347,4 +347,121 @@ describe('SpecValidator', () => {
     const warn = result.warnings.find(w => w.includes('minimal content'));
     expect(warn).toBeDefined();
   });
+
+  // ─── Stale date warnings ──────────────────────────────────────────────────
+
+  it('warns when a .md spec file has lastUpdated older than 90 days', async () => {
+    createValidSpecsDir(testDir);
+    const staleDate = new Date();
+    staleDate.setDate(staleDate.getDate() - 100);
+    const staleDateStr = staleDate.toISOString().split('T')[0];
+    writeFileSync(join(testDir, '.specs', 'architecture', 'architecture.md'), [
+      '---',
+      `lastUpdated: ${staleDateStr}`,
+      '---',
+      '# Architecture',
+      '## Overview',
+      '## Architecture',
+      '## Components',
+      '## Decisions',
+    ].join('\n'));
+
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('architecture/architecture.md') && w.includes('days old'));
+    expect(warn).toBeDefined();
+  });
+
+  it('does not warn when lastUpdated is within 90 days', async () => {
+    createValidSpecsDir(testDir);
+    const recentDate = new Date();
+    recentDate.setDate(recentDate.getDate() - 10);
+    const recentDateStr = recentDate.toISOString().split('T')[0];
+    writeFileSync(join(testDir, '.specs', 'architecture', 'architecture.md'), [
+      '---',
+      `lastUpdated: ${recentDateStr}`,
+      '---',
+      '# Architecture',
+      '## Overview',
+      '## Architecture',
+      '## Components',
+      '## Decisions',
+    ].join('\n'));
+
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('architecture/architecture.md') && w.includes('days old'));
+    expect(warn).toBeUndefined();
+  });
+
+  it('does not warn when front-matter has no lastUpdated field', async () => {
+    createValidSpecsDir(testDir);
+    // architecture.md has front-matter but no lastUpdated key — no stale warning
+    writeFileSync(join(testDir, '.specs', 'architecture', 'architecture.md'), [
+      '---',
+      'title: Architecture',
+      '---',
+      '# Architecture',
+      '## Overview',
+      '## Architecture',
+      '## Components',
+      '## Decisions',
+    ].join('\n'));
+
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('architecture/architecture.md') && w.includes('days old'));
+    expect(warn).toBeUndefined();
+  });
+
+  // ─── Line limit warnings ───────────────────────────────────────────────────
+
+  it('warns when prompts.md exceeds 300 lines', async () => {
+    createValidSpecsDir(testDir);
+    const lines = Array.from({ length: 310 }, (_, i) => `Line ${i + 1}: AI interaction log entry.`);
+    writeFileSync(join(testDir, '.specs', 'development', 'prompts.md'),
+      `---\ntitle: Prompts\n---\n# Prompts\n<!-- refs: context.md project.yaml -->\n**MANDATE**: Track AI interactions.\nLast updated: ${CURRENT_YEAR}-01-01\nAI interaction: something.\n` + lines.join('\n')
+    );
+
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('prompts.md') && w.includes('limit: 300'));
+    expect(warn).toBeDefined();
+    expect(warn).toContain('specpilot archive');
+  });
+
+  it('does not warn when prompts.md is under 300 lines', async () => {
+    createValidSpecsDir(testDir);
+    // Default valid prompts.md from createValidSpecsDir is well under 300 lines
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('prompts.md') && w.includes('limit: 300'));
+    expect(warn).toBeUndefined();
+  });
+
+  it('warns when tasks.md Completed section exceeds 150 lines', async () => {
+    createValidSpecsDir(testDir);
+    const completedLines = Array.from({ length: 160 }, (_, i) => `${i + 1}. [CD-${String(i + 100).padStart(3, '0')}] Completed task ${i + 1}`);
+    writeFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), [
+      '---',
+      'title: Tasks',
+      '---',
+      '# Tasks',
+      '<!-- refs: roadmap.md requirements.md project.yaml -->',
+      '## Current Sprint',
+      'In Progress: feature A',
+      'Completed: project init',
+      '',
+      '## Completed',
+      ...completedLines,
+    ].join('\n'));
+
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 150'));
+    expect(warn).toBeDefined();
+    expect(warn).toContain('specpilot archive');
+  });
+
+  it('does not warn when tasks.md Completed section is under 150 lines', async () => {
+    createValidSpecsDir(testDir);
+    // Default valid tasks.md from createValidSpecsDir has no ## Completed section (short)
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 150'));
+    expect(warn).toBeUndefined();
+  });
 });

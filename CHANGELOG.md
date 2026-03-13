@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`## Assumptions` section added to generated `requirements.md`** (CD-093/CS-027): `generateRequirementsMd()` in `specFileGenerator.ts` now includes a labelled `## Assumptions` section with 3 placeholder items and a reviewer note; placed before `## Cross-References`.
+- **`specpilot validate` stale-date warnings** (CD-096/CS-029): `validateStaleDates()` added to `SpecValidator` — warns when any `.md` spec file has a `lastUpdated` front-matter field older than 90 days.
+- **`specpilot validate` line-limit warnings** (CD-096/CS-029): `validateLineLimits()` added to `SpecValidator` — warns when `development/prompts.md` exceeds 300 lines or the `## Completed` section of `planning/tasks.md` exceeds 150 lines, with a hint to run `specpilot archive`.
+- **Jest types added to `tsconfig.json`** (CD-096): Added `"jest"` to the `types` array so `ts-jest` can resolve `describe`/`it`/`expect` globals in test files.
+
+ to generated `requirements.md`** (CD-093/CS-027): `generateRequirementsMd()` in `specFileGenerator.ts` now includes a labelled `## Assumptions` section with 3 placeholder items and a reviewer note; placed before `## Cross-References`.
 - **`## Assumptions` section added to generated `architecture.md`** (CD-094/CS-028): `getArchitectureTemplate()` in `templateEngine.ts` now appends a `## Assumptions` section with 3 placeholder items and a reviewer note; placed after `## Monitoring and Observability`.
 - **`.specs/security/` folder added** (CD-095/CS-020): New `threat-model.md` documents 3 threats — path traversal [SEC-002.1], template injection [SEC-002.2], supply chain [SEC-002.3] — with impact/likelihood/mitigation tables. New `security-decisions.md` records 4 ADR-style decisions (allowlist regex, no network calls, Handlebars auto-escaping, minimal dependencies). Updated `architecture.md` (v1.7, ARCH-004.13) and `docs.md` (v1.4, `security/` added to protected structure).
 

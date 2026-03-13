@@ -71,6 +71,12 @@ export class SpecValidator {
   // Validate metadata and cross references
   await this.validateMetadataAndCrossRefs(specsDir, result);
 
+    // Warn if any .md spec files have a stale lastUpdated date (> 90 days)
+    await this.validateStaleDates(specsDir, result);
+
+    // Warn if prompts.md or tasks.md Completed section exceed line limits
+    await this.validateLineLimits(specsDir, result);
+
     return result;
   }
 
@@ -495,5 +501,63 @@ This document outlines the architecture and design decisions for this project.
 
 ---
 *Last updated: ${new Date().toISOString().split('T')[0]}*`;
+  }
+
+  private async validateStaleDates(specsDir: string, result: ValidationResult): Promise<void> {
+    const mdFiles = this.requiredFiles.filter(f => f.endsWith('.md'));
+    const today = new Date();
+
+    for (const file of mdFiles) {
+      const filePath = join(specsDir, file);
+      if (!existsSync(filePath)) continue;
+      try {
+        const content = readFileSync(filePath, 'utf-8');
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/m);
+        if (!fmMatch) continue;
+
+        const fm = yaml.load(fmMatch[1]) as Record<string, unknown>;
+        if (!fm || !fm['lastUpdated']) continue;
+
+        const updated = new Date(String(fm['lastUpdated']));
+        if (isNaN(updated.getTime())) continue;
+
+        const diffDays = Math.floor((today.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24));
+        if (diffDays > 90) {
+          result.warnings.push(
+            `${file}: lastUpdated is ${diffDays} days old (threshold: 90 days). Consider updating it to reflect recent changes.`
+          );
+        }
+      } catch {
+        // Skip files that cannot be parsed
+      }
+    }
+  }
+
+  private async validateLineLimits(specsDir: string, result: ValidationResult): Promise<void> {
+    // Check prompts.md total line count
+    const promptsPath = join(specsDir, 'development', 'prompts.md');
+    if (existsSync(promptsPath)) {
+      const lines = readFileSync(promptsPath, 'utf-8').split('\n');
+      if (lines.length > 300) {
+        result.warnings.push(
+          `development/prompts.md has ${lines.length} lines (limit: 300). Run \`specpilot archive\` to move older entries to prompts-archive.md.`
+        );
+      }
+    }
+
+    // Check tasks.md Completed section line count
+    const tasksPath = join(specsDir, 'planning', 'tasks.md');
+    if (existsSync(tasksPath)) {
+      const content = readFileSync(tasksPath, 'utf-8');
+      const completedIdx = content.indexOf('\n## Completed');
+      if (completedIdx !== -1) {
+        const sectionLines = content.slice(completedIdx + 1).split('\n').length;
+        if (sectionLines > 150) {
+          result.warnings.push(
+            `planning/tasks.md Completed section has ${sectionLines} lines (limit: 150). Run \`specpilot archive\` to move older entries to tasks-archive.md.`
+          );
+        }
+      }
+    }
   }
 }

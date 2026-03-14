@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Archive guidance in generated `prompts.md`** (CD-099/CS-031): `generatePromptsMd()` in `specFileGenerator.ts` now includes a `## Archive Policy` section instructing users to run `specpilot archive` when the file exceeds 300 lines; explains that older entries move to `prompts-archive.md` automatically and `--dry-run` is available; no stub file generated during init.
+- **`specpilot archive` command** (CD-098/CS-038): New `SpecArchiver` class (`src/utils/specArchiver.ts`) archives `development/prompts.md` when > 300 lines (moves older entries to `prompts-archive.md`) and `planning/tasks.md` Completed section when > 150 lines (moves to `tasks-archive.md`); archived blocks are appended with a timestamped header; `--dry-run` flag previews changes without writing; command registered in `cli.ts` with alias `ar`; welcome screen updated.
 - **`specpilot validate` stale-date warnings** (CD-096/CS-029): `validateStaleDates()` added to `SpecValidator` — warns when any `.md` spec file has a `lastUpdated` front-matter field older than 90 days.
 - **`specpilot validate` line-limit warnings** (CD-096/CS-029): `validateLineLimits()` added to `SpecValidator` — warns when `development/prompts.md` exceeds 300 lines or the `## Completed` section of `planning/tasks.md` exceeds 150 lines, with a hint to run `specpilot archive`.
 - **Jest types added to `tsconfig.json`** (CD-096): Added `"jest"` to the `types` array so `ts-jest` can resolve `describe`/`it`/`expect` globals in test files.

@@ -8,6 +8,7 @@ import { migrateCommand } from './commands/migrate';
 import { listCommand } from './commands/list';
 import { specifyCommand } from './commands/specify';
 import { addSpecsCommand } from './commands/add-specs';
+import { archiveCommand } from './commands/archive';
 import { Logger } from './utils/logger';
 
 const packageJson = require('../package.json');
@@ -71,6 +72,15 @@ program
   .option('--no-prompts', 'Skip interactive prompts')
   .option('-u, --update', 'Regenerate specs with new description')
   .action(specifyCommand);
+
+// Archive command
+program
+  .command('archive')
+  .alias('ar')
+  .description('Archive oversized .specs/ files (prompts.md > 300 lines, tasks.md Completed > 150 lines)')
+  .option('-d, --dir <directory>', 'Project directory', '.')
+  .option('--dry-run', 'Preview what would be archived without writing any files')
+  .action(archiveCommand);
 
 // Add-specs command
 program

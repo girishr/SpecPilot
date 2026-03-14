@@ -609,6 +609,18 @@ This file (prompts.md) contains ALL AI interactions for {{projectName}}. Update 
 
 **🚨 MANDATE**: Update with every AI interaction.
 
+## Archive Policy
+
+> **Line limit: 300 lines.** When this file exceeds 300 lines, run:
+>
+> \`\`\`bash
+> specpilot archive
+> \`\`\`
+>
+> This will move older entries from this file into \`development/prompts-archive.md\` automatically, keeping the most recent entries here. A \`--dry-run\` flag is available to preview changes before writing.
+>
+> No stub \`prompts-archive.md\` file is generated during \`specpilot init\` — it is created on first archive run.
+
 ## ${primaryLabel} Onboarding Prompt
 
 ${primaryNote}

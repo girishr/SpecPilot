@@ -1,9 +1,17 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-12
-version: 1.7
+lastUpdated: 2026-03-14
+version: 1.8
 contributors: [girishr]
-relatedFiles: [project.yaml, requirements.md, api.yaml, tasks.md, security/threat-model.md, security/security-decisions.md]
+relatedFiles:
+  [
+    project.yaml,
+    requirements.md,
+    api.yaml,
+    tasks.md,
+    security/threat-model.md,
+    security/security-decisions.md,
+  ]
 ---
 
 # System Architecture
@@ -21,6 +29,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **IDE Config Generator**: Generates workspace settings for VSCode, Cursor, Windsurf, Kiro, Antigravity; always generates `.github/copilot-instructions.md` regardless of IDE choice [ARCH-003.3.2]
 - **Agent Config Generator**: Generates Cowork Skills and Codex Instructions [ARCH-003.3.3]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
+- **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 300 lines → `prompts-archive.md`; `tasks.md` Completed > 150 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]
 - **Migrator**: Version migration and structure updates [ARCH-003.5]
 - **Project Detector**: Auto-detects language/framework from existing files [ARCH-003.6]
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
@@ -42,6 +51,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Universal Copilot Instructions**: `.github/copilot-instructions.md` always generated regardless of IDE — re-injects critical mandates into every AI request to prevent context drift in long sessions [ARCH-004.11]
 - **Tiered Rules**: Generated `project.yaml` uses 🔴 critical / 🟡 process / 🟢 preferences tiers to give AI tools clear priority signals [ARCH-004.12]
 - **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
+- **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within limits; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]
 
 ## Technology Stack [ARCH-005]
 

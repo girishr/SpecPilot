@@ -141,6 +141,9 @@ specpilot init my-project
 # With language and framework
 specpilot init my-app --lang typescript --framework react
 
+# Preview files that would be created without writing anything
+specpilot init my-project --dry-run
+
 # With prompts for customization
 specpilot init my-project --prompts
 
@@ -154,6 +157,7 @@ specpilot init my-project --no-prompts
 - `--framework, -f`: Framework (react, express, fastapi, django, etc.)
 - `--prompts, -p`: Enable interactive prompts
 - `--no-prompts`: Skip all prompts
+- `--dry-run`: List all files that would be created without writing anything
 
 #### `specpilot add-specs`
 
@@ -254,6 +258,27 @@ specpilot specify "new feature" --no-prompts
 - `--prompts, -p`: Interactive description input
 - `--no-prompts`: Skip diff preview and write files without confirmation
 
+#### `specpilot archive [options]`
+
+Archive oversized `.specs/` files to keep them readable. Triggers automatically when `development/prompts.md` exceeds 300 lines or the `## Completed` section of `planning/tasks.md` exceeds 150 lines.
+
+```bash
+# Archive in current project directory
+specpilot archive
+
+# Preview what would be archived without writing anything
+specpilot archive --dry-run
+```
+
+**Options:**
+
+- `--dry-run`: Preview changes without writing any files
+
+**What it archives:**
+
+- `development/prompts.md` → older entries moved to `development/prompts-archive.md`
+- `planning/tasks.md` Completed section → older entries moved to `planning/tasks-archive.md`
+
 ### Debug Mode
 
 Enable detailed logging for troubleshooting:
@@ -273,35 +298,35 @@ specpilot list --verbose
 
 ### TypeScript
 
-| Framework | Template     | Description                     |
-| --------- | ------------ | ------------------------------- |
-| Generic   | `typescript` | Basic TypeScript project        |
-| React     | `react`      | React SPA with TypeScript       |
-| Express   | `express`    | Node.js REST API with Express   |
-| Next.js   | `next`       | Full-stack Next.js application  |
-| Nest.js   | `nest`       | Scalable server-side framework  |
-| Vue       | `vue`        | Progressive UI framework        |
-| Angular   | `angular`    | Enterprise SPA framework        |
+| Framework | Template     | Description                    |
+| --------- | ------------ | ------------------------------ |
+| Generic   | `typescript` | Basic TypeScript project       |
+| React     | `react`      | React SPA with TypeScript      |
+| Express   | `express`    | Node.js REST API with Express  |
+| Next.js   | `next`       | Full-stack Next.js application |
+| Nest.js   | `nest`       | Scalable server-side framework |
+| Vue       | `vue`        | Progressive UI framework       |
+| Angular   | `angular`    | Enterprise SPA framework       |
 
 ### JavaScript
 
-| Framework | Template     | Description                     |
-| --------- | ------------ | ------------------------------- |
-| Generic   | `javascript` | Basic JavaScript project        |
-| React     | `react`      | React SPA with JavaScript       |
-| Express   | `express`    | Node.js REST API with Express   |
+| Framework | Template     | Description                   |
+| --------- | ------------ | ----------------------------- |
+| Generic   | `javascript` | Basic JavaScript project      |
+| React     | `react`      | React SPA with JavaScript     |
+| Express   | `express`    | Node.js REST API with Express |
 
 > Note: no framework prompt is shown for JavaScript — pass `--framework` explicitly if needed.
 
 ### Python
 
-| Framework  | Template    | Description                   |
-| ---------- | ----------- | ----------------------------- |
-| Generic    | `python`    | Basic Python project          |
-| FastAPI    | `fastapi`   | Modern REST API with FastAPI  |
-| Django     | `django`    | Full-stack Django application |
-| Flask      | `flask`     | Lightweight REST API          |
-| Streamlit  | `streamlit` | Data Science / ML apps        |
+| Framework | Template    | Description                   |
+| --------- | ----------- | ----------------------------- |
+| Generic   | `python`    | Basic Python project          |
+| FastAPI   | `fastapi`   | Modern REST API with FastAPI  |
+| Django    | `django`    | Full-stack Django application |
+| Flask     | `flask`     | Lightweight REST API          |
+| Streamlit | `streamlit` | Data Science / ML apps        |
 
 ## Project Structure
 
@@ -426,10 +451,11 @@ These files include:
   - Links to `.specs/` folder structure and key files
 
 **To reconfigure your IDE/Agent:**
-Simply run `specpilot init` again with the `--ide` flag:
+Re-run `specpilot init` for the project and select a different IDE/Agent when prompted:
 
 ```bash
-specpilot init my-project --lang typescript --framework react --ide cursor
+specpilot init my-project --lang typescript --framework react
+# When prompted for IDE/Agent, select your preferred option
 ```
 
 Supported values: `vscode`, `cursor`, `windsurf`, `kiro`, `antigravity`, `cowork`, `codex`

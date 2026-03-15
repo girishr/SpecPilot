@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
@@ -14,6 +14,7 @@ export interface InitOptions {
   dir: string;
   specsName: string;
   prompts: boolean;
+  dryRun?: boolean;
 }
 
 export async function initCommand(name: string, options: InitOptions) {
@@ -47,6 +48,54 @@ export async function initCommand(name: string, options: InitOptions) {
       process.exit(1);
     }
     
+    // Dry-run: list files that would be created without writing them
+    if (options.dryRun) {
+      const targetDir = resolve(options.dir, projectName);
+      const specsName = options.specsName;
+      const specsDir = join(targetDir, specsName);
+      const ideDir = '.vscode'; // default for dry-run (IDE is chosen interactively)
+
+      const entries: string[] = [
+        targetDir + '/',
+        specsDir + '/',
+        join(specsDir, 'README.md'),
+        join(specsDir, 'project') + '/',
+        join(specsDir, 'project', 'project.yaml'),
+        join(specsDir, 'project', 'requirements.md'),
+        join(specsDir, 'architecture') + '/',
+        join(specsDir, 'architecture', 'architecture.md'),
+        join(specsDir, 'architecture', 'api.yaml'),
+        join(specsDir, 'planning') + '/',
+        join(specsDir, 'planning', 'tasks.md'),
+        join(specsDir, 'planning', 'roadmap.md'),
+        join(specsDir, 'quality') + '/',
+        join(specsDir, 'quality', 'tests.md'),
+        join(specsDir, 'development') + '/',
+        join(specsDir, 'development', 'docs.md'),
+        join(specsDir, 'development', 'context.md'),
+        join(specsDir, 'development', 'prompts.md'),
+        join(targetDir, ideDir) + '/',
+        join(targetDir, ideDir, 'settings.json'),
+        join(targetDir, ideDir, 'extensions.json'),
+        join(targetDir, '.github') + '/',
+        join(targetDir, '.github', 'copilot-instructions.md'),
+      ];
+
+      const content = [
+        chalk.blue('🚀 Dry run — no files will be written'),
+        '',
+        chalk.blue.bold('Files that would be created:'),
+        '',
+        ...entries.map(e => chalk.white('  ' + e)),
+        '',
+        chalk.gray(`(${entries.filter(e => !e.endsWith('/')).length} files, ${entries.filter(e => e.endsWith('/')).length} directories)`),
+        '',
+        chalk.cyan(`💡 Run without --dry-run to create these files.`),
+      ];
+      logger.displayWithLogo(content);
+      return;
+    }
+
     // Get framework if not provided and prompts enabled
     let framework = options.framework;
     if (!framework && options.prompts) {

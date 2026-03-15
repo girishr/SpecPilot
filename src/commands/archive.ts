@@ -3,12 +3,12 @@ import { SpecArchiver } from '../utils/specArchiver';
 import { Logger } from '../utils/logger';
 
 export interface ArchiveOptions {
-  dir: string;
   dryRun: boolean;
 }
 
 export async function archiveCommand(options: ArchiveOptions) {
   const logger = new Logger();
+  const projectDir = process.cwd();
 
   try {
     if (options.dryRun) {
@@ -18,7 +18,7 @@ export async function archiveCommand(options: ArchiveOptions) {
     }
 
     const archiver = new SpecArchiver();
-    const result = await archiver.archive(options.dir, { dryRun: options.dryRun });
+    const result = await archiver.archive(projectDir, { dryRun: options.dryRun });
 
     if (result.entries.length === 0) {
       logger.success('✅ All .specs/ files are within limits. Nothing to archive.');

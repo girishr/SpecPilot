@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specpilot init --dry-run` flag** (CD-100/CS-034): `initCommand()` now accepts `--dry-run`; when set, skips all interactive prompts and file creation — prints the full list of files and directories that would be created (14 files, 9 dirs) and exits cleanly without writing anything. Option registered in `cli.ts`.
 - **Archive guidance in generated `prompts.md`** (CD-099/CS-031): `generatePromptsMd()` in `specFileGenerator.ts` now includes a `## Archive Policy` section instructing users to run `specpilot archive` when the file exceeds 300 lines; explains that older entries move to `prompts-archive.md` automatically and `--dry-run` is available; no stub file generated during init.
 - **`specpilot archive` command** (CD-098/CS-038): New `SpecArchiver` class (`src/utils/specArchiver.ts`) archives `development/prompts.md` when > 300 lines (moves older entries to `prompts-archive.md`) and `planning/tasks.md` Completed section when > 150 lines (moves to `tasks-archive.md`); archived blocks are appended with a timestamped header; `--dry-run` flag previews changes without writing; command registered in `cli.ts` with alias `ar`; welcome screen updated.
 - **`specpilot validate` stale-date warnings** (CD-096/CS-029): `validateStaleDates()` added to `SpecValidator` — warns when any `.md` spec file has a `lastUpdated` front-matter field older than 90 days.

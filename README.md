@@ -35,20 +35,25 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 
 ## Commands
 
-| Command          | Description                   |
-| ---------------- | ----------------------------- |
-| `init <name>`    | Initialize new SDD project    |
-| `add-specs`      | Add specs to existing project |
-| `validate`       | Validate specification files  |
-| `list`           | Show available templates      |
-| `migrate`        | Migrate between spec versions |
-| `specify [desc]` | Update project specifications |
+| Command                 | Description                                         |
+| ----------------------- | --------------------------------------------------- |
+| `init <name>`           | Initialize new SDD project                          |
+| `init <name> --dry-run` | Preview files that would be created without writing |
+| `add-specs`             | Add specs to existing project                       |
+| `validate`              | Validate specification files                        |
+| `archive`               | Archive oversized `prompts.md` / `tasks.md` entries |
+| `list`                  | Show available templates                            |
+| `migrate`               | Migrate between spec versions                       |
+| `specify [desc]`        | Update project specifications                       |
 
 ### Examples
 
 ```bash
 # Initialize with specific language/framework
 specpilot init api --lang python --framework fastapi
+
+# Preview files that would be created without writing anything
+specpilot init api --dry-run
 
 # Update specifications
 specpilot specify "REST API for user management" --update

@@ -29,6 +29,7 @@ program
   .option('-d, --dir <directory>', 'Target directory', '.')
   .option('--specs-name <name>', 'Name for specs folder', '.specs')
   .option('--no-prompts', 'Skip interactive prompts')
+  .option('--dry-run', 'List files that would be created without writing them')
   .action(initCommand);
 
 // Validate command
@@ -78,7 +79,6 @@ program
   .command('archive')
   .alias('ar')
   .description('Archive oversized .specs/ files (prompts.md > 300 lines, tasks.md Completed > 150 lines)')
-  .option('-d, --dir <directory>', 'Project directory', '.')
   .option('--dry-run', 'Preview what would be archived without writing any files')
   .action(archiveCommand);
 

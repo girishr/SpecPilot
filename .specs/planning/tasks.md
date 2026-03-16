@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-14
+lastUpdated: 2026-03-15
 version: 3.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -89,10 +89,13 @@ Notes
 ### Generated Output Improvements
 
 8. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
-9. [~~CS-034~~→CD-100] [TOOL-015] Add `--dry-run` flag to `specpilot init` — list files that would be created without writing them
-10. [CS-041] [TOOL-017] After the success message in both `init` and `add-specs`, display the generated `.specs/` folder as a tree with a one-line description of each file's purpose — tree is printed immediately after "Project Initialized Successfully!" (`init`) and after the equivalent success message in `add-specs`; each file entry shows its relative path and a short inline description (e.g. `project/project.yaml — configuration, rules, AI context`); descriptions should be hardcoded (not read from disk); extract the tree into a shared helper (e.g. `src/utils/specTreePrinter.ts`) so both commands call the same function; update tests if success output is asserted in either command's test file13. [CS-043] Evaluate renaming the `specify` command — current name implies creating specs from scratch, but the command actually updates existing spec files; candidates: `update`, `refine`, `describe`; weigh breaking-change impact; if renamed, update CLI registration in `cli.ts`, command file name, help text, README commands table and examples, `docs/GUIDE.md`, and any test assertions referencing the command name
+9. [CS-043] Evaluate renaming the `specify` command — current name implies creating specs from scratch, but the command actually updates existing spec files; candidates: `update`, `refine`, `describe`; weigh breaking-change impact; if renamed, update CLI registration in `cli.ts`, command file name, help text, README commands table and examples, `docs/GUIDE.md`, and any test assertions referencing the command name
 
 ### README Fixes
+
+10. [CS-044] Document command aliases in README — all 7 aliases (`i`, `v`, `m`, `ls`, `spec`, `ar`, `add`) are defined in `cli.ts` but not mentioned anywhere in the docs; add a short note or tip below the commands table listing all aliases; also check `docs/GUIDE.md` for the same gap
+11. [CS-045] Document per-command options in README and `docs/GUIDE.md` — current Commands table only shows command names and descriptions; options are only discoverable via `specpilot <command> --help`; add a per-command options reference covering all flags: `init` (`--lang`, `--framework`, `--dir`, `--specs-name`, `--no-prompts`, `--dry-run`), `validate` (`--fix`, `--verbose`), `migrate` (`--from`, `--to`, `--backup`), `list` (`--lang`, `--verbose`), `specify` (`--update`, `--no-prompts`), `archive` (`--dry-run`), `add-specs` (`--no-analysis`, `--deep-analysis`, `--no-prompts`)
+12. [CS-046] Improve `specpilot --help` output — add an `.addHelpText('after', ...)` block in `cli.ts` that prints a tip listing all command aliases (e.g. `init → i`, `validate → v`, etc.) and a note that per-command options are available via `specpilot <command> --help`
 
 ## Completed
 
@@ -160,3 +163,4 @@ Notes
 59. [CD-096] [CS-029] [TOOL-008] Add stale-date and line-limit warnings to `specpilot validate` — `validateStaleDates()` warns when any `.md` spec file's `lastUpdated` front-matter is > 90 days old; `validateLineLimits()` warns when `development/prompts.md` exceeds 300 lines or `planning/tasks.md` Completed section exceeds 150 lines (suggests `specpilot archive`); 7 new tests added; Jest `@types/jest` added to `tsconfig.json` types (pre-existing test runner fix)
 60. [CD-097] [BUG-001] Fix `specpilot validate` crash on nested `rules` object in `project.yaml` — added `flattenRules()` private helper to `SpecValidator`; flattens `critical`/`process`/`preferences` sub-arrays into a single list before mandate checks; fixes `rules.some is not a function` error and spurious "should have a rules section" warning; `autoFix` updated to push mandates into `rules.process` when rules is a nested object
 61. [CD-100] [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — `initCommand()` in `src/commands/init.ts` now accepts `dryRun?: boolean` in `InitOptions`; when set, skips all interactive prompts and file/directory creation, prints the full list of files that would be created (14 files, 9 directories) via `logger.displayWithLogo()`, and returns without writing anything; `--dry-run` option added to `init` command in `src/cli.ts`
+62. [CD-101] [CS-041] [TOOL-017] Display `.specs/` tree after init/add-specs success — new `src/utils/specTreePrinter.ts` exports `getSpecTreeLines(specsName)` with 11 hardcoded entries (README.md, project/project.yaml, project/requirements.md, architecture/architecture.md, architecture/api.yaml, planning/tasks.md, planning/roadmap.md, quality/tests.md, development/context.md, development/docs.md, development/prompts.md); `Logger.displayInitSuccess()` in `logger.ts` imports and renders the tree between the location info and next-steps block; both `init` and `add-specs` automatically get the tree since they both call `displayInitSuccess()`

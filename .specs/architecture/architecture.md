@@ -1,6 +1,6 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-14
+lastUpdated: 2026-03-15
 version: 1.8
 contributors: [girishr]
 relatedFiles:
@@ -34,6 +34,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Project Detector**: Auto-detects language/framework from existing files [ARCH-003.6]
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 - **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
+- **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitSuccess()` [ARCH-003.10]
 
 ## Design Decisions [ARCH-004]
 
@@ -52,6 +53,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Tiered Rules**: Generated `project.yaml` uses 🔴 critical / 🟡 process / 🟢 preferences tiers to give AI tools clear priority signals [ARCH-004.12]
 - **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
 - **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within limits; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]
+- **Post-Init Tree Display**: After `specpilot init` and `specpilot add-specs` success, `Logger.displayInitSuccess()` renders a tree of generated `.specs/` files via the shared `SpecTreePrinter` helper, with hardcoded one-line descriptions [ARCH-004.15]
 
 ## Technology Stack [ARCH-005]
 

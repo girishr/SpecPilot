@@ -1,4 +1,6 @@
 import chalk from 'chalk';
+import { basename } from 'path';
+import { getSpecTreeLines } from './specTreePrinter';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require('../../package.json');
 
@@ -157,6 +159,9 @@ export class Logger {
       chalk.green(`✅ Project "${projectName}" created`),
       chalk.white(`📁 Location: ${targetDir}`),
       chalk.white(`📋 Specs: ${specsPath}`),
+      '',
+      chalk.cyan.bold('Generated specs:'),
+      ...getSpecTreeLines(basename(specsPath)),
       '',
       chalk.cyan('🚀 Next steps to populate your specs with AI:'),
       chalk.white('1. Open .specs/README.md for full guidance'),

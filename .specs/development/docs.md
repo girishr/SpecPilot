@@ -265,7 +265,7 @@ specpilot validate
 - `specpilot list`: Show available language/framework templates
 - `specpilot validate [--fix]`: Validate project specs
 - `specpilot migrate [--from <format> --to <format>]`: Migrate to newer structure
-- `specpilot specify`: Update spec files with current project context (shows diff + confirmation)
+- `specpilot refine`: Refine spec files with current project context (shows diff + confirmation)
 
 ### Configuration
 

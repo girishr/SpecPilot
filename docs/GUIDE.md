@@ -237,19 +237,19 @@ specpilot migrate --from complex --to simple --backup
 - Adding specs to existing code (use `add-specs` instead)
 - Your project has no specification folder yet
 
-#### `specpilot specify <description> [options]`
+#### `specpilot refine <description> [options]`
 
-Update project specifications with new requirements.
+Refine project specifications with new requirements.
 
 ```bash
-# Update specifications with new description
-specpilot specify "A REST API for user management" --update
+# Refine specifications with new description
+specpilot refine "A REST API for user management" --update
 
 # Interactive specification input
-specpilot specify --prompts
+specpilot refine --prompts
 
 # Skip diff preview — write without confirmation
-specpilot specify "new feature" --no-prompts
+specpilot refine "new feature" --no-prompts
 ```
 
 **Options:**
@@ -599,7 +599,7 @@ specpilot validate --verbose
 ```bash
 # Feature branch workflow
 git checkout -b feature/user-auth
-specpilot specify "Add user authentication system" --update
+specpilot refine "Add user authentication system" --update
 # Implement feature based on updated specs
 git add .
 git commit -m "feat: implement user authentication"

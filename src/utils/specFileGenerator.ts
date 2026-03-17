@@ -416,7 +416,7 @@ specpilot validate [--fix]
 specpilot migrate
 
 # Update specs with current project context (shows diff + confirmation)
-specpilot specify
+specpilot refine
 \\\`\\\`\\\`
 
 ## Cross-References

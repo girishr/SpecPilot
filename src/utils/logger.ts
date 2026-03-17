@@ -65,7 +65,7 @@ export class Logger {
       chalk.white('  • archive        - Archive oversized prompts.md / tasks.md entries'),
       chalk.white('  • list           - Show available templates'),
       chalk.white('  • migrate        - Migrate between spec versions'),
-      chalk.white('  • specify [desc] - Update project specifications'),
+      chalk.white('  • refine [desc] - Refine project specifications'),
       '',
       chalk.yellow('⚠️  Tip: Use --help for detailed command options'),
       '',

@@ -23,7 +23,7 @@ relatedFiles:
 - `specpilot validate [--fix] [--verbose]` — validate spec files, cross-references, and front-matter; auto-fix common issues [REQ-002.A.3]
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — migrate from old `.project-spec` structure to current `.specs/` layout [REQ-002.A.5]
-- `specpilot specify <description>` — update spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
+- `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
 
 ### Project Initialization [REQ-002.B]
 

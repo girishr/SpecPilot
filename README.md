@@ -44,7 +44,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`               | Archive oversized `prompts.md` / `tasks.md` entries |
 | `list`                  | Show available templates                            |
 | `migrate`               | Migrate between spec versions                       |
-| `specify [desc]`        | Update project specifications                       |
+| `refine [desc]`         | Refine project specifications                       |
 
 ### Examples
 
@@ -55,8 +55,8 @@ specpilot init api --lang python --framework fastapi
 # Preview files that would be created without writing anything
 specpilot init api --dry-run
 
-# Update specifications
-specpilot specify "REST API for user management" --update
+# Refine specifications
+specpilot refine "REST API for user management" --update
 
 # Validate with auto-fix
 specpilot validate --fix

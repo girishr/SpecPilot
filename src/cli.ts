@@ -6,7 +6,7 @@ import { initCommand } from './commands/init';
 import { validateCommand } from './commands/validate';
 import { migrateCommand } from './commands/migrate';
 import { listCommand } from './commands/list';
-import { specifyCommand } from './commands/specify';
+import { refineCommand } from './commands/refine';
 import { addSpecsCommand } from './commands/add-specs';
 import { archiveCommand } from './commands/archive';
 import { Logger } from './utils/logger';
@@ -62,17 +62,17 @@ program
   .option('--verbose', 'Show template details')
   .action(listCommand);
 
-// Specify command
+// Refine command
 program
-  .command('specify')
-  .alias('spec')
-  .description('Specify project requirements from natural language description')
-  .argument('[description]', 'Natural language description of what to build')
+  .command('refine')
+  .alias('ref')
+  .description('Refine project specifications from natural language description')
+  .argument('[description]', 'Natural language description of changes to apply')
   .option('-d, --dir <directory>', 'Project directory', '.')
   .option('--specs-name <name>', 'Name for specs folder', '.specs')
   .option('--no-prompts', 'Skip interactive prompts')
   .option('-u, --update', 'Regenerate specs with new description')
-  .action(specifyCommand);
+  .action(refineCommand);
 
 // Archive command
 program

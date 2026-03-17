@@ -1,6 +1,6 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-15
+lastUpdated: 2026-03-16
 version: 1.8
 contributors: [girishr]
 relatedFiles:
@@ -48,7 +48,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Git Mandates**: Explicit prompts required for all git operations [ARCH-004.7]
 - **Module Split**: specGenerator.ts split into 3 focused modules (FIX-011) [ARCH-004.8]
 - **Dual Onboarding**: Separate prompts for new projects (planning-first) and existing projects (codebase-analysis) [ARCH-004.9]
-- **Diff Preview**: specify command shows changes and asks for confirmation before writing [ARCH-004.10]
+- **Diff Preview**: refine command shows changes and asks for confirmation before writing [ARCH-004.10]
 - **Universal Copilot Instructions**: `.github/copilot-instructions.md` always generated regardless of IDE — re-injects critical mandates into every AI request to prevent context drift in long sessions [ARCH-004.11]
 - **Tiered Rules**: Generated `project.yaml` uses 🔴 critical / 🟡 process / 🟢 preferences tiers to give AI tools clear priority signals [ARCH-004.12]
 - **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
@@ -88,9 +88,9 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 6. Spec Generator creates .specs with analysis data (mode: existing)
 7. Reports discovered items (TODOs, tests, components)
 
-### Specify Command Flow [ARCH-006.3]
+### Refine Command Flow [ARCH-006.3]
 
-1. User runs `specpilot specify` in project with .specs/
+1. User runs `specpilot refine` in project with .specs/
 2. Reads current spec files (requirements.md, context.md, prompts.md)
 3. Collects all pending changes into a list
 4. Shows line-level diff preview (added/removed lines with context)

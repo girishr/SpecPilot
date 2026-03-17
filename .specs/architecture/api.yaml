@@ -107,9 +107,9 @@ commands:
       0: Success
       1: Migration error
 
-  specify:
-    description: Update spec files with current project context
-    usage: specpilot specify [options]
+  refine:
+    description: Refine spec files with current project context
+    usage: specpilot refine [options]
     options:
       --no-prompts:
         type: boolean

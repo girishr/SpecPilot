@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-03-16
+
 ### Added
 
+- **Rename `specify` command to `refine`** (CD-102/CS-043): `src/commands/specify.ts` renamed to `src/commands/refine.ts`; exported function renamed `specifyCommand` → `refineCommand`; interface `SpecifyOptions` → `RefineOptions`; command registered as `refine` (alias `ref`) in `cli.ts` with updated description; welcome screen, generated `docs.md` template, README, `docs/GUIDE.md`, and all `.specs/` reference files updated to use `refine`.
 - **Post-init `.specs/` tree display** (CD-101/CS-041): After `specpilot init` and `specpilot add-specs` success, the generated `.specs/` folder is now displayed as a tree with one-line descriptions for each file. Shared helper `src/utils/specTreePrinter.ts` provides hardcoded `SPEC_ENTRIES` list and `getSpecTreeLines(specsName)` function; called from `Logger.displayInitSuccess()` in `logger.ts`.
 - **`specpilot init --dry-run` flag** (CD-100/CS-034): `initCommand()` now accepts `--dry-run`; when set, skips all interactive prompts and file creation — prints the full list of files and directories that would be created (14 files, 9 dirs) and exits cleanly without writing anything. Option registered in `cli.ts`.
 - **Archive guidance in generated `prompts.md`** (CD-099/CS-031): `generatePromptsMd()` in `specFileGenerator.ts` now includes a `## Archive Policy` section instructing users to run `specpilot archive` when the file exceeds 300 lines; explains that older entries move to `prompts-archive.md` automatically and `--dry-run` is available; no stub file generated during init.

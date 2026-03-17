@@ -6,7 +6,7 @@ import { TemplateEngine } from '../utils/templateEngine';
 import { SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 
-export interface SpecifyOptions {
+export interface RefineOptions {
   dir: string;
   specsName: string;
   prompts: boolean;
@@ -21,11 +21,11 @@ interface PendingChange {
   after: string;
 }
 
-export async function specifyCommand(description: string | undefined, options: SpecifyOptions) {
+export async function refineCommand(description: string | undefined, options: RefineOptions) {
   const logger = new Logger();
 
   try {
-    logger.info('📝 Processing specification description...');
+    logger.info('📝 Refining project specifications...');
 
     // Get description if not provided
     let projectDescription = description;
@@ -151,15 +151,15 @@ export async function specifyCommand(description: string | undefined, options: S
       logger.success('✅ Regenerated specifications with new description');
     }
 
-    logger.success(`🎯 Specification processed successfully!`);
+    logger.success(`🎯 Specifications refined successfully!`);
     logger.info(`📁 Specs location: ${specsDir}`);
     logger.info(`📋 Description: "${projectDescription}"`);
 
     // Show next steps with logo
     const nextStepsContent = [
-      chalk.blue.bold('Specification Processed'),
+      chalk.blue.bold('Specifications Refined'),
       '',
-      chalk.green('✅ Successfully updated project specifications'),
+      chalk.green('✅ Successfully refined project specifications'),
       chalk.white(`📁 Location: ${specsDir}`),
       chalk.white(`📋 Description: "${projectDescription}"`),
       '',
@@ -172,7 +172,7 @@ export async function specifyCommand(description: string | undefined, options: S
     logger.displayWithLogo(nextStepsContent);
 
   } catch (error) {
-    logger.error(`❌ Failed to process specification: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    logger.error(`❌ Failed to refine specifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
   }
 }
@@ -234,7 +234,7 @@ function updateContextWithSpecification(currentContent: string, description: str
   const specEntry = `### Latest Specification Update
 **Date**: ${new Date().toISOString().split('T')[0]}
 **Description**: ${description}
-**Source**: specpilot specify command
+**Source**: specpilot refine command
 
 `;
 
@@ -256,7 +256,7 @@ function updatePromptsLog(currentContent: string, description: string): string {
 #### Prompt: Project Specification
 **Prompt**: "${description}"
 
-**Context**: User provided specification description via specpilot specify command
+**Context**: User provided specification description via specpilot refine command
 
 **Response**: 
 - Updated requirements.md with project description

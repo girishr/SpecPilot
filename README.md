@@ -46,6 +46,10 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `migrate`               | Migrate between spec versions                       |
 | `refine [desc]`         | Refine project specifications                       |
 
+> **Tip — command aliases:** All commands have a short alias you can use instead of the full name.
+> `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add`
+> Example: `specpilot i my-app` is identical to `specpilot init my-app`.
+
 ### Examples
 
 ```bash

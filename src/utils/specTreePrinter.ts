@@ -12,6 +12,8 @@ const SPEC_ENTRIES: Array<{ path: string; description: string }> = [
   { path: 'development/context.md',       description: 'project decisions and background' },
   { path: 'development/docs.md',          description: 'documentation standards and checklists' },
   { path: 'development/prompts.md',       description: 'AI onboarding prompt and archive policy' },
+  { path: 'security/threat-model.md',     description: 'threat model and attack surface analysis' },
+  { path: 'security/security-decisions.md', description: 'security ADR log (mitigations and rationale)' },
 ];
 
 const COLUMN_WIDTH = 32; // wide enough for 'architecture/architecture.md' + margin

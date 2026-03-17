@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { writeFileSync } from 'fs';
+import { mkdirSync, writeFileSync } from 'fs';
 import { TemplateEngine, TemplateContext } from './templateEngine';
 
 /**
@@ -107,6 +107,10 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
     await this.generateContextMd(join(specsDir, 'development'), context);
     await this.generatePromptsMd(join(specsDir, 'development'), context);
     await this.generateTestsMd(join(specsDir, 'quality'), context);
+    const securityDir = join(specsDir, 'security');
+    mkdirSync(securityDir, { recursive: true });
+    await this.generateThreatModelMd(securityDir, context);
+    await this.generateSecurityDecisionsMd(securityDir, context);
   }
 
   private async generateReadmeMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -725,6 +729,114 @@ sourceOfTruth: project/project.yaml
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'tests.md'), rendered);
+  }
+
+  private async generateThreatModelMd(specsDir: string, context: TemplateContext): Promise<void> {
+    const content = `---
+fileID: SEC-001
+lastUpdated: {{currentDate}}
+version: 1.0
+contributors: [{{author}}]
+relatedFiles: [security/security-decisions.md, architecture/architecture.md, project/requirements.md]
+---
+
+# Threat Model
+
+## Overview [SEC-001.1]
+
+> Describe the attack surface: what the system does, what it reads/writes, and what it does NOT do (e.g., no network calls at runtime).
+
+[TODO: Summarise the system's threat surface — input sources, outputs, and offline/online constraints.]
+
+## Threat Model [SEC-002]
+
+### [Threat Name] [SEC-002.1]
+
+| Field | Detail |
+|---|---|
+| **Description** | [TODO: Describe the threat] |
+| **Impact** | [TODO: High / Medium / Low] |
+| **Likelihood** | [TODO: High / Medium / Low / Very low] |
+| **Entry point** | [TODO: Where does attacker-controlled data enter?] |
+| **Mitigation** | [TODO: What control prevents or limits this threat?] |
+| **Residual risk** | [TODO: What risk remains after mitigation?] |
+
+### [Threat Name] [SEC-002.2]
+
+| Field | Detail |
+|---|---|
+| **Description** | [TODO: Describe the threat] |
+| **Impact** | [TODO: High / Medium / Low] |
+| **Likelihood** | [TODO: High / Medium / Low / Very low] |
+| **Entry point** | [TODO: Where does attacker-controlled data enter?] |
+| **Mitigation** | [TODO: What control prevents or limits this threat?] |
+| **Residual risk** | [TODO: What risk remains after mitigation?] |
+
+## Attack Surface Summary [SEC-003]
+
+| Entry Point | Data Type | Validated? | Used In |
+|---|---|---|---|
+| [TODO: entry point] | [TODO: type] | [TODO: ✅ / ⚠️ / ❌] | [TODO: component] |
+
+## Out of Scope [SEC-004]
+
+- [TODO: List threats explicitly out of scope, e.g. OS-level permissions, container isolation]
+
+---
+
+_Last updated: {{currentDate}}_`;
+
+    const rendered = this.templateEngine.renderFromString(content, context);
+    writeFileSync(join(specsDir, 'threat-model.md'), rendered);
+  }
+
+  private async generateSecurityDecisionsMd(specsDir: string, context: TemplateContext): Promise<void> {
+    const content = `---
+fileID: SEC-002
+lastUpdated: {{currentDate}}
+version: 1.0
+contributors: [{{author}}]
+relatedFiles: [security/threat-model.md, architecture/architecture.md]
+---
+
+# Security Decisions
+
+> Record security-relevant architectural decisions here in ADR style.
+> Each entry should capture: what was decided, why, and any trade-offs.
+
+## Decisions [SEC-002.1]
+
+### [Decision title] [ADR-001]
+
+| Field | Detail |
+|---|---|
+| **Decision** | [TODO: What was decided?] |
+| **Status** | [TODO: Accepted / Proposed / Deprecated] |
+| **Context** | [TODO: What problem does this solve?] |
+| **Rationale** | [TODO: Why was this approach chosen over alternatives?] |
+| **Trade-offs** | [TODO: What are the downsides or limitations?] |
+| **Related threat** | [TODO: Which threat in threat-model.md does this address?] |
+
+### [Decision title] [ADR-002]
+
+| Field | Detail |
+|---|---|
+| **Decision** | [TODO: What was decided?] |
+| **Status** | [TODO: Accepted / Proposed / Deprecated] |
+| **Context** | [TODO: What problem does this solve?] |
+| **Rationale** | [TODO: Why was this approach chosen over alternatives?] |
+| **Trade-offs** | [TODO: What are the downsides or limitations?] |
+| **Related threat** | [TODO: Which threat in threat-model.md does this address?] |
+
+## Cross-References
+- Threat model: ./threat-model.md
+- Architecture: ../architecture/architecture.md
+
+---
+*Last updated: {{currentDate}}*`;
+
+    const rendered = this.templateEngine.renderFromString(content, context);
+    writeFileSync(join(specsDir, 'security-decisions.md'), rendered);
   }
 
 }

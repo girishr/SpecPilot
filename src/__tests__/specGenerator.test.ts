@@ -113,4 +113,48 @@ describe('SpecGenerator', () => {
 
     expect(content).toContain('[ADD YOUR APPLICATION STRUCTURE TREE HERE]');
   });
+
+  test('should generate security/threat-model.md with front-matter', async () => {
+    const options = {
+      projectName: 'test-project',
+      language: 'typescript',
+      targetDir: testDir,
+      specsName: '.specs'
+    };
+
+    await specGenerator.generateSpecs(options);
+
+    const filePath = join(testDir, '.specs', 'security', 'threat-model.md');
+    expect(existsSync(filePath)).toBe(true);
+
+    const content = readFileSync(filePath, 'utf-8');
+    expect(content.startsWith('---')).toBe(true);
+    expect(content).toContain('fileID: SEC-001');
+    expect(content).toContain('# Threat Model');
+    expect(content).toContain('## Threat Model [SEC-002]');
+    expect(content).toContain('## Attack Surface Summary [SEC-003]');
+    expect(content).toContain('## Out of Scope [SEC-004]');
+  });
+
+  test('should generate security/security-decisions.md with front-matter', async () => {
+    const options = {
+      projectName: 'test-project',
+      language: 'typescript',
+      targetDir: testDir,
+      specsName: '.specs'
+    };
+
+    await specGenerator.generateSpecs(options);
+
+    const filePath = join(testDir, '.specs', 'security', 'security-decisions.md');
+    expect(existsSync(filePath)).toBe(true);
+
+    const content = readFileSync(filePath, 'utf-8');
+    expect(content.startsWith('---')).toBe(true);
+    expect(content).toContain('fileID: SEC-002');
+    expect(content).toContain('# Security Decisions');
+    expect(content).toContain('## Decisions [SEC-002.1]');
+    expect(content).toContain('ADR-001');
+    expect(content).toContain('ADR-002');
+  });
 });

@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-16
+lastUpdated: 2026-03-17
 version: 3.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -86,10 +86,6 @@ Notes
 
 ## Current Sprint
 
-### Generated Output Improvements
-
-8. [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `threat-model.md` and `security-decisions.md` starter templates; update `specValidator.ts` and tests
-
 ### README Fixes
 
 9. [CS-044] Document command aliases in README — all 7 aliases (`i`, `v`, `m`, `ls`, `ref`, `ar`, `add`) are defined in `cli.ts` but not mentioned anywhere in the docs; add a short note or tip below the commands table listing all aliases; also check `docs/GUIDE.md` for the same gap
@@ -163,4 +159,5 @@ Notes
 60. [CD-097] [BUG-001] Fix `specpilot validate` crash on nested `rules` object in `project.yaml` — added `flattenRules()` private helper to `SpecValidator`; flattens `critical`/`process`/`preferences` sub-arrays into a single list before mandate checks; fixes `rules.some is not a function` error and spurious "should have a rules section" warning; `autoFix` updated to push mandates into `rules.process` when rules is a nested object
 61. [CD-100] [CS-034] [TOOL-015] Add `--dry-run` flag to `specpilot init` — `initCommand()` in `src/commands/init.ts` now accepts `dryRun?: boolean` in `InitOptions`; when set, skips all interactive prompts and file/directory creation, prints the full list of files that would be created (14 files, 9 directories) via `logger.displayWithLogo()`, and returns without writing anything; `--dry-run` option added to `init` command in `src/cli.ts`
 62. [CD-101] [CS-041] [TOOL-017] Display `.specs/` tree after init/add-specs success
-63. [CD-102] [CS-043] Rename `specify` command to `refine` — `src/commands/specify.ts` renamed to `src/commands/refine.ts`; exported function `specifyCommand` → `refineCommand`; interface `SpecifyOptions` → `RefineOptions`; CLI registration updated: command name `specify` → `refine`, alias `spec` → `ref`, description updated; welcome screen in `logger.ts`, generated `docs.md` template in `specFileGenerator.ts`, `README.md`, `docs/GUIDE.md`, `.specs/architecture/architecture.md`, `.specs/architecture/api.yaml`, `.specs/project/requirements.md`, and `.specs/development/docs.md` all updated to use `refine` — new `src/utils/specTreePrinter.ts` exports `getSpecTreeLines(specsName)` with 11 hardcoded entries (README.md, project/project.yaml, project/requirements.md, architecture/architecture.md, architecture/api.yaml, planning/tasks.md, planning/roadmap.md, quality/tests.md, development/context.md, development/docs.md, development/prompts.md); `Logger.displayInitSuccess()` in `logger.ts` imports and renders the tree between the location info and next-steps block; both `init` and `add-specs` automatically get the tree since they both call `displayInitSuccess()`
+63. [CD-102] [CS-043] Rename `specify` command to `refine`
+64. [CD-103] [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `generateAll()` in `specFileGenerator.ts` creates `security/threat-model.md` and `security/security-decisions.md` with YAML front-matter and ADR-style placeholder sections; `security/` added to `specGenerator.ts` subfolders; dry-run list in `init.ts` updated (+3 entries: security dir + 2 files); `specTreePrinter.ts` updated with 2 new entries; 2 new tests added (94 → 96 total) — `src/commands/specify.ts` renamed to `src/commands/refine.ts`; exported function `specifyCommand` → `refineCommand`; interface `SpecifyOptions` → `RefineOptions`; CLI registration updated: command name `specify` → `refine`, alias `spec` → `ref`, description updated; welcome screen in `logger.ts`, generated `docs.md` template in `specFileGenerator.ts`, `README.md`, `docs/GUIDE.md`, `.specs/architecture/architecture.md`, `.specs/architecture/api.yaml`, `.specs/project/requirements.md`, and `.specs/development/docs.md` all updated to use `refine` — new `src/utils/specTreePrinter.ts` exports `getSpecTreeLines(specsName)` with 11 hardcoded entries (README.md, project/project.yaml, project/requirements.md, architecture/architecture.md, architecture/api.yaml, planning/tasks.md, planning/roadmap.md, quality/tests.md, development/context.md, development/docs.md, development/prompts.md); `Logger.displayInitSuccess()` in `logger.ts` imports and renders the tree between the location info and next-steps block; both `init` and `add-specs` automatically get the tree since they both call `displayInitSuccess()`

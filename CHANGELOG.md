@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`security/` subfolder generated during `specpilot init`** (CD-103/CS-033): `generateAll()` in `specFileGenerator.ts` now creates `security/threat-model.md` and `security/security-decisions.md` starter templates with YAML front-matter and ADR-style placeholder sections; `security/` mkdir added to `specGenerator.ts` subfolders; dry-run list in `init.ts` updated (+3 entries); `specTreePrinter.ts` updated with 2 new entries; 2 new tests added (96 total).
+
 ## [1.5.1] - 2026-03-16
 
 ### Added

@@ -55,7 +55,7 @@ export class SpecGenerator {
   async generateSpecs(options: SpecGeneratorOptions): Promise<void> {
     const specsDir = join(options.targetDir, options.specsName);
     mkdirSync(specsDir, { recursive: true });
-    const subfolders = ['project', 'architecture', 'planning', 'quality', 'development'];
+    const subfolders = ['project', 'architecture', 'planning', 'quality', 'development', 'security'];
     subfolders.forEach(sub => mkdirSync(join(specsDir, sub), { recursive: true }));
     const context: TemplateContext = {
       projectName: options.projectName,

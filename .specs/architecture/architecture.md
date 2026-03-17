@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-16
-version: 1.8
+lastUpdated: 2026-03-17
+version: 1.9
 contributors: [girishr]
 relatedFiles:
   [
@@ -54,6 +54,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
 - **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within limits; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]
 - **Post-Init Tree Display**: After `specpilot init` and `specpilot add-specs` success, `Logger.displayInitSuccess()` renders a tree of generated `.specs/` files via the shared `SpecTreePrinter` helper, with hardcoded one-line descriptions [ARCH-004.15]
+- **Security Subfolder Generation**: `specpilot init` now generates `security/threat-model.md` and `security/security-decisions.md` starter templates in every new project; both files use YAML front-matter and labelled placeholder sections; `specTreePrinter.ts` includes both in the post-init tree [ARCH-004.16]
 
 ## Technology Stack [ARCH-005]
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Document command aliases in README and GUIDE.md** (CD-104/CS-044): added aliases tip blockquote below the Commands table in `README.md` listing all 7 aliases with an example; added matching aliases table in `docs/GUIDE.md` after the `## Commands Reference` heading.
+- **Aliases in welcome screen and `--help` output** (CD-105/CS-046): `displayWelcome()` in `logger.ts` now shows an Aliases line listing all 7 short forms; tip text updated to reference per-command `--help`; `.addHelpText('after', ...)` added to `cli.ts` printing aliases table and per-command options note.
 
 ## [1.6.0] - 2026-03-17
 

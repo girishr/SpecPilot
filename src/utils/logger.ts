@@ -67,7 +67,10 @@ export class Logger {
       chalk.white('  • migrate        - Migrate between spec versions'),
       chalk.white('  • refine [desc] - Refine project specifications'),
       '',
-      chalk.yellow('⚠️  Tip: Use --help for detailed command options'),
+      chalk.cyan('Aliases:'),
+      chalk.white('  init→i  validate→v  migrate→m  list→ls  refine→ref  archive→ar  add-specs→add'),
+      '',
+      chalk.yellow('⚠️  Tip: Use --help for detailed command options, e.g. specpilot init --help'),
       '',
       chalk.gray('Ready for your next project! 🚀')
     ];

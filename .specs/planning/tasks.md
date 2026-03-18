@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-17
+lastUpdated: 2026-03-18
 version: 3.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -89,7 +89,6 @@ Notes
 ### README Fixes
 
 9. [CS-045] Document per-command options in README and `docs/GUIDE.md` — current Commands table only shows command names and descriptions; options are only discoverable via `specpilot <command> --help`; add a per-command options reference covering all flags: `init` (`--lang`, `--framework`, `--dir`, `--specs-name`, `--no-prompts`, `--dry-run`), `validate` (`--fix`, `--verbose`), `migrate` (`--from`, `--to`, `--backup`), `list` (`--lang`, `--verbose`), `refine` (`--update`, `--no-prompts`), `archive` (`--dry-run`), `add-specs` (`--no-analysis`, `--deep-analysis`, `--no-prompts`)
-10. [CS-046] Improve `specpilot --help` output — add an `.addHelpText('after', ...)` block in `cli.ts` that prints a tip listing all command aliases (e.g. `init → i`, `validate → v`, etc.) and a note that per-command options are available via `specpilot <command> --help`
 
 ## Completed
 
@@ -161,3 +160,4 @@ Notes
 63. [CD-102] [CS-043] Rename `specify` command to `refine`
 64. [CD-103] [CS-033] [TOOL-013] Generate `security/` subfolder during `specpilot init` — `generateAll()` in `specFileGenerator.ts` creates `security/threat-model.md` and `security/security-decisions.md` with YAML front-matter and ADR-style placeholder sections; `security/` added to `specGenerator.ts` subfolders; dry-run list in `init.ts` updated (+3 entries: security dir + 2 files); `specTreePrinter.ts` updated with 2 new entries; 2 new tests added (94 → 96 total) — `src/commands/specify.ts` renamed to `src/commands/refine.ts`; exported function `specifyCommand` → `refineCommand`; interface `SpecifyOptions` → `RefineOptions`; CLI registration updated: command name `specify` → `refine`, alias `spec` → `ref`, description updated; welcome screen in `logger.ts`, generated `docs.md` template in `specFileGenerator.ts`, `README.md`, `docs/GUIDE.md`, `.specs/architecture/architecture.md`, `.specs/architecture/api.yaml`, `.specs/project/requirements.md`, and `.specs/development/docs.md` all updated to use `refine` — new `src/utils/specTreePrinter.ts` exports `getSpecTreeLines(specsName)` with 11 hardcoded entries (README.md, project/project.yaml, project/requirements.md, architecture/architecture.md, architecture/api.yaml, planning/tasks.md, planning/roadmap.md, quality/tests.md, development/context.md, development/docs.md, development/prompts.md); `Logger.displayInitSuccess()` in `logger.ts` imports and renders the tree between the location info and next-steps block; both `init` and `add-specs` automatically get the tree since they both call `displayInitSuccess()`
 65. [CD-104] [CS-044] Document command aliases in README and `docs/GUIDE.md` — added aliases tip blockquote below the Commands table in `README.md` listing all 7 aliases (`init`→`i`, `validate`→`v`, `migrate`→`m`, `list`→`ls`, `refine`→`ref`, `archive`→`ar`, `add-specs`→`add`) with an example; added matching aliases table in `docs/GUIDE.md` after the `## Commands Reference` heading
+66. [CD-105] [CS-046] Add aliases to welcome screen and `--help` output — `displayWelcome()` in `logger.ts` now shows an Aliases line (`init→i validate→v migrate→m list→ls refine→ref archive→ar add-specs→add`) and updated tip text; `.addHelpText('after', ...)` added to `cli.ts` printing the same aliases table plus a per-command options note

@@ -94,6 +94,14 @@ program
   .option('--no-prompts', 'Skip interactive prompts')
   .action(addSpecsCommand);
 
+program.addHelpText('after', `
+Aliases:
+  init → i    validate → v    migrate → m    list → ls
+  refine → ref    archive → ar    add-specs → add
+
+Per-command options: specpilot <command> --help
+`);
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 

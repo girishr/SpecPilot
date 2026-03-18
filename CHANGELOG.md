@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-03-18
+
 ### Added
 
 - **Document command aliases in README and GUIDE.md** (CD-104/CS-044): added aliases tip blockquote below the Commands table in `README.md` listing all 7 aliases with an example; added matching aliases table in `docs/GUIDE.md` after the `## Commands Reference` heading.

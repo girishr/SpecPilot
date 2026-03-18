@@ -130,15 +130,15 @@ specpilot validate
 
 > **Tip — command aliases:** Every command has a short alias for faster typing.
 >
-> | Command    | Alias |
-> | ---------- | ----- |
-> | `init`     | `i`   |
-> | `validate` | `v`   |
-> | `migrate`  | `m`   |
-> | `list`     | `ls`  |
-> | `refine`   | `ref` |
-> | `archive`  | `ar`  |
-> | `add-specs`| `add` |
+> | Command     | Alias |
+> | ----------- | ----- |
+> | `init`      | `i`   |
+> | `validate`  | `v`   |
+> | `migrate`   | `m`   |
+> | `list`      | `ls`  |
+> | `refine`    | `ref` |
+> | `archive`   | `ar`  |
+> | `add-specs` | `add` |
 >
 > Example: `specpilot i my-app` is identical to `specpilot init my-app`.
 

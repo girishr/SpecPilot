@@ -3,7 +3,8 @@ fileID: SEC-003
 lastUpdated: 2026-03-12
 version: 1.0
 contributors: [girishr]
-relatedFiles: [security/threat-model.md, architecture/architecture.md, project/project.yaml]
+relatedFiles:
+  [security/threat-model.md, architecture/architecture.md, project/project.yaml]
 ---
 
 # Security Decisions

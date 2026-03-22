@@ -110,8 +110,11 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
 ├── project/
 │   ├── project.yaml          # Project config, rules, and AI context (MANDATED)
 │   └── requirements.md       # Functional & non-functional requirements
-└── quality/
-    └── tests.md              # Test strategy, coverage targets, acceptance criteria
+├── quality/
+│   └── tests.md              # Test strategy, coverage targets, acceptance criteria
+└── security/
+    ├── security-decisions.md # ADR-style security design decisions
+    └── threat-model.md       # Threat inventory with impact/likelihood/mitigation
 ```
 
 > Also generated at project root: `.github/copilot-instructions.md` (AI mandate enforcement)

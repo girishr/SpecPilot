@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Comparison guide with GitHub Spec Kit** (CD-106/DOC-002): new `docs/comparison.md` with a side-by-side comparison of SpecPilot and GitHub Spec Kit covering philosophy, workflow, generated artifacts, and guidance on when to choose each tool; `README.md` Documentation section updated to link to the new file; `docs/GUIDE.md` Table of Contents and a new `## Comparison with GitHub Spec Kit` section added.
 
+## [1.6.2] - 2026-03-22
+
+### Fixed
+
+- **README Project Structure tree updated to include `security/` subfolder** (docs): `threat-model.md` and `security-decisions.md` entries added; tree now reflects the full generated `.specs/` folder structure introduced in v1.6.0.
+
 ## [1.6.1] - 2026-03-18
 
 ### Added

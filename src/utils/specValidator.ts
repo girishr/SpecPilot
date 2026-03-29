@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 
@@ -12,6 +12,7 @@ export interface ValidationResult {
   errors: string[];
   warnings: string[];
   fixable: string[];
+  fixPrompts: Array<{ issue: string; prompt: string }>;
   filesChecked: number;
   mandatesVerified: number;
 }
@@ -26,7 +27,9 @@ export class SpecValidator {
     'planning/tasks.md',
     'development/context.md',
     'development/prompts.md',
-    'development/docs.md'
+    'development/docs.md',
+    'security/threat-model.md',
+    'security/security-decisions.md'
   ];
 
   async validate(projectDir: string, options: ValidationOptions): Promise<ValidationResult> {
@@ -35,6 +38,7 @@ export class SpecValidator {
       errors: [],
       warnings: [],
       fixable: [],
+      fixPrompts: [],
       filesChecked: 0,
       mandatesVerified: 0
     };
@@ -54,6 +58,37 @@ export class SpecValidator {
         result.errors.push(`Missing required file: ${file}`);
         result.fixable.push(`create-${file}`);
         result.isValid = false;
+
+        // For security files, also emit a fill-in prompt so the user knows what goes in each section
+        if (file === 'security/threat-model.md') {
+          result.fixPrompts.push({
+            issue: 'security/threat-model.md is missing',
+            prompt:
+              'Run `specpilot validate --fix` first to create `.specs/security/threat-model.md` with the starter template.\n' +
+              'Then open the file and ask your AI assistant:\n' +
+              '  "Read `.specs/security/threat-model.md`. For each [TODO] placeholder:\n' +
+              '   • SEC-001.1 Overview — describe what this system does, what it reads/writes, and what it does NOT do.\n' +
+              '   • SEC-002 Threats — identify real threats: injection, path traversal, supply-chain, auth bypass, etc.\n' +
+              '   • SEC-003 Attack Surface — list all external entry points (CLI args, env vars, file paths, stdin).\n' +
+              '   • SEC-004 Out of Scope — call out what is explicitly out of scope (OS-level, container isolation, etc.).\n' +
+              '   Base answers on `project/project.yaml`, `architecture/architecture.md`, and the actual source code.\n' +
+              '   Preserve YAML front-matter and section structure exactly."'
+          });
+        } else if (file === 'security/security-decisions.md') {
+          result.fixPrompts.push({
+            issue: 'security/security-decisions.md is missing',
+            prompt:
+              'Run `specpilot validate --fix` first to create `.specs/security/security-decisions.md` with the starter template.\n' +
+              'Then open the file and ask your AI assistant:\n' +
+              '  "Read `.specs/security/security-decisions.md` and `.specs/security/threat-model.md`.\n' +
+              '   For each ADR entry, fill in the [TODO] placeholders with real decisions:\n' +
+              '   • What security decision was made (e.g. input validation strategy, auth mechanism, dependency policy)?\n' +
+              '   • Why this approach over alternatives?\n' +
+              '   • What are the trade-offs?\n' +
+              '   • Which threat from threat-model.md does this address?\n' +
+              '   Base answers on the actual implementation in src/. Preserve structure and front-matter exactly."'
+          });
+        }
       } else {
         result.filesChecked++;
       }
@@ -159,7 +194,13 @@ export class SpecValidator {
       const hasMandates = this.checkMandatesInRules(flatRules);
       if (!hasMandates.hasPromptMandate) {
         result.errors.push('Missing MANDATE for prompt tracking in project.yaml rules');
-        result.fixable.push('add-mandates');
+        result.fixPrompts.push({
+          issue: 'Missing MANDATE for prompt tracking in project.yaml rules',
+          prompt:
+            'In `.specs/project/project.yaml`, ensure the `rules.process` section contains a mandate for tracking AI prompts. Add this to the process array:\n' +
+            '  "MANDATE: Track ALL AI interactions — update .specs/development/prompts.md with every AI prompt, including timestamps and context."\n' +
+            'Preserve the existing YAML structure, comments, and formatting exactly.'
+        });
         result.isValid = false;
       } else {
         result.mandatesVerified++;
@@ -182,10 +223,10 @@ export class SpecValidator {
   }
 
   private checkMandatesInRules(rules: string[]): { hasPromptMandate: boolean } {
-    const promptMandatePattern = /MANDATE.*prompt.*tracking|MANDATE.*prompts\.md/i;
-    
     return {
-      hasPromptMandate: rules.some(rule => promptMandatePattern.test(rule))
+      hasPromptMandate: rules.some(rule =>
+        /mandate/i.test(rule) && /prompts/i.test(rule)
+      )
     };
   }
 
@@ -310,9 +351,7 @@ export class SpecValidator {
     // Ensure directory exists
     const dir = dirname(filePath);
     if (!existsSync(dir)) {
-      // This is a simple implementation - in production you'd want to use fs.mkdirSync with recursive: true
-      // For now, we'll skip creating files in subdirectories that don't exist
-      return;
+      mkdirSync(dir, { recursive: true });
     }
 
     switch (fileName) {
@@ -327,6 +366,12 @@ export class SpecValidator {
         break;
       case 'project/requirements.md':
         content = this.getDefaultRequirements();
+        break;
+      case 'security/threat-model.md':
+        content = this.getDefaultThreatModelMd();
+        break;
+      case 'security/security-decisions.md':
+        content = this.getDefaultSecurityDecisionsMd();
         break;
       default:
         content = `# ${fileName.split('/').pop()?.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;
@@ -398,14 +443,26 @@ export class SpecValidator {
       if (file.endsWith('.md')) {
         if (!/^---\n[\s\S]*?\n---/m.test(content)) {
           result.errors.push(`${file} is missing YAML front-matter metadata.`);
+          result.fixPrompts.push({
+            issue: `${file} is missing YAML front-matter metadata`,
+            prompt:
+              `In \`.specs/${file}\`, add a YAML front-matter block at the very top of the file:\n` +
+              `\`\`\`\n---\nfileID: [FILE-ID]\nlastUpdated: YYYY-MM-DD\nversion: 1.0\n---\n\`\`\`\n` +
+              `Preserve all existing content below the front-matter block.`
+          });
           result.isValid = false;
         }
         if (crossRefs) {
           for (const ref of crossRefs) {
             const needle = ref.split('/').pop()!; // check by filename presence
             if (!content.includes(needle)) {
-              result.errors.push(`${file} should reference ${ref}`);
-              result.isValid = false;
+              result.warnings.push(`${file} should reference ${ref}`);
+              result.fixPrompts.push({
+                issue: `${file} should reference ${ref}`,
+                prompt:
+                  `In \`.specs/${file}\`, add \`${ref}\` to the \`relatedFiles\` front-matter list. ` +
+                  `Preserve all existing content and formatting.`
+              });
             }
           }
         }
@@ -521,6 +578,110 @@ This document outlines the architecture and design decisions for this project.
 
 ---
 *Last updated: ${new Date().toISOString().split('T')[0]}*`;
+  }
+
+  private getDefaultThreatModelMd(): string {
+    const today = new Date().toISOString().split('T')[0];
+    return `---
+fileID: SEC-001
+lastUpdated: ${today}
+version: 1.0
+contributors: [author]
+relatedFiles: [security/security-decisions.md, architecture/architecture.md, project/requirements.md]
+---
+
+# Threat Model
+
+## Overview [SEC-001.1]
+
+> Describe the attack surface: what the system does, what it reads/writes, and what it does NOT do.
+
+[TODO: Summarise the system\'s threat surface — input sources, outputs, and offline/online constraints.]
+
+## Threat Model [SEC-002]
+
+### [Threat Name] [SEC-002.1]
+
+| Field | Detail |
+|---|---|
+| **Description** | [TODO: Describe the threat] |
+| **Impact** | [TODO: High / Medium / Low] |
+| **Likelihood** | [TODO: High / Medium / Low / Very low] |
+| **Entry point** | [TODO: Where does attacker-controlled data enter?] |
+| **Mitigation** | [TODO: What control prevents or limits this threat?] |
+| **Residual risk** | [TODO: What risk remains after mitigation?] |
+
+### [Threat Name] [SEC-002.2]
+
+| Field | Detail |
+|---|---|
+| **Description** | [TODO: Describe the threat] |
+| **Impact** | [TODO: High / Medium / Low] |
+| **Likelihood** | [TODO: High / Medium / Low / Very low] |
+| **Entry point** | [TODO: Where does attacker-controlled data enter?] |
+| **Mitigation** | [TODO: What control prevents or limits this threat?] |
+| **Residual risk** | [TODO: What risk remains after mitigation?] |
+
+## Attack Surface Summary [SEC-003]
+
+| Entry Point | Data Type | Validated? | Used In |
+|---|---|---|---|
+| [TODO: entry point] | [TODO: type] | [TODO: ✅ / ⚠️ / ❌] | [TODO: component] |
+
+## Out of Scope [SEC-004]
+
+- [TODO: List threats explicitly out of scope]
+
+---
+
+_Last updated: ${today}_`;
+  }
+
+  private getDefaultSecurityDecisionsMd(): string {
+    const today = new Date().toISOString().split('T')[0];
+    return `---
+fileID: SEC-002
+lastUpdated: ${today}
+version: 1.0
+contributors: [author]
+relatedFiles: [security/threat-model.md, architecture/architecture.md]
+---
+
+# Security Decisions
+
+> Record security-relevant architectural decisions here in ADR style.
+> Each entry should capture: what was decided, why, and any trade-offs.
+
+## Decisions [SEC-002.1]
+
+### [Decision title] [ADR-001]
+
+| Field | Detail |
+|---|---|
+| **Decision** | [TODO: What was decided?] |
+| **Status** | [TODO: Accepted / Proposed / Deprecated] |
+| **Context** | [TODO: What problem does this solve?] |
+| **Rationale** | [TODO: Why was this approach chosen over alternatives?] |
+| **Trade-offs** | [TODO: What are the downsides or limitations?] |
+| **Related threat** | [TODO: Which threat in threat-model.md does this address?] |
+
+### [Decision title] [ADR-002]
+
+| Field | Detail |
+|---|---|
+| **Decision** | [TODO: What was decided?] |
+| **Status** | [TODO: Accepted / Proposed / Deprecated] |
+| **Context** | [TODO: What problem does this solve?] |
+| **Rationale** | [TODO: Why was this approach chosen over alternatives?] |
+| **Trade-offs** | [TODO: What are the downsides or limitations?] |
+| **Related threat** | [TODO: Which threat in threat-model.md does this address?] |
+
+## Cross-References
+- Threat model: ./threat-model.md
+- Architecture: ../architecture/architecture.md
+
+---
+*Last updated: ${today}*`;
   }
 
   private async validateStaleDates(specsDir: string, result: ValidationResult): Promise<void> {

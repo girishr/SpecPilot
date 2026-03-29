@@ -12,7 +12,7 @@ const CURRENT_YEAR = new Date().getFullYear().toString();
  */
 function createValidSpecsDir(baseDir: string): string {
   const specsDir = join(baseDir, '.specs');
-  ['project', 'architecture', 'planning', 'quality', 'development'].forEach(sub =>
+  ['project', 'architecture', 'planning', 'quality', 'development', 'security'].forEach(sub =>
     mkdirSync(join(specsDir, sub), { recursive: true })
   );
 
@@ -126,6 +126,24 @@ function createValidSpecsDir(baseDir: string): string {
     'Developer documentation.',
   ].join('\n'));
 
+  // security/threat-model.md
+  writeFileSync(join(specsDir, 'security', 'threat-model.md'), [
+    '---',
+    'title: Threat Model',
+    '---',
+    '# Threat Model',
+    'Security threat model placeholder.',
+  ].join('\n'));
+
+  // security/security-decisions.md
+  writeFileSync(join(specsDir, 'security', 'security-decisions.md'), [
+    '---',
+    'title: Security Decisions',
+    '---',
+    '# Security Decisions',
+    'Security decision log placeholder.',
+  ].join('\n'));
+
   return specsDir;
 }
 
@@ -174,7 +192,7 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.isValid).toBe(false);
     const missingErrors = result.errors.filter(e => e.startsWith('Missing required file'));
-    expect(missingErrors.length).toBe(9); // all 9 required files missing
+    expect(missingErrors.length).toBe(11); // all 11 required files missing
   });
 
   it('counts only files that exist in filesChecked', async () => {
@@ -224,7 +242,7 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.isValid).toBe(false);
     expect(result.errors.some(e => e.includes('MANDATE'))).toBe(true);
-    expect(result.fixable).toContain('add-mandates');
+    expect(result.fixPrompts.some(p => p.issue.includes('MANDATE'))).toBe(true);
   });
 
   it('passes mandate check when rules contain MANDATE + prompts.md reference', async () => {

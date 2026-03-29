@@ -1,7 +1,8 @@
 import { SpecGenerator } from '../utils/specGenerator';
 import { TemplateEngine } from '../utils/templateEngine';
 import { join } from 'path';
-import { existsSync, readFileSync, rmSync } from 'fs';
+import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from 'fs';
+import inquirer from 'inquirer';
 
 describe('SpecGenerator', () => {
   let specGenerator: SpecGenerator;
@@ -17,6 +18,7 @@ describe('SpecGenerator', () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    jest.restoreAllMocks();
   });
 
   test('should generate all spec files', async () => {
@@ -156,5 +158,85 @@ describe('SpecGenerator', () => {
     expect(content).toContain('## Decisions [SEC-002.1]');
     expect(content).toContain('ADR-001');
     expect(content).toContain('ADR-002');
+  });
+
+  // CS-047: Handle existing copilot-instructions.md during add-specs
+
+  const baseOptions = {
+    projectName: 'test-project',
+    language: 'typescript',
+    specsName: '.specs',
+  };
+
+  test('copilot-instructions.md absent → writes full file', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    const copilotPath = join(testDir, '.github', 'copilot-instructions.md');
+    expect(existsSync(copilotPath)).toBe(true);
+    const content = readFileSync(copilotPath, 'utf-8');
+    expect(content).toContain('NEVER commit');
+    expect(content).toContain('test-project');
+  });
+
+  test('copilot-instructions.md present, prompt=overwrite → overwrites file', async () => {
+    const githubDir = join(testDir, '.github');
+    mkdirSync(githubDir, { recursive: true });
+    const copilotPath = join(githubDir, 'copilot-instructions.md');
+    writeFileSync(copilotPath, '# Existing instructions\n\nSome existing content');
+
+    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 'o' });
+
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
+
+    const content = readFileSync(copilotPath, 'utf-8');
+    expect(content).toContain('NEVER commit');
+    expect(content).not.toContain('Some existing content');
+  });
+
+  test('copilot-instructions.md present, prompt=append → appends SpecPilot section', async () => {
+    const githubDir = join(testDir, '.github');
+    mkdirSync(githubDir, { recursive: true });
+    const copilotPath = join(githubDir, 'copilot-instructions.md');
+    writeFileSync(copilotPath, '# Existing instructions\n\nSome existing content');
+
+    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 'a' });
+
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
+
+    const content = readFileSync(copilotPath, 'utf-8');
+    expect(content).toContain('Some existing content');
+    expect(content).toContain('SpecPilot Mandates');
+    expect(content).toContain('NEVER commit');
+  });
+
+  test('copilot-instructions.md present, prompt=skip → leaves file unchanged', async () => {
+    const githubDir = join(testDir, '.github');
+    mkdirSync(githubDir, { recursive: true });
+    const copilotPath = join(githubDir, 'copilot-instructions.md');
+    const original = '# Existing instructions\n\nSome existing content';
+    writeFileSync(copilotPath, original);
+
+    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 's' });
+
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
+
+    const content = readFileSync(copilotPath, 'utf-8');
+    expect(content).toBe(original);
+  });
+
+  test('copilot-instructions.md present, noPrompts=true → auto-skips, file unchanged', async () => {
+    const githubDir = join(testDir, '.github');
+    mkdirSync(githubDir, { recursive: true });
+    const copilotPath = join(githubDir, 'copilot-instructions.md');
+    const original = '# Existing instructions\n\nSome existing content';
+    writeFileSync(copilotPath, original);
+
+    const promptSpy = jest.spyOn(inquirer, 'prompt');
+
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: true });
+
+    expect(promptSpy).not.toHaveBeenCalled();
+    const content = readFileSync(copilotPath, 'utf-8');
+    expect(content).toBe(original);
   });
 });

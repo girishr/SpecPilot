@@ -15,6 +15,7 @@ export interface SpecGeneratorOptions {
   description?: string;
   ide?: string;
   mode?: 'new' | 'existing';
+  noPrompts?: boolean;
   projectContext?: {
     whatItDoes: string;
     targetUsers: string;
@@ -79,6 +80,6 @@ export class SpecGenerator {
     }
     // Always generate .github/copilot-instructions.md regardless of IDE choice —
     // it is read automatically by Copilot, Cursor, and other AI tools on every request.
-    await this.ideConfigGenerator.generateCopilotInstructions(options.targetDir, context);
+    await this.ideConfigGenerator.generateCopilotInstructions(options.targetDir, context, options.noPrompts ?? false);
   }
 }

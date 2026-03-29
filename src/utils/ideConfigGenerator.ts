@@ -1,5 +1,6 @@
 import { join } from 'path';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, appendFileSync } from 'fs';
+import inquirer from 'inquirer';
 import { TemplateContext } from './templateEngine';
 
 /** IDE-specific overlay keys appended on top of the shared base settings.
@@ -57,11 +58,99 @@ export class IdeConfigGenerator {
    * Generates .github/copilot-instructions.md with critical mandates.
    * Read automatically by GitHub Copilot, Cursor, and other AI tools on every request.
    * Always generated regardless of IDE choice.
+   *
+   * If the file already exists:
+   *   - noPrompts=false → asks user: overwrite / append / skip
+   *   - noPrompts=true  → auto-skips and prints a warning
    */
-  async generateCopilotInstructions(projectDir: string, context: TemplateContext): Promise<void> {
+  async generateCopilotInstructions(
+    projectDir: string,
+    context: TemplateContext,
+    noPrompts = false,
+  ): Promise<void> {
     const githubDir = join(projectDir, '.github');
     mkdirSync(githubDir, { recursive: true });
-    writeFileSync(join(githubDir, 'copilot-instructions.md'), this.buildCopilotInstructions(context));
+    const filePath = join(githubDir, 'copilot-instructions.md');
+
+    if (!existsSync(filePath)) {
+      writeFileSync(filePath, this.buildCopilotInstructions(context));
+      return;
+    }
+
+    // File already exists
+    if (noPrompts) {
+      console.log(
+        '\u26a0\ufe0f  .github/copilot-instructions.md already exists \u2014 skipping (--no-prompts).\n' +
+        '   Manually merge the SpecPilot mandates shown below into that file:\n\n' +
+        this.buildCopilotSection(context),
+      );
+      return;
+    }
+
+    const { action } = await inquirer.prompt<{ action: string }>([
+      {
+        type: 'list',
+        name: 'action',
+        message: '⚠️  .github/copilot-instructions.md already exists. What would you like to do?',
+        choices: [
+          { name: 'Overwrite with SpecPilot template', value: 'o' },
+          { name: 'Append SpecPilot section to existing file', value: 'a' },
+          { name: 'Skip (keep existing file unchanged)', value: 's' },
+        ],
+      },
+    ]);
+
+    if (action === 'o') {
+      writeFileSync(filePath, this.buildCopilotInstructions(context));
+    } else if (action === 'a') {
+      appendFileSync(filePath, '\n\n' + this.buildCopilotSection(context));
+    }
+    // action === 's' → leave file unchanged
+  }
+
+  /**
+   * Builds just the SpecPilot mandates block — used in append mode and
+   * in the --no-prompts warning message.
+   */
+  private buildCopilotSection(context: TemplateContext): string {
+    const stack = context.framework
+      ? `${context.language} / ${context.framework}`
+      : context.language;
+    return `## SpecPilot Mandates — ${context.projectName}
+
+> Added by \`specpilot add-specs\`. These mandates apply alongside your existing instructions.
+> Full context is in \`.specs/project/project.yaml\`.
+
+### Project
+
+- **Name:** ${context.projectName}
+- **Stack:** ${stack}
+- **Specs location:** \`.specs/\`
+
+### 🔴 Critical Mandates — Never violate, no exceptions
+
+1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.
+2. **NEVER push** to git unless the developer explicitly asks. Always ask first.
+3. **NEVER deploy, publish, or release** the project unless the developer explicitly asks. Always ask first.
+4. **NEVER modify** the \`.specs/\` folder structure, subfolder names, or file names. Only update file contents.
+5. **ALWAYS update** affected \`.specs/\` files after every code change — without being asked:
+   - Structural changes → \`architecture/architecture.md\`
+   - Feature changes → \`project/requirements.md\`
+   - Test changes → \`quality/tests.md\`
+   - Task status → \`planning/tasks.md\`
+   - Completed work → \`CHANGELOG.md\`
+
+### 🟡 Process Mandates
+
+- **Spec-First:** Update \`.specs/\` before writing code.
+- **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
+- **Document decisions** in \`.specs/development/context.md\`.
+
+### Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+`;
   }
 
   private buildCopilotInstructions(context: TemplateContext): string {

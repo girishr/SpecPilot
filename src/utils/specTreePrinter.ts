@@ -1,34 +1,84 @@
 import chalk from 'chalk';
 
-const SPEC_ENTRIES: Array<{ path: string; description: string }> = [
-  { path: 'README.md',                    description: 'project overview and onboarding guide' },
-  { path: 'project/project.yaml',         description: 'configuration, rules, AI context' },
-  { path: 'project/requirements.md',      description: 'functional and non-functional requirements' },
-  { path: 'architecture/architecture.md', description: 'system design and decisions' },
-  { path: 'architecture/api.yaml',        description: 'API/CLI interface specification' },
-  { path: 'planning/tasks.md',            description: 'sprint tracker (BL/CS/CD ID convention)' },
-  { path: 'planning/roadmap.md',          description: 'release milestones and goals' },
-  { path: 'quality/tests.md',             description: 'test strategy and coverage targets' },
-  { path: 'development/context.md',       description: 'project decisions and background' },
-  { path: 'development/docs.md',          description: 'documentation standards and checklists' },
-  { path: 'development/prompts.md',       description: 'AI onboarding prompt and archive policy' },
-  { path: 'security/threat-model.md',     description: 'threat model and attack surface analysis' },
-  { path: 'security/security-decisions.md', description: 'security ADR log (mitigations and rationale)' },
+type FolderEntry = {
+  folder: string;
+  files: Array<{ name: string; description: string }>;
+};
+
+const SPEC_FOLDERS: FolderEntry[] = [
+  {
+    folder: 'architecture',
+    files: [
+      { name: 'api.yaml',        description: 'CLI / REST API / GraphQL interface spec' },
+      { name: 'architecture.md', description: 'system design decisions and patterns' },
+    ],
+  },
+  {
+    folder: 'development',
+    files: [
+      { name: 'context.md', description: 'development memory, decisions, learnings' },
+      { name: 'docs.md',    description: 'dev guidelines, spec conventions, checklist' },
+      { name: 'prompts.md', description: 'AI interaction log — MANDATED, update every session' },
+    ],
+  },
+  {
+    folder: 'planning',
+    files: [
+      { name: 'roadmap.md', description: 'release milestones and objectives' },
+      { name: 'tasks.md',   description: 'sprint tracker (backlog / current / completed)' },
+    ],
+  },
+  {
+    folder: 'project',
+    files: [
+      { name: 'project.yaml',    description: 'project config, rules, AI context (MANDATED)' },
+      { name: 'requirements.md', description: 'functional and non-functional requirements' },
+    ],
+  },
+  {
+    folder: 'quality',
+    files: [
+      { name: 'tests.md', description: 'test strategy and coverage targets' },
+    ],
+  },
+  {
+    folder: 'security',
+    files: [
+      { name: 'security-decisions.md', description: 'security ADR log (mitigations and rationale)' },
+      { name: 'threat-model.md',       description: 'threat model and attack surface analysis' },
+    ],
+  },
 ];
 
-const COLUMN_WIDTH = 32; // wide enough for 'architecture/architecture.md' + margin
+const FILE_COL_WIDTH = 22; // wide enough for 'security-decisions.md' + margin
 
 /**
- * Returns chalk-formatted lines for a .specs/ folder tree with one-line
- * descriptions. Descriptions are hardcoded — not read from disk.
+ * Returns chalk-formatted lines for a .specs/ folder tree that mirrors
+ * the Project Structure in README.md. Descriptions are hardcoded — not
+ * read from disk.
  *
  * @param specsName  Name of the specs folder (e.g. '.specs')
  */
 export function getSpecTreeLines(specsName: string): string[] {
   const lines: string[] = [chalk.yellow.bold(`  📂 ${specsName}/`)];
-  for (const { path, description } of SPEC_ENTRIES) {
-    const padded = path.padEnd(COLUMN_WIDTH);
-    lines.push(`     ${chalk.white(padded)}${chalk.dim('—')} ${chalk.gray(description)}`);
+  const lastFolderIdx = SPEC_FOLDERS.length - 1;
+
+  for (let fi = 0; fi < SPEC_FOLDERS.length; fi++) {
+    const { folder, files } = SPEC_FOLDERS[fi];
+    const isLastFolder = fi === lastFolderIdx;
+    const folderBranch = isLastFolder ? '└──' : '├──';
+    const childIndent  = isLastFolder ? '    ' : '│   ';
+
+    lines.push(`  ${folderBranch} ${chalk.cyan.bold(folder + '/')}`);
+
+    const lastFileIdx = files.length - 1;
+    for (let i = 0; i < files.length; i++) {
+      const { name, description } = files[i];
+      const fileBranch = i === lastFileIdx ? '└──' : '├──';
+      const padded = name.padEnd(FILE_COL_WIDTH);
+      lines.push(`  ${childIndent}${fileBranch} ${chalk.white(padded)} ${chalk.dim('—')} ${chalk.gray(description)}`);
+    }
   }
+
   return lines;
 }

@@ -125,6 +125,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       description,
       analysis: (!options.noAnalysis && analysis) ? analysis : undefined,
       mode: 'existing',
+      noPrompts: !options.prompts,
     });
     
     logger.success('✅ .specs folder created successfully!');

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Comparison guide with GitHub Spec Kit** (CD-106/DOC-002): new `docs/comparison.md` with a side-by-side comparison of SpecPilot and GitHub Spec Kit covering philosophy, workflow, generated artifacts, and guidance on when to choose each tool; `README.md` Documentation section updated to link to the new file; `docs/GUIDE.md` Table of Contents and a new `## Comparison with GitHub Spec Kit` section added.
+
 ## [1.6.1] - 2026-03-18
 
 ### Added

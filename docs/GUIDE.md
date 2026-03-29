@@ -18,6 +18,7 @@
 - [API Usage](#api-usage)
 - [Contributing](#contributing)
 - [Development Setup](#development-setup)
+- [Comparison with GitHub Spec Kit](#comparison-with-github-spec-kit)
 - [Version History](#version-history)
 
 ## Why SpecPilot?
@@ -741,6 +742,17 @@ node cli.js init my-test --lang python
 6. Ensure all tests pass
 7. Update documentation
 8. Submit pull request
+
+## Comparison with GitHub Spec Kit
+
+For a detailed side-by-side comparison of SpecPilot and [GitHub Spec Kit](https://github.com/github/spec-kit), see the dedicated **[comparison guide](comparison.md)**.
+
+The comparison covers:
+
+- Core philosophy and workflow differences
+- Generated artifacts
+- When to choose SpecPilot vs Spec Kit
+- Whether the two tools can be used together
 
 ## Version History
 

@@ -260,6 +260,7 @@ npm link  # For local testing
 ## Documentation
 
 - **[Full Guide](docs/GUIDE.md)**: Comprehensive documentation
+- **[SpecPilot vs GitHub Spec Kit](docs/comparison.md)**: Side-by-side comparison to help you choose the right tool
 - **[CHANGELOG](CHANGELOG.md)**: Version history
 - **[Issues](https://github.com/girishr/SpecPilot/issues)**: Bug reports & feature requests
 

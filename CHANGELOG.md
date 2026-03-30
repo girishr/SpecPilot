@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specpilot validate` now checks `security/` subfolder** (CD-108): `security/threat-model.md` and `security/security-decisions.md` added to `requiredFiles`; both missing files are auto-creatable via `--fix`.
 - **`specpilot validate --fix` `add-mandates` path no longer rewrites `project.yaml`** (CD-108): `yaml.dump()` serialisation destroyed comments and emoji — replaced with an AI fix prompt instead.
 
+## [1.6.3] - 2026-03-30
+
+### Fixed
+
+- **`ERR_REQUIRE_ESM` crash on startup** (BUG): chalk v5+ is ESM-only and incompatible with the CommonJS build; downgraded `chalk` dependency from `^5.6.2` to `^4.1.2` (last CommonJS-compatible release). All chalk API usage (`chalk.green`, `chalk.blue`, etc.) is identical between v4 and v5 — no source changes required.
+
 ## [1.6.2] - 2026-03-22
 
 ### Fixed

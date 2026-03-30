@@ -1,6 +1,6 @@
 {
   "name": "specpilot",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "A CLI tool for initializing specification-driven development projects with flexible, production-ready structures.",
   "main": "dist/index.js",
   "bin": {
@@ -51,7 +51,7 @@
     "npm": ">=8.0.0"
   },
   "dependencies": {
-    "chalk": "^5.6.2",
+    "chalk": "^4.1.2",
     "commander": "^14.0.1",
     "fs-extra": "^11.3.2",
     "handlebars": "^4.7.8",

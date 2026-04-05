@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-03-07
+lastUpdated: 2026-04-05
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.3
+version: 1.4
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -22,8 +22,9 @@ relatedFiles:
 - `specpilot add-specs` — add `.specs/` to an existing project with codebase analysis [REQ-002.A.2]
 - `specpilot validate [--fix] [--verbose]` — validate spec files, cross-references, and front-matter; auto-fix common issues [REQ-002.A.3]
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
-- `specpilot migrate` — migrate from old `.project-spec` structure to current `.specs/` layout [REQ-002.A.5]
+- `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
+- `specpilot update` — non-destructively backfill newer generated SpecPilot instructions/rules into projects that already have `.specs/`, without overwriting or deleting existing user-authored content [REQ-002.A.7]
 
 ### Project Initialization [REQ-002.B]
 
@@ -54,6 +55,7 @@ relatedFiles:
 - Generate workspace settings for desktop IDEs: VSCode (`.vscode/`), Cursor (`.cursor/`), Windsurf (`.windsurf/`), Kiro (`.kiro/`), Antigravity (`.antigravity/`) [REQ-002.E.2]
 - Generate agent instruction files for cloud agents: Cowork (`.claude/skills/specpilot-project/SKILL.md`), Codex (`CODEX_INSTRUCTIONS.md`) [REQ-002.E.3]
 - IDE settings include: search inclusion for `.specs/`, markdown/YAML formatting, extensions recommendations [REQ-002.E.4]
+- Existing projects must be able to receive new generated instruction/rule mandates via a non-destructive update path that merges or appends missing SpecPilot content instead of overwriting user customizations [REQ-002.E.5]
 
 ### Generated Spec Quality [REQ-002.F]
 
@@ -61,6 +63,7 @@ relatedFiles:
 - Generated `project.yaml` rules must use tiered structure: 🔴 critical / 🟡 process / 🟢 preferences [REQ-002.F.2]
 - Generated `prompts.md` must include a Re-Anchor Prompt section for AI context recovery mid-session [REQ-002.F.3]
 - Dual onboarding prompts: new projects get planning-focused prompt with baked-in project context; existing projects get codebase-analysis prompt [REQ-002.F.4]
+- Generated `project.yaml` and `.github/copilot-instructions.md` must include a Spec-First review gate mandate requiring a Spec Report and explicit developer `yes, proceed` before any code or non-spec file changes [REQ-002.F.5]
 
 ## Non-Functional Requirements [REQ-003]
 
@@ -86,4 +89,4 @@ relatedFiles:
 
 ---
 
-_Last updated: 2026-03-07_
+_Last updated: 2026-04-05_

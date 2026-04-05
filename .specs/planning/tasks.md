@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-03-29
-version: 4.1
+lastUpdated: 2026-04-05
+version: 4.3
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -92,6 +92,7 @@ Notes
 ### Generated Output Improvements
 
 9. [CS-045] Document per-command options in README and `docs/GUIDE.md` — current Commands table only shows command names and descriptions; options are only discoverable via `specpilot <command> --help`; add a per-command options reference covering all flags: `init` (`--lang`, `--framework`, `--dir`, `--specs-name`, `--no-prompts`, `--dry-run`), `validate` (`--fix`, `--verbose`), `migrate` (`--from`, `--to`, `--backup`), `list` (`--lang`, `--verbose`), `refine` (`--update`, `--no-prompts`), `archive` (`--dry-run`), `add-specs` (`--no-analysis`, `--deep-analysis`, `--no-prompts`)
+10. [CS-050] Add `specpilot update` for non-destructive existing-project backfills — command should update generated instruction/rules files in projects that already have `.specs/` without overwriting or deleting existing user content; initial scope: backfill missing SpecPilot mandates into `.specs/project/project.yaml` and `.github/copilot-instructions.md`; command must be idempotent, prefer append/merge over replace, support `--dry-run`, and print a change summary; keep `migrate` as a legacy structure-conversion command only and update misleading docs/help text that currently say "Migrate between spec versions"
 
 ## Completed
 
@@ -172,3 +173,4 @@ Notes
 72. [CD-110] Improve `specpilot validate` UX — two-phase output eliminates confusion between `--fix` and AI prompts: Phase 1 (missing files present) shows only the `--fix` hint with a note to re-run after; Phase 2 (all files exist, content issues only) shows only AI prompts; the two are never shown simultaneously; `validate --fix` re-validation similarly shows AI prompts only after structure is resolved
 73. [CD-110] [CS-047] Handle existing `.github/copilot-instructions.md` during `specpilot add-specs` — `generateCopilotInstructions()` in `ideConfigGenerator.ts` now checks if the file exists; if absent, writes fully as before; if present with `--no-prompts`, auto-skips and prints a warning with the mandates block for manual merging; if present with prompts enabled, asks `[o]verwrite / [a]ppend / [s]kip`; `generateSpecs()` in `specGenerator.ts` accepts new `noPrompts` option forwarded from `add-specs.ts`; 5 new tests added (96 → 101 total)
 74. [CD-111] [BUG-003] Fix `specpilot validate` never showing content guidance after `--fix` — when `--fix` created missing files and re-validation passed, the AI fill-in prompts for newly created files were silently discarded; root cause: prompts were generated only in the missing-files loop (Phase 1) and suppressed in the success path; fix in `validate.ts`: capture `results.fixPrompts` as `prefixPrompts` before auto-fix runs, then merge with `reResults.fixPrompts` (deduped by issue label) into `allPrompts`; always show `allPrompts` after `--fix` regardless of whether re-validation passes (labelled "📋 Next step — fill in the newly created files:") or fails (labelled "📋 Next step — content guidance for your AI assistant:")
+75. [CD-113] [CS-049] [TRUST-003] Add Spec-First review gate mandate — live `.specs/project/project.yaml`, generated `project.yaml` template in `templateEngine.ts`, live `.github/copilot-instructions.md`, and generated copilot instructions in `ideConfigGenerator.ts` now require AI to read relevant `.specs/` files, update affected specs first, present a **Spec Report**, and wait for explicit developer `yes, proceed` before touching code or non-spec files; tests updated (103 total)

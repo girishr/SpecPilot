@@ -23,6 +23,7 @@
    - Completed work → `CHANGELOG.md`
 6. **NEVER describe, quote, or reference file contents** without first reading the file via a tool call in this session. If you have not read the file yet, say so explicitly before answering.
 7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.
+8. **SPEC-FIRST review gate**: Before touching any code or non-spec files, read all relevant `.specs/` files, update all affected spec files first, present a **Spec Report** summarizing what changed, which files were affected, and what the specs now say, then wait for the developer's explicit `yes, proceed` before writing code. If the developer declines, revert the spec changes and stop.
 
 ## 🟡 Process Mandates
 

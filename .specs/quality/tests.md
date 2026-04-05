@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-02-28
-version: 1.4
+lastUpdated: 2026-04-05
+version: 1.5
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -10,15 +10,16 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ## Current Coverage [TESTS-001.1]
 
-**5 test suites, 72 tests, all passing** (Jest)
+**6 test suites, 102 tests, all passing** (Jest)
 
-| Suite | File | Tests | Covers |
-|-------|------|-------|--------|
-| Spec Generator | `specGenerator.test.ts` | 3 | End-to-end .specs/ generation, folder structure, file creation |
-| Template Engine | `templateEngine.test.ts` | 24 | Handlebars helpers (capitalize, lowercase, year), renderFromString, edge cases |
-| Project Detector | `projectDetector.test.ts` | 17 | Node.js/Python detection, framework identification, metadata extraction |
-| Project Migrator | `projectMigrator.test.ts` | 11 | Simple↔complex migration, file mapping, backup, merge strategy |
-| Spec Validator | `specValidator.test.ts` | 17 | Required files, YAML validity, mandate checking, cross-references, auto-fix |
+| Suite            | File                      | Tests | Covers                                                                                           |
+| ---------------- | ------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| Spec Generator   | `specGenerator.test.ts`   | 12    | End-to-end `.specs/` generation, `copilot-instructions.md` handling, mandate output              |
+| Template Engine  | `templateEngine.test.ts`  | 24    | Handlebars helpers (capitalize, lowercase, year), renderFromString, built-in template edge cases |
+| Project Detector | `projectDetector.test.ts` | 17    | Node.js/Python detection, framework identification, metadata extraction                          |
+| Project Migrator | `projectMigrator.test.ts` | 11    | Simple↔complex migration, file mapping, backup, merge strategy                                   |
+| Spec Validator   | `specValidator.test.ts`   | 24    | Required files, YAML validity, mandate checking, cross-references, auto-fix                      |
+| Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds, dry-run behaviour, archived block formatting                    |
 
 ## Test Plans [TESTS-002]
 

@@ -79,7 +79,27 @@ describe('SpecGenerator', () => {
     expect(content).toContain('NEVER deploy');
     expect(content).toContain('NEVER modify');
     expect(content).toContain('ALWAYS update');
+    expect(content).toContain('Spec Report');
+    expect(content).toContain('yes, proceed');
     expect(content).toContain('.specs/project/project.yaml');
+  });
+
+  test('should generate project.yaml with spec-first review gate mandate', async () => {
+    const options = {
+      projectName: 'test-project',
+      language: 'typescript',
+      targetDir: testDir,
+      specsName: '.specs'
+    };
+
+    await specGenerator.generateSpecs(options);
+
+    const projectYamlPath = join(testDir, '.specs', 'project', 'project.yaml');
+    const content = readFileSync(projectYamlPath, 'utf-8');
+
+    expect(content).toContain('Spec-First review gate');
+    expect(content).toContain('Spec Report');
+    expect(content).toContain("'yes, proceed'");
   });
 
   test('should include mandate in prompts.md', async () => {
@@ -207,6 +227,7 @@ describe('SpecGenerator', () => {
     expect(content).toContain('Some existing content');
     expect(content).toContain('SpecPilot Mandates');
     expect(content).toContain('NEVER commit');
+    expect(content).toContain('Spec Report');
   });
 
   test('copilot-instructions.md present, prompt=skip → leaves file unchanged', async () => {

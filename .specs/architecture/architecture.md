@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-03-17
-version: 1.9
+lastUpdated: 2026-04-05
+version: 2.0
 contributors: [girishr]
 relatedFiles:
   [
@@ -55,6 +55,9 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within limits; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]
 - **Post-Init Tree Display**: After `specpilot init` and `specpilot add-specs` success, `Logger.displayInitSuccess()` renders a tree of generated `.specs/` files via the shared `SpecTreePrinter` helper, with hardcoded one-line descriptions [ARCH-004.15]
 - **Security Subfolder Generation**: `specpilot init` now generates `security/threat-model.md` and `security/security-decisions.md` starter templates in every new project; both files use YAML front-matter and labelled placeholder sections; `specTreePrinter.ts` includes both in the post-init tree [ARCH-004.16]
+- **Spec-First Review Gate**: generated `project.yaml` and `.github/copilot-instructions.md` both include a critical mandate that blocks code or non-spec edits until the AI has read relevant `.specs/` files, updated the affected specs first, produced a Spec Report, and received an explicit developer `yes, proceed` [ARCH-004.17]
+- **Non-Destructive Existing-Project Updates**: a planned `specpilot update` command should backfill newer generated mandates/instructions into projects that already have `.specs/` by inserting only missing SpecPilot-managed content; it must not overwrite or delete existing user-authored spec or instruction content [ARCH-004.18]
+- **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot update`, not `migrate` [ARCH-004.19]
 
 ## Technology Stack [ARCH-005]
 
@@ -98,6 +101,15 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 5. Prompts for confirmation (unless --no-prompts)
 6. Writes approved changes to disk
 
+### Update Command Flow [ARCH-006.4]
+
+1. User runs `specpilot update` in a project that already contains `.specs/`
+2. Command reads current `.specs/project/project.yaml` and `.github/copilot-instructions.md`
+3. Compares current content against the latest SpecPilot-managed mandate/instruction blocks
+4. Computes only missing insertions or append operations; existing user-authored content is preserved
+5. In `--dry-run`, prints the planned changes without writing
+6. In write mode, applies the minimal merge/appends and prints a summary of updated files and skipped files
+
 ## Assumptions [ARCH-007]
 
 - **Node.js runtime**: Node.js >= 16 is required; the output module format is CommonJS (`"module": "commonjs"` in `tsconfig.json`) [ARCH-007.1]
@@ -110,4 +122,4 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 
 ---
 
-_Last updated: 2026-03-12_
+_Last updated: 2026-04-05_

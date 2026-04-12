@@ -168,10 +168,11 @@ specpilot init my-project --no-prompts
 
 **Options:**
 
-- `--lang, -l`: Language (typescript, javascript, python)
-- `--framework, -f`: Framework (react, express, fastapi, django, etc.)
-- `--prompts, -p`: Enable interactive prompts
-- `--no-prompts`: Skip all prompts
+- `--lang, -l <language>`: Programming language (typescript, javascript, python) · default: `typescript`
+- `--framework, -f <framework>`: Framework (react, express, fastapi, django, etc.)
+- `--dir, -d <directory>`: Target directory · default: `.`
+- `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
+- `--no-prompts`: Skip all interactive prompts
 - `--dry-run`: List all files that would be created without writing anything
 
 #### `specpilot add-specs`
@@ -192,8 +193,11 @@ specpilot add-specs --deep-analysis
 
 **Options:**
 
+- `--lang, -l <language>`: Programming language (typescript, javascript, python)
+- `--framework, -f <framework>`: Framework (react, express, fastapi, django, etc.)
 - `--no-analysis`: Skip automatic codebase analysis
 - `--deep-analysis`: Perform comprehensive code analysis
+- `--no-prompts`: Skip all interactive prompts
 
 #### `specpilot validate [options]`
 
@@ -212,8 +216,8 @@ specpilot validate --fix
 
 **Options:**
 
-- `--verbose, -v`: Detailed validation output
-- `--fix`: Automatically fix common issues
+- `--fix`: Automatically fix common issues (missing files, stale dates)
+- `--verbose`: Detailed validation output
 
 #### `specpilot list [options]`
 
@@ -229,7 +233,8 @@ specpilot list --verbose
 
 **Options:**
 
-- `--verbose, -v`: Show detailed template information
+- `--lang <language>`: Filter templates by language
+- `--verbose`: Show detailed template information
 
 #### `specpilot migrate [options]`
 
@@ -239,6 +244,12 @@ Migrate between specification structure versions.
 # Migrate from old structure (rarely needed)
 specpilot migrate --from complex --to simple --backup
 ```
+
+**Options:**
+
+- `--from <structure>`: Source structure type · default: `complex`
+- `--to <structure>`: Target structure type · default: `simple`
+- `--backup`: Create a backup before migrating
 
 **When to use migrate:**
 
@@ -270,8 +281,9 @@ specpilot refine "new feature" --no-prompts
 **Options:**
 
 - `--update, -u`: Regenerate specifications with new context
-- `--prompts, -p`: Interactive description input
-- `--no-prompts`: Skip diff preview and write files without confirmation
+- `--dir, -d <directory>`: Project directory · default: `.`
+- `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
+- `--no-prompts`: Skip diff preview — write files without confirmation
 
 #### `specpilot archive [options]`
 

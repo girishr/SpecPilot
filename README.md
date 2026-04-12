@@ -50,6 +50,20 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 > `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add`
 > Example: `specpilot i my-app` is identical to `specpilot init my-app`.
 
+### Per-Command Options
+
+| Command     | Options                                                                             |
+| ----------- | ----------------------------------------------------------------------------------- |
+| `init`      | `--lang` · `--framework` · `--dir` · `--specs-name` · `--no-prompts` · `--dry-run` |
+| `validate`  | `--fix` · `--verbose`                                                               |
+| `migrate`   | `--from` · `--to` · `--backup`                                                      |
+| `list`      | `--lang` · `--verbose`                                                              |
+| `refine`    | `--update` · `--no-prompts`                                                         |
+| `archive`   | `--dry-run`                                                                         |
+| `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
+
+> Run `specpilot <command> --help` for full flag descriptions and default values.
+
 ### Examples
 
 ```bash

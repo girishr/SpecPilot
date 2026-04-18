@@ -9,6 +9,7 @@ import { listCommand } from './commands/list';
 import { refineCommand } from './commands/refine';
 import { addSpecsCommand } from './commands/add-specs';
 import { archiveCommand } from './commands/archive';
+import { backfillCommand } from './commands/backfill';
 import { Logger } from './utils/logger';
 
 const packageJson = require('../package.json');
@@ -46,7 +47,7 @@ program
 program
   .command('migrate')
   .alias('m')
-  .description('Migrate from old project structure')
+  .description('Convert legacy .project-spec folder to current .specs/ structure (rarely needed)')
   .option('-d, --dir <directory>', 'Project directory', '.')
   .option('--from <structure>', 'Source structure (complex, project-spec)', 'complex')
   .option('--to <structure>', 'Target structure (simple)', 'simple')
@@ -94,10 +95,20 @@ program
   .option('--no-prompts', 'Skip interactive prompts')
   .action(addSpecsCommand);
 
+// Backfill command
+program
+  .command('backfill')
+  .alias('bf')
+  .description('Backfill missing SpecPilot mandates into existing project.yaml and copilot-instructions.md')
+  .option('-d, --dir <directory>', 'Project directory', '.')
+  .option('--specs-name <name>', 'Name for specs folder', '.specs')
+  .option('--dry-run', 'Preview changes without writing any files')
+  .action(backfillCommand);
+
 program.addHelpText('after', `
 Aliases:
   init → i    validate → v    migrate → m    list → ls
-  refine → ref    archive → ar    add-specs → add
+  refine → ref    archive → ar    add-specs → add    backfill → bf
 
 Per-command options: specpilot <command> --help
 `);

@@ -33,7 +33,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Dual Onboarding**: Separate prompts for new projects (planning-focused) and existing projects (analysis-focused) with baked-in project context (FIX-018) [CTX-003.14]
 - **Diff Preview**: specify command shows changes before writing, with confirmation prompt (FIX-019) [CTX-003.15]
 - **IDE Settings**: Fabricated setting keys removed; aspirational keys marked clearly (FIX-017) [CTX-003.16]
-- **Existing-Project Backfills**: use a future `specpilot update` command for non-destructive backfills of generated rules/instructions into projects that already have `.specs/`; the command should merge or append missing SpecPilot-managed content rather than overwrite user edits [CTX-003.17]
+- **Existing-Project Backfills**: `specpilot backfill` (alias `bf`) for non-destructive backfills after upgrading SpecPilot — detects new mandates, rules, or files from the newer version and inserts only what's missing into the project's existing `.specs/`; never overwrites user-authored content [CTX-003.17]
 - **Migrate Scope**: keep `specpilot migrate` for rare legacy structure conversion only; do not position it as a general version-update command in docs/help text [CTX-003.18]
 
 ## Established Patterns [CTX-004]

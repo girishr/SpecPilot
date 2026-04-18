@@ -140,6 +140,7 @@ specpilot validate
 > | `refine`    | `ref` |
 > | `archive`   | `ar`  |
 > | `add-specs` | `add` |
+> | `backfill`  | `bf`  |
 >
 > Example: `specpilot i my-app` is identical to `specpilot init my-app`.
 
@@ -238,7 +239,7 @@ specpilot list --verbose
 
 #### `specpilot migrate [options]`
 
-Migrate between specification structure versions.
+Convert a legacy `.project-spec` folder to the current `.specs/` structure. This command is rarely needed — only if you have a project from an old SpecPilot version.
 
 ```bash
 # Migrate from old structure (rarely needed)
@@ -305,6 +306,36 @@ specpilot archive --dry-run
 
 - `development/prompts.md` → older entries moved to `development/prompts-archive.md`
 - `planning/tasks.md` Completed section → older entries moved to `planning/tasks-archive.md`
+
+#### `specpilot backfill [options]`
+
+Backfill missing SpecPilot mandates into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates added in later releases. Operates on `.specs/project/project.yaml` and `.github/copilot-instructions.md` — never overwrites or deletes existing user-authored content.
+
+```bash
+# Backfill in current project directory
+specpilot backfill
+
+# Preview what would change without writing anything
+specpilot backfill --dry-run
+```
+
+**Options:**
+
+- `--dir, -d <directory>`: Project directory · default: `.`
+- `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
+- `--dry-run`: Preview changes without writing any files
+
+**When to use backfill:**
+
+- After upgrading SpecPilot to a newer version that added new mandates
+- When your existing `project.yaml` is missing critical or process mandates
+- When `.github/copilot-instructions.md` is out of date or missing
+
+**When NOT to use backfill:**
+
+- Starting a new project (use `init` instead)
+- Adding specs to a project that has none (use `add-specs` instead)
+- Converting an old folder structure (use `migrate` instead)
 
 ### Debug Mode
 

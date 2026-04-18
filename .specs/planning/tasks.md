@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-04-05
-version: 4.3
+lastUpdated: 2026-04-18
+version: 4.5
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -99,7 +99,12 @@ Notes
 
 ### Generated Output Improvements
 
-10. [CS-050] Add `specpilot update` for non-destructive existing-project backfills — command should update generated instruction/rules files in projects that already have `.specs/` without overwriting or deleting existing user content; initial scope: backfill missing SpecPilot mandates into `.specs/project/project.yaml` and `.github/copilot-instructions.md`; command must be idempotent, prefer append/merge over replace, support `--dry-run`, and print a change summary; keep `migrate` as a legacy structure-conversion command only and update misleading docs/help text that currently say "Migrate between spec versions"
+### Multi-Dev Alignment
+
+11. [CS-051] Change "Enter your name" prompt to ask for GitHub username — in `init.ts` and `add-specs.ts`, replace `'Enter your name (for spec file attribution):'` with `'Enter your GitHub username (used in spec file contributors and as your dev prefix for task/prompt IDs):'`; default should attempt `git config user.name` falling back to `'your-username'`; the collected value flows into `TemplateContext.author` and is used in `contributors: [{{author}}]` across all generated spec front-matter; also store as `devPrefix` in generated `project.yaml` under a new `team:` section for ID namespacing (e.g. `CD-girishr-001`)
+12. [CS-052] Generate `.gitattributes` with `merge=union` for append-heavy spec files — during `specpilot init` and `specpilot add-specs`, generate a `.gitattributes` file at project root containing `merge=union` rules for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, append only missing lines; implementation in `specGenerator.ts` or `ideConfigGenerator.ts`
+13. [CS-053] Use `devPrefix` (GitHub username) in generated `tasks.md` and `prompts.md` ID conventions — update `tasks.md` template in `templateEngine.ts` to show `CD-{devPrefix}-###` pattern in the ID conventions section; update generated `prompts.md` template in `specFileGenerator.ts` to use `PROMPT-{devPrefix}-###`; add `## Multi-Dev Notes` callout to generated `tasks.md` advising: always pull before appending to Completed; use `CD-{your-prefix}-###` to avoid ID collisions; only run `specpilot archive` on the default branch after merging (subsumes BL-024)
+14. [CS-054] Add branch warning to `specpilot archive` — in `specArchiver.ts`, before archiving, detect current branch via `git rev-parse --abbrev-ref HEAD`; if branch is not `main` or `master`, print a yellow warning: `"⚠ You're on branch {name}. Archive is recommended only on the default branch after merging. Continue? [y/N]"`; skip warning if `--force` flag is passed; add `--force` option to archive command in `cli.ts`
 
 ## Completed
 
@@ -182,3 +187,4 @@ Notes
 74. [CD-111] [BUG-003] Fix `specpilot validate` never showing content guidance after `--fix` — when `--fix` created missing files and re-validation passed, the AI fill-in prompts for newly created files were silently discarded; root cause: prompts were generated only in the missing-files loop (Phase 1) and suppressed in the success path; fix in `validate.ts`: capture `results.fixPrompts` as `prefixPrompts` before auto-fix runs, then merge with `reResults.fixPrompts` (deduped by issue label) into `allPrompts`; always show `allPrompts` after `--fix` regardless of whether re-validation passes (labelled "📋 Next step — fill in the newly created files:") or fails (labelled "📋 Next step — content guidance for your AI assistant:")
 75. [CD-113] [CS-049] [TRUST-003] Add Spec-First review gate mandate — live `.specs/project/project.yaml`, generated `project.yaml` template in `templateEngine.ts`, live `.github/copilot-instructions.md`, and generated copilot instructions in `ideConfigGenerator.ts` now require AI to read relevant `.specs/` files, update affected specs first, present a **Spec Report**, and wait for explicit developer `yes, proceed` before touching code or non-spec files; tests updated (103 total)
 76. [CD-114] [CS-045] Document per-command options in README and `docs/GUIDE.md` — added `### Per-Command Options` table to `README.md` listing all flags for all 7 commands with a `--help` pointer; fixed 6 Options sections in `docs/GUIDE.md`: removed phantom `--prompts, -p` from `init` and `refine`, corrected `--verbose` (no `-v` short form) in `validate` and `list`, added missing `--dir`/`--specs-name` to `init` and `refine`, added missing `--lang`/`--framework`/`--no-prompts` to `add-specs`, added missing **Options:** section to `migrate`
+77. [CD-115] [CS-050] Add `specpilot backfill` (alias `bf`) command — new `src/utils/specBackfiller.ts` uses fingerprint-based detection to find missing mandates in `project.yaml` and `copilot-instructions.md`; text-based insertion (not yaml.dump) preserves comments and emoji; `src/commands/backfill.ts` prints per-file results via `logger.displayWithLogo()`; registered in `cli.ts` with `--dir`, `--specs-name`, `--dry-run`; welcome screen and `--help` aliases updated; `migrate` description corrected from “Migrate between spec versions” to “Convert legacy `.project-spec` folder” in `cli.ts`, `logger.ts`, `README.md`, and `docs/GUIDE.md`; `docs/GUIDE.md` backfill section added with when-to-use guidance; `README.md` commands table, aliases, and per-command options table updated

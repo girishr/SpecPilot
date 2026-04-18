@@ -37,17 +37,18 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 
 | Command                 | Description                                         |
 | ----------------------- | --------------------------------------------------- |
-| `init <name>`           | Initialize new SDD project                          |
-| `init <name> --dry-run` | Preview files that would be created without writing |
-| `add-specs`             | Add specs to existing project                       |
-| `validate`              | Validate specification files                        |
-| `archive`               | Archive oversized `prompts.md` / `tasks.md` entries |
-| `list`                  | Show available templates                            |
-| `migrate`               | Migrate between spec versions                       |
-| `refine [desc]`         | Refine project specifications                       |
+| `init <name>`           | Initialize new SDD project                                        |
+| `init <name> --dry-run` | Preview files that would be created without writing               |
+| `add-specs`             | Add specs to existing project                                     |
+| `validate`              | Validate specification files                                      |
+| `archive`               | Archive oversized `prompts.md` / `tasks.md` entries               |
+| `backfill`              | Backfill missing mandates into existing project files             |
+| `list`                  | Show available templates                                          |
+| `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
+| `refine [desc]`         | Refine project specifications                                     |
 
 > **Tip — command aliases:** All commands have a short alias you can use instead of the full name.
-> `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add`
+> `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add` &nbsp;·&nbsp; `backfill` → `bf`
 > Example: `specpilot i my-app` is identical to `specpilot init my-app`.
 
 ### Per-Command Options
@@ -61,6 +62,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `refine`    | `--update` · `--no-prompts`                                                         |
 | `archive`   | `--dry-run`                                                                         |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
+| `backfill`  | `--dir` · `--specs-name` · `--dry-run`                                              |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 

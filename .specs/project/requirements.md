@@ -24,7 +24,7 @@ relatedFiles:
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
-- `specpilot update` — non-destructively backfill newer generated SpecPilot instructions/rules into projects that already have `.specs/`, without overwriting or deleting existing user-authored content [REQ-002.A.7]
+- `specpilot backfill` — after upgrading SpecPilot to a newer version (which may include new mandates, rules, files, or features), non-destructively backfill the missing content into projects that already have `.specs/`, without overwriting or deleting existing user-authored content [REQ-002.A.7]
 
 ### Project Initialization [REQ-002.B]
 

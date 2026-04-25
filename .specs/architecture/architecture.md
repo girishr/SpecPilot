@@ -59,6 +59,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Spec-First Review Gate**: generated `project.yaml` and `.github/copilot-instructions.md` both include a critical mandate that blocks code or non-spec edits until the AI has read relevant `.specs/` files, updated the affected specs first, produced a Spec Report, and received an explicit developer `yes, proceed` [ARCH-004.17]
 - **Non-Destructive Existing-Project Backfills**: `specpilot backfill` (alias `bf`) command detects what the current SpecPilot version would generate vs what the project currently has, and inserts only the missing mandates/instructions/files; append-only writes preserve existing user-authored spec and instruction content; `--dry-run` prints the planned changes without writing [ARCH-004.18]
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
+- **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 
 ## Technology Stack [ARCH-005]
 
@@ -75,7 +76,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 1. User runs `specpilot init <project-name>` with parameters
 2. CLI parses arguments and validates project name (allowlist regex)
 3. Checks for existing .specs folder (CS-004)
-4. Prompts for framework and developer name (CS-005)
+4. Prompts for framework and GitHub username (used as `contributors` handle and `devPrefix` for ID namespacing)
 5. Prompts for IDE/agent selection
 6. Asks 4 project context questions (1 mandatory, 3 optional)
 7. Spec File Generator creates subfolder structure with mode-aware prompts

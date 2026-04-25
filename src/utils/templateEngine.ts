@@ -143,6 +143,7 @@ ai_context:
   
 # Team Guidelines
 team:
+  devPrefix: "{{author}}"
   code_review_required: true
   testing_required: true
   documentation_required: true

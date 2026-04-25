@@ -127,16 +127,24 @@ export async function initCommand(name: string, options: InitOptions) {
       }
     }
     
-    // Get developer name for spec attribution
-    let developerName = 'Your Name'; // default
+    // Get GitHub username for spec attribution and task ID namespacing
+    let gitUsername = 'your-username';
+    try {
+      const { execSync } = require('child_process');
+      const result = execSync('git config user.name', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+      if (result) gitUsername = result;
+    } catch {
+      // git not available or not configured — keep default
+    }
+    let developerName = gitUsername;
     if (options.prompts) {
       const nameResponse = await inquirer.prompt([{
         type: 'input',
         name: 'developerName',
-        message: 'Enter your name (for spec file attribution):',
-        default: 'Your Name'
+        message: 'Enter your GitHub username (used in spec file contributors and as your dev prefix for task/prompt IDs):',
+        default: gitUsername
       }]);
-      developerName = nameResponse.developerName.trim() || 'Your Name';
+      developerName = nameResponse.developerName.trim() || gitUsername;
     }
     
     // Get IDE/Agent preference for context configuration

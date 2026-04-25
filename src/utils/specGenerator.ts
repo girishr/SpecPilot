@@ -81,5 +81,7 @@ export class SpecGenerator {
     // Always generate .github/copilot-instructions.md regardless of IDE choice —
     // it is read automatically by Copilot, Cursor, and other AI tools on every request.
     await this.ideConfigGenerator.generateCopilotInstructions(options.targetDir, context, options.noPrompts ?? false);
+    // Generate .gitattributes with merge=union for append-heavy spec files
+    this.ideConfigGenerator.generateGitAttributes(options.targetDir);
   }
 }

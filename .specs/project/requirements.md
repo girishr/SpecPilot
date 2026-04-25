@@ -31,6 +31,7 @@ relatedFiles:
 - Prompt for project context: what it does, target users, expected scale, constraints (1 mandatory, 3 optional) [REQ-002.B.1]
 - Prompt for GitHub username (used as spec contributor handle and `devPrefix` for task/prompt ID namespacing); default attempts `git config user.name` falling back to `'your-username'` [REQ-002.B.2]
 - Store GitHub username as `devPrefix` under a `team:` section in generated `project.yaml` to support project-scoped ID namespacing (e.g. `CD-{devPrefix}-001`) [REQ-002.B.7]
+- Generate `.gitattributes` at project root with `merge=union` for append-heavy spec files (`.specs/development/prompts*.md`, `.specs/planning/tasks.md`, `CHANGELOG.md`) to prevent git merge conflicts on shared branches; if `.gitattributes` already exists, append only the missing lines [REQ-002.B.8]
 - Prompt for IDE/Agent selection and generate appropriate config files [REQ-002.B.3]
 - Prevent duplicate initialization with informative errors [REQ-002.B.4]
 - Allow custom spec folder naming [REQ-002.B.5]

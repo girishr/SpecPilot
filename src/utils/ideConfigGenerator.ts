@@ -1,5 +1,5 @@
 import { join } from 'path';
-import { mkdirSync, writeFileSync, existsSync, appendFileSync } from 'fs';
+import { mkdirSync, writeFileSync, existsSync, appendFileSync, readFileSync } from 'fs';
 import inquirer from 'inquirer';
 import { TemplateContext } from './templateEngine';
 
@@ -273,5 +273,32 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
     "**/__pycache__": true
   }${overrideBlock}
 }`;
+  }
+
+  /**
+   * Generates (or updates) .gitattributes at project root with merge=union rules
+   * for append-heavy spec files, preventing git merge conflicts on shared branches.
+   * If the file already exists, only missing lines are appended.
+   */
+  generateGitAttributes(projectDir: string): void {
+    const GITATTRIBUTES_LINES = [
+      '.specs/development/prompts*.md merge=union',
+      '.specs/planning/tasks.md merge=union',
+      'CHANGELOG.md merge=union',
+    ];
+
+    const filePath = join(projectDir, '.gitattributes');
+
+    if (!existsSync(filePath)) {
+      writeFileSync(filePath, GITATTRIBUTES_LINES.join('\n') + '\n');
+      return;
+    }
+
+    const existing = readFileSync(filePath, 'utf8');
+    const missing = GITATTRIBUTES_LINES.filter(line => !existing.includes(line));
+    if (missing.length > 0) {
+      const suffix = existing.endsWith('\n') ? '' : '\n';
+      appendFileSync(filePath, suffix + missing.join('\n') + '\n');
+    }
   }
 }

@@ -79,7 +79,7 @@ program
 program
   .command('archive')
   .alias('ar')
-  .description('Archive oversized .specs/ files (prompts.md > 300 lines, tasks.md Completed > 150 lines)')
+  .description('Archive oversized .specs/ files (prompts.md > 100 lines, tasks.md Completed > 25 lines)')
   .option('--dry-run', 'Preview what would be archived without writing any files')
   .action(archiveCommand);
 

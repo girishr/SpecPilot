@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-04-05
-version: 1.5
+lastUpdated: 2026-04-26
+version: 1.6
 contributors: [girishr]
 relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 ---
@@ -35,6 +35,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **IDE Settings**: Fabricated setting keys removed; aspirational keys marked clearly (FIX-017) [CTX-003.16]
 - **Existing-Project Backfills**: `specpilot backfill` (alias `bf`) for non-destructive backfills after upgrading SpecPilot — detects new mandates, rules, or files from the newer version and inserts only what's missing into the project's existing `.specs/`; never overwrites user-authored content [CTX-003.17]
 - **Migrate Scope**: keep `specpilot migrate` for rare legacy structure conversion only; do not position it as a general version-update command in docs/help text [CTX-003.18]
+- **Aggressive Archive Thresholds**: keep active working spec files short — archive `planning/tasks.md` once `## Completed` exceeds 25 lines and archive `development/prompts.md` once the file exceeds 100 lines so day-to-day navigation stays fast [CTX-003.19]
 
 ## Established Patterns [CTX-004]
 

@@ -70,11 +70,11 @@ describe('SpecArchiver', () => {
     expect(result.entries).toHaveLength(0);
   });
 
-  // ─── prompts.md over 300 ────────────────────────────────────────────────────
+  // ─── prompts.md over 100 ────────────────────────────────────────────────────
 
-  it('archives prompts.md when over 300 lines — creates fresh archive file', async () => {
+  it('archives prompts.md when over 100 lines — creates fresh archive file', async () => {
     const specsDir = createSpecsDir(testDir);
-    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(350));
+    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(120));
     const archivePath = join(specsDir, 'development', 'prompts-archive.md');
 
     const result = await archiver.archive(testDir, { dryRun: false });
@@ -89,18 +89,18 @@ describe('SpecArchiver', () => {
     const archiveContent = readFileSync(archivePath, 'utf-8');
     expect(archiveContent).toContain('## Archived on');
 
-    // prompts.md was trimmed to at most 300 lines
+    // prompts.md was trimmed to at most 100 lines
     const trimmedLines = readFileSync(
       join(specsDir, 'development', 'prompts.md'),
       'utf-8'
     ).split('\n');
-    expect(trimmedLines.length).toBeLessThanOrEqual(300);
-    expect(trimmedLines.length).toBeLessThan(350);
+    expect(trimmedLines.length).toBeLessThanOrEqual(100);
+    expect(trimmedLines.length).toBeLessThan(120);
   });
 
-  it('does not archive prompts.md when at exactly 300 lines', async () => {
+  it('does not archive prompts.md when at exactly 100 lines', async () => {
     const specsDir = createSpecsDir(testDir);
-    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(300));
+    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(100));
 
     const result = await archiver.archive(testDir, { dryRun: false });
     expect(result.entries.find(e => e.file === 'development/prompts.md')).toBeUndefined();
@@ -109,8 +109,8 @@ describe('SpecArchiver', () => {
   it('respects front-matter preamble when trimming prompts.md', async () => {
     const specsDir = createSpecsDir(testDir);
     const preamble = '---\ntitle: Prompts\n---';
-    // 3 preamble lines + 350 body lines = 353 total
-    const content = preamble + '\n' + makeLines(350);
+    // 3 preamble lines + 120 body lines = 123 total
+    const content = preamble + '\n' + makeLines(120);
     writeFileSync(join(specsDir, 'development', 'prompts.md'), content);
 
     const result = await archiver.archive(testDir, { dryRun: false });
@@ -133,7 +133,7 @@ describe('SpecArchiver', () => {
       archivePath,
       '## Archived on 2026-01-01 00:00:00\n\nOld archived content here\n\n---\n\n'
     );
-    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(350));
+    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(120));
 
     await archiver.archive(testDir, { dryRun: false });
 
@@ -144,13 +144,13 @@ describe('SpecArchiver', () => {
     expect(blockCount).toBe(2);
   });
 
-  // ─── tasks.md Completed over 150 ───────────────────────────────────────────
+  // ─── tasks.md Completed over 25 ────────────────────────────────────────────
 
-  it('archives tasks.md Completed section when over 150 lines', async () => {
+  it('archives tasks.md Completed section when over 25 lines', async () => {
     const specsDir = createSpecsDir(testDir);
     writeFileSync(
       join(specsDir, 'planning', 'tasks.md'),
-      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(200)
+      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30)
     );
     const archivePath = join(specsDir, 'planning', 'tasks-archive.md');
 
@@ -168,7 +168,7 @@ describe('SpecArchiver', () => {
     // tasks.md was trimmed
     const newContent = readFileSync(join(specsDir, 'planning', 'tasks.md'), 'utf-8');
     const newLineCount = newContent.split('\n').length;
-    expect(newLineCount).toBeLessThan(200);
+    expect(newLineCount).toBeLessThan(30);
     // Earlier entries were archived
     expect(newContent).not.toContain('[CD-001]');
   });
@@ -177,7 +177,7 @@ describe('SpecArchiver', () => {
     const specsDir = createSpecsDir(testDir);
     writeFileSync(
       join(specsDir, 'planning', 'tasks.md'),
-      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30)
+      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(20)
     );
 
     const result = await archiver.archive(testDir, { dryRun: false });
@@ -205,9 +205,9 @@ describe('SpecArchiver', () => {
         '## Completed',
         '',
         '> Older entries archived in tasks-archive.md.',
-        '> **Line limit**: 150 lines.',
+        '> **Line limit**: 25 lines.',
         '',
-        makeCompletedEntries(200),
+        makeCompletedEntries(30),
       ].join('\n')
     );
 
@@ -216,17 +216,17 @@ describe('SpecArchiver', () => {
     const newContent = readFileSync(join(specsDir, 'planning', 'tasks.md'), 'utf-8');
     expect(newContent).toContain('## Completed');
     expect(newContent).toContain('> Older entries archived');
-    expect(newContent).toContain('> **Line limit**: 150 lines.');
+    expect(newContent).toContain('> **Line limit**: 25 lines.');
   });
 
   // ─── Both files over limit ──────────────────────────────────────────────────
 
   it('archives both files when both are over their limits', async () => {
     const specsDir = createSpecsDir(testDir);
-    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(350));
+    writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLines(120));
     writeFileSync(
       join(specsDir, 'planning', 'tasks.md'),
-      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(200)
+      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30)
     );
 
     const result = await archiver.archive(testDir, { dryRun: false });
@@ -243,7 +243,7 @@ describe('SpecArchiver', () => {
     const specsDir = createSpecsDir(testDir);
     const promptsPath = join(specsDir, 'development', 'prompts.md');
     const archivePath = join(specsDir, 'development', 'prompts-archive.md');
-    const originalContent = makeLines(350);
+    const originalContent = makeLines(120);
     writeFileSync(promptsPath, originalContent);
 
     const result = await archiver.archive(testDir, { dryRun: true });
@@ -271,6 +271,6 @@ describe('SpecArchiver', () => {
     expect(entry.archiveFile).toBe('development/prompts-archive.md');
     expect(typeof entry.linesMoved).toBe('number');
     expect(entry.linesMoved).toBeGreaterThan(0);
-    expect(entry.linesMoved).toBe(350 - 250); // 100 lines moved (350 - keep 250)
+    expect(entry.linesMoved).toBe(350 - 80); // 270 lines moved (350 - keep 80)
   });
 });

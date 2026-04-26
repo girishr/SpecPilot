@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-04-05
-version: 1.5
+lastUpdated: 2026-04-26
+version: 1.6
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -19,7 +19,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 | Project Detector | `projectDetector.test.ts` | 17    | Node.js/Python detection, framework identification, metadata extraction                          |
 | Project Migrator | `projectMigrator.test.ts` | 11    | Simple↔complex migration, file mapping, backup, merge strategy                                   |
 | Spec Validator   | `specValidator.test.ts`   | 24    | Required files, YAML validity, mandate checking, cross-references, auto-fix                      |
-| Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds, dry-run behaviour, archived block formatting                    |
+| Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds (100/25), dry-run behaviour, archived block formatting           |
 
 ## Test Plans [TESTS-002]
 
@@ -43,6 +43,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 - YAML front-matter presence and format
 - Cross-reference validation
 - Mandate checking
+- Archive threshold warnings and archive-trigger behaviour for `prompts.md` and `tasks.md`
 
 ## Acceptance Criteria [TESTS-003]
 

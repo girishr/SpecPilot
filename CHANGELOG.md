@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Lower `specpilot archive` thresholds** (CD-119/CS-056): `planning/tasks.md` now archives when `## Completed` exceeds **25 lines** (was 150); `development/prompts.md` now archives when the file exceeds **100 lines** (was 300); keep sizes reduced to 20 entries and 80 lines respectively; `specValidator.ts` warning thresholds updated to match; Archive Policy text in generated `prompts.md` updated to 100 lines; `cli.ts` archive command description updated; `docs/GUIDE.md` threshold references updated.
+
 ### Added
 
 - **Mandatory short handle prompt with `devPrefix` ID conventions in generated templates** (CD-118/CS-053): `init.ts` and `add-specs.ts` now prompt with the agreed text explaining that the handle is used as a prefix in task IDs (e.g. `CD-jsmith-001`) and prompt IDs (e.g. `PROMPT-jsmith-001`); accepts GitHub/GitLab/Bitbucket username or any short tag; prompt loops until non-empty when `--prompts` is enabled; `--no-prompts` falls back to `os.userInfo().username`; removed `git config user.name` dependency; generated `tasks.md` template updated: ID conventions now show `CD-{devPrefix}-###` and `PROMPT-{devPrefix}-###`, new `## Multi-Dev Notes` callout added advising pull before appending, prefixed IDs, and archive on default branch only; generated `prompts.md` conventions updated to show prefixed ID examples.

@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-04-05
-version: 2.0
+lastUpdated: 2026-04-26
+version: 2.1
 contributors: [girishr]
 relatedFiles:
   [
@@ -29,7 +29,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **IDE Config Generator**: Generates workspace settings for VSCode, Cursor, Windsurf, Kiro, Antigravity; always generates `.github/copilot-instructions.md` regardless of IDE choice [ARCH-003.3.2]
 - **Agent Config Generator**: Generates Cowork Skills and Codex Instructions [ARCH-003.3.3]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
-- **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 300 lines → `prompts-archive.md`; `tasks.md` Completed > 150 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]
+- **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 100 lines → `prompts-archive.md`; `tasks.md` Completed > 25 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]
 - **Migrator**: Version migration and structure updates [ARCH-003.5]
 - **Project Detector**: Auto-detects language/framework from existing files [ARCH-003.6]
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
@@ -53,7 +53,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Universal Copilot Instructions**: `.github/copilot-instructions.md` always generated regardless of IDE — re-injects critical mandates into every AI request to prevent context drift in long sessions [ARCH-004.11]
 - **Tiered Rules**: Generated `project.yaml` uses 🔴 critical / 🟡 process / 🟢 preferences tiers to give AI tools clear priority signals [ARCH-004.12]
 - **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
-- **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within limits; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]
+- **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within tighter active-file limits to keep the working copies easy to scan; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]
 - **Post-Init Tree Display**: After `specpilot init` and `specpilot add-specs` success, `Logger.displayInitSuccess()` renders a tree of generated `.specs/` files via the shared `SpecTreePrinter` helper, with hardcoded one-line descriptions [ARCH-004.15]
 - **Security Subfolder Generation**: `specpilot init` now generates `security/threat-model.md` and `security/security-decisions.md` starter templates in every new project; both files use YAML front-matter and labelled placeholder sections; `specTreePrinter.ts` includes both in the post-init tree [ARCH-004.16]
 - **Spec-First Review Gate**: generated `project.yaml` and `.github/copilot-instructions.md` both include a critical mandate that blocks code or non-spec edits until the AI has read relevant `.specs/` files, updated the affected specs first, produced a Spec Report, and received an explicit developer `yes, proceed` [ARCH-004.17]
@@ -61,6 +61,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]
+- **devPrefix in Generated ID Conventions**: generated `tasks.md` template shows `CD-{{author}}-###` as the Completed ID pattern and includes a `## Multi-Dev Notes` callout with pull-before-append and archive-on-default-branch guidance; generated `prompts.md` template references `PROMPT-{{author}}-###` as the prompt log ID pattern; both use the GitHub username collected at init time via `TemplateContext.author` [ARCH-004.22]
 
 ## Technology Stack [ARCH-005]
 

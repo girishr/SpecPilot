@@ -15,13 +15,13 @@ export interface ArchiveResult {
 const SPECS_DIR_CANDIDATES = ['.specs', '.project-spec', 'specs', 'specifications'];
 
 /** Trim prompts.md to this many total lines after archiving. */
-const PROMPTS_LINE_LIMIT = 300;
-const PROMPTS_KEEP_LINES = 250;
+const PROMPTS_LINE_LIMIT = 100;
+const PROMPTS_KEEP_LINES = 80;
 
 /** Archive tasks.md Completed section when it exceeds this many lines. */
-const COMPLETED_LINE_LIMIT = 150;
+const COMPLETED_LINE_LIMIT = 25;
 /** How many Completed entries to retain in the active file. */
-const COMPLETED_KEEP_ENTRIES = 100;
+const COMPLETED_KEEP_ENTRIES = 20;
 
 export class SpecArchiver {
   private findSpecsDir(projectDir: string): string | null {

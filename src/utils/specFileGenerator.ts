@@ -627,7 +627,7 @@ This file (prompts.md) contains ALL AI interactions for {{projectName}}. Update 
 
 ## Archive Policy
 
-> **Line limit: 300 lines.** When this file exceeds 300 lines, run:
+> **Line limit: 100 lines.** When this file exceeds 100 lines, run:
 >
 > \`\`\`bash
 > specpilot archive

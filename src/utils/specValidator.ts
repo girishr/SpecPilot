@@ -18,6 +18,9 @@ export interface ValidationResult {
 }
 
 export class SpecValidator {
+  private static readonly PROMPTS_LINE_LIMIT = 100;
+  private static readonly TASKS_COMPLETED_LINE_LIMIT = 25;
+
   private requiredFiles = [
     'project/project.yaml',
     'architecture/architecture.md',
@@ -715,27 +718,25 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
   }
 
   private async validateLineLimits(specsDir: string, result: ValidationResult): Promise<void> {
-    // Check prompts.md total line count
     const promptsPath = join(specsDir, 'development', 'prompts.md');
     if (existsSync(promptsPath)) {
-      const lines = readFileSync(promptsPath, 'utf-8').split('\n');
-      if (lines.length > 300) {
+      const promptsLines = readFileSync(promptsPath, 'utf-8').split('\n').length;
+      if (promptsLines > SpecValidator.PROMPTS_LINE_LIMIT) {
         result.warnings.push(
-          `development/prompts.md has ${lines.length} lines (limit: 300). Run \`specpilot archive\` to move older entries to prompts-archive.md.`
+          `development/prompts.md exceeds line limit: ${SpecValidator.PROMPTS_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to prompts-archive.md.`
         );
       }
     }
 
-    // Check tasks.md Completed section line count
     const tasksPath = join(specsDir, 'planning', 'tasks.md');
     if (existsSync(tasksPath)) {
-      const content = readFileSync(tasksPath, 'utf-8');
-      const completedIdx = content.indexOf('\n## Completed');
+      const lines = readFileSync(tasksPath, 'utf-8').split('\n');
+      const completedIdx = lines.findIndex(line => line.trim() === '## Completed');
       if (completedIdx !== -1) {
-        const sectionLines = content.slice(completedIdx + 1).split('\n').length;
-        if (sectionLines > 150) {
+        const completedSize = lines.length - completedIdx;
+        if (completedSize > SpecValidator.TASKS_COMPLETED_LINE_LIMIT) {
           result.warnings.push(
-            `planning/tasks.md Completed section has ${sectionLines} lines (limit: 150). Run \`specpilot archive\` to move older entries to tasks-archive.md.`
+            `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`
           );
         }
       }

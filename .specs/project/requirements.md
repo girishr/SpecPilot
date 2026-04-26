@@ -6,7 +6,7 @@ framework: node
 lastUpdated: 2026-04-26
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.4
+version: 1.5
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -67,6 +67,7 @@ relatedFiles:
 - Dual onboarding prompts: new projects get planning-focused prompt with baked-in project context; existing projects get codebase-analysis prompt [REQ-002.F.4]
 - Generated `project.yaml` and `.github/copilot-instructions.md` must include a Spec-First review gate mandate requiring a Spec Report and explicit developer `yes, proceed` before any code or non-spec file changes [REQ-002.F.5]
 - Generated `tasks.md` ID conventions section must show `CD-{devPrefix}-###` pattern (using the GitHub username collected at init time) with a `## Multi-Dev Notes` callout advising: always pull before appending to Completed, use prefixed IDs to avoid collisions, only archive on the default branch; generated `prompts.md` ID conventions must reference `PROMPT-{devPrefix}-###` [REQ-002.F.6]
+- `specpilot archive`, generated archive guidance, and `specpilot validate` line-limit warnings must use lower active-file thresholds to reduce clutter in day-to-day work: archive `planning/tasks.md` when the `## Completed` section exceeds 25 lines and archive `development/prompts.md` when the file exceeds 100 lines [REQ-002.F.7]
 
 ## Non-Functional Requirements [REQ-003]
 

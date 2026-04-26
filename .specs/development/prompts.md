@@ -30,6 +30,7 @@ For full project context, read .specs/project/project.yaml.
 
 ## Latest Entries [PROMPT-002]
 - CS-056 proposal: lower archive thresholds so `tasks.md` Completed archives above 25 lines and `prompts.md` archives above 100 lines; update archiver, validator warnings, generated guidance, and tests after spec approval (April 26, 2026) [PROMPT-002.0.0.11]
+- CS-056: Lower archive thresholds — `PROMPTS_LINE_LIMIT` 300→100, `COMPLETED_LINE_LIMIT` 150→25; tests updated; `specpilot archive` run on SpecPilot's own spec files; committed `fd10048` (April 26, 2026) [PROMPT-002.0.0.11]
 - CS-055: Added to Current Sprint tasks.md — backfill `tasks.md` devPrefix ID conventions in existing projects by reading `team.devPrefix` from `project.yaml` in `specBackfiller.ts`; no prompt needed (April 26, 2026) [PROMPT-002.0.0.10]
 - CS-053: Mandatory short handle prompt in `init.ts` and `add-specs.ts`; `os.userInfo().username` for `--no-prompts`; loop until non-empty; `generateTasksMd()` updated with `CD-{devPrefix}-###` convention + `## Multi-Dev Notes`; `generatePromptsMd()` updated with prefixed ID examples; committed `c9875db` (April 26, 2026) [PROMPT-002.0.0.9]
 - CS-052: Generate `.gitattributes` with `merge=union` for shared spec files; committed `bdb2762` (April 26, 2026) [PROMPT-002.0.0.8]

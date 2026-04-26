@@ -122,3 +122,10 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-04-26 09:05:32
+
+62. [CD-101] [CS-041] [TOOL-017] Display `.specs/` tree after init/add-specs success
+63. [CD-102] [CS-043] Rename `specify` command to `refine`
+
+---
+

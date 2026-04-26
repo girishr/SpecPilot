@@ -1,5 +1,6 @@
 import { join, resolve } from 'path';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
+import os from 'os';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import * as yaml from 'js-yaml';
@@ -127,24 +128,21 @@ export async function initCommand(name: string, options: InitOptions) {
       }
     }
     
-    // Get GitHub username for spec attribution and task ID namespacing
-    let gitUsername = 'your-username';
-    try {
-      const { execSync } = require('child_process');
-      const result = execSync('git config user.name', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
-      if (result) gitUsername = result;
-    } catch {
-      // git not available or not configured — keep default
-    }
-    let developerName = gitUsername;
+    // Get short handle for task/prompt ID namespacing (mandatory when prompts enabled)
+    const osUsername = os.userInfo().username;
+    let developerName = osUsername;
     if (options.prompts) {
-      const nameResponse = await inquirer.prompt([{
-        type: 'input',
-        name: 'developerName',
-        message: 'Enter your GitHub username (used in spec file contributors and as your dev prefix for task/prompt IDs):',
-        default: gitUsername
-      }]);
-      developerName = nameResponse.developerName.trim() || gitUsername;
+      let handle = '';
+      while (!handle) {
+        const nameResponse = await inquirer.prompt([{
+          type: 'input',
+          name: 'developerName',
+          message: `Your short handle is used as a prefix in task IDs (e.g. CD-jsmith-001) and prompt IDs\n  (e.g. PROMPT-jsmith-001) to avoid collisions when multiple devs share the same spec files.\n  Use your GitHub, GitLab, or Bitbucket username, or any short tag of your choice [${osUsername}]:`,
+        }]);
+        handle = nameResponse.developerName.trim();
+        if (!handle) handle = osUsername;
+      }
+      developerName = handle;
     }
     
     // Get IDE/Agent preference for context configuration

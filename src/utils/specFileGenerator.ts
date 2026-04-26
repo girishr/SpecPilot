@@ -259,7 +259,8 @@ Task ID conventions
 
 - BL-###: Backlog items
 - CS-###: Current Sprint items
-- CD-###: Completed items
+- CD-{devPrefix}-###: Completed items (e.g. CD-{{author}}-001)
+- PROMPT-{devPrefix}-###: Prompt log entries (e.g. PROMPT-{{author}}-001)
 
 Notes
 
@@ -267,6 +268,17 @@ Notes
 - Reference tasks by ID in commits, prompts, PRs, and discussions.
 - When moving an item from Backlog to Current Sprint, retain its original BL ID or create a CS mirror that references the BL ID.
 - Archive guidance: when Completed grows large, move older entries to \`tasks-archive.md\` and add a pointer here.
+
+## Multi-Dev Notes
+
+> **ID collisions are the #1 source of merge conflicts in shared spec files.**
+> Follow these rules when more than one person commits to this repo:
+>
+> - Always \`git pull\` before appending to the Completed section.
+> - Use your personal prefix in all Completed IDs: \`CD-{your-handle}-###\`
+>   so two devs never claim the same number independently.
+> - Only run \`specpilot archive\` on the default branch (main/master) **after** merging,
+>   never on a feature branch — diverged trim points break the archive history.
 
 ## Backlog
 
@@ -471,7 +483,7 @@ sourceOfTruth: project/project.yaml
 
     // ── Shared conventions block (used by both prompts) ──────────
     const conventions = `**Conventions & Rules:**
-1. **IDs**: Use semantic prefixes (REQ-, TASK-, ARCH-, TEST-, etc.) with zero-padded numbers (e.g., REQ-001, TASK-042)
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-{{author}}-001, PROMPT-{{author}}-001); Completed task IDs and Prompt log IDs use your personal handle as prefix to avoid collisions in multi-dev teams
 2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
 3. **Priority values**: Must be: critical, high, medium, low
 4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)

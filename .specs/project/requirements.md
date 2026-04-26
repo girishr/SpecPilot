@@ -3,7 +3,7 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-04-05
+lastUpdated: 2026-04-26
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
 version: 1.4
@@ -29,7 +29,7 @@ relatedFiles:
 ### Project Initialization [REQ-002.B]
 
 - Prompt for project context: what it does, target users, expected scale, constraints (1 mandatory, 3 optional) [REQ-002.B.1]
-- Prompt for GitHub username (used as spec contributor handle and `devPrefix` for task/prompt ID namespacing); default attempts `git config user.name` falling back to `'your-username'` [REQ-002.B.2]
+- Prompt for a **mandatory** short handle (no default/fallback); prompt text explains the handle will appear in task IDs (e.g. `CD-jsmith-001`) and prompt IDs (e.g. `PROMPT-jsmith-001`) to prevent collisions when multiple devs share spec files; user may provide their GitHub, GitLab, or Bitbucket username or any short tag of their choice [REQ-002.B.2]
 - Store GitHub username as `devPrefix` under a `team:` section in generated `project.yaml` to support project-scoped ID namespacing (e.g. `CD-{devPrefix}-001`) [REQ-002.B.7]
 - Generate `.gitattributes` at project root with `merge=union` for append-heavy spec files (`.specs/development/prompts*.md`, `.specs/planning/tasks.md`, `CHANGELOG.md`) to prevent git merge conflicts on shared branches; if `.gitattributes` already exists, append only the missing lines [REQ-002.B.8]
 - Prompt for IDE/Agent selection and generate appropriate config files [REQ-002.B.3]
@@ -66,6 +66,7 @@ relatedFiles:
 - Generated `prompts.md` must include a Re-Anchor Prompt section for AI context recovery mid-session [REQ-002.F.3]
 - Dual onboarding prompts: new projects get planning-focused prompt with baked-in project context; existing projects get codebase-analysis prompt [REQ-002.F.4]
 - Generated `project.yaml` and `.github/copilot-instructions.md` must include a Spec-First review gate mandate requiring a Spec Report and explicit developer `yes, proceed` before any code or non-spec file changes [REQ-002.F.5]
+- Generated `tasks.md` ID conventions section must show `CD-{devPrefix}-###` pattern (using the GitHub username collected at init time) with a `## Multi-Dev Notes` callout advising: always pull before appending to Completed, use prefixed IDs to avoid collisions, only archive on the default branch; generated `prompts.md` ID conventions must reference `PROMPT-{devPrefix}-###` [REQ-002.F.6]
 
 ## Non-Functional Requirements [REQ-003]
 

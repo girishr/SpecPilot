@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
 lastUpdated: 2026-04-26
-version: 2.1
+version: 2.3
 contributors: [girishr]
 relatedFiles:
   [
@@ -35,7 +35,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 - **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
 - **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitSuccess()` [ARCH-003.10]
-- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing SpecPilot mandates into `project.yaml` and `copilot-instructions.md` using fingerprint-based detection and append-only writes; used by the `backfill` command with `--dry-run` support [ARCH-003.11]
+- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing SpecPilot mandates into `project.yaml`, `copilot-instructions.md`, and `planning/tasks.md` using fingerprint-based detection and append-only writes; when `team.devPrefix` is absent, prompts for the handle using `contributors[0]` from `project.yaml` as the suggested default (fallback: `os.userInfo().username`); writes `team:\n  devPrefix:` into `project.yaml` before patching `tasks.md`; `--no-prompts` accepts the suggestion silently; used by the `backfill` command with `--dry-run` support [ARCH-003.11]
 
 ## Design Decisions [ARCH-004]
 
@@ -57,7 +57,8 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Post-Init Tree Display**: After `specpilot init` and `specpilot add-specs` success, `Logger.displayInitSuccess()` renders a tree of generated `.specs/` files via the shared `SpecTreePrinter` helper, with hardcoded one-line descriptions [ARCH-004.15]
 - **Security Subfolder Generation**: `specpilot init` now generates `security/threat-model.md` and `security/security-decisions.md` starter templates in every new project; both files use YAML front-matter and labelled placeholder sections; `specTreePrinter.ts` includes both in the post-init tree [ARCH-004.16]
 - **Spec-First Review Gate**: generated `project.yaml` and `.github/copilot-instructions.md` both include a critical mandate that blocks code or non-spec edits until the AI has read relevant `.specs/` files, updated the affected specs first, produced a Spec Report, and received an explicit developer `yes, proceed` [ARCH-004.17]
-- **Non-Destructive Existing-Project Backfills**: `specpilot backfill` (alias `bf`) command detects what the current SpecPilot version would generate vs what the project currently has, and inserts only the missing mandates/instructions/files; append-only writes preserve existing user-authored spec and instruction content; `--dry-run` prints the planned changes without writing [ARCH-004.18]
+- **Non-Destructive Existing-Project Backfills**: `specpilot backfill` (alias `bf`) command detects what the current SpecPilot version would generate vs what the project currently has, and inserts only the missing mandates/instructions/files; for `planning/tasks.md`, reads `team.devPrefix` from `project.yaml` and inserts the `CD-{devPrefix}-###` convention line and `## Multi-Dev Notes` section if absent; append-only writes preserve existing user-authored spec and instruction content; `--dry-run` prints the planned changes without writing [ARCH-004.18]
+- **Archive Branch Guard**: before `specpilot archive` runs, `archiveCommand()` calls `git rev-parse --abbrev-ref HEAD`; if the branch is not `main` or `master`, a yellow warning is printed and the user is prompted `[y/N]`; declining aborts without writing files; `--force` flag skips the prompt; branch detection failure (e.g. not a git repo) is silently ignored [ARCH-004.19]
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]

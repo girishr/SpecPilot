@@ -6,7 +6,7 @@ framework: node
 lastUpdated: 2026-04-26
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.5
+version: 1.7
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -24,7 +24,8 @@ relatedFiles:
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
-- `specpilot backfill` — after upgrading SpecPilot to a newer version (which may include new mandates, rules, files, or features), non-destructively backfill the missing content into projects that already have `.specs/`, without overwriting or deleting existing user-authored content [REQ-002.A.7]
+- `specpilot backfill` — after upgrading SpecPilot to a newer version (which may include new mandates, rules, files, or features), non-destructively backfill the missing content into projects that already have `.specs/`, without overwriting or deleting existing user-authored content; also backfills `planning/tasks.md` with the `CD-{devPrefix}-###` ID convention line and `## Multi-Dev Notes` section; when `team.devPrefix` is absent from `project.yaml`, prompts the user for their handle using `contributors[0]` from `project.yaml` as the suggested default (falling back to `os.userInfo().username`); `--no-prompts` accepts the suggestion silently [REQ-002.A.7]
+- `specpilot archive [--dry-run] [--force]` — archive oversized `.specs/` files; before archiving, detect the current git branch and warn (with `[y/N]` confirmation) when not on `main` or `master`; `--force` bypasses the branch warning [REQ-002.A.8]
 
 ### Project Initialization [REQ-002.B]
 

@@ -81,6 +81,7 @@ program
   .alias('ar')
   .description('Archive oversized .specs/ files (prompts.md > 100 lines, tasks.md Completed > 25 lines)')
   .option('--dry-run', 'Preview what would be archived without writing any files')
+  .option('--force', 'Skip branch warning and archive without confirmation')
   .action(archiveCommand);
 
 // Add-specs command
@@ -103,6 +104,7 @@ program
   .option('-d, --dir <directory>', 'Project directory', '.')
   .option('--specs-name <name>', 'Name for specs folder', '.specs')
   .option('--dry-run', 'Preview changes without writing any files')
+  .option('--no-prompts', 'Accept suggested devPrefix silently when team.devPrefix is missing')
   .action(backfillCommand);
 
 program.addHelpText('after', `

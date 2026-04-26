@@ -1,5 +1,7 @@
 import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import * as os from 'os';
+import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
 import { TemplateContext } from './templateEngine';
 
@@ -115,10 +117,16 @@ export interface BackfillFileResult {
 export interface BackfillResult {
   projectYaml: BackfillFileResult;
   copilotInstructions: BackfillFileResult;
+  tasksMd: BackfillFileResult;
 }
 
 export class SpecBackfiller {
-  async backfill(projectDir: string, specsName: string, dryRun: boolean): Promise<BackfillResult> {
+  async backfill(
+    projectDir: string,
+    specsName: string,
+    dryRun: boolean,
+    noPrompts: boolean = false,
+  ): Promise<BackfillResult> {
     const specsDir = join(projectDir, specsName);
 
     if (!existsSync(specsDir)) {
@@ -128,10 +136,14 @@ export class SpecBackfiller {
       );
     }
 
+    // Ensure team.devPrefix exists before patching tasks.md
+    await this.ensureDevPrefix(specsDir, dryRun, noPrompts);
+
     const yamlResult = this.backfillProjectYaml(specsDir, dryRun);
     const copilotResult = await this.backfillCopilotInstructions(projectDir, specsDir, dryRun);
+    const tasksResult = this.backfillTasksMd(specsDir, dryRun);
 
-    return { projectYaml: yamlResult, copilotInstructions: copilotResult };
+    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult };
   }
 
   // ---------------------------------------------------------------------------
@@ -268,6 +280,114 @@ export class SpecBackfiller {
   // ---------------------------------------------------------------------------
 
   /**
+   * Reads the first entry from `contributors:` list in project.yaml.
+   * Handles both inline (`contributors: ["girishr"]`) and block-list forms.
+   * Falls back to os.userInfo().username if not found.
+   */
+  private readContributorsFirst(specsDir: string): string {
+    const yamlPath = join(specsDir, 'project', 'project.yaml');
+    if (existsSync(yamlPath)) {
+      try {
+        const content = readFileSync(yamlPath, 'utf-8');
+        // Inline array: contributors: ["girishr", ...] or contributors: [girishr, ...]
+        const inline = content.match(/^contributors:\s*\[\s*["']?([^"'\],]+)["']?/m);
+        if (inline) return inline[1].trim();
+        // Block list: contributors:\n  - "girishr"
+        const block = content.match(/^contributors:\s*\n\s+-\s+["']?([^"'\n]+)["']?/m);
+        if (block) return block[1].trim();
+      } catch {
+        // ignore
+      }
+    }
+    return os.userInfo().username;
+  }
+
+  /**
+   * Writes `team:\n  devPrefix: "<handle>"` into project.yaml after the `license:` line.
+   * If a `team:` block already exists (but devPrefix is missing), inserts devPrefix inside it.
+   * Text-based insertion — does not parse YAML to preserve formatting.
+   */
+  private writeDevPrefix(specsDir: string, handle: string): void {
+    const yamlPath = join(specsDir, 'project', 'project.yaml');
+    let content = readFileSync(yamlPath, 'utf-8');
+
+    // If there's already a team: block, insert devPrefix inside it
+    const teamBlockMatch = content.match(/^(team:\s*\n)((?:\s+[^\n]+\n)*)/m);
+    if (teamBlockMatch) {
+      // Append devPrefix at the end of the team block
+      const insertAfter = teamBlockMatch[0];
+      const insertPos = content.indexOf(insertAfter) + insertAfter.length;
+      content = content.slice(0, insertPos) + `  devPrefix: "${handle}"\n` + content.slice(insertPos);
+    } else {
+      // Insert entire team: block after license: line
+      const licenseMatch = content.match(/^license:.*$/m);
+      if (licenseMatch) {
+        const insertPos = content.indexOf(licenseMatch[0]) + licenseMatch[0].length;
+        content = content.slice(0, insertPos) + `\nteam:\n  devPrefix: "${handle}"` + content.slice(insertPos);
+      } else {
+        // Fallback: append at end
+        content = content.trimEnd() + `\nteam:\n  devPrefix: "${handle}"\n`;
+      }
+    }
+
+    writeFileSync(yamlPath, content, 'utf-8');
+  }
+
+  /**
+   * When team.devPrefix is absent from project.yaml:
+   * - Reads contributors[0] as suggestion (fallback: os.userInfo().username)
+   * - Prompts user (unless noPrompts or dryRun), looping until non-empty
+   * - Writes devPrefix into project.yaml (skipped on dryRun)
+   */
+  private async ensureDevPrefix(specsDir: string, dryRun: boolean, noPrompts: boolean): Promise<void> {
+    if (this.readDevPrefix(specsDir) !== undefined) return; // already set
+
+    const suggestion = this.readContributorsFirst(specsDir);
+
+    let handle: string;
+    if (noPrompts || dryRun) {
+      handle = suggestion;
+      if (!dryRun) {
+        process.stdout.write(
+          `\n⚠️  team.devPrefix missing — using "${handle}" from contributors as your short handle.\n`,
+        );
+      }
+    } else {
+      handle = await this.promptHandle(suggestion);
+    }
+
+    if (!dryRun) {
+      this.writeDevPrefix(specsDir, handle);
+    }
+  }
+
+  /**
+   * Prompts the user for their short handle, suggesting contributors[0].
+   * Loops until a non-empty value is provided.
+   */
+  private promptHandle(suggestion: string): Promise<string> {
+    return new Promise((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const ask = () => {
+        rl.question(`\n⚠️  team.devPrefix missing in project.yaml.\nEnter your short handle [${suggestion}]: `, (answer) => {
+          const trimmed = answer.trim();
+          if (trimmed) {
+            rl.close();
+            resolve(trimmed);
+          } else if (suggestion) {
+            rl.close();
+            resolve(suggestion);
+          } else {
+            process.stdout.write('  Handle cannot be empty. Try again.\n');
+            ask();
+          }
+        });
+      };
+      ask();
+    });
+  }
+
+  /**
    * Reads a top-level scalar field from project.yaml using a simple regex.
    * Handles both quoted (`name: "My Project"`) and unquoted (`name: my-project`) values.
    * Does not parse YAML to preserve formatting safety.
@@ -289,5 +409,128 @@ export class SpecBackfiller {
     } catch {
       return undefined;
     }
+  }
+
+  /**
+   * Reads `team.devPrefix` from project.yaml.
+   * The field is nested under a `team:` block, e.g.:
+   *   team:
+   *     devPrefix: "girishr"
+   */
+  private readDevPrefix(specsDir: string): string | undefined {
+    const yamlPath = join(specsDir, 'project', 'project.yaml');
+    if (!existsSync(yamlPath)) return undefined;
+    try {
+      const content = readFileSync(yamlPath, 'utf-8');
+      // Match `  devPrefix: "value"` or `  devPrefix: value` (indented under team:)
+      const quoted = content.match(/^\s+devPrefix:\s+"([^"]+)"/m);
+      if (quoted) return quoted[1].trim();
+      const singleQuoted = content.match(/^\s+devPrefix:\s+'([^']+)'/m);
+      if (singleQuoted) return singleQuoted[1].trim();
+      const unquoted = content.match(/^\s+devPrefix:\s+([^\n#]+)/m);
+      return unquoted ? unquoted[1].trim() : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // planning/tasks.md
+  // ---------------------------------------------------------------------------
+
+  private backfillTasksMd(specsDir: string, dryRun: boolean): BackfillFileResult {
+    const filePath = join(specsDir, 'planning', 'tasks.md');
+
+    if (!existsSync(filePath)) {
+      return {
+        action: 'missing',
+        found: 0,
+        total: 2,
+        added: [],
+        reason: 'file not found — run `specpilot init` or `specpilot add-specs` first',
+      };
+    }
+
+    const devPrefix = this.readDevPrefix(specsDir);
+    if (!devPrefix) {
+      return {
+        action: 'skipped',
+        found: 0,
+        total: 2,
+        added: [],
+        reason: 'team.devPrefix not found in project.yaml — run `specpilot backfill` after `specpilot init`',
+      };
+    }
+
+    const content = readFileSync(filePath, 'utf-8');
+    const added: string[] = [];
+
+    const conventionFingerprint = `CD-${devPrefix}-###`;
+    const hasConvention = content.includes(conventionFingerprint);
+    const hasMultiDevNotes = content.includes('## Multi-Dev Notes');
+
+    if (hasConvention && hasMultiDevNotes) {
+      return { action: 'skipped', found: 2, total: 2, added: [] };
+    }
+
+    let newContent = content;
+
+    // Insert `CD-{devPrefix}-###` convention line after `- CS-###:` line
+    if (!hasConvention) {
+      const csLineMatch = newContent.match(/^- CS-###:.*$/m);
+      if (csLineMatch) {
+        const insertAfter = csLineMatch[0];
+        const insertPos = newContent.indexOf(insertAfter) + insertAfter.length;
+        const conventionLine = `\n- CD-${devPrefix}-###: Completed items (e.g. CD-${devPrefix}-001)`;
+        newContent = newContent.slice(0, insertPos) + conventionLine + newContent.slice(insertPos);
+      } else {
+        // Fallback: append to convention block before Notes section
+        const notesIdx = newContent.search(/^Notes$/m);
+        if (notesIdx !== -1) {
+          newContent =
+            newContent.slice(0, notesIdx) +
+            `- CD-${devPrefix}-###: Completed items (e.g. CD-${devPrefix}-001)\n` +
+            newContent.slice(notesIdx);
+        }
+      }
+      added.push(`CD-${devPrefix}-### convention line`);
+    }
+
+    // Insert ## Multi-Dev Notes section before ## Backlog
+    if (!hasMultiDevNotes) {
+      const backlogIdx = newContent.search(/^## Backlog$/m);
+      if (backlogIdx !== -1) {
+        const multiDevSection =
+          `## Multi-Dev Notes\n\n` +
+          `> **ID collisions are the #1 source of merge conflicts in shared spec files.**\n` +
+          `> Follow these rules when more than one person commits to this repo:\n` +
+          `>\n` +
+          `> - Always \`git pull\` before appending to the Completed section.\n` +
+          `> - Use your personal prefix in all Completed IDs: \`CD-${devPrefix}-###\`\n` +
+          `>   so two devs never claim the same number independently.\n` +
+          `> - Only run \`specpilot archive\` on the default branch (main/master) **after** merging,\n` +
+          `>   never on a feature branch — diverged trim points break the archive history.\n\n`;
+        newContent = newContent.slice(0, backlogIdx) + multiDevSection + newContent.slice(backlogIdx);
+      } else {
+        // Fallback: append at end
+        newContent =
+          newContent.trimEnd() +
+          `\n\n## Multi-Dev Notes\n\n` +
+          `> Always \`git pull\` before appending to Completed. Use \`CD-${devPrefix}-###\` prefix. ` +
+          `Only run \`specpilot archive\` on the default branch.\n`;
+      }
+      added.push('## Multi-Dev Notes section');
+    }
+
+    if (!dryRun && added.length > 0) {
+      writeFileSync(filePath, newContent, 'utf-8');
+    }
+
+    return {
+      action: added.length > 0 ? 'updated' : 'skipped',
+      found: (hasConvention ? 1 : 0) + (hasMultiDevNotes ? 1 : 0),
+      total: 2,
+      added,
+    };
   }
 }

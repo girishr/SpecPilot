@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-04-26
-version: 1.6
+version: 1.9
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,7 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-057: Backfill `team.devPrefix` prompt — `ensureDevPrefix()` + `readContributorsFirst()` + `writeDevPrefix()` + `promptHandle()` in `specBackfiller.ts`; `BackfillOptions.noPrompts`; `--no-prompts` flag on `backfill` CLI command; build clean, 102 tests (April 26, 2026) [PROMPT-002.0.0.14]
 - CS-056 proposal: lower archive thresholds so `tasks.md` Completed archives above 25 lines and `prompts.md` archives above 100 lines; update archiver, validator warnings, generated guidance, and tests after spec approval (April 26, 2026) [PROMPT-002.0.0.11]
+- CS-055: Backfill `tasks.md` devPrefix ID conventions — `readDevPrefix()` + `backfillTasksMd()` in `specBackfiller.ts`; `BackfillResult.tasksMd`; `backfill.ts` display updated; build clean, 102 tests (April 26, 2026) [PROMPT-002.0.0.13]
+- CS-054: Branch warning for `specpilot archive` — `archiveCommand()` detects branch via `execSync`, warns + prompts `[y/N]` if not `main`/`master`, `--force` bypasses; committed (April 26, 2026) [PROMPT-002.0.0.12]
 - CS-056: Lower archive thresholds — `PROMPTS_LINE_LIMIT` 300→100, `COMPLETED_LINE_LIMIT` 150→25; tests updated; `specpilot archive` run on SpecPilot's own spec files; committed `fd10048` (April 26, 2026) [PROMPT-002.0.0.11]
 - CS-055: Added to Current Sprint tasks.md — backfill `tasks.md` devPrefix ID conventions in existing projects by reading `team.devPrefix` from `project.yaml` in `specBackfiller.ts`; no prompt needed (April 26, 2026) [PROMPT-002.0.0.10]
 - CS-053: Mandatory short handle prompt in `init.ts` and `add-specs.ts`; `os.userInfo().username` for `--no-prompts`; loop until non-empty; `generateTasksMd()` updated with `CD-{devPrefix}-###` convention + `## Multi-Dev Notes`; `generatePromptsMd()` updated with prefixed ID examples; committed `c9875db` (April 26, 2026) [PROMPT-002.0.0.9]

@@ -1,9 +1,32 @@
 import chalk from 'chalk';
+import { execSync } from 'child_process';
+import * as readline from 'readline';
 import { SpecArchiver } from '../utils/specArchiver';
 import { Logger } from '../utils/logger';
 
 export interface ArchiveOptions {
   dryRun: boolean;
+  force?: boolean;
+}
+
+function getCurrentBranch(): string | null {
+  try {
+    return execSync('git rev-parse --abbrev-ref HEAD', { stdio: ['pipe', 'pipe', 'pipe'] })
+      .toString()
+      .trim();
+  } catch {
+    return null;
+  }
+}
+
+function askConfirmation(question: string): Promise<boolean> {
+  return new Promise(resolve => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(question, answer => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
 }
 
 export async function archiveCommand(options: ArchiveOptions) {
@@ -11,6 +34,19 @@ export async function archiveCommand(options: ArchiveOptions) {
   const projectDir = process.cwd();
 
   try {
+    // Branch guard — warn if not on main/master
+    if (!options.dryRun && !options.force) {
+      const branch = getCurrentBranch();
+      if (branch && branch !== 'main' && branch !== 'master') {
+        console.log(chalk.yellow(`⚠ You're on branch '${branch}'. Archive is recommended only on the default branch after merging.`));
+        const confirmed = await askConfirmation('Continue? [y/N] ');
+        if (!confirmed) {
+          logger.info('Archive cancelled.');
+          return;
+        }
+      }
+    }
+
     if (options.dryRun) {
       logger.info('🔍 Dry run — previewing archive operations (no files will be changed)...');
     } else {

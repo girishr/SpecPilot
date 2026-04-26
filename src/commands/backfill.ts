@@ -7,6 +7,7 @@ export interface BackfillOptions {
   dir: string;
   specsName: string;
   dryRun?: boolean;
+  noPrompts?: boolean;
 }
 
 export async function backfillCommand(options: BackfillOptions): Promise<void> {
@@ -20,7 +21,12 @@ export async function backfillCommand(options: BackfillOptions): Promise<void> {
   const backfiller = new SpecBackfiller();
 
   try {
-    const result = await backfiller.backfill(projectDir, options.specsName, options.dryRun ?? false);
+    const result = await backfiller.backfill(
+      projectDir,
+      options.specsName,
+      options.dryRun ?? false,
+      options.noPrompts ?? false,
+    );
     displayResult(result, options.dryRun ?? false, logger);
   } catch (error) {
     logger.error(`❌ ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -34,15 +40,19 @@ function fileResultLines(label: string, r: BackfillFileResult, dryRun: boolean):
   if (r.action === 'missing') {
     lines.push(chalk.yellow(`  ⚠️  File not found — ${r.reason}`));
   } else if (r.action === 'skipped') {
-    lines.push(chalk.green(`  ✅ All ${r.total} mandates already present — nothing to backfill`));
+    if (r.reason) {
+      lines.push(chalk.yellow(`  ⚠️  Skipped — ${r.reason}`));
+    } else {
+      lines.push(chalk.green(`  ✅ All ${r.total} items already present — nothing to backfill`));
+    }
   } else if (r.action === 'created') {
     const verb = dryRun ? 'Would create' : 'Created';
     lines.push(chalk.green(`  ✅ ${verb} with all ${r.total} mandates`));
   } else {
     // updated
-    lines.push(chalk.green(`  ✅ ${r.found}/${r.total} mandates already present`));
+    lines.push(chalk.green(`  ✅ ${r.found}/${r.total} items already present`));
     const verb = dryRun ? 'Would add' : 'Added';
-    lines.push(chalk.white(`  ➕ ${verb} ${r.added.length} missing mandate(s):`));
+    lines.push(chalk.white(`  ➕ ${verb} ${r.added.length} missing item(s):`));
     r.added.forEach((label) => lines.push(chalk.white(`     • ${label}`)));
   }
 
@@ -50,6 +60,8 @@ function fileResultLines(label: string, r: BackfillFileResult, dryRun: boolean):
 }
 
 function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger): void {
+  const allResults = [result.projectYaml, result.copilotInstructions, result.tasksMd];
+
   const content: string[] = [
     chalk.blue.bold(`Backfill Results${dryRun ? ' (dry-run — no changes written)' : ''}`),
     '',
@@ -57,14 +69,12 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     '',
     ...fileResultLines('.github/copilot-instructions.md', result.copilotInstructions, dryRun),
     '',
+    ...fileResultLines('.specs/planning/tasks.md', result.tasksMd, dryRun),
+    '',
   ];
 
-  const updatedCount = [result.projectYaml, result.copilotInstructions].filter(
-    (r) => r.action === 'updated' || r.action === 'created',
-  ).length;
-  const skippedCount = [result.projectYaml, result.copilotInstructions].filter(
-    (r) => r.action === 'skipped',
-  ).length;
+  const updatedCount = allResults.filter((r) => r.action === 'updated' || r.action === 'created').length;
+  const skippedCount = allResults.filter((r) => r.action === 'skipped').length;
 
   if (updatedCount === 0) {
     content.push(chalk.green('✅ Everything is up to date — nothing to backfill.'));

@@ -8,6 +8,8 @@ framework: "node"
 description: "CLI tool for initializing specification-driven development projects"
 contributors: [girishr]
 license: "MIT"
+team:
+  devPrefix: "girishr"
 
 rules:
   # ============================================================

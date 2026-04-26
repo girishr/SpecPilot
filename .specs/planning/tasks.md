@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2026-04-26
-version: 5.1
+version: 5.2
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -24,21 +24,11 @@ Notes
 ## Backlog
 
 1. [BL-009] Implement enhanced `add-specs` command with codebase analysis, TODO parsing, architecture extraction, and test strategy generation for existing projects
-2. [BL-010] Add security audit, compliance, and scanning features to SpecPilot
-   - 1. Add Security Spec Files
-     - Create .specs/security/ folder with:
-       -- security.md: Security requirements, threat model
-       -- vulnerabilities.yaml: Known issues tracker
-       -- compliance.yaml: Standards compliance (SOC2, GDPR, etc.)
-   - 2. Integrate Security Scanning
-     - Add commands like:
-       -- specpilot audit: Run dependency vulnerability scan
-       -- specpilot scan: Static code analysis
-       -- specpilot compliance: Check compliance requirements
-   - 3. Automated Checks
-     - Integrate with npm audit, snyk, or semgrep
-     - Add to specpilot validate command
-     - CI/CD integration for automated scanning
+2. [BL-010] Add security audit, scanning, and compliance workflow to SpecPilot
+    - Add security commands for dependency audit, static analysis, and compliance checks
+    - Integrate with `npm audit`, `snyk`, or `semgrep`
+    - Surface security findings through `specpilot validate` where appropriate
+    - Add optional CI/CD integration for automated security checks
 3. [BL-011] CLI Rule Selector - Core Infrastructure
    - Allow users to choose which development mandates and constraints to include during project initialization
    - Interactive CLI prompts for rule selection
@@ -90,15 +80,16 @@ Notes
     - Host plugin as public GitHub repo for distribution (`claude plugins install github:…`)
     - Submit to official Anthropic plugin directory via claude.ai/settings/plugins/submit
     - Dependency management rules
-12. [BL-022] add a short description at the top of each generated specs file that shows what is the purpose of this file. This will help a new dev who is looking thru the specs files to understand what is function of each of this files. This can be along with the front-matter field section.
-13. [BL-023] inspired by this linkedin post try to use the CLAUDE.md Stop stuffing everything into CLAUDE.md. Use it as a router. https://www.linkedin.com/posts/alokkumarsunny_stop-stuffing-everything-into-claudemd-activity-7435312701452632064-9vNa . Also we need to look at how to make use of skills.md
-14. [BL-024] Add multi-dev git workflow guidance to generated `tasks.md` template — in a multi-dev team, `tasks.md` is shared and committed but the Completed section is a conflict hotspot: (a) CD numbers have no central counter so two devs can independently assign the same number; (b) running `specpilot archive` on separate branches diverges the trim point; add a `## Multi-Dev Notes` section (or callout) to the generated template advising: always pull before appending to Completed; coordinate or claim the next CD number before starting work (e.g. via a PR or team channel); only run `specpilot archive` on the default/shared branch after merging
-15. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
-16. [BL-026] Generate IDE-native AI rules files for Cursor, Windsurf, and Kiro — currently only `.github/copilot-instructions.md` is generated (read by Copilot + partially by Cursor); each IDE has its own dedicated rules/context file with the **same content** as `copilot-instructions.md`: Cursor → `.cursor/rules/project.mdc` (wrap in YAML front-matter: `description: Project mandates and AI coding rules`, `globs:`, `alwaysApply: true`, then the mandates body), Windsurf → `.windsurfrules` (plain markdown, same content verbatim), Kiro → `.kiro/steering/project.md` (plain markdown, same content verbatim); generated conditionally when user selects that IDE during `specpilot init`; `copilot-instructions.md` continues to be generated unconditionally for all IDEs; implementation in `ideConfigGenerator.ts`
+13. [BL-022] add a short description at the top of each generated specs file that shows what is the purpose of this file. This will help a new dev who is looking thru the specs files to understand what is function of each of this files. This can be along with the front-matter field section.
+13. [BL-023] inspired by this linkedin post try to use the CLAUDE.md Stop stuffing everything into CLAUDE.md. Use it as a router. https://www.linkedin.com/posts/alokkumarsunny_stop-stuffing-everything-into-claudemd-activity-7435312701452632064-9vNa . Also we need to look at how to make use of skills.md _(design rationale — will close after BL-028 is implemented)_
+14. ~~[BL-024] Add multi-dev git workflow guidance to generated `tasks.md` template~~ **Delivered by CD-118/CS-053** — `## Multi-Dev Notes` section and `CD-{devPrefix}-###` convention are already in the generated template.
+16. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
 17. [BL-027] Generate `.cursor/rules/project.mdc` for Cursor — Cursor's native AI rules file with YAML front-matter (`description: Project mandates and AI coding rules`, `globs:`, `alwaysApply: true`) + same mandates body as `copilot-instructions.md`; generated in `ideConfigGenerator.ts` when IDE = Cursor; this is what Cursor actually reads for AI context — `.github/copilot-instructions.md` is only partially supported
 18. [BL-028] Generate `CLAUDE.md` router file for Claude Code / Cowork — project-root `CLAUDE.md` is Claude Code's primary instructions file (equivalent to `copilot-instructions.md` for Copilot); should act as a router pointing to `.specs/` and `.claude/skills/specpilot-project/SKILL.md`; contains critical mandates inline + pointers to spec files for full context; generated in `agentConfigGenerator.ts` when IDE = Cowork; complements the existing SKILL.md (which provides project context to Claude skills)
 19. [BL-029] Add IDE prompt to `specpilot add-specs` — currently `add-specs` hardcodes `vscode` as the IDE default, so existing projects never get Cursor/Cowork/Windsurf/Kiro/Codex files; add the same 7-choice IDE prompt from `init.ts` to `add-specs.ts`; pass selected IDE through to `specGenerator.generateSpecs()`; respect `--no-prompts` flag (default to `vscode` when skipped)
 20. [BL-030] Expand `specpilot backfill` scope to include IDE-specific files — after BL-027/BL-028 are implemented, add `.cursor/rules/project.mdc`, `CLAUDE.md`, and `.claude/skills/specpilot-project/SKILL.md` to backfill's fingerprint detection so version upgrades propagate mandate changes to these files too; detect which IDE files exist in the project to determine which to backfill (don't require IDE selection)
+21. [BL-031] Generate `.windsurfrules` for Windsurf — plain markdown file at project root with same mandates body as `copilot-instructions.md`; generated in `ideConfigGenerator.ts` when IDE = Windsurf; this is Windsurf's native AI context file
+22. [BL-032] Generate `.kiro/steering/project.md` for Kiro — plain markdown file with same mandates body as `copilot-instructions.md`; generated in `ideConfigGenerator.ts` when IDE = Kiro; this is Kiro's native steering file
 
 ## Current Sprint
 

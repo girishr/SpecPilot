@@ -26,7 +26,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Template Engine**: Handlebars helpers and `renderFromString()` utility [ARCH-003.2]
 - **Spec Generator**: Thin coordinator that delegates to SpecFileGenerator, IdeConfigGenerator, and AgentConfigGenerator [ARCH-003.3]
 - **Spec File Generator**: Generates `.specs/` markdown and YAML files (prompts.md, README, project.yaml, etc.) [ARCH-003.3.1]
-- **IDE Config Generator**: Generates workspace settings for VSCode, Cursor, Windsurf, Kiro, Antigravity; always generates `.github/copilot-instructions.md` regardless of IDE choice [ARCH-003.3.2]
+- **IDE Config Generator**: Generates workspace settings for VSCode, Cursor, Windsurf, Antigravity; always generates `.github/copilot-instructions.md` regardless of IDE choice [ARCH-003.3.2]
 - **Agent Config Generator**: Generates Cowork Skills and Codex Instructions [ARCH-003.3.3]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
 - **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 100 lines → `prompts-archive.md`; `tasks.md` Completed > 25 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]

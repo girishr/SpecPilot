@@ -152,7 +152,7 @@ export async function initCommand(name: string, options: InitOptions) {
         type: 'list',
         name: 'ide',
         message: 'Select your AI IDE/Agent for SpecPilot context:',
-        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', 'Kiro', 'Cowork', 'Codex']
+        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', 'Cowork', 'Codex']
       }]);
       ide = ideResponse.ide;
     }

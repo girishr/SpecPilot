@@ -21,11 +21,6 @@ const IDE_OVERRIDES: Record<string, Record<string, unknown>> = {
     'windsurf.specs.integration': true,
     'windsurf.codeCompletion.contextAware': true,
   },
-  kiro: {
-    // ASPIRATIONAL — not in official Kiro docs
-    'kiro.ai.contextAware': true,
-    'kiro.specs.enabled': true,
-  },
   antigravity: {
     // ASPIRATIONAL — not in official Antigravity docs
     'antigravity.ai.enabled': true,
@@ -39,12 +34,11 @@ const IDE_DIRS: Record<string, string> = {
   vscode: '.vscode',
   cursor: '.cursor',
   windsurf: '.windsurf',
-  kiro: '.kiro',
   antigravity: '.antigravity',
 };
 
 /**
- * Generates IDE workspace settings (.vscode, .cursor, .windsurf, .kiro, .antigravity).
+ * Generates IDE workspace settings (.vscode, .cursor, .windsurf, .antigravity).
  * Each IDE gets a settings.json and extensions.json with a shared base config
  * plus per-IDE overlay keys.
  */

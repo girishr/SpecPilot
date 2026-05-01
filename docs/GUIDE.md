@@ -486,7 +486,6 @@ During project initialization, SpecPilot prompts you to select your AI IDE or ag
 - `.vscode/settings.json` for VSCode
 - `.cursor/settings.json` for Cursor
 - `.windsurf/settings.json` for Windsurf
-- `.kiro/settings.json` for Kiro
 - `.antigravity/settings.json` for Antigravity
 
 These files include:
@@ -516,7 +515,7 @@ specpilot init my-project --lang typescript --framework react
 # When prompted for IDE/Agent, select your preferred option
 ```
 
-Supported values: `vscode`, `cursor`, `windsurf`, `kiro`, `antigravity`, `cowork`, `codex`
+Supported values: `vscode`, `cursor`, `windsurf`, `antigravity`, `cowork`, `codex`
 
 ## Troubleshooting
 

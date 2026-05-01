@@ -37,7 +37,7 @@ commands:
         type: boolean
         description: Skip interactive prompts (use defaults)
     interactive-prompts:
-      - "IDE selection (VSCode, Cursor, Windsurf, Kiro, Antigravity, Cowork, Codex)"
+      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
       - "What does your project do? (mandatory)"
       - "Who are the target users? (optional)"
       - "Expected scale? (optional)"

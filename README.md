@@ -148,7 +148,6 @@ SpecPilot generates AI agent configuration files during project initialization. 
 - **VSCode** - Industry standard with Copilot integration
 - **Cursor** - AI-first code editor with enhanced AI context
 - **Windsurf** - Advanced AI coding assistant
-- **Kiro** - Specialized AI development environment
 - **Antigravity** - AI-powered IDE with context awareness
 
 **Cloud-Based AI Agents (Instruction Files):**
@@ -188,7 +187,7 @@ The generated settings/instructions automatically configure your AI agent to:
 # During init, you'll be prompted to select your IDE/Agent
 specpilot init my-project --lang typescript --framework react
 # Respond with your preferred IDE/Agent:
-# - vscode, cursor, windsurf, kiro, antigravity (desktop)
+# - vscode, cursor, windsurf, antigravity (desktop)
 # - cowork, codex (cloud agents)
 ```
 

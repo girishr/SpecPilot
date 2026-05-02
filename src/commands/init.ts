@@ -82,7 +82,7 @@ export async function initCommand(name: string, options: InitOptions) {
         join(targetDir, ideDir, 'settings.json'),
         join(targetDir, ideDir, 'extensions.json'),
         join(targetDir, '.github') + '/',
-        join(targetDir, '.github', 'copilot-instructions.md'),
+        join(targetDir, '.github', 'copilot-instructions.md') + '  (or IDE-native equivalent)',
       ];
 
       const content = [

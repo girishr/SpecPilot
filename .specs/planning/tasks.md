@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-04-26
-version: 5.2
+lastUpdated: 2026-05-02
+version: 5.4
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -84,13 +84,16 @@ Notes
 13. [BL-023] inspired by this linkedin post try to use the CLAUDE.md Stop stuffing everything into CLAUDE.md. Use it as a router. https://www.linkedin.com/posts/alokkumarsunny_stop-stuffing-everything-into-claudemd-activity-7435312701452632064-9vNa . Also we need to look at how to make use of skills.md _(design rationale — will close after BL-028 is implemented)_
 14. ~~[BL-024] Add multi-dev git workflow guidance to generated `tasks.md` template~~ **Delivered by CD-118/CS-053** — `## Multi-Dev Notes` section and `CD-{devPrefix}-###` convention are already in the generated template.
 16. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
-17. [BL-027] Generate `.cursor/rules/project.mdc` for Cursor — Cursor's native AI rules file with YAML front-matter (`description: Project mandates and AI coding rules`, `globs:`, `alwaysApply: true`) + same mandates body as `copilot-instructions.md`; generated in `ideConfigGenerator.ts` when IDE = Cursor; this is what Cursor actually reads for AI context — `.github/copilot-instructions.md` is only partially supported
+17. [BL-027] ~~Generate `.cursor/rules/project.mdc` for Cursor~~ — **merged into CS-058**
 18. [BL-028] Generate `CLAUDE.md` router file for Claude Code / Cowork — project-root `CLAUDE.md` is Claude Code's primary instructions file (equivalent to `copilot-instructions.md` for Copilot); should act as a router pointing to `.specs/` and `.claude/skills/specpilot-project/SKILL.md`; contains critical mandates inline + pointers to spec files for full context; generated in `agentConfigGenerator.ts` when IDE = Cowork; complements the existing SKILL.md (which provides project context to Claude skills)
 19. [BL-029] Add IDE prompt to `specpilot add-specs` — currently `add-specs` hardcodes `vscode` as the IDE default, so existing projects never get Cursor/Cowork/Windsurf/Codex files; add the same 6-choice IDE prompt from `init.ts` to `add-specs.ts`; pass selected IDE through to `specGenerator.generateSpecs()`; respect `--no-prompts` flag (default to `vscode` when skipped)
 20. [BL-030] Expand `specpilot backfill` scope to include IDE-specific files — after BL-027/BL-028 are implemented, add `.cursor/rules/project.mdc`, `CLAUDE.md`, and `.claude/skills/specpilot-project/SKILL.md` to backfill's fingerprint detection so version upgrades propagate mandate changes to these files too; detect which IDE files exist in the project to determine which to backfill (don't require IDE selection)
-21. [BL-031] Generate `.windsurfrules` for Windsurf — plain markdown file at project root with same mandates body as `copilot-instructions.md`; generated in `ideConfigGenerator.ts` when IDE = Windsurf; this is Windsurf's native AI context file
+21. [BL-031] ~~Generate `.windsurfrules` for Windsurf~~ — **merged into CS-058**
 
 ## Current Sprint
+
+### IDE-Native AI Context Files
+
 
 ### Generated Output Improvements
 
@@ -123,3 +126,4 @@ Notes
 81. [CD-120] [CS-054] Add branch warning to `specpilot archive` — `archiveCommand()` in `src/commands/archive.ts` calls `git rev-parse --abbrev-ref HEAD` via `execSync`; if branch is not `main` or `master`, prints yellow `⚠ You're on branch '{name}'` warning and prompts `Continue? [y/N]`; declining aborts without writing; `--force` flag skips the prompt; git failure silently ignored; `--force` option added to `archive` command in `cli.ts`; REQ-002.A.8 and ARCH-004.19 added to spec files
 82. [CD-121] [CS-055] Backfill `tasks.md` devPrefix ID conventions — `specBackfiller.ts`: new `readDevPrefix()` reads `team.devPrefix` from `project.yaml`; new `backfillTasksMd()` checks for `CD-{devPrefix}-###` convention line and `## Multi-Dev Notes` section, inserts both if absent; `BackfillResult` extended with `tasksMd: BackfillFileResult`; `backfill.ts` display updated to show third file result and correct item counts; skipped-with-reason shows warning instead of success
 83. [CD-122] [CS-057] Backfill `team.devPrefix` prompt — `specBackfiller.ts`: new `ensureDevPrefix()` checks if `team.devPrefix` absent and prompts before patching `tasks.md`; `readContributorsFirst()` reads first entry from `contributors:` list (inline or block) falling back to `os.userInfo().username`; `promptHandle()` loops until non-empty answer; `writeDevPrefix()` inserts `team:\n  devPrefix:` after `license:` line (or inside existing `team:` block) using text-based insertion; `--no-prompts` / `dryRun` accept suggestion silently; `BackfillOptions.noPrompts` added; `--no-prompts` flag added to `backfill` CLI command in `cli.ts`
+84. [CD-girishr-001] [CS-058] IDE-routed AI context files — `ideConfigGenerator.ts`: new `generateAiContextFile()` routes per IDE: Cursor → `.cursor/rules/project.mdc` (YAML front-matter `description`/`globs`/`alwaysApply: true` + mandates body); Windsurf → `.windsurfrules` (plain markdown at project root); Antigravity → `.antigravity/rules.md` (plain markdown); VSCode/Codex → `.github/copilot-instructions.md` (unchanged); `generateCursorRules()`, `generateWindsurfRules()`, `generateAntigravityRules()` private helpers added; `specGenerator.ts` updated to call `generateAiContextFile()` instead of always calling `generateCopilotInstructions()`; `init.ts` dry-run note updated; closes BL-027 and BL-031

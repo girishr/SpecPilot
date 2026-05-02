@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-04-26
-version: 2.3
+lastUpdated: 2026-05-02
+version: 2.4
 contributors: [girishr]
 relatedFiles:
   [
@@ -26,7 +26,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Template Engine**: Handlebars helpers and `renderFromString()` utility [ARCH-003.2]
 - **Spec Generator**: Thin coordinator that delegates to SpecFileGenerator, IdeConfigGenerator, and AgentConfigGenerator [ARCH-003.3]
 - **Spec File Generator**: Generates `.specs/` markdown and YAML files (prompts.md, README, project.yaml, etc.) [ARCH-003.3.1]
-- **IDE Config Generator**: Generates workspace settings for VSCode, Cursor, Windsurf, Antigravity; always generates `.github/copilot-instructions.md` regardless of IDE choice [ARCH-003.3.2]
+- **IDE Config Generator**: Generates workspace settings and IDE-native AI context file based on selected IDE; VSCode/Codex → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/project.mdc`; Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Cowork → `CLAUDE.md` (see Agent Config Generator) [ARCH-003.3.2]
 - **Agent Config Generator**: Generates Cowork Skills and Codex Instructions [ARCH-003.3.3]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
 - **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 100 lines → `prompts-archive.md`; `tasks.md` Completed > 25 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]
@@ -50,7 +50,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Module Split**: specGenerator.ts split into 3 focused modules (FIX-011) [ARCH-004.8]
 - **Dual Onboarding**: Separate prompts for new projects (planning-first) and existing projects (codebase-analysis) [ARCH-004.9]
 - **Diff Preview**: refine command shows changes and asks for confirmation before writing [ARCH-004.10]
-- **Universal Copilot Instructions**: `.github/copilot-instructions.md` always generated regardless of IDE — re-injects critical mandates into every AI request to prevent context drift in long sessions [ARCH-004.11]
+- **Universal Copilot Instructions**: replaced by per-IDE routing (ARCH-004.11 revised) — each IDE gets its native AI context file: VSCode/Codex → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/project.mdc` (YAML front-matter with `alwaysApply: true`); Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; `copilot-instructions.md` is **not** generated for Cursor/Windsurf/Antigravity since those IDEs partially or incorrectly parse it [ARCH-004.11]
 - **Tiered Rules**: Generated `project.yaml` uses 🔴 critical / 🟡 process / 🟢 preferences tiers to give AI tools clear priority signals [ARCH-004.12]
 - **Security Documentation**: `.specs/security/` subfolder with `threat-model.md` (path traversal, template injection, supply chain) and `security-decisions.md` (ADR-style security decision log) [ARCH-004.13]
 - **Spec File Archiving**: `specpilot archive` command trims growing `.specs/` files back within tighter active-file limits to keep the working copies easy to scan; archived blocks receive a timestamped header and are appended to the corresponding `-archive.md` file; `--dry-run` flag previews without writing [ARCH-004.14]

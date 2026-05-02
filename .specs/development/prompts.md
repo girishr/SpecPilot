@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-04-26
-version: 1.9
+lastUpdated: 2026-05-02
+version: 2.0
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-058: IDE-routed AI context files — `generateAiContextFile()` in `ideConfigGenerator.ts` routes per IDE: Cursor → `.cursor/rules/project.mdc`, Windsurf → `.windsurfrules`, Antigravity → `.antigravity/rules.md`, VSCode/Codex → `copilot-instructions.md`; `specGenerator.ts` updated to call `generateAiContextFile()` instead of always calling `generateCopilotInstructions()`; `init.ts` dry-run note updated; build clean, 102 tests (May 2, 2026) [PROMPT-002.0.0.15]
 - CS-057: Backfill `team.devPrefix` prompt — `ensureDevPrefix()` + `readContributorsFirst()` + `writeDevPrefix()` + `promptHandle()` in `specBackfiller.ts`; `BackfillOptions.noPrompts`; `--no-prompts` flag on `backfill` CLI command; build clean, 102 tests (April 26, 2026) [PROMPT-002.0.0.14]
 - CS-056 proposal: lower archive thresholds so `tasks.md` Completed archives above 25 lines and `prompts.md` archives above 100 lines; update archiver, validator warnings, generated guidance, and tests after spec approval (April 26, 2026) [PROMPT-002.0.0.11]
 - CS-055: Backfill `tasks.md` devPrefix ID conventions — `readDevPrefix()` + `backfillTasksMd()` in `specBackfiller.ts`; `BackfillResult.tasksMd`; `backfill.ts` display updated; build clean, 102 tests (April 26, 2026) [PROMPT-002.0.0.13]

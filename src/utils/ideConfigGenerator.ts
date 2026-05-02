@@ -57,6 +57,53 @@ export class IdeConfigGenerator {
    *   - noPrompts=false → asks user: overwrite / append / skip
    *   - noPrompts=true  → auto-skips and prints a warning
    */
+  /**
+   * Routes to the correct IDE-native AI context file based on the selected IDE.
+   * - vscode / codex → .github/copilot-instructions.md
+   * - cursor         → .cursor/rules/project.mdc
+   * - windsurf       → .windsurfrules
+   * - antigravity    → .antigravity/rules.md
+   */
+  async generateAiContextFile(
+    projectDir: string,
+    context: TemplateContext,
+    ide: string,
+    noPrompts = false,
+  ): Promise<void> {
+    const key = ide.toLowerCase();
+    if (key === 'cursor') {
+      await this.generateCursorRules(projectDir, context);
+    } else if (key === 'windsurf') {
+      await this.generateWindsurfRules(projectDir, context);
+    } else if (key === 'antigravity') {
+      await this.generateAntigravityRules(projectDir, context);
+    } else {
+      // vscode, codex, and unknown IDEs → copilot-instructions.md
+      await this.generateCopilotInstructions(projectDir, context, noPrompts);
+    }
+  }
+
+  private generateCursorRules(projectDir: string, context: TemplateContext): void {
+    const rulesDir = join(projectDir, '.cursor', 'rules');
+    mkdirSync(rulesDir, { recursive: true });
+    const filePath = join(rulesDir, 'project.mdc');
+    const content =
+      `---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n` +
+      this.buildCopilotInstructions(context);
+    writeFileSync(filePath, content);
+  }
+
+  private generateWindsurfRules(projectDir: string, context: TemplateContext): void {
+    const filePath = join(projectDir, '.windsurfrules');
+    writeFileSync(filePath, this.buildCopilotInstructions(context));
+  }
+
+  private generateAntigravityRules(projectDir: string, context: TemplateContext): void {
+    const rulesDir = join(projectDir, '.antigravity');
+    mkdirSync(rulesDir, { recursive: true });
+    writeFileSync(join(rulesDir, 'rules.md'), this.buildCopilotInstructions(context));
+  }
+
   async generateCopilotInstructions(
     projectDir: string,
     context: TemplateContext,

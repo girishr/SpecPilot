@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-04-26
+lastUpdated: 2026-05-03
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.7
+version: 1.8
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -54,7 +54,7 @@ relatedFiles:
 
 ### IDE & Agent Configuration [REQ-002.E]
 
-- Generate the IDE-native AI context file based on the selected IDE — **not** `copilot-instructions.md` for non-VSCode IDEs: VSCode → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/project.mdc` (YAML front-matter: `description`, `globs`, `alwaysApply: true`); Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Cowork → `CLAUDE.md` (BL-028); Codex → `.github/copilot-instructions.md`; `--no-prompts` defaults to `vscode` [REQ-002.E.1]
+- Generate the IDE-native AI context file based on the selected IDE — **not** `copilot-instructions.md` for non-VSCode IDEs: VSCode → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/project.mdc` (YAML front-matter: `description`, `globs`, `alwaysApply: true`); Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Cowork → `CLAUDE.md` (project-root router file — critical mandates inline + pointers to `.specs/` and `.claude/skills/specpilot-project/SKILL.md`); Codex → `.github/copilot-instructions.md`; `--no-prompts` defaults to `vscode`; existing `CLAUDE.md` handling: with prompts enabled ask `[o]verwrite / [a]ppend / [s]kip`; with `--no-prompts` auto-skip with yellow warning [REQ-002.E.1]
 - Generate workspace settings for desktop IDEs: VSCode (`.vscode/`), Cursor (`.cursor/`), Windsurf (`.windsurf/`), Antigravity (`.antigravity/`) [REQ-002.E.2]
 - Generate agent instruction files for cloud agents: Cowork (`.claude/skills/specpilot-project/SKILL.md`), Codex (`CODEX_INSTRUCTIONS.md`) [REQ-002.E.3]
 - IDE settings include: search inclusion for `.specs/`, markdown/YAML formatting, extensions recommendations [REQ-002.E.4]

@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-05-02
-version: 2.4
+lastUpdated: 2026-05-03
+version: 2.5
 contributors: [girishr]
 relatedFiles:
   [
@@ -26,8 +26,8 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Template Engine**: Handlebars helpers and `renderFromString()` utility [ARCH-003.2]
 - **Spec Generator**: Thin coordinator that delegates to SpecFileGenerator, IdeConfigGenerator, and AgentConfigGenerator [ARCH-003.3]
 - **Spec File Generator**: Generates `.specs/` markdown and YAML files (prompts.md, README, project.yaml, etc.) [ARCH-003.3.1]
-- **IDE Config Generator**: Generates workspace settings and IDE-native AI context file based on selected IDE; VSCode/Codex → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/project.mdc`; Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Cowork → `CLAUDE.md` (see Agent Config Generator) [ARCH-003.3.2]
-- **Agent Config Generator**: Generates Cowork Skills and Codex Instructions [ARCH-003.3.3]
+- **IDE Config Generator**: Generates workspace settings and IDE-native AI context file based on selected IDE; VSCode/Codex → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/project.mdc`; Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Cowork → `CLAUDE.md` (lean router: mandates inline + pointers to `.specs/` + reference to SKILL.md) via `generateAiContextFile()` → `generateClaudeMd()` [ARCH-003.3.2]
+- **Agent Config Generator**: Generates Cowork Skills (`.claude/skills/specpilot-project/SKILL.md`) and Codex Instructions (`CODEX_INSTRUCTIONS.md`); CLAUDE.md itself is in IdeConfigGenerator [ARCH-003.3.3]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
 - **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 100 lines → `prompts-archive.md`; `tasks.md` Completed > 25 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]
 - **Migrator**: Version migration and structure updates [ARCH-003.5]
@@ -59,6 +59,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Spec-First Review Gate**: generated `project.yaml` and `.github/copilot-instructions.md` both include a critical mandate that blocks code or non-spec edits until the AI has read relevant `.specs/` files, updated the affected specs first, produced a Spec Report, and received an explicit developer `yes, proceed` [ARCH-004.17]
 - **Non-Destructive Existing-Project Backfills**: `specpilot backfill` (alias `bf`) command detects what the current SpecPilot version would generate vs what the project currently has, and inserts only the missing mandates/instructions/files; for `planning/tasks.md`, reads `team.devPrefix` from `project.yaml` and inserts the `CD-{devPrefix}-###` convention line and `## Multi-Dev Notes` section if absent; append-only writes preserve existing user-authored spec and instruction content; `--dry-run` prints the planned changes without writing [ARCH-004.18]
 - **Archive Branch Guard**: before `specpilot archive` runs, `archiveCommand()` calls `git rev-parse --abbrev-ref HEAD`; if the branch is not `main` or `master`, a yellow warning is printed and the user is prompted `[y/N]`; declining aborts without writing files; `--force` flag skips the prompt; branch detection failure (e.g. not a git repo) is silently ignored [ARCH-004.19]
+- **CLAUDE.md as Router**: when IDE = Cowork, `generateAiContextFile()` routes to `generateClaudeMd()` which writes a project-root `CLAUDE.md`; file is intentionally lean — critical mandates inline plus ordered list of context pointers (`.specs/project/project.yaml`, `requirements.md`, `architecture.md`, `tasks.md`, `.claude/skills/specpilot-project/SKILL.md`); design follows the "router not a dumping ground" principle (BL-023); existing-file handling mirrors `generateCopilotInstructions()`: `[o]verwrite / [a]ppend / [s]kip` with prompts, auto-skip + yellow warning with `--no-prompts`; closes BL-023 and BL-028 [ARCH-004.23]
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]

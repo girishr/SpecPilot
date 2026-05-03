@@ -260,4 +260,49 @@ describe('SpecGenerator', () => {
     const content = readFileSync(copilotPath, 'utf-8');
     expect(content).toBe(original);
   });
+
+  // CS-059: CLAUDE.md generation for Cowork IDE
+
+  test('CLAUDE.md absent, cowork → writes full router file', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cowork', noPrompts: true });
+
+    const claudePath = join(testDir, 'CLAUDE.md');
+    expect(existsSync(claudePath)).toBe(true);
+
+    const content = readFileSync(claudePath, 'utf-8');
+    expect(content).toContain('test-project');
+    expect(content).toContain('NEVER commit');
+    expect(content).toContain('NEVER push');
+    expect(content).toContain('Spec Report');
+    expect(content).toContain('.specs/project/project.yaml');
+    expect(content).toContain('.claude/skills/specpilot-project/SKILL.md');
+    expect(content).toContain('Re-Anchor');
+  });
+
+  test('CLAUDE.md present, noPrompts=true → auto-skips, file unchanged', async () => {
+    mkdirSync(testDir, { recursive: true });
+    const original = '# My existing CLAUDE.md\n\nExisting content';
+    writeFileSync(join(testDir, 'CLAUDE.md'), original);
+
+    const promptSpy = jest.spyOn(inquirer, 'prompt');
+
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cowork', noPrompts: true });
+
+    expect(promptSpy).not.toHaveBeenCalled();
+    const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
+    expect(content).toBe(original);
+  });
+
+  test('CLAUDE.md present, prompt=skip → leaves file unchanged', async () => {
+    mkdirSync(testDir, { recursive: true });
+    const original = '# My existing CLAUDE.md\n\nExisting content';
+    writeFileSync(join(testDir, 'CLAUDE.md'), original);
+
+    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 's' });
+
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cowork', noPrompts: false });
+
+    const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
+    expect(content).toBe(original);
+  });
 });

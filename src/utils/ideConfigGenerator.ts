@@ -77,6 +77,8 @@ export class IdeConfigGenerator {
       await this.generateWindsurfRules(projectDir, context);
     } else if (key === 'antigravity') {
       await this.generateAntigravityRules(projectDir, context);
+    } else if (key === 'cowork') {
+      await this.generateClaudeMd(projectDir, context, noPrompts);
     } else {
       // vscode, codex, and unknown IDEs → copilot-instructions.md
       await this.generateCopilotInstructions(projectDir, context, noPrompts);
@@ -102,6 +104,121 @@ export class IdeConfigGenerator {
     const rulesDir = join(projectDir, '.antigravity');
     mkdirSync(rulesDir, { recursive: true });
     writeFileSync(join(rulesDir, 'rules.md'), this.buildCopilotInstructions(context));
+  }
+
+  private async generateClaudeMd(
+    projectDir: string,
+    context: TemplateContext,
+    noPrompts = false,
+  ): Promise<void> {
+    const filePath = join(projectDir, 'CLAUDE.md');
+
+    if (!existsSync(filePath)) {
+      writeFileSync(filePath, this.buildClaudeMd(context));
+      return;
+    }
+
+    // File already exists
+    if (noPrompts) {
+      console.log(
+        '\u26a0\ufe0f  CLAUDE.md already exists \u2014 skipping (--no-prompts).\n' +
+        '   Manually merge the SpecPilot mandates shown below into that file:\n\n' +
+        this.buildClaudeMdSection(context),
+      );
+      return;
+    }
+
+    const { action } = await inquirer.prompt<{ action: string }>([
+      {
+        type: 'list',
+        name: 'action',
+        message: '\u26a0\ufe0f  CLAUDE.md already exists. What would you like to do?',
+        choices: [
+          { name: 'Overwrite with SpecPilot template', value: 'o' },
+          { name: 'Append SpecPilot section to existing file', value: 'a' },
+          { name: 'Skip (keep existing file unchanged)', value: 's' },
+        ],
+      },
+    ]);
+
+    if (action === 'o') {
+      writeFileSync(filePath, this.buildClaudeMd(context));
+    } else if (action === 'a') {
+      appendFileSync(filePath, '\n\n' + this.buildClaudeMdSection(context));
+    }
+    // action === 's' → leave file unchanged
+  }
+
+  private buildClaudeMd(context: TemplateContext): string {
+    const stack = context.framework
+      ? `${context.language} / ${context.framework}`
+      : context.language;
+    return `# CLAUDE.md \u2014 ${context.projectName}
+
+> This file is the primary instructions file for Claude Code / Cowork.
+> Keep it lean \u2014 use it as a router to your \`.specs/\` files, not a dumping ground.
+> Full project context is in \`.specs/project/project.yaml\`.
+
+## Project
+
+- **Name:** ${context.projectName}
+- **Stack:** ${stack}
+- **Specs location:** \`.specs/\`
+
+## \ud83d\udd34 Critical Mandates \u2014 Never violate, no exceptions
+
+${this.buildCriticalMandatesMarkdown()}
+
+## \ud83d\udfe1 Process Mandates
+
+${this.buildProcessMandatesMarkdown()}
+
+## Context Files \u2014 Read in this order
+
+1. \`.specs/project/project.yaml\` \u2014 project config, rules, tech stack
+2. \`.specs/project/requirements.md\` \u2014 functional and non-functional requirements
+3. \`.specs/architecture/architecture.md\` \u2014 system design and decisions
+4. \`.specs/planning/tasks.md\` \u2014 current sprint and backlog
+5. \`.claude/skills/specpilot-project/SKILL.md\` \u2014 project skill context
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md \u2192 ## Re-Anchor Prompt\`.
+`;
+  }
+
+  private buildClaudeMdSection(context: TemplateContext): string {
+    const stack = context.framework
+      ? `${context.language} / ${context.framework}`
+      : context.language;
+    return `## SpecPilot Mandates \u2014 ${context.projectName}
+
+> Added by \`specpilot add-specs\`. These mandates apply alongside your existing instructions.
+> Full context is in \`.specs/project/project.yaml\`.
+
+### Project
+
+- **Name:** ${context.projectName}
+- **Stack:** ${stack}
+- **Specs location:** \`.specs/\`
+
+### \ud83d\udd34 Critical Mandates \u2014 Never violate, no exceptions
+
+${this.buildCriticalMandatesMarkdown()}
+
+### \ud83d\udfe1 Process Mandates
+
+${this.buildProcessMandatesMarkdown()}
+
+### Context Files \u2014 Read in this order
+
+1. \`.specs/project/project.yaml\` \u2014 project config, rules, tech stack
+2. \`.specs/project/requirements.md\` \u2014 functional and non-functional requirements
+3. \`.specs/architecture/architecture.md\` \u2014 system design and decisions
+4. \`.specs/planning/tasks.md\` \u2014 current sprint and backlog
+5. \`.claude/skills/specpilot-project/SKILL.md\` \u2014 project skill context
+`;
   }
 
   async generateCopilotInstructions(

@@ -70,3 +70,5 @@ final-test/
 
 # AI prompts and sensitive development data
 .specs/prompts.md
+
+.agents/skills/caveman/SKILL.md

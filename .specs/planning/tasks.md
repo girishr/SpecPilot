@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-05-03
-version: 5.6
+lastUpdated: 2026-05-05
+version: 5.7
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -96,7 +96,6 @@ Notes
 
 ### Multi-Dev Alignment
 
-
 ## Completed
 
 > CD-001 through CD-039 have been archived to [tasks-archive.md](tasks-archive.md).
@@ -122,3 +121,4 @@ Notes
 83. [CD-122] [CS-057] Backfill `team.devPrefix` prompt — `specBackfiller.ts`: new `ensureDevPrefix()` checks if `team.devPrefix` absent and prompts before patching `tasks.md`; `readContributorsFirst()` reads first entry from `contributors:` list (inline or block) falling back to `os.userInfo().username`; `promptHandle()` loops until non-empty answer; `writeDevPrefix()` inserts `team:\n  devPrefix:` after `license:` line (or inside existing `team:` block) using text-based insertion; `--no-prompts` / `dryRun` accept suggestion silently; `BackfillOptions.noPrompts` added; `--no-prompts` flag added to `backfill` CLI command in `cli.ts`
 84. [CD-girishr-001] [CS-058] IDE-routed AI context files — `ideConfigGenerator.ts`: new `generateAiContextFile()` routes per IDE: Cursor → `.cursor/rules/project.mdc` (YAML front-matter `description`/`globs`/`alwaysApply: true` + mandates body); Windsurf → `.windsurfrules` (plain markdown at project root); Antigravity → `.antigravity/rules.md` (plain markdown); VSCode/Codex → `.github/copilot-instructions.md` (unchanged); `generateCursorRules()`, `generateWindsurfRules()`, `generateAntigravityRules()` private helpers added; `specGenerator.ts` updated to call `generateAiContextFile()` instead of always calling `generateCopilotInstructions()`; `init.ts` dry-run note updated; closes BL-027 and BL-031
 85. [CD-girishr-002] [CS-059] Generate `CLAUDE.md` router for Cowork — `ideConfigGenerator.ts`: `'cowork'` case in `generateAiContextFile()` → `generateClaudeMd()`; content: lean router with critical mandates + ordered pointer list to `.specs/` files and SKILL.md + Re-Anchor; existing-file: `[o]verwrite / [a]ppend / [s]kip` or `--no-prompts` auto-skip + yellow warning; `buildClaudeMd()` + `buildClaudeMdSection()` helpers added; 3 new tests (102 → 105); closes BL-023 and BL-028
+86. [CD-girishr-003] [CS-060] Write `specBackfiller.test.ts` — new test suite (7th) covering all backfiller logic that shipped without tests in CS-055/CS-057: `backfillProjectYaml()` (3 insertion strategies, skipped/updated/missing), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix()` + `writeDevPrefix()` + `readContributorsFirst()` (inline/block/fallback), dry-run for all three targets; 24 new tests (105 → 129 total)

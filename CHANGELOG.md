@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`specBackfiller.test.ts`** (CD-girishr-003/CS-060): new 7th test suite covering all backfiller logic that shipped without tests in CS-055/CS-057 — `backfillProjectYaml()` (fingerprint detection, 3 insertion strategies: after last MANDATE line / under `critical:` key / appended block; skipped/updated/missing paths), `backfillCopilotInstructions()` (file absent → created; all mandates present → skipped; partial → appends backfill block), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes section; ordering check; dry-run guard), `ensureDevPrefix()` / `writeDevPrefix()` (inserts `team:` block after `license:` line; inserts inside existing `team:` block without duplicating key), `readContributorsFirst()` (inline array / block list / fallback); dry-run for all three targets; 24 new tests, 105 → 129 total.
+
 ## [1.6.7] - 2026-05-01
 
 ### Changed

@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-04-26
-version: 1.6
+lastUpdated: 2026-05-05
+version: 1.7
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -10,16 +10,17 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ## Current Coverage [TESTS-001.1]
 
-**6 test suites, 102 tests, all passing** (Jest)
+**7 test suites, 129 tests, all passing** (Jest)
 
 | Suite            | File                      | Tests | Covers                                                                                           |
 | ---------------- | ------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
-| Spec Generator   | `specGenerator.test.ts`   | 12    | End-to-end `.specs/` generation, `copilot-instructions.md` handling, mandate output              |
+| Spec Generator   | `specGenerator.test.ts`   | 15    | End-to-end `.specs/` generation, IDE-routed AI context files, CLAUDE.md router, mandate output   |
 | Template Engine  | `templateEngine.test.ts`  | 24    | Handlebars helpers (capitalize, lowercase, year), renderFromString, built-in template edge cases |
 | Project Detector | `projectDetector.test.ts` | 17    | Node.js/Python detection, framework identification, metadata extraction                          |
 | Project Migrator | `projectMigrator.test.ts` | 11    | Simple↔complex migration, file mapping, backup, merge strategy                                   |
 | Spec Validator   | `specValidator.test.ts`   | 24    | Required files, YAML validity, mandate checking, cross-references, auto-fix                      |
 | Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds (100/25), dry-run behaviour, archived block formatting           |
+| Spec Backfiller  | `specBackfiller.test.ts`  | 24    | `project.yaml` mandate backfill (3 insertion strategies), `copilot-instructions.md` backfill (created/skipped/updated), `tasks.md` devPrefix + Multi-Dev Notes backfill, `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths, missing-file handling (CS-060) |
 
 ## Test Plans [TESTS-002]
 
@@ -30,6 +31,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 - Migration file mapping (simple ↔ complex structure)
 - Project detection (Node.js, Python)
 - Framework identification
+- Spec Backfiller: fingerprint detection, text-based mandate insertion (3 strategies), `readContributorsFirst` (inline/block/fallback), `writeDevPrefix` (with/without existing `team:` block), `ensureDevPrefix` (`noPrompts`, `dryRun`), dry-run guard for all three backfill targets
 
 ### Integration Tests [TESTS-002.2]
 

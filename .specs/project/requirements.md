@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-05-03
+lastUpdated: 2026-05-05
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.8
+version: 1.9
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -24,7 +24,7 @@ relatedFiles:
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
-- `specpilot backfill` — after upgrading SpecPilot to a newer version (which may include new mandates, rules, files, or features), non-destructively backfill the missing content into projects that already have `.specs/`, without overwriting or deleting existing user-authored content; also backfills `planning/tasks.md` with the `CD-{devPrefix}-###` ID convention line and `## Multi-Dev Notes` section; when `team.devPrefix` is absent from `project.yaml`, prompts the user for their handle using `contributors[0]` from `project.yaml` as the suggested default (falling back to `os.userInfo().username`); `--no-prompts` accepts the suggestion silently [REQ-002.A.7]
+- `specpilot backfill` — after upgrading SpecPilot to a newer version (which may include new mandates, rules, files, or features), non-destructively backfill the missing content into projects that already have `.specs/`, without overwriting or deleting existing user-authored content; also backfills `planning/tasks.md` with the `CD-{devPrefix}-###` ID convention line and `## Multi-Dev Notes` section; when `team.devPrefix` is absent from `project.yaml`, prompts the user for their handle using `contributors[0]` from `project.yaml` as the suggested default (falling back to `os.userInfo().username`); `--no-prompts` accepts the suggestion silently; also detects which IDE-specific files exist in the project (`.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md`) and backfills missing mandates into them using fingerprint-based detection; IDE files absent from the project are skipped (no IDE selection required); SKILL.md is reported as stale if key structural sections are missing, but is not auto-patched (re-run `specpilot add-specs` to regenerate) [REQ-002.A.7]
 - `specpilot archive [--dry-run] [--force]` — archive oversized `.specs/` files; before archiving, detect the current git branch and warn (with `[y/N]` confirmation) when not on `main` or `master`; `--force` bypasses the branch warning [REQ-002.A.8]
 
 ### Project Initialization [REQ-002.B]

@@ -20,7 +20,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 | Project Migrator | `projectMigrator.test.ts` | 11    | Simple↔complex migration, file mapping, backup, merge strategy                                   |
 | Spec Validator   | `specValidator.test.ts`   | 24    | Required files, YAML validity, mandate checking, cross-references, auto-fix                      |
 | Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds (100/25), dry-run behaviour, archived block formatting           |
-| Spec Backfiller  | `specBackfiller.test.ts`  | 24    | `project.yaml` mandate backfill (3 insertion strategies), `copilot-instructions.md` backfill (created/skipped/updated), `tasks.md` devPrefix + Multi-Dev Notes backfill, `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths, missing-file handling (CS-060) |
+| Spec Backfiller  | `specBackfiller.test.ts`  | 24+   | `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths (CS-060); IDE file backfill: cursor/claude/windsurf/antigravity mandate fingerprinting, SKILL.md structural fingerprint + stale detection, absent files skipped, dry-run (CS-061 pending) |
 
 ## Test Plans [TESTS-002]
 

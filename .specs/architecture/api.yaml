@@ -1,14 +1,14 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-03-08
-# version: 1.5
+# lastUpdated: 2026-05-10
+# version: 1.6
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
 
 cli:
   binary: specpilot
-  version: 1.5.0
+  version: 1.6.7
   runtime: Node.js >= 16
   install: npm install -g specpilot
 
@@ -29,6 +29,10 @@ commands:
       --framework:
         type: string
         description: Framework (react, express, next, nest, vue, angular, fastapi, django, flask, streamlit)
+      --dir:
+        type: string
+        default: "."
+        description: Target directory
       --specs-name:
         type: string
         default: .specs
@@ -36,8 +40,12 @@ commands:
       --no-prompts:
         type: boolean
         description: Skip interactive prompts (use defaults)
+      --dry-run:
+        type: boolean
+        description: List files that would be created without writing them
     interactive-prompts:
       - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
+      - "Short developer handle for task/prompt IDs"
       - "What does your project do? (mandatory)"
       - "Who are the target users? (optional)"
       - "Expected scale? (optional)"
@@ -65,6 +73,9 @@ commands:
       --no-prompts:
         type: boolean
         description: Skip interactive prompts
+    interactive-prompts:
+      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
+      - "Short developer handle for task/prompt IDs"
     exit-codes:
       0: Success
       1: .specs/ already exists or error
@@ -73,47 +84,79 @@ commands:
     description: Validate .specs/ folder structure and content
     usage: specpilot validate [options]
     options:
+      --dir:
+        type: string
+        default: "."
+        description: Project directory
       --fix:
         type: boolean
         description: Auto-fix issues where possible
+      --verbose:
+        type: boolean
+        description: Show detailed validation results
     exit-codes:
       0: Valid (may have warnings)
       1: Validation errors found
 
   list:
     description: List available language/framework templates
-    usage: specpilot list
+    usage: specpilot list [options]
+    options:
+      --lang:
+        type: string
+        description: Filter by language
+      --verbose:
+        type: boolean
+        description: Show template details
     exit-codes:
       0: Success
 
   migrate:
-    description: Migrate .specs/ folder to the latest structure
+    description: Convert legacy .project-spec folder to current .specs/ structure
     usage: specpilot migrate [options]
     options:
+      --dir:
+        type: string
+        default: "."
+        description: Project directory
       --from:
         type: string
-        description: Source structure format (simple or complex)
+        default: complex
+        description: Source structure format (complex or project-spec)
       --to:
         type: string
-        description: Target structure format (simple or complex)
+        default: simple
+        description: Target structure format
       --backup:
         type: boolean
         default: true
         description: Create backup before migration
-      --dry-run:
-        type: boolean
-        description: Preview migration without writing
     exit-codes:
       0: Success
       1: Migration error
 
   refine:
     description: Refine spec files with current project context
-    usage: specpilot refine [options]
+    usage: specpilot refine [description] [options]
+    arguments:
+      description:
+        required: false
+        description: Natural language description of changes to apply
     options:
+      --dir:
+        type: string
+        default: "."
+        description: Project directory
+      --specs-name:
+        type: string
+        default: .specs
+        description: Custom name for the specs directory
       --no-prompts:
         type: boolean
         description: Skip confirmation prompt (write directly)
+      --update:
+        type: boolean
+        description: Regenerate specs with new description
     behavior:
       - Collects pending changes to requirements.md, context.md, prompts.md
       - Shows line-level diff preview before writing
@@ -122,8 +165,65 @@ commands:
       0: Success (or no changes needed)
       1: Error
 
+  archive:
+    description: Archive oversized .specs/ files
+    usage: specpilot archive [options]
+    thresholds:
+      development/prompts.md: "> 100 lines"
+      planning/tasks.md: "Completed section > 25 lines"
+    options:
+      --dry-run:
+        type: boolean
+        description: Preview what would be archived without writing any files
+      --force:
+        type: boolean
+        description: Skip branch warning and archive without confirmation
+    behavior:
+      - Warns and prompts before archiving on a non-main/non-master branch
+      - Appends archived entries to prompts-archive.md or tasks-archive.md
+    exit-codes:
+      0: Success
+      1: Archive error
+
+  backfill:
+    description: Backfill missing SpecPilot mandates into existing projects
+    usage: specpilot backfill [options]
+    options:
+      --dir:
+        type: string
+        default: "."
+        description: Project directory
+      --specs-name:
+        type: string
+        default: .specs
+        description: Custom name for the specs directory
+      --dry-run:
+        type: boolean
+        description: Preview changes without writing any files
+      --no-prompts:
+        type: boolean
+        description: Accept suggested devPrefix silently when team.devPrefix is missing
+    behavior:
+      - Non-destructively patches missing mandates in project.yaml and AI context files
+      - Backfills tasks.md with devPrefix ID conventions and Multi-Dev Notes
+      - Detects existing IDE files and patches only the files present on disk
+      - Reports stale Cowork SKILL.md structure without auto-patching it
+    exit-codes:
+      0: Success
+      1: Backfill error
+
 global-options:
   --version:
     description: Show SpecPilot version
   --help:
     description: Show help for any command
+
+aliases:
+  init: i
+  validate: v
+  migrate: m
+  list: ls
+  refine: ref
+  archive: ar
+  add-specs: add
+  backfill: bf

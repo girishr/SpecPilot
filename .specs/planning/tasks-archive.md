@@ -137,3 +137,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-05-10 01:43:54
+
+67. [CD-106] [DOC-002] Add `docs/comparison.md` comparing SpecPilot with GitHub Spec Kit — new dedicated comparison guide covering: philosophy differences, workflow comparison, generated artifacts, and when to choose each tool; `README.md` Documentation section updated to link to `comparison.md`; `docs/GUIDE.md` Table of Contents and new `## Comparison with GitHub Spec Kit` section added pointing to the file
+68. [CD-112] [CS-048] Improve `specpilot validate` failure output — after `displayValidationResults(false, ...)` in `src/commands/validate.ts`, if `results.fixable.length > 0` (and `--fix` not used) print a yellow hint: "N issue(s) can be auto-fixed. Run: specpilot validate --fix"; if there are remaining manual-only errors print a dim count message; no change to exit code or existing output structure
+69. [CD-107] [BUG-002] Fix `specpilot validate --fix` not writing files — `createMissingFile()` in `specValidator.ts` silently returned early when a subdirectory didn't exist instead of creating it; replaced the early-return stub with `mkdirSync(dir, { recursive: true })`; added `mkdirSync` to the `fs` import
+
+---
+

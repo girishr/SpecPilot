@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-04-26
-version: 1.6
+lastUpdated: 2026-05-10
+version: 1.7
 contributors: [girishr]
 relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 ---
@@ -10,10 +10,10 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (v1.4.0)
+- **Phase**: Active Development (v1.6.7)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: 19-fix code review refactoring (FIX-001 through FIX-019), 72 test coverage, module split (specGenerator → specFileGenerator + ideConfigGenerator + agentConfigGenerator), dual onboarding prompts (new/existing), specify diff preview, ESLint integration
-- **Next Steps**: See tasks.md Current Sprint (CS-018 through CS-034) — .specs folder fixes and generated output improvements
+- **Recent Implementations**: IDE-routed AI context files, Cowork `CLAUDE.md` router generation, non-destructive `backfill`, `archive` branch guard and lower thresholds, mandatory devPrefix ID conventions, `.gitattributes` union merge rules, and 129-test coverage
+- **Next Steps**: See tasks.md Current Sprint, especially CS-061 for IDE-specific backfill coverage
 
 ## Key Decisions [CTX-003]
 
@@ -26,7 +26,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Existing Projects**: add-specs command with codebase analysis [CTX-003.7]
 - **Git Mandates**: Require explicit developer prompts for all git operations [CTX-003.8]
 - **Folder Structure Display**: Show nested tree instead of flat list in architecture.md [CTX-003.9]
-- **AI IDE Integration**: Support for VSCode, Cursor, Windsurf, and Antigravity workspace settings; Cowork Skills and Codex instructions for cloud-based AI agents [CTX-003.10]
+- **AI IDE Integration**: Support for VSCode, Cursor, Windsurf, Antigravity, Cowork/Claude, and Codex context files; existing-project updates flow through non-destructive backfill where possible [CTX-003.10]
 - **Visual CLI**: Gemini-style graphical interface with ASCII branding [CTX-003.11]
 - **Module Split**: specGenerator.ts split into specFileGenerator, ideConfigGenerator, agentConfigGenerator for maintainability (FIX-011) [CTX-003.12]
 - **Template Simplification**: Removed TemplateRegistry abstraction; inlined catalog as constant (FIX-013) [CTX-003.13]
@@ -36,10 +36,11 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Existing-Project Backfills**: `specpilot backfill` (alias `bf`) for non-destructive backfills after upgrading SpecPilot — detects new mandates, rules, or files from the newer version and inserts only what's missing into the project's existing `.specs/`; never overwrites user-authored content [CTX-003.17]
 - **Migrate Scope**: keep `specpilot migrate` for rare legacy structure conversion only; do not position it as a general version-update command in docs/help text [CTX-003.18]
 - **Aggressive Archive Thresholds**: keep active working spec files short — archive `planning/tasks.md` once `## Completed` exceeds 25 lines and archive `development/prompts.md` once the file exceeds 100 lines so day-to-day navigation stays fast [CTX-003.19]
+- **IDE-Native Backfill Scope**: `specpilot backfill` should inspect IDE files already present on disk and patch missing mandate blocks for Cursor, Cowork/Claude, Windsurf, and Antigravity without requiring a new IDE-selection prompt; Cowork SKILL.md is reported stale rather than auto-patched [CTX-003.20]
 
 ## Established Patterns [CTX-004]
 
-- **File Organization**: Subfolder structure under `.specs/` (project/, architecture/, planning/, quality/, development/) [CTX-004.1]
+- **File Organization**: Subfolder structure under `.specs/` (project/, architecture/, planning/, quality/, development/, security/) [CTX-004.1]
 - **Naming Convention**: Consistent kebab-case for files [CTX-004.2]
 - **Documentation**: Markdown with YAML front-matter metadata [CTX-004.3]
 - **Version Control**: Git with conventional commits [CTX-004.4]
@@ -72,6 +73,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Module Boundaries**: Splitting large files (1,298 → 3 focused modules) reduces merge conflicts and cognitive load [CTX-006.14]
 - **Test Investment**: Going from 3 to 72 tests caught real alignment issues during the review process [CTX-006.15]
 - **Aspirational vs Real**: Marking unconfirmed IDE settings as ASPIRATIONAL prevents user trust erosion [CTX-006.16]
+- **Specs Drift**: CLI surface changes should update `architecture/api.yaml`, `planning/roadmap.md`, and `development/context.md` in the same pass so generated-command docs and project memory do not lag behind implementation [CTX-006.17]
 
 ## Development Insights [CTX-007]
 

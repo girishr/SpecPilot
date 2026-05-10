@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-05-03
-version: 2.5
+lastUpdated: 2026-05-05
+version: 2.6
 contributors: [girishr]
 relatedFiles:
   [
@@ -35,7 +35,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 - **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
 - **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitSuccess()` [ARCH-003.10]
-- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing SpecPilot mandates into `project.yaml`, `copilot-instructions.md`, and `planning/tasks.md` using fingerprint-based detection and append-only writes; when `team.devPrefix` is absent, prompts for the handle using `contributors[0]` from `project.yaml` as the suggested default (fallback: `os.userInfo().username`); writes `team:\n  devPrefix:` into `project.yaml` before patching `tasks.md`; `--no-prompts` accepts the suggestion silently; used by the `backfill` command with `--dry-run` support [ARCH-003.11]
+- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing SpecPilot mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, and IDE-specific files using fingerprint-based detection and append-only writes; when `team.devPrefix` is absent, prompts for the handle using `contributors[0]` from `project.yaml` as the suggested default (fallback: `os.userInfo().username`); writes `team:\n  devPrefix:` into `project.yaml` before patching `tasks.md`; `--no-prompts` accepts the suggestion silently; IDE file backfill: detects which of `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md` exist in the project and backfills missing MD mandates into each; SKILL.md is checked for structural fingerprints only (not auto-patched); absent IDE files are skipped; `--dry-run` support for all paths; used by the `backfill` command [ARCH-003.11]
 
 ## Design Decisions [ARCH-004]
 
@@ -60,6 +60,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Non-Destructive Existing-Project Backfills**: `specpilot backfill` (alias `bf`) command detects what the current SpecPilot version would generate vs what the project currently has, and inserts only the missing mandates/instructions/files; for `planning/tasks.md`, reads `team.devPrefix` from `project.yaml` and inserts the `CD-{devPrefix}-###` convention line and `## Multi-Dev Notes` section if absent; append-only writes preserve existing user-authored spec and instruction content; `--dry-run` prints the planned changes without writing [ARCH-004.18]
 - **Archive Branch Guard**: before `specpilot archive` runs, `archiveCommand()` calls `git rev-parse --abbrev-ref HEAD`; if the branch is not `main` or `master`, a yellow warning is printed and the user is prompted `[y/N]`; declining aborts without writing files; `--force` flag skips the prompt; branch detection failure (e.g. not a git repo) is silently ignored [ARCH-004.19]
 - **CLAUDE.md as Router**: when IDE = Cowork, `generateAiContextFile()` routes to `generateClaudeMd()` which writes a project-root `CLAUDE.md`; file is intentionally lean — critical mandates inline plus ordered list of context pointers (`.specs/project/project.yaml`, `requirements.md`, `architecture.md`, `tasks.md`, `.claude/skills/specpilot-project/SKILL.md`); design follows the "router not a dumping ground" principle (BL-023); existing-file handling mirrors `generateCopilotInstructions()`: `[o]verwrite / [a]ppend / [s]kip` with prompts, auto-skip + yellow warning with `--no-prompts`; closes BL-023 and BL-028 [ARCH-004.23]
+- **IDE File Backfill via Filesystem Detection**: `specpilot backfill` detects which IDE files exist in the project without requiring an IDE selection prompt; `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md` are checked against the same MD_MANDATES fingerprints used for `copilot-instructions.md`; missing mandates are appended as a `## SpecPilot Mandates (backfilled)` block; `.claude/skills/specpilot-project/SKILL.md` is checked for structural fingerprints only (auto-patching is not safe since content is Handlebars-rendered); stale SKILL.md is reported with `action: 'stale'` and a re-run hint; IDE files absent from the project are silently skipped; `BackfillResult.ideFiles` field added as `IdeFileBackfillResult[]` [ARCH-004.24]
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]
@@ -113,8 +114,9 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 2. Command reads current `.specs/project/project.yaml` and `.github/copilot-instructions.md`
 3. Compares current content against the latest SpecPilot-managed mandate/instruction blocks
 4. Computes only missing insertions or append operations; existing user-authored content is preserved
-5. In `--dry-run`, prints the planned changes without writing
-6. In write mode, applies the minimal merge/appends and prints a summary of updated files and skipped files
+5. Detects which IDE-specific files exist (`.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md`) and checks each for missing mandate fingerprints
+6. In `--dry-run`, prints the planned changes without writing
+7. In write mode, applies the minimal merge/appends and prints a summary of updated, skipped, stale, and missing files
 
 ## Assumptions [ARCH-007]
 

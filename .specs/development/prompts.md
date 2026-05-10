@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-05-05
-version: 2.2
+lastUpdated: 2026-05-10
+version: 2.3
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Spec sync request: refreshed stale `.specs` files to match the current CLI surface and package version 1.6.7 — updated `architecture/api.yaml` with `archive`, `backfill`, aliases, current options, and version; updated `planning/roadmap.md`, `development/context.md`, `development/docs.md`, and `project/project.yaml`; preserved existing CS-061 spec edits (May 10, 2026) [PROMPT-002.0.0.18]
 - CS-060: Write `specBackfiller.test.ts` — new 7th test suite, 24 tests; covers `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (convention line + Multi-Dev Notes ordering), `ensureDevPrefix()` + `writeDevPrefix()` + `readContributorsFirst()` (inline/block/fallback), dry-run for all paths; 105 → 129 total (May 5, 2026) [PROMPT-002.0.0.17]
 - CS-059: Generate `CLAUDE.md` router for Cowork — `ideConfigGenerator.ts`: `'cowork'` case in `generateAiContextFile()` → `generateClaudeMd()`; content: lean router with critical mandates + ordered pointer list to `.specs/` files and SKILL.md + Re-Anchor; existing-file: `[o]verwrite / [a]ppend / [s]kip` or `--no-prompts` auto-skip + yellow warning; `buildClaudeMd()` + `buildClaudeMdSection()` helpers added; 3 new tests (102 → 105); closes BL-023 and BL-028 (May 3, 2026) [PROMPT-002.0.0.16]
 - CS-058: IDE-routed AI context files — `generateAiContextFile()` in `ideConfigGenerator.ts` routes per IDE: Cursor → `.cursor/rules/project.mdc`, Windsurf → `.windsurfrules`, Antigravity → `.antigravity/rules.md`, VSCode/Codex → `copilot-instructions.md`; `specGenerator.ts` updated to call `generateAiContextFile()` instead of always calling `generateCopilotInstructions()`; `init.ts` dry-run note updated; build clean, 102 tests (May 2, 2026) [PROMPT-002.0.0.15]

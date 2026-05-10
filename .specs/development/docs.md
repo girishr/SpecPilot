@@ -1,7 +1,7 @@
 ---
 fileID: DOC-001
-lastUpdated: 2026-03-12
-version: 1.4
+lastUpdated: 2026-05-10
+version: 1.5
 contributors: [girishr]
 relatedFiles:
   [
@@ -264,8 +264,10 @@ specpilot validate
 - `specpilot add-specs`: Add .specs/ to an existing project with codebase analysis
 - `specpilot list`: Show available language/framework templates
 - `specpilot validate [--fix]`: Validate project specs
-- `specpilot migrate [--from <format> --to <format>]`: Migrate to newer structure
+- `specpilot migrate [--from <format> --to <format>]`: Convert legacy `.project-spec` folders to the current `.specs/` structure
 - `specpilot refine`: Refine spec files with current project context (shows diff + confirmation)
+- `specpilot backfill`: Non-destructively add missing SpecPilot mandates and conventions to existing spec/AI context files
+- `specpilot archive`: Move older prompt/task entries into archive files when active spec files exceed line limits
 
 ### Configuration
 

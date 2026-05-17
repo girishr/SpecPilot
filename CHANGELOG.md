@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **IDE file backfill in `specpilot backfill`** (CD-girishr-005/CS-061): `SpecBackfiller` now detects existing `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, and `.claude/skills/specpilot-project/SKILL.md` by filesystem presence; mandate-bearing IDE files are checked against `MD_MANDATES` and receive an appended backfill block for missing mandates; Cowork SKILL.md is structural-check only and reports `action='stale'` with a regeneration hint instead of auto-patching; `BackfillResult.ideFiles` and CLI display support added; 15 new tests, 129 → 144 total.
 - **`specBackfiller.test.ts`** (CD-girishr-003/CS-060): new 7th test suite covering all backfiller logic that shipped without tests in CS-055/CS-057 — `backfillProjectYaml()` (fingerprint detection, 3 insertion strategies: after last MANDATE line / under `critical:` key / appended block; skipped/updated/missing paths), `backfillCopilotInstructions()` (file absent → created; all mandates present → skipped; partial → appends backfill block), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes section; ordering check; dry-run guard), `ensureDevPrefix()` / `writeDevPrefix()` (inserts `team:` block after `license:` line; inserts inside existing `team:` block without duplicating key), `readContributorsFirst()` (inline array / block list / fallback); dry-run for all three targets; 24 new tests, 105 → 129 total.
 
 ## [1.6.7] - 2026-05-01

@@ -127,6 +127,26 @@ Notes
 `;
 }
 
+function makeFullSkillMd(): string {
+  return `---
+name: specpilot-project
+description: SpecPilot project context.
+---
+
+# SpecPilot Project Context
+
+## Quick Start
+
+## Key Files to Reference
+
+1. **.specs/project/project.yaml** - Project configuration
+
+## Project Rules
+
+## Development Process
+`;
+}
+
 // ---------------------------------------------------------------------------
 // Suite
 // ---------------------------------------------------------------------------
@@ -493,7 +513,7 @@ rules:
   // ===========================================================================
 
   describe('BackfillResult shape', () => {
-    it('result has projectYaml, copilotInstructions, tasksMd fields', async () => {
+    it('result has projectYaml, copilotInstructions, tasksMd, ideFiles fields', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: FULL_YAML,
         copilotMd: FULL_MD,
@@ -503,6 +523,7 @@ rules:
       expect(result).toHaveProperty('projectYaml');
       expect(result).toHaveProperty('copilotInstructions');
       expect(result).toHaveProperty('tasksMd');
+      expect(result).toHaveProperty('ideFiles');
     });
 
     it('all-clean project returns skipped for all three targets', async () => {
@@ -515,6 +536,301 @@ rules:
       expect(result.projectYaml.action).toBe('skipped');
       expect(result.copilotInstructions.action).toBe('skipped');
       expect(result.tasksMd.action).toBe('skipped');
+    });
+  });
+
+  // ===========================================================================
+  // IDE-native AI context file backfill
+  // ===========================================================================
+
+  describe('backfillIdeFiles — absent files', () => {
+    it('does not create IDE-native files when they are absent', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      expect(result.ideFiles).toHaveLength(0);
+      expect(existsSync(join(testDir, '.cursor', 'rules', 'project.mdc'))).toBe(false);
+      expect(existsSync(join(testDir, 'CLAUDE.md'))).toBe(false);
+      expect(existsSync(join(testDir, '.windsurfrules'))).toBe(false);
+      expect(existsSync(join(testDir, '.antigravity', 'rules.md'))).toBe(false);
+    });
+  });
+
+  describe('backfillIdeFiles — mandate-bearing files', () => {
+    it('skips Cursor rules when all 8 MD mandates are already present', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.ideFiles).toEqual([
+        expect.objectContaining({
+          path: '.cursor/rules/project.mdc',
+          action: 'skipped',
+          found: 8,
+          total: 8,
+        }),
+      ]);
+    });
+
+    it('appends missing mandates to Cursor rules', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      writeFileSync(
+        join(testDir, '.cursor', 'rules', 'project.mdc'),
+        '---\nalwaysApply: true\n---\n\n1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n',
+        'utf-8'
+      );
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), 'utf-8');
+
+      expect(result.ideFiles[0]).toMatchObject({
+        path: '.cursor/rules/project.mdc',
+        action: 'updated',
+      });
+      expect(written).toContain('SpecPilot Mandates (backfilled');
+      expect(written).toContain('NEVER push');
+      expect(written).toContain('SPEC-FIRST review gate');
+    });
+
+    it('dry-run does not write Cursor rules', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      const cursorPath = join(testDir, '.cursor', 'rules', 'project.mdc');
+      writeFileSync(cursorPath, '# Cursor Rules\n', 'utf-8');
+      const before = readFileSync(cursorPath, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+      const after = readFileSync(cursorPath, 'utf-8');
+
+      expect(result.ideFiles[0]).toMatchObject({
+        path: '.cursor/rules/project.mdc',
+        action: 'updated',
+      });
+      expect(after).toBe(before);
+    });
+
+    it('appends missing mandates to CLAUDE.md', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
+
+      expect(result.ideFiles).toContainEqual(expect.objectContaining({ path: 'CLAUDE.md', action: 'updated' }));
+      expect(written).toContain('NEVER commit');
+      expect(written).toContain('SPEC-FIRST review gate');
+    });
+
+    it('reports found and total mandate counts for partial CLAUDE.md', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      writeFileSync(
+        join(testDir, 'CLAUDE.md'),
+        '1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n',
+        'utf-8'
+      );
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      expect(result.ideFiles[0]).toMatchObject({
+        path: 'CLAUDE.md',
+        action: 'updated',
+        found: 1,
+        total: 8,
+      });
+      expect(result.ideFiles[0].added).toContain('Never push');
+    });
+
+    it('dry-run reports CLAUDE.md additions without writing', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      const claudePath = join(testDir, 'CLAUDE.md');
+      writeFileSync(claudePath, '# CLAUDE.md\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+      const written = readFileSync(claudePath, 'utf-8');
+
+      expect(result.ideFiles[0]).toMatchObject({ path: 'CLAUDE.md', action: 'updated' });
+      expect(result.ideFiles[0].added).toHaveLength(8);
+      expect(written).toBe('# CLAUDE.md\n');
+    });
+
+    it('appends missing mandates to Windsurf rules', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      writeFileSync(join(testDir, '.windsurfrules'), '# Windsurf\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(join(testDir, '.windsurfrules'), 'utf-8');
+
+      expect(result.ideFiles).toContainEqual(
+        expect.objectContaining({ path: '.windsurfrules', action: 'updated' })
+      );
+      expect(written).toContain('NEVER deploy, publish, or release');
+    });
+
+    it('appends missing mandates to Antigravity rules', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.antigravity'), { recursive: true });
+      writeFileSync(join(testDir, '.antigravity', 'rules.md'), '# Antigravity\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(join(testDir, '.antigravity', 'rules.md'), 'utf-8');
+
+      expect(result.ideFiles).toContainEqual(
+        expect.objectContaining({ path: '.antigravity/rules.md', action: 'updated' })
+      );
+      expect(written).toContain('NEVER modify');
+    });
+
+    it('returns one result per existing IDE-native file', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      mkdirSync(join(testDir, '.antigravity'), { recursive: true });
+      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.windsurfrules'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.antigravity', 'rules.md'), FULL_MD, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const paths = result.ideFiles.map((r) => r.path);
+
+      expect(paths).toEqual([
+        '.cursor/rules/project.mdc',
+        'CLAUDE.md',
+        '.windsurfrules',
+        '.antigravity/rules.md',
+      ]);
+    });
+
+    it('preserves existing IDE file content before appended mandate block', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      const windsurfPath = join(testDir, '.windsurfrules');
+      writeFileSync(windsurfPath, '# Team Windsurf Rules\n\nKeep custom guidance.\n', 'utf-8');
+
+      await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(windsurfPath, 'utf-8');
+
+      expect(written.startsWith('# Team Windsurf Rules\n\nKeep custom guidance.')).toBe(true);
+      expect(written).toContain('## SpecPilot Mandates (backfilled');
+    });
+  });
+
+  describe('backfillIdeFiles — Cowork SKILL.md', () => {
+    it('does not report SKILL.md when the file is absent', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      expect(result.ideFiles.map((r) => r.path)).toEqual(['CLAUDE.md']);
+    });
+
+    it('skips SKILL.md when structural fingerprints are present', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
+      writeFileSync(join(testDir, '.claude', 'skills', 'specpilot-project', 'SKILL.md'), makeFullSkillMd(), 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      expect(result.ideFiles).toEqual([
+        expect.objectContaining({
+          path: '.claude/skills/specpilot-project/SKILL.md',
+          action: 'skipped',
+        }),
+      ]);
+    });
+
+    it('reports stale SKILL.md when structural fingerprints are missing', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
+      const skillPath = join(testDir, '.claude', 'skills', 'specpilot-project', 'SKILL.md');
+      writeFileSync(skillPath, '# Old Skill\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(skillPath, 'utf-8');
+
+      expect(result.ideFiles).toEqual([
+        expect.objectContaining({
+          path: '.claude/skills/specpilot-project/SKILL.md',
+          action: 'stale',
+        }),
+      ]);
+      expect(result.ideFiles[0].reason).toContain('re-run `specpilot add-specs`');
+      expect(written).toBe('# Old Skill\n');
+    });
+
+    it('dry-run leaves stale SKILL.md unchanged', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
+      const skillPath = join(testDir, '.claude', 'skills', 'specpilot-project', 'SKILL.md');
+      writeFileSync(skillPath, '# Old Skill\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+      const written = readFileSync(skillPath, 'utf-8');
+
+      expect(result.ideFiles[0].action).toBe('stale');
+      expect(written).toBe('# Old Skill\n');
     });
   });
 });

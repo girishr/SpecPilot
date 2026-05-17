@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-05-10
-version: 1.7
+lastUpdated: 2026-05-17
+version: 1.8
 contributors: [girishr]
 relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 ---
@@ -12,8 +12,8 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 
 - **Phase**: Active Development (v1.6.7)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: IDE-routed AI context files, Cowork `CLAUDE.md` router generation, non-destructive `backfill`, `archive` branch guard and lower thresholds, mandatory devPrefix ID conventions, `.gitattributes` union merge rules, and 129-test coverage
-- **Next Steps**: See tasks.md Current Sprint, especially CS-061 for IDE-specific backfill coverage
+- **Recent Implementations**: IDE-routed AI context files, Cowork `CLAUDE.md` router generation, IDE-native non-destructive `backfill`, `archive` branch guard and lower thresholds, mandatory devPrefix ID conventions, `.gitattributes` union merge rules, and 144-test coverage
+- **Next Steps**: See tasks.md Current Sprint for the next generated-output and multi-dev alignment items
 
 ## Key Decisions [CTX-003]
 

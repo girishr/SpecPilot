@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-05-05
-version: 1.7
+lastUpdated: 2026-05-17
+version: 1.8
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -10,7 +10,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ## Current Coverage [TESTS-001.1]
 
-**7 test suites, 129 tests, all passing** (Jest)
+**7 test suites, 144 tests, all passing** (Jest)
 
 | Suite            | File                      | Tests | Covers                                                                                           |
 | ---------------- | ------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
@@ -20,7 +20,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 | Project Migrator | `projectMigrator.test.ts` | 11    | Simple↔complex migration, file mapping, backup, merge strategy                                   |
 | Spec Validator   | `specValidator.test.ts`   | 24    | Required files, YAML validity, mandate checking, cross-references, auto-fix                      |
 | Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds (100/25), dry-run behaviour, archived block formatting           |
-| Spec Backfiller  | `specBackfiller.test.ts`  | 24+   | `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths (CS-060); IDE file backfill: cursor/claude/windsurf/antigravity mandate fingerprinting, SKILL.md structural fingerprint + stale detection, absent files skipped, dry-run (CS-061 pending) |
+| Spec Backfiller  | `specBackfiller.test.ts`  | 39    | `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths (CS-060); IDE file backfill: cursor/claude/windsurf/antigravity mandate fingerprinting, SKILL.md structural fingerprint + stale detection, absent files skipped, dry-run (CS-061) |
 
 ## Test Plans [TESTS-002]
 
@@ -31,7 +31,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 - Migration file mapping (simple ↔ complex structure)
 - Project detection (Node.js, Python)
 - Framework identification
-- Spec Backfiller: fingerprint detection, text-based mandate insertion (3 strategies), `readContributorsFirst` (inline/block/fallback), `writeDevPrefix` (with/without existing `team:` block), `ensureDevPrefix` (`noPrompts`, `dryRun`), dry-run guard for all three backfill targets
+- Spec Backfiller: fingerprint detection, text-based mandate insertion (3 strategies), `readContributorsFirst` (inline/block/fallback), `writeDevPrefix` (with/without existing `team:` block), `ensureDevPrefix` (`noPrompts`, `dryRun`), dry-run guard for all backfill targets, IDE-native file mandate backfill, and SKILL.md stale detection
 
 ### Integration Tests [TESTS-002.2]
 

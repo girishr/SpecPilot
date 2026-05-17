@@ -1,6 +1,11 @@
 import chalk from 'chalk';
 import { resolve } from 'path';
-import { SpecBackfiller, BackfillResult, BackfillFileResult } from '../utils/specBackfiller';
+import {
+  SpecBackfiller,
+  BackfillResult,
+  BackfillFileResult,
+  IdeFileBackfillResult,
+} from '../utils/specBackfiller';
 import { Logger } from '../utils/logger';
 
 export interface BackfillOptions {
@@ -59,8 +64,39 @@ function fileResultLines(label: string, r: BackfillFileResult, dryRun: boolean):
   return lines;
 }
 
+function ideFileResultLines(r: IdeFileBackfillResult, dryRun: boolean): string[] {
+  const lines: string[] = [chalk.cyan(`📄 ${r.path}`)];
+
+  if (r.action === 'stale') {
+    lines.push(chalk.yellow(`  ⚠️  Stale — ${r.found}/${r.total} structural fingerprints found`));
+    r.added.forEach((label) => lines.push(chalk.white(`     • Missing: ${label}`)));
+    if (r.reason) {
+      lines.push(chalk.white(`     ${r.reason}`));
+    }
+  } else {
+    const fileResult: BackfillFileResult = {
+      action: r.action,
+      found: r.found,
+      total: r.total,
+      added: r.added,
+      reason: r.reason,
+    };
+    lines.push(...fileResultLines(r.path, fileResult, dryRun).slice(1));
+  }
+
+  return lines;
+}
+
 function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger): void {
-  const allResults = [result.projectYaml, result.copilotInstructions, result.tasksMd];
+  const allResults = [result.projectYaml, result.copilotInstructions, result.tasksMd, ...result.ideFiles];
+  const ideLines =
+    result.ideFiles.length > 0
+      ? [
+          chalk.blue.bold('IDE-native AI context files'),
+          '',
+          ...result.ideFiles.flatMap((r) => [...ideFileResultLines(r, dryRun), '']),
+        ]
+      : [];
 
   const content: string[] = [
     chalk.blue.bold(`Backfill Results${dryRun ? ' (dry-run — no changes written)' : ''}`),
@@ -71,21 +107,27 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     '',
     ...fileResultLines('.specs/planning/tasks.md', result.tasksMd, dryRun),
     '',
+    ...ideLines,
   ];
 
   const updatedCount = allResults.filter((r) => r.action === 'updated' || r.action === 'created').length;
   const skippedCount = allResults.filter((r) => r.action === 'skipped').length;
+  const staleCount = allResults.filter((r) => r.action === 'stale').length;
 
-  if (updatedCount === 0) {
+  if (updatedCount === 0 && staleCount === 0) {
     content.push(chalk.green('✅ Everything is up to date — nothing to backfill.'));
   } else if (dryRun) {
     content.push(
       chalk.yellow(
-        `ℹ️  ${updatedCount} file(s) would be updated, ${skippedCount} already up to date. Run without --dry-run to apply.`,
+        `ℹ️  ${updatedCount} file(s) would be updated, ${skippedCount} already up to date, ${staleCount} stale. Run without --dry-run to apply.`,
       ),
     );
   } else {
-    content.push(chalk.green(`✅ ${updatedCount} file(s) updated, ${skippedCount} already up to date.`));
+    content.push(
+      chalk.green(
+        `✅ ${updatedCount} file(s) updated, ${skippedCount} already up to date, ${staleCount} stale.`,
+      ),
+    );
     content.push('');
     content.push(chalk.cyan('📖 Next steps:'));
     content.push(chalk.white('  specpilot validate  # Verify your specs are complete'));

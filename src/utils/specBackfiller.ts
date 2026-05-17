@@ -114,10 +114,20 @@ export interface BackfillFileResult {
   reason?: string;
 }
 
+export interface IdeFileBackfillResult {
+  path: string;
+  action: 'updated' | 'created' | 'skipped' | 'missing' | 'stale';
+  found: number;
+  total: number;
+  added: string[];
+  reason?: string;
+}
+
 export interface BackfillResult {
   projectYaml: BackfillFileResult;
   copilotInstructions: BackfillFileResult;
   tasksMd: BackfillFileResult;
+  ideFiles: IdeFileBackfillResult[];
 }
 
 export class SpecBackfiller {
@@ -142,8 +152,9 @@ export class SpecBackfiller {
     const yamlResult = this.backfillProjectYaml(specsDir, dryRun);
     const copilotResult = await this.backfillCopilotInstructions(projectDir, specsDir, dryRun);
     const tasksResult = this.backfillTasksMd(specsDir, dryRun);
+    const ideFiles = this.backfillIdeFiles(projectDir, dryRun);
 
-    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult };
+    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult, ideFiles };
   }
 
   // ---------------------------------------------------------------------------
@@ -273,6 +284,106 @@ export class SpecBackfiller {
       '### 🔴 Critical Mandates — Never violate, no exceptions\n\n' +
       lines.join('\n')
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // IDE-native AI context files
+  // ---------------------------------------------------------------------------
+
+  private backfillIdeFiles(projectDir: string, dryRun: boolean): IdeFileBackfillResult[] {
+    const mandateFiles = [
+      '.cursor/rules/project.mdc',
+      'CLAUDE.md',
+      '.windsurfrules',
+      '.antigravity/rules.md',
+    ];
+
+    const results = mandateFiles
+      .map((relativePath) => this.backfillMarkdownIdeFile(projectDir, relativePath, dryRun))
+      .filter((result): result is IdeFileBackfillResult => result !== undefined);
+
+    const skillResult = this.checkSkillFile(projectDir);
+    if (skillResult) {
+      results.push(skillResult);
+    }
+
+    return results;
+  }
+
+  private backfillMarkdownIdeFile(
+    projectDir: string,
+    relativePath: string,
+    dryRun: boolean,
+  ): IdeFileBackfillResult | undefined {
+    const filePath = join(projectDir, relativePath);
+    if (!existsSync(filePath)) {
+      return undefined;
+    }
+
+    const content = readFileSync(filePath, 'utf-8');
+    const missing = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+
+    if (missing.length === 0) {
+      return {
+        path: relativePath,
+        action: 'skipped',
+        found: MD_MANDATES.length,
+        total: MD_MANDATES.length,
+        added: [],
+      };
+    }
+
+    if (!dryRun) {
+      const backfillBlock = this.buildMdBackfillBlock(missing.map((m) => m.mdText));
+      writeFileSync(filePath, content.trimEnd() + '\n\n' + backfillBlock + '\n', 'utf-8');
+    }
+
+    return {
+      path: relativePath,
+      action: 'updated',
+      found: MD_MANDATES.length - missing.length,
+      total: MD_MANDATES.length,
+      added: missing.map((m) => m.label),
+    };
+  }
+
+  private checkSkillFile(projectDir: string): IdeFileBackfillResult | undefined {
+    const relativePath = '.claude/skills/specpilot-project/SKILL.md';
+    const filePath = join(projectDir, relativePath);
+
+    if (!existsSync(filePath)) {
+      return undefined;
+    }
+
+    const structuralFingerprints = [
+      { fingerprint: 'name: specpilot-project', label: 'Skill metadata name' },
+      { fingerprint: '# SpecPilot Project Context', label: 'Project context heading' },
+      { fingerprint: '## Key Files to Reference', label: 'Key files section' },
+      { fingerprint: '.specs/project/project.yaml', label: 'project.yaml reference' },
+      { fingerprint: '## Development Process', label: 'Development process section' },
+    ];
+
+    const content = readFileSync(filePath, 'utf-8');
+    const missing = structuralFingerprints.filter((item) => !content.includes(item.fingerprint));
+
+    if (missing.length === 0) {
+      return {
+        path: relativePath,
+        action: 'skipped',
+        found: structuralFingerprints.length,
+        total: structuralFingerprints.length,
+        added: [],
+      };
+    }
+
+    return {
+      path: relativePath,
+      action: 'stale',
+      found: structuralFingerprints.length - missing.length,
+      total: structuralFingerprints.length,
+      added: missing.map((item) => item.label),
+      reason: 'SKILL.md is rendered project context; re-run `specpilot add-specs` to regenerate instead of auto-patching',
+    };
   }
 
   // ---------------------------------------------------------------------------

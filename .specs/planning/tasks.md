@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-05-10
-version: 5.10
+lastUpdated: 2026-05-17
+version: 5.11
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -86,14 +86,13 @@ Notes
 16. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
 17. ~~[BL-028] Generate `CLAUDE.md` router file for Claude Code / Cowork~~ — **implemented as CS-059**
 19. [BL-029] Add IDE prompt to `specpilot add-specs` — currently `add-specs` hardcodes `vscode` as the IDE default, so existing projects never get Cursor/Cowork/Windsurf/Codex files; add the same 6-choice IDE prompt from `init.ts` to `add-specs.ts`; pass selected IDE through to `specGenerator.generateSpecs()`; respect `--no-prompts` flag (default to `vscode` when skipped)
-20. ~~[BL-030] Expand `specpilot backfill` scope to include IDE-specific files~~ — **implementing as CS-061**
+20. ~~[BL-030] Expand `specpilot backfill` scope to include IDE-specific files~~ — **implemented as CS-061**
 21. [BL-031] Add `AGENTS.md` support for cross-agent mandates — generate a root `AGENTS.md` as a concise router plus hard guardrails for Codex, GitHub Copilot coding agent, Cursor, Windsurf, Gemini CLI, Aider, Devin, Zed, and other tools that support the AGENTS.md convention; include project overview, critical mandates, spec files to read, development workflow, common commands, coding guidelines, spec update rules, and validation steps; keep detailed requirements in `.specs/` rather than duplicating them; add non-destructive backfill support for existing projects when `AGENTS.md` is missing or lacks SpecPilot mandate fingerprints
 
 ## Current Sprint
 
 ### IDE-Native AI Context Files
 
-- [CS-061] BL-030 — IDE file backfill in `specpilot backfill`: detect `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md` by filesystem presence (no IDE selection); fingerprint-check mandate-bearing files against MD_MANDATES, append missing mandates as backfill block; SKILL.md: check structural fingerprints only, report `action='stale'` if outdated (not auto-patched); extend `BackfillResult` with `ideFiles: IdeFileBackfillResult[]`; update `backfill.ts` display; add ~15 tests to `specBackfiller.test.ts` (129 → ~144)
 ### Generated Output Improvements
 
 ### Multi-Dev Alignment
@@ -122,3 +121,4 @@ Notes
 85. [CD-girishr-002] [CS-059] Generate `CLAUDE.md` router for Cowork — `ideConfigGenerator.ts`: `'cowork'` case in `generateAiContextFile()` → `generateClaudeMd()`; content: lean router with critical mandates + ordered pointer list to `.specs/` files and SKILL.md + Re-Anchor; existing-file: `[o]verwrite / [a]ppend / [s]kip` or `--no-prompts` auto-skip + yellow warning; `buildClaudeMd()` + `buildClaudeMdSection()` helpers added; 3 new tests (102 → 105); closes BL-023 and BL-028
 86. [CD-girishr-003] [CS-060] Write `specBackfiller.test.ts` — new test suite (7th) covering all backfiller logic that shipped without tests in CS-055/CS-057: `backfillProjectYaml()` (3 insertion strategies, skipped/updated/missing), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix()` + `writeDevPrefix()` + `readContributorsFirst()` (inline/block/fallback), dry-run for all three targets; 24 new tests (105 → 129 total)
 87. [CD-girishr-004] Spec sync: refreshed stale spec files to match current CLI/package state — `architecture/api.yaml` now documents package version 1.6.7, current command options, `archive`, `backfill`, and aliases; `planning/roadmap.md`, `development/context.md`, `development/docs.md`, `development/prompts.md`, and `project/project.yaml` updated for current phase/version and CLI workflow alignment
+88. [CD-girishr-005] [CS-061] IDE file backfill in `specpilot backfill` — detects existing `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, and `.claude/skills/specpilot-project/SKILL.md` by filesystem presence; appends missing MD mandates to mandate-bearing IDE files; reports SKILL.md as `stale` when structural fingerprints are missing without auto-patching it; extends `BackfillResult` with `ideFiles`; updates CLI display; 15 new backfiller tests (129 → 144 total)

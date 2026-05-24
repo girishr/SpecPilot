@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-05-17
-version: 1.8
+lastUpdated: 2026-05-24
+version: 1.9
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -11,6 +11,8 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ## Current Coverage [TESTS-001.1]
 
 **7 test suites, 144 tests, all passing** (Jest)
+
+- CS-062 validation: template-only metadata update (`description:` front-matter fields + `# Purpose:` API header comment) did not alter control flow; full suite re-run confirms no regressions.
 
 | Suite            | File                      | Tests | Covers                                                                                           |
 | ---------------- | ------------------------- | ----- | ------------------------------------------------------------------------------------------------ |

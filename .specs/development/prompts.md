@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-05-17
-version: 2.4
+lastUpdated: 2026-05-24
+version: 2.5
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-062: BL-022 implemented — template generation now adds one-line front-matter `description:` fields to all generated `.specs/` markdown files (`requirements.md`, `architecture.md`, `tasks.md`, `roadmap.md`, `tests.md`, `docs.md`, `context.md`, `prompts.md`, `threat-model.md`, `security-decisions.md`); generated `architecture/api.yaml` now includes a `# Purpose:` header comment; aligned with `specTreePrinter.ts` labels; full test suite re-run stays green at 144 tests (May 24, 2026) [PROMPT-002.0.0.20]
 - CS-061: IDE file backfill in `specpilot backfill` — `SpecBackfiller` now detects existing Cursor (`.cursor/rules/project.mdc`), Claude (`CLAUDE.md`), Windsurf (`.windsurfrules`), and Antigravity (`.antigravity/rules.md`) files by filesystem presence and appends missing MD mandates; Cowork SKILL.md gets structural fingerprint checking and reports `action='stale'` without auto-patching; `BackfillResult.ideFiles` and CLI display added; 15 new backfiller tests, 129 → 144 total; build clean (May 17, 2026) [PROMPT-002.0.0.19]
 - Spec sync request: refreshed stale `.specs` files to match the current CLI surface and package version 1.6.7 — updated `architecture/api.yaml` with `archive`, `backfill`, aliases, current options, and version; updated `planning/roadmap.md`, `development/context.md`, `development/docs.md`, and `project/project.yaml`; preserved existing CS-061 spec edits (May 10, 2026) [PROMPT-002.0.0.18]
 - CS-060: Write `specBackfiller.test.ts` — new 7th test suite, 24 tests; covers `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (convention line + Multi-Dev Notes ordering), `ensureDevPrefix()` + `writeDevPrefix()` + `readContributorsFirst()` (inline/block/fallback), dry-run for all paths; 105 → 129 total (May 5, 2026) [PROMPT-002.0.0.17]

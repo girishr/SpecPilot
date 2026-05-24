@@ -212,6 +212,7 @@ ${this.getDependencySection(language, framework)}`;
   private getArchitectureTemplate(language: string): string {
     return `---
 title: Architecture
+description: System design, components, data flow, and architecture decisions
 project: {{projectName}}
 language: ${language}
 framework: {{framework}}

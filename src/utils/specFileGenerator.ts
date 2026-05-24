@@ -142,6 +142,7 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
   private async generateRequirementsMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 title: Requirements
+description: Functional and non-functional requirements for the project
 project: {{projectName}}
 language: {{language}}
 framework: {{framework}}
@@ -181,6 +182,7 @@ sourceOfTruth: project/project.yaml
     const content = `# .specs/architecture/api.yaml
 # ------------------------------------------------------------
 # API & Interface Specification
+# Purpose: CLI / REST API / GraphQL interface spec
 # Remove the section(s) that don't apply to your project.
 # meta: project={{projectName}} language={{language}} framework={{framework}} updated={{currentDate}}
 # ------------------------------------------------------------
@@ -247,6 +249,7 @@ graphql:
   private async generateTasksMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 fileID: TASKS-001
+description: Sprint tracker with backlog, current sprint, and completed work
 lastUpdated: {{currentDate}}
 version: 1.0
 contributors: [{{author}}]
@@ -309,6 +312,7 @@ Notes
   private async generateRoadmapMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 title: Roadmap
+description: Release milestones, objectives, and delivery timeline
 project: {{projectName}}
 language: {{language}}
 framework: {{framework}}
@@ -376,6 +380,7 @@ sourceOfTruth: project/project.yaml
   private async generateDocsMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 fileID: DOC-001
+description: Development guidelines, spec conventions, and workflow checklist
 lastUpdated: {{currentDate}}
 version: 1.0
 contributors: []
@@ -453,6 +458,7 @@ specpilot refine
   private async generateContextMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 title: Development Context
+description: Project memory, decisions, and implementation notes
 project: {{projectName}}
 language: {{language}}
 framework: {{framework}}
@@ -611,6 +617,7 @@ Begin your analysis now.`;
 
     const content = `---
 title: Prompts Log
+  description: AI interaction log and onboarding prompts for the project
 project: {{projectName}}
 language: {{language}}
 framework: {{framework}}
@@ -720,6 +727,7 @@ When working with AI agents on this codebase:
   private async generateTestsMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 title: Test Strategy
+description: Test strategy, coverage goals, and quality approach
 project: {{projectName}}
 language: {{language}}
 framework: {{framework}}
@@ -746,6 +754,7 @@ sourceOfTruth: project/project.yaml
   private async generateThreatModelMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 fileID: SEC-001
+description: Threat model and attack surface analysis
 lastUpdated: {{currentDate}}
 version: 1.0
 contributors: [{{author}}]
@@ -805,6 +814,7 @@ _Last updated: {{currentDate}}_`;
   private async generateSecurityDecisionsMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 fileID: SEC-002
+description: Security ADR log with decisions, rationale, and trade-offs
 lastUpdated: {{currentDate}}
 version: 1.0
 contributors: [{{author}}]

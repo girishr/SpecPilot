@@ -87,6 +87,18 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       developerName = handle;
     }
     
+    // Get IDE/Agent preference for context configuration
+    let ide = 'vscode'; // default
+    if (options.prompts) {
+      const ideResponse = await inquirer.prompt([{
+        type: 'list',
+        name: 'ide',
+        message: 'Select your AI IDE/Agent for SpecPilot context:',
+        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', 'Cowork', 'Codex']
+      }]);
+      ide = ideResponse.ide;
+    }
+    
     // Analyze codebase if requested
     let analysis = null;
     if (!options.noAnalysis) {
@@ -129,6 +141,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       specsName: '.specs',
       author: developerName,
       description,
+      ide,
       analysis: (!options.noAnalysis && analysis) ? analysis : undefined,
       mode: 'existing',
       noPrompts: !options.prompts,

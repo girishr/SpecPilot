@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-05-24
-version: 5.15
+lastUpdated: 2026-05-28
+version: 5.16
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -81,8 +81,7 @@ Notes
     - Submit to official Anthropic plugin directory via claude.ai/settings/plugins/submit
     - Dependency management rules
 13. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
-14. [BL-029] Add IDE prompt to `specpilot add-specs` — currently `add-specs` hardcodes `vscode` as the IDE default, so existing projects never get Cursor/Cowork/Windsurf/Codex files; add the same 6-choice IDE prompt from `init.ts` to `add-specs.ts`; pass selected IDE through to `specGenerator.generateSpecs()`; respect `--no-prompts` flag (default to `vscode` when skipped)
-15. [BL-031] Add `AGENTS.md` support for cross-agent mandates — generate a root `AGENTS.md` as a concise router plus hard guardrails for Codex, GitHub Copilot coding agent, Cursor, Windsurf, Gemini CLI, Aider, Devin, Zed, and other tools that support the AGENTS.md convention; include project overview, critical mandates, spec files to read, development workflow, common commands, coding guidelines, spec update rules, and validation steps; keep detailed requirements in `.specs/` rather than duplicating them; add non-destructive backfill support for existing projects when `AGENTS.md` is missing or lacks SpecPilot mandate fingerprints
+14. [BL-031] Add `AGENTS.md` support for cross-agent mandates — generate a root `AGENTS.md` as a concise router plus hard guardrails for Codex, GitHub Copilot coding agent, Cursor, Windsurf, Gemini CLI, Aider, Devin, Zed, and other tools that support the AGENTS.md convention; include project overview, critical mandates, spec files to read, development workflow, common commands, coding guidelines, spec update rules, and validation steps; keep detailed requirements in `.specs/` rather than duplicating them; add non-destructive backfill support for existing projects when `AGENTS.md` is missing or lacks SpecPilot mandate fingerprints
 
 ## Current Sprint
 
@@ -114,3 +113,4 @@ _No active sprint tasks._
 88. [CD-girishr-004] Spec sync: refreshed stale spec files to match current CLI/package state — `architecture/api.yaml` now documents package version 1.6.7, current command options, `archive`, `backfill`, and aliases; `planning/roadmap.md`, `development/context.md`, `development/docs.md`, `development/prompts.md`, and `project/project.yaml` updated for current phase/version and CLI workflow alignment
 89. [CD-girishr-005] [CS-061] IDE file backfill in `specpilot backfill` — detects existing `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, and `.claude/skills/specpilot-project/SKILL.md` by filesystem presence; appends missing MD mandates to mandate-bearing IDE files; reports SKILL.md as `stale` when structural fingerprints are missing without auto-patching it; extends `BackfillResult` with `ideFiles`; updates CLI display; 15 new backfiller tests (129 → 144 total)
 90. [CD-girishr-006] [CS-062] Add purpose descriptions to generated spec files — updated template generation so all generated `.specs/` markdown files include a one-line front-matter `description:` field (`requirements.md`, `architecture.md`, `tasks.md`, `roadmap.md`, `tests.md`, `docs.md`, `context.md`, `prompts.md`, `threat-model.md`, `security-decisions.md`); added `# Purpose:` comment to generated `architecture/api.yaml` (YAML config, no front-matter); descriptions aligned with `specTreePrinter.ts` labels; no behavioral logic changes and test suite remains 144/144 passing
+91. [CD-girishr-007] [CS-063] [BL-029] Add IDE/Agent prompt to `specpilot add-specs` — `add-specs.ts` now prompts for IDE/Agent preference using the same 6-choice `inquirer` list as `init.ts` (vscode / Cursor / Windsurf / Antigravity / Cowork / Codex); selected IDE passed to `specGenerator.generateSpecs()` so the correct AI context file is generated; respects `--no-prompts` flag (defaults to `vscode`); closes BL-029

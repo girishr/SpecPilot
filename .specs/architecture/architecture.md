@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
 lastUpdated: 2026-05-05
-version: 2.6
+version: 2.7
 contributors: [girishr]
 relatedFiles:
   [
@@ -66,6 +66,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]
 - **devPrefix in Generated ID Conventions**: generated `tasks.md` template shows `CD-{{author}}-###` as the Completed ID pattern and includes a `## Multi-Dev Notes` callout with pull-before-append and archive-on-default-branch guidance; generated `prompts.md` template references `PROMPT-{{author}}-###` as the prompt log ID pattern; both use the GitHub username collected at init time via `TemplateContext.author` [ARCH-004.22]
 - **Purpose Descriptions in Generated Spec Files**: every generated `.specs/` markdown file includes a `description:` field in its YAML front-matter stating the file's role in one line (e.g. `"Sprint tracker — backlog, current sprint, and completed work"`); `architecture/api.yaml` gets a `# Purpose:` comment instead (it is a YAML config file, not a markdown file with front-matter); descriptions align with the labels used in `specTreePrinter.ts` for consistency; `project/project.yaml` already has a descriptive header comment and a user-supplied `description:` field — no change needed [ARCH-004.25]
+- **IDE/Agent prompt in `add-specs`**: `specpilot add-specs` now shows the same 6-choice IDE/Agent prompt as `specpilot init` (vscode / Cursor / Windsurf / Antigravity / Cowork / Codex) instead of hardcoding `vscode`; selected IDE flows into `SpecGenerator.generateSpecs()` so the correct AI context file is generated for existing projects; `--no-prompts` defaults to `vscode` [ARCH-004.26]
 
 ## Technology Stack [ARCH-005]
 

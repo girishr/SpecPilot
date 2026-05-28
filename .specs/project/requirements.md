@@ -6,7 +6,7 @@ framework: node
 lastUpdated: 2026-05-23
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.10
+version: 1.11
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -70,6 +70,7 @@ relatedFiles:
 - Generated `tasks.md` ID conventions section must show `CD-{devPrefix}-###` pattern (using the GitHub username collected at init time) with a `## Multi-Dev Notes` callout advising: always pull before appending to Completed, use prefixed IDs to avoid collisions, only archive on the default branch; generated `prompts.md` ID conventions must reference `PROMPT-{devPrefix}-###` [REQ-002.F.6]
 - `specpilot archive`, generated archive guidance, and `specpilot validate` line-limit warnings must use lower active-file thresholds to reduce clutter in day-to-day work: archive `planning/tasks.md` when the `## Completed` section exceeds 25 lines and archive `development/prompts.md` when the file exceeds 100 lines [REQ-002.F.7]
 - Every generated `.specs/` markdown file must include a `description:` field in its YAML front-matter stating the file's purpose in one line, so a new developer can immediately understand the role of each file when browsing the specs folder; `api.yaml` (YAML config, no front-matter) gets a `# Purpose:` comment instead [REQ-002.F.8]
+- `specpilot add-specs` must prompt for IDE/Agent preference using the same 6-choice list as `specpilot init` (vscode, Cursor, Windsurf, Antigravity, Cowork, Codex); selected IDE must be passed to `SpecGenerator.generateSpecs()` so the correct AI context file is generated for the existing project; must respect `--no-prompts` flag by defaulting to `vscode` [REQ-002.F.9]
 
 ## Non-Functional Requirements [REQ-003]
 

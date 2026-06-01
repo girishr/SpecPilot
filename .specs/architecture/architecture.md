@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-05-05
-version: 2.7
+lastUpdated: 2026-05-28
+version: 2.8
 contributors: [girishr]
 relatedFiles:
   [
@@ -67,6 +67,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **devPrefix in Generated ID Conventions**: generated `tasks.md` template shows `CD-{{author}}-###` as the Completed ID pattern and includes a `## Multi-Dev Notes` callout with pull-before-append and archive-on-default-branch guidance; generated `prompts.md` template references `PROMPT-{{author}}-###` as the prompt log ID pattern; both use the GitHub username collected at init time via `TemplateContext.author` [ARCH-004.22]
 - **Purpose Descriptions in Generated Spec Files**: every generated `.specs/` markdown file includes a `description:` field in its YAML front-matter stating the file's role in one line (e.g. `"Sprint tracker — backlog, current sprint, and completed work"`); `architecture/api.yaml` gets a `# Purpose:` comment instead (it is a YAML config file, not a markdown file with front-matter); descriptions align with the labels used in `specTreePrinter.ts` for consistency; `project/project.yaml` already has a descriptive header comment and a user-supplied `description:` field — no change needed [ARCH-004.25]
 - **IDE/Agent prompt in `add-specs`**: `specpilot add-specs` now shows the same 6-choice IDE/Agent prompt as `specpilot init` (vscode / Cursor / Windsurf / Antigravity / Cowork / Codex) instead of hardcoding `vscode`; selected IDE flows into `SpecGenerator.generateSpecs()` so the correct AI context file is generated for existing projects; `--no-prompts` defaults to `vscode` [ARCH-004.26]
+- **Claude Code Plugin (`specpilot-plugin`)**: a standalone public GitHub repo (`girishr/specpilot-plugin`) separate from the npm CLI; contains `.claude-plugin/plugin.json` (manifest), `skills/` directory with four SKILL.md files (`spec-first`, `validate-specs`, `refine-specs`, `spec-init`), optional `agents/spec-driven-dev.md` (SDD system prompt + tool restrictions), optional `hooks/hooks.json` (PostToolUse guard when `.specs/` is stale), and `README.md`; installable via `claude plugins install github:girishr/specpilot-plugin`; all spec operations delegate to the `specpilot` npm CLI rather than reimplementing logic [ARCH-004.27]
 
 ## Technology Stack [ARCH-005]
 

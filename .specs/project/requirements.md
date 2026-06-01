@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-05-23
+lastUpdated: 2026-05-28
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.11
+version: 1.13
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -40,9 +40,9 @@ relatedFiles:
 
 ### Language & Framework Support [REQ-002.C]
 
-- Support TypeScript, JavaScript, and Python languages [REQ-002.C.1]
-- Auto-detect language and framework from project files (package.json, requirements.txt, etc.) [REQ-002.C.2]
-- Framework-specific template content (React, Express, Next.js, FastAPI, Django, Data Science, CLI) [REQ-002.C.3]
+- Support TypeScript, JavaScript, Python, Kotlin, and Swift languages [REQ-002.C.1]
+- Auto-detect language and framework from project files: `package.json` / `tsconfig.json` (TS/JS); `requirements.txt` / `pyproject.toml` / `setup.py` (Python); `build.gradle` / `build.gradle.kts` / `settings.gradle.kts` (Kotlin); `Package.swift` / `*.xcodeproj` / `*.xcworkspace` (Swift) [REQ-002.C.2]
+- Framework-specific template content: TypeScript (React, Express, Next.js, NestJS, Vue, Angular); Python (FastAPI, Django, Flask, Streamlit); Kotlin (Android, Spring Boot, Ktor, Jetpack Compose); Swift (iOS/UIKit, SwiftUI, Vapor) [REQ-002.C.3]
 
 ### Codebase Analysis (add-specs) [REQ-002.D]
 
@@ -72,7 +72,13 @@ relatedFiles:
 - Every generated `.specs/` markdown file must include a `description:` field in its YAML front-matter stating the file's purpose in one line, so a new developer can immediately understand the role of each file when browsing the specs folder; `api.yaml` (YAML config, no front-matter) gets a `# Purpose:` comment instead [REQ-002.F.8]
 - `specpilot add-specs` must prompt for IDE/Agent preference using the same 6-choice list as `specpilot init` (vscode, Cursor, Windsurf, Antigravity, Cowork, Codex); selected IDE must be passed to `SpecGenerator.generateSpecs()` so the correct AI context file is generated for the existing project; must respect `--no-prompts` flag by defaulting to `vscode` [REQ-002.F.9]
 
-## Non-Functional Requirements [REQ-003]
+### Plugin Distribution [REQ-002.G]
+
+- SpecPilot must be available as a Claude Code plugin in a separate public GitHub repo (`girishr/specpilot-plugin`), distinct from the npm CLI package [REQ-002.G.1]
+- The plugin must define skills covering the core SDD workflow: `spec-first` (enforce Spec-First review gate), `validate-specs` (run specpilot validate guidance), `refine-specs` (guide spec updates after code changes), `spec-init` (walk user through specpilot init interactively) [REQ-002.G.2]
+- The plugin must be installable via `claude plugins install github:girishr/specpilot-plugin` [REQ-002.G.3]
+- The plugin must pass `claude plugin validate` before being submitted to the community marketplace [REQ-002.G.4]
+- Plugin skills must reference the npm CLI (`specpilot`) for all spec file operations rather than reimplementing logic [REQ-002.G.5]
 
 - Fast initialization (< 5 seconds) [REQ-003.1]
 - Minimal memory footprint [REQ-003.2]

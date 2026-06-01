@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2026-05-28
-version: 5.16
+version: 5.19
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -71,21 +71,18 @@ Notes
     - Design pattern enforcement suggestions 
     - Project structure constraint levels
     - Naming conventions enforcement toggle
-12. [BL-020] Publish SpecPilot as a Claude Code / Cowork Plugin
-    - Create standalone plugin package (separate repo from npm CLI)
-    - Scaffold plugin structure: `.claude-plugin/plugin.json`, `skills/`, `agents/`, `hooks/`, `README.md`
-    - Design and write skills: `spec-first` (enforce Spec-First review gate), `validate-specs`, `refine-specs`, `spec-init` (guide user through init flow)
-    - Optional: `spec-driven-dev` agent with SDD system prompt and tool restrictions
-    - Optional: hooks/hooks.json to warn before edits when `.specs/` is stale
-    - Host plugin as public GitHub repo for distribution (`claude plugins install github:…`)
-    - Submit to official Anthropic plugin directory via claude.ai/settings/plugins/submit
-    - Dependency management rules
-13. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
-14. [BL-031] Add `AGENTS.md` support for cross-agent mandates — generate a root `AGENTS.md` as a concise router plus hard guardrails for Codex, GitHub Copilot coding agent, Cursor, Windsurf, Gemini CLI, Aider, Devin, Zed, and other tools that support the AGENTS.md convention; include project overview, critical mandates, spec files to read, development workflow, common commands, coding guidelines, spec update rules, and validation steps; keep detailed requirements in `.specs/` rather than duplicating them; add non-destructive backfill support for existing projects when `AGENTS.md` is missing or lacks SpecPilot mandate fingerprints
+12. [BL-025] Add Mermaid diagram placeholder to generated `architecture.md` — insert a single `graph TD` starter block in the `## System Architecture` section as a ready-to-fill scaffold; add a comment above it pointing to Mermaid docs; keep it generic (not framework-specific for v1); rendered natively in GitHub, GitLab, VS Code, and most AI IDEs with no extra tooling; change is in `getArchitectureTemplate()` in `templateEngine.ts`; future enhancement (not in this task): branch on `framework` to generate slightly more relevant stubs
+14. [BL-031] Add `AGENTS.md` support for cross-agent mandates
+15. [BL-034] Add Kotlin and Swift language support
+    - `frameworks.ts`: add `kotlin` → `['android', 'spring', 'ktor', 'compose']` and `swift` → `['ios', 'swiftui', 'vapor']`
+    - `projectDetector.ts`: add `detectKotlinProject()` (detects `build.gradle` / `build.gradle.kts` / `settings.gradle.kts`) and `detectSwiftProject()` (detects `Package.swift` / `*.xcodeproj` / `*.xcworkspace`); add Kotlin/Swift framework sniffing from file content
+    - `templateEngine.ts`: add template keys for `kotlin-project.yaml`, `kotlin-architecture.md`, `swift-project.yaml`, `swift-architecture.md`; add framework-specific variants (`kotlin-android-project.yaml`, `kotlin-spring-project.yaml`, `kotlin-ktor-project.yaml`, `swift-ios-project.yaml`, `swift-swiftui-project.yaml`, `swift-vapor-project.yaml`)
+    - `init.ts` + `add-specs.ts`: add `'kotlin'` and `'swift'` to `supportedLanguages` array
+    - Tests: extend `projectDetector.test.ts` with Kotlin/Swift detection cases; extend `templateEngine.test.ts` with new language/framework key cases — generate a root `AGENTS.md` as a concise router plus hard guardrails for Codex, GitHub Copilot coding agent, Cursor, Windsurf, Gemini CLI, Aider, Devin, Zed, and other tools that support the AGENTS.md convention; include project overview, critical mandates, spec files to read, development workflow, common commands, coding guidelines, spec update rules, and validation steps; keep detailed requirements in `.specs/` rather than duplicating them; add non-destructive backfill support for existing projects when `AGENTS.md` is missing or lacks SpecPilot mandate fingerprints
 
 ## Current Sprint
 
-_No active sprint tasks._
+_No active sprint items._
 
 ## Completed
 

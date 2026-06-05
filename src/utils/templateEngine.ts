@@ -60,11 +60,15 @@ export class TemplateEngine {
       'typescript-project.yaml': this.getProjectYamlTemplate('typescript'),
       'javascript-project.yaml': this.getProjectYamlTemplate('javascript'),
       'python-project.yaml': this.getProjectYamlTemplate('python'),
+      'kotlin-project.yaml': this.getProjectYamlTemplate('kotlin'),
+      'swift-project.yaml': this.getProjectYamlTemplate('swift'),
       
       // Architecture templates
       'typescript-architecture.md': this.getArchitectureTemplate('typescript'),
       'javascript-architecture.md': this.getArchitectureTemplate('javascript'),
       'python-architecture.md': this.getArchitectureTemplate('python'),
+      'kotlin-architecture.md': this.getArchitectureTemplate('kotlin'),
+      'swift-architecture.md': this.getArchitectureTemplate('swift'),
       
       // Framework-specific variations
       'typescript-react-project.yaml': this.getProjectYamlTemplate('typescript', 'react'),
@@ -73,6 +77,13 @@ export class TemplateEngine {
       'javascript-express-project.yaml': this.getProjectYamlTemplate('javascript', 'express'),
       'python-django-project.yaml': this.getProjectYamlTemplate('python', 'django'),
       'python-fastapi-project.yaml': this.getProjectYamlTemplate('python', 'fastapi'),
+      'kotlin-android-project.yaml': this.getProjectYamlTemplate('kotlin', 'android'),
+      'kotlin-spring-project.yaml': this.getProjectYamlTemplate('kotlin', 'spring'),
+      'kotlin-ktor-project.yaml': this.getProjectYamlTemplate('kotlin', 'ktor'),
+      'kotlin-compose-project.yaml': this.getProjectYamlTemplate('kotlin', 'compose'),
+      'swift-ios-project.yaml': this.getProjectYamlTemplate('swift', 'ios'),
+      'swift-swiftui-project.yaml': this.getProjectYamlTemplate('swift', 'swiftui'),
+      'swift-vapor-project.yaml': this.getProjectYamlTemplate('swift', 'vapor'),
     };
 
     if (templates[key]) {
@@ -153,6 +164,8 @@ build:
   ${language === 'typescript' ? 'command: "npm run build"' : ''}
   ${language === 'javascript' ? 'command: "npm start"' : ''}
   ${language === 'python' ? 'command: "python -m build"' : ''}
+  ${language === 'kotlin' ? 'command: "./gradlew build"' : ''}
+  ${language === 'swift' ? 'command: "swift build"' : ''}
 
 # Dependencies (framework-specific)
 ${this.getDependencySection(language, framework)}`;
@@ -202,6 +215,63 @@ ${this.getDependencySection(language, framework)}`;
     - "helmet"
   development:
     - "nodemon"`;
+    }
+
+    if (language === 'kotlin' && framework === 'android') {
+      return `dependencies:
+  runtime:
+    - "androidx.core:core-ktx"
+    - "androidx.appcompat:appcompat"
+    - "com.google.android.material:material"
+  development:
+    - "junit:junit"
+    - "androidx.test.ext:junit"`;
+    }
+
+    if (language === 'kotlin' && framework === 'spring') {
+      return `dependencies:
+  runtime:
+    - "org.springframework.boot:spring-boot-starter-web"
+    - "org.springframework.boot:spring-boot-starter-data-jpa"
+    - "com.fasterxml.jackson.module:jackson-module-kotlin"
+  development:
+    - "org.springframework.boot:spring-boot-starter-test"`;
+    }
+
+    if (language === 'kotlin' && framework === 'ktor') {
+      return `dependencies:
+  runtime:
+    - "io.ktor:ktor-server-core"
+    - "io.ktor:ktor-server-netty"
+    - "io.ktor:ktor-server-content-negotiation"
+  development:
+    - "io.ktor:ktor-server-test-host"
+    - "org.jetbrains.kotlin:kotlin-test-junit"`;
+    }
+
+    if (language === 'kotlin' && framework === 'compose') {
+      return `dependencies:
+  runtime:
+    - "androidx.compose.ui:ui"
+    - "androidx.compose.material3:material3"
+    - "androidx.activity:activity-compose"
+  development:
+    - "androidx.compose.ui:ui-test-junit4"`;
+    }
+
+    if (language === 'swift' && framework === 'vapor') {
+      return `dependencies:
+  runtime:
+    - "vapor/vapor"
+    - "vapor/fluent"
+    - "vapor/fluent-sqlite-driver"
+  development: []`;
+    }
+
+    if (language === 'swift') {
+      return `dependencies:
+  runtime: []
+  development: []`;
     }
     
     return `dependencies:

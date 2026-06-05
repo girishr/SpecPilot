@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 export interface ProjectInfo {
@@ -30,6 +30,25 @@ export class ProjectDetector {
       return this.detectPythonProject(setupPyPath, 'setup.py');
     } else if (existsSync(requirementsPath)) {
       return this.detectPythonProject(requirementsPath, 'requirements.txt');
+    }
+
+    // Try to detect Kotlin project
+    const gradleKtsPath = join(projectDir, 'build.gradle.kts');
+    const settingsGradleKtsPath = join(projectDir, 'settings.gradle.kts');
+    const gradlePath = join(projectDir, 'build.gradle');
+    if (existsSync(gradleKtsPath) || existsSync(settingsGradleKtsPath) || existsSync(gradlePath)) {
+      return this.detectKotlinProject(projectDir);
+    }
+
+    // Try to detect Swift project
+    const packageSwiftPath = join(projectDir, 'Package.swift');
+    if (existsSync(packageSwiftPath)) {
+      return this.detectSwiftProject(projectDir, packageSwiftPath);
+    }
+    const entries = existsSync(projectDir) ? readdirSync(projectDir) : [];
+    const hasXcodeProject = entries.some(e => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace'));
+    if (hasXcodeProject) {
+      return this.detectSwiftProject(projectDir, null);
     }
 
     return null;
@@ -148,6 +167,89 @@ export class ProjectDetector {
       return author.name;
     }
     return undefined;
+  }
+
+  private detectKotlinProject(projectDir: string): ProjectInfo {
+    const gradleKtsPath = join(projectDir, 'build.gradle.kts');
+    const settingsGradleKtsPath = join(projectDir, 'settings.gradle.kts');
+    const gradlePath = join(projectDir, 'build.gradle');
+
+    let content = '';
+    let projectName = 'unknown-project';
+    let version = '1.0.0';
+
+    // Read settings file first for project name
+    if (existsSync(settingsGradleKtsPath)) {
+      const settingsContent = readFileSync(settingsGradleKtsPath, 'utf-8');
+      const nameMatch = settingsContent.match(/rootProject\.name\s*=\s*["']([^"']+)["']/);
+      if (nameMatch) projectName = nameMatch[1];
+      content += settingsContent;
+    }
+
+    if (existsSync(gradleKtsPath)) {
+      const buildContent = readFileSync(gradleKtsPath, 'utf-8');
+      const versionMatch = buildContent.match(/version\s*=\s*["']([^"']+)["']/);
+      if (versionMatch) version = versionMatch[1];
+      content += buildContent;
+    } else if (existsSync(gradlePath)) {
+      const buildContent = readFileSync(gradlePath, 'utf-8');
+      const nameMatch = buildContent.match(/rootProject\.name\s*=\s*["']([^"']+)["']/);
+      if (nameMatch && projectName === 'unknown-project') projectName = nameMatch[1];
+      const versionMatch = buildContent.match(/version\s*=\s*["']([^"']+)["']/);
+      if (versionMatch) version = versionMatch[1];
+      content += buildContent;
+    }
+
+    return {
+      name: projectName,
+      version,
+      language: 'kotlin',
+      framework: this.detectKotlinFramework(content),
+      description: '',
+      dependencies: []
+    };
+  }
+
+  private detectKotlinFramework(content: string): string | undefined {
+    const lower = content.toLowerCase();
+    if (lower.includes('spring-boot') || lower.includes('org.springframework')) return 'spring';
+    if (lower.includes('io.ktor')) return 'ktor';
+    if (lower.includes('androidx.compose') || lower.includes('compose')) return 'compose';
+    if (lower.includes('com.android.application') || lower.includes('com.android.library')) return 'android';
+    return undefined;
+  }
+
+  private detectSwiftProject(projectDir: string, packageSwiftPath: string | null): ProjectInfo {
+    let projectName = 'unknown-project';
+    let version = '1.0.0';
+    let content = '';
+
+    if (packageSwiftPath && existsSync(packageSwiftPath)) {
+      content = readFileSync(packageSwiftPath, 'utf-8');
+      const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
+      if (nameMatch) projectName = nameMatch[1];
+    } else {
+      // Derive name from .xcodeproj or .xcworkspace filename
+      const entries = readdirSync(projectDir);
+      const xcEntry = entries.find(e => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace'));
+      if (xcEntry) projectName = xcEntry.replace(/\.(xcodeproj|xcworkspace)$/, '');
+    }
+
+    return {
+      name: projectName,
+      version,
+      language: 'swift',
+      framework: this.detectSwiftFramework(content),
+      description: '',
+      dependencies: []
+    };
+  }
+
+  private detectSwiftFramework(content: string): string | undefined {
+    const lower = content.toLowerCase();
+    if (lower.includes('vapor')) return 'vapor';
+    if (lower.includes('swiftui')) return 'swiftui';
+    return 'ios';
   }
 
   private extractPythonDependencies(content: string): string[] {

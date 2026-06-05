@@ -148,5 +148,71 @@ describe('TemplateEngine', () => {
     it('returns empty string for unknown file type in known language', () => {
       expect(engine.getBuiltinTemplate('typescript', undefined, 'nonexistent.html')).toBe('');
     });
+
+    // ─── Kotlin templates ───────────────────────────────────────────────────
+
+    it('returns non-empty content for kotlin project.yaml', () => {
+      const result = engine.getBuiltinTemplate('kotlin', undefined, 'project.yaml');
+      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain('kotlin');
+      expect(result).toContain('./gradlew build');
+    });
+
+    it('returns non-empty content for kotlin architecture.md', () => {
+      const result = engine.getBuiltinTemplate('kotlin', undefined, 'architecture.md');
+      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain('kotlin');
+    });
+
+    it('returns kotlin-android dependency section', () => {
+      const result = engine.getBuiltinTemplate('kotlin', 'android', 'project.yaml');
+      expect(result).toContain('androidx');
+    });
+
+    it('returns kotlin-spring dependency section', () => {
+      const result = engine.getBuiltinTemplate('kotlin', 'spring', 'project.yaml');
+      expect(result).toContain('spring-boot-starter-web');
+    });
+
+    it('returns kotlin-ktor dependency section', () => {
+      const result = engine.getBuiltinTemplate('kotlin', 'ktor', 'project.yaml');
+      expect(result).toContain('ktor');
+    });
+
+    it('returns kotlin-compose dependency section', () => {
+      const result = engine.getBuiltinTemplate('kotlin', 'compose', 'project.yaml');
+      expect(result).toContain('compose');
+    });
+
+    // ─── Swift templates ────────────────────────────────────────────────────
+
+    it('returns non-empty content for swift project.yaml', () => {
+      const result = engine.getBuiltinTemplate('swift', undefined, 'project.yaml');
+      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain('swift');
+      expect(result).toContain('swift build');
+    });
+
+    it('returns non-empty content for swift architecture.md', () => {
+      const result = engine.getBuiltinTemplate('swift', undefined, 'architecture.md');
+      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain('swift');
+    });
+
+    it('returns swift-vapor dependency section', () => {
+      const result = engine.getBuiltinTemplate('swift', 'vapor', 'project.yaml');
+      expect(result).toContain('vapor');
+    });
+
+    it('returns swift-ios project.yaml content', () => {
+      const result = engine.getBuiltinTemplate('swift', 'ios', 'project.yaml');
+      expect(result.length).toBeGreaterThan(0);
+      expect(result).toContain('swift');
+    });
+
+    it('returns swift-swiftui project.yaml content', () => {
+      const result = engine.getBuiltinTemplate('swift', 'swiftui', 'project.yaml');
+      expect(result.length).toBeGreaterThan(0);
+    });
   });
 });

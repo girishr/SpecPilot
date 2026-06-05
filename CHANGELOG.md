@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Kotlin and Swift language support** (CD-girishr-008/CS-065/BL-034): `specpilot init` and `specpilot add-specs` now support `--lang kotlin` and `--lang swift`; `frameworks.ts` adds `kotlin → [android, spring, ktor, compose]` and `swift → [ios, swiftui, vapor]`; `projectDetector.ts` auto-detects Kotlin projects from `build.gradle` / `build.gradle.kts` / `settings.gradle.kts` (with Spring Boot, Ktor, Android, Compose framework sniffing) and Swift projects from `Package.swift` / `.xcodeproj` / `.xcworkspace` (with Vapor, SwiftUI, iOS framework sniffing); `templateEngine.ts` adds 4 base templates (`kotlin-project.yaml`, `kotlin-architecture.md`, `swift-project.yaml`, `swift-architecture.md`) and 7 framework-specific `project.yaml` variants with tailored dependency sections and build commands (`./gradlew build` for Kotlin, `swift build` for Swift); 25 new tests, 144 → 169 total; closes BL-034.
+
 ## [1.7.0] - 2026-05-28
 
 ### Added

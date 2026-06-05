@@ -10,15 +10,15 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ## Current Coverage [TESTS-001.1]
 
-**7 test suites, 144 tests, all passing** (Jest)
+**7 test suites, 169 tests, all passing** (Jest)
 
-- CS-062 validation: template-only metadata update (`description:` front-matter fields + `# Purpose:` API header comment) did not alter control flow; full suite re-run confirms no regressions.
+- CS-065 (BL-034): Kotlin and Swift language support added. `projectDetector.test.ts` +15 cases (Kotlin: build.gradle/.kts/settings.gradle.kts detection, Spring/Ktor/Android/Compose/generic framework sniffing; Swift: Package.swift, .xcodeproj, .xcworkspace, Vapor/SwiftUI/iOS framework sniffing). `templateEngine.test.ts` +10 cases (kotlin/swift project.yaml and architecture.md templates, kotlin-android/spring/ktor/compose and swift-vapor/ios/swiftui framework-specific dependency sections).
 
 | Suite            | File                      | Tests | Covers                                                                                           |
 | ---------------- | ------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
 | Spec Generator   | `specGenerator.test.ts`   | 15    | End-to-end `.specs/` generation, IDE-routed AI context files, CLAUDE.md router, mandate output   |
-| Template Engine  | `templateEngine.test.ts`  | 24    | Handlebars helpers (capitalize, lowercase, year), renderFromString, built-in template edge cases |
-| Project Detector | `projectDetector.test.ts` | 17    | Node.js/Python detection, framework identification, metadata extraction                          |
+| Template Engine  | `templateEngine.test.ts`  | 34    | Handlebars helpers (capitalize, lowercase, year), renderFromString, built-in template edge cases, Kotlin/Swift template keys and dependency sections |
+| Project Detector | `projectDetector.test.ts` | 32    | Node.js/Python/Kotlin/Swift detection, framework identification, metadata extraction             |
 | Project Migrator | `projectMigrator.test.ts` | 11    | Simple↔complex migration, file mapping, backup, merge strategy                                   |
 | Spec Validator   | `specValidator.test.ts`   | 24    | Required files, YAML validity, mandate checking, cross-references, auto-fix                      |
 | Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds (100/25), dry-run behaviour, archived block formatting           |
@@ -31,7 +31,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 - Template engine helpers and rendering
 - Spec file validation rules and auto-fix
 - Migration file mapping (simple ↔ complex structure)
-- Project detection (Node.js, Python)
+- Project detection (Node.js, Python, **Kotlin, Swift**)
 - Framework identification
 - Spec Backfiller: fingerprint detection, text-based mandate insertion (3 strategies), `readContributorsFirst` (inline/block/fallback), `writeDevPrefix` (with/without existing `team:` block), `ensureDevPrefix` (`noPrompts`, `dryRun`), dry-run guard for all backfill targets, IDE-native file mandate backfill, and SKILL.md stale detection
 

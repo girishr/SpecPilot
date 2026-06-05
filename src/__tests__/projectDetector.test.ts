@@ -207,4 +207,140 @@ version = "3.0.0"
       expect(info!.name).toBe('pyproject-name');
     });
   });
+
+  // ─── Kotlin detection ─────────────────────────────────────────────────────
+
+  describe('Kotlin projects', () => {
+    it('detects Kotlin from build.gradle.kts', async () => {
+      writeFileSync(join(testDir, 'build.gradle.kts'), `
+plugins { kotlin("jvm") version "1.9.0" }
+version = "2.0.0"
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info).not.toBeNull();
+      expect(info!.language).toBe('kotlin');
+      expect(info!.version).toBe('2.0.0');
+    });
+
+    it('detects Kotlin from build.gradle (Groovy)', async () => {
+      writeFileSync(join(testDir, 'build.gradle'), `
+apply plugin: 'kotlin'
+version = '1.3.0'
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info).not.toBeNull();
+      expect(info!.language).toBe('kotlin');
+    });
+
+    it('reads project name from settings.gradle.kts', async () => {
+      writeFileSync(join(testDir, 'settings.gradle.kts'), `rootProject.name = "my-kotlin-app"`);
+      writeFileSync(join(testDir, 'build.gradle.kts'), `plugins { kotlin("jvm") }`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.name).toBe('my-kotlin-app');
+    });
+
+    it('detects Spring Boot framework', async () => {
+      writeFileSync(join(testDir, 'build.gradle.kts'), `
+plugins { id("org.springframework.boot") version "3.0.0" }
+dependencies { implementation("org.springframework.boot:spring-boot-starter-web") }
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('spring');
+    });
+
+    it('detects Ktor framework', async () => {
+      writeFileSync(join(testDir, 'build.gradle.kts'), `
+dependencies { implementation("io.ktor:ktor-server-core:2.3.0") }
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('ktor');
+    });
+
+    it('detects Android framework', async () => {
+      writeFileSync(join(testDir, 'build.gradle'), `
+apply plugin: 'com.android.application'
+android { compileSdkVersion 33 }
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('android');
+    });
+
+    it('detects Compose framework', async () => {
+      writeFileSync(join(testDir, 'build.gradle.kts'), `
+dependencies { implementation("androidx.compose.ui:ui:1.5.0") }
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('compose');
+    });
+
+    it('returns undefined framework for generic Kotlin project', async () => {
+      writeFileSync(join(testDir, 'build.gradle.kts'), `plugins { kotlin("jvm") }`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.language).toBe('kotlin');
+      expect(info!.framework).toBeUndefined();
+    });
+  });
+
+  // ─── Swift detection ──────────────────────────────────────────────────────
+
+  describe('Swift projects', () => {
+    it('detects Swift from Package.swift', async () => {
+      writeFileSync(join(testDir, 'Package.swift'), `
+// swift-tools-version: 5.8
+import PackageDescription
+let package = Package(name: "my-swift-app", dependencies: [])
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info).not.toBeNull();
+      expect(info!.language).toBe('swift');
+      expect(info!.name).toBe('my-swift-app');
+    });
+
+    it('detects Vapor framework from Package.swift', async () => {
+      writeFileSync(join(testDir, 'Package.swift'), `
+import PackageDescription
+let package = Package(name: "vapor-api", dependencies: [
+  .package(url: "https://github.com/vapor/vapor.git", .upToNextMajor(from: "4.0.0"))
+])
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('vapor');
+    });
+
+    it('detects SwiftUI from Package.swift', async () => {
+      writeFileSync(join(testDir, 'Package.swift'), `
+import PackageDescription
+let package = Package(name: "swiftui-app", targets: [
+  .target(name: "MyApp", dependencies: ["swiftui"])
+])
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('swiftui');
+    });
+
+    it('defaults to ios framework for plain Swift Package.swift', async () => {
+      writeFileSync(join(testDir, 'Package.swift'), `
+import PackageDescription
+let package = Package(name: "bare-swift")
+`);
+      const info = await detector.detectProject(testDir);
+      expect(info!.framework).toBe('ios');
+    });
+
+    it('detects Swift from .xcodeproj directory entry', async () => {
+      mkdirSync(join(testDir, 'MyApp.xcodeproj'), { recursive: true });
+      const info = await detector.detectProject(testDir);
+      expect(info).not.toBeNull();
+      expect(info!.language).toBe('swift');
+      expect(info!.name).toBe('MyApp');
+    });
+
+    it('detects Swift from .xcworkspace directory entry', async () => {
+      mkdirSync(join(testDir, 'WorkspaceApp.xcworkspace'), { recursive: true });
+      const info = await detector.detectProject(testDir);
+      expect(info).not.toBeNull();
+      expect(info!.language).toBe('swift');
+      expect(info!.name).toBe('WorkspaceApp');
+    });
+  });
 });

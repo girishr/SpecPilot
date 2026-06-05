@@ -43,7 +43,7 @@ export async function initCommand(name: string, options: InitOptions) {
     }
     
     // Validate supported language
-    const supportedLanguages = ['typescript', 'javascript', 'python'];
+    const supportedLanguages = ['typescript', 'javascript', 'python', 'kotlin', 'swift'];
     if (!supportedLanguages.includes(options.lang)) {
       logger.displayError('Unsupported Language', `Language "${options.lang}" is not supported\n\n💡 Supported languages: ${supportedLanguages.join(', ')}`);
       process.exit(1);

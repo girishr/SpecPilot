@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-05-28
-version: 5.19
+lastUpdated: 2026-06-06
+version: 5.20
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -106,4 +106,5 @@ _No active sprint items._
 89. [CD-girishr-005] [CS-061] IDE file backfill in `specpilot backfill` — detects existing `.cursor/rules/project.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, and `.claude/skills/specpilot-project/SKILL.md` by filesystem presence; appends missing MD mandates to mandate-bearing IDE files; reports SKILL.md as `stale` when structural fingerprints are missing without auto-patching it; extends `BackfillResult` with `ideFiles`; updates CLI display; 15 new backfiller tests (129 → 144 total)
 90. [CD-girishr-006] [CS-062] Add purpose descriptions to generated spec files — updated template generation so all generated `.specs/` markdown files include a one-line front-matter `description:` field (`requirements.md`, `architecture.md`, `tasks.md`, `roadmap.md`, `tests.md`, `docs.md`, `context.md`, `prompts.md`, `threat-model.md`, `security-decisions.md`); added `# Purpose:` comment to generated `architecture/api.yaml` (YAML config, no front-matter); descriptions aligned with `specTreePrinter.ts` labels; no behavioral logic changes and test suite remains 144/144 passing
 91. [CD-girishr-007] [CS-063] [BL-029] Add IDE/Agent prompt to `specpilot add-specs` — `add-specs.ts` now prompts for IDE/Agent preference using the same 6-choice `inquirer` list as `init.ts` (vscode / Cursor / Windsurf / Antigravity / Cowork / Codex); selected IDE passed to `specGenerator.generateSpecs()` so the correct AI context file is generated; respects `--no-prompts` flag (defaults to `vscode`); closes BL-029
+93. [CD-girishr-009] Release v1.8.0 — bump `package.json` version to `1.8.0`, promote `[Unreleased]` in `CHANGELOG.md` to `[1.8.0] - 2026-06-06`, create git tag `v1.8.0`, push to GitHub, create GitHub release, publish to npm
 92. [CD-girishr-008] [CS-065] [BL-034] Add Kotlin and Swift language support — `frameworks.ts`: `kotlin` → `['android', 'spring', 'ktor', 'compose']`, `swift` → `['ios', 'swiftui', 'vapor']`; `projectDetector.ts`: `detectKotlinProject()` (build.gradle / build.gradle.kts / settings.gradle.kts; Spring/Ktor/Android/Compose sniffing) and `detectSwiftProject()` (Package.swift / .xcodeproj / .xcworkspace; Vapor/SwiftUI/iOS sniffing) wired into `detectProject()`; `templateEngine.ts`: 4 base templates (`kotlin-project.yaml`, `kotlin-architecture.md`, `swift-project.yaml`, `swift-architecture.md`) + 7 framework-specific variants (kotlin-android/spring/ktor/compose, swift-ios/swiftui/vapor) + build commands (`./gradlew build`, `swift build`) + dependency sections; `init.ts` and `add-specs.ts` `supportedLanguages` extended; `projectDetector.test.ts` +15 tests, `templateEngine.test.ts` +10 tests; 144 → 169 total

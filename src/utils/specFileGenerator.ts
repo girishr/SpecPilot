@@ -86,7 +86,6 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
     await this.generateApiYaml(join(specsDir, 'architecture'), context);
     await this.generateTasksMd(join(specsDir, 'planning'), context);
     await this.generateRoadmapMd(join(specsDir, 'planning'), context);
-    await this.generateDocsMd(join(specsDir, 'development'), context);
     await this.generateContextMd(join(specsDir, 'development'), context);
     await this.generatePromptsMd(join(specsDir, 'development'), context);
     const onboardingPrompt = await this.generateOnboardingMd(join(specsDir, 'development'), context);
@@ -362,84 +361,6 @@ sourceOfTruth: project/project.yaml
     writeFileSync(join(specsDir, 'roadmap.md'), rendered);
   }
 
-  private async generateDocsMd(specsDir: string, context: TemplateContext): Promise<void> {
-    const content = `---
-fileID: DOC-001
-description: Development guidelines, spec conventions, and workflow checklist
-lastUpdated: {{currentDate}}
-version: 1.0
-contributors: []
-relatedFiles: [project/project.yaml, development/context.md, planning/roadmap.md, planning/tasks.md]
----
-
-# {{projectName}} \u2014 Development Documentation
-
-## Spec File Conventions
-
-All \`.specs/\` files must include a YAML front-matter header with:
-- \`fileID\`: Unique identifier (e.g., \`REQ-001\`, \`ARCH-001\`)
-- \`lastUpdated\`: Date in YYYY-MM-DD format
-- \`version\`: Semantic version (e.g., \`1.0\`)
-- \`contributors\`: Array of contributor handles
-- \`relatedFiles\`: Array of related spec file paths
-
-Section IDs use the format \`[PREFIX-NNN.S]\` (e.g., \`[REQ-001.1]\`) and must be stable — do not change once assigned.
-
-## Development Procedures
-
-### Workflow
-
-1. Update relevant \`.specs/\` files before committing
-2. Write tests before implementation
-3. Use small, focused commits with conventional commit messages (\`type(scope): description\`)
-4. Log all AI interactions in \`development/prompts.md\`
-
-### Spec Update Checklist (before each commit)
-
-- [ ] \`tasks.md\` \u2014 task status updated
-- [ ] \`context.md\` \u2014 decisions and lessons logged
-- [ ] \`requirements.md\` \u2014 updated if features changed
-- [ ] \`architecture.md\` \u2014 updated if structure changed
-- [ ] \`api.yaml\` \u2014 updated if CLI interface changed
-- [ ] \`tests.md\` \u2014 updated if test strategy changed
-
-## CLI Commands Reference
-
-\\\`\\\`\\\`bash
-# Initialize a new project
-specpilot init <project-name> [--lang <language>] [--framework <framework>] [--no-prompts]
-
-# Add .specs/ to an existing project
-specpilot add-specs
-
-# List available templates
-specpilot list
-
-# Validate spec files
-specpilot validate [--fix]
-
-# Migrate to newer spec structure
-specpilot migrate
-
-# Update specs with current project context (shows diff + confirmation)
-specpilot refine
-\\\`\\\`\\\`
-
-## Cross-References
-- Context: ./context.md
-- Roadmap: ../planning/roadmap.md
-- Tasks: ../planning/tasks.md
-- Project config: ../project/project.yaml
-
-> For contributing guidelines, troubleshooting, and support, see README.md.
-
----
-*Last updated: {{currentDate}}*`;
-
-    const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'docs.md'), rendered);
-  }
-
   private async generateContextMd(specsDir: string, context: TemplateContext): Promise<void> {
     const content = `---
 title: Development Context
@@ -457,7 +378,6 @@ sourceOfTruth: project/project.yaml
 [TODO: Add project context and decisions]
 
 ## Cross-References
-- Docs: ./docs.md
 - Roadmap: ../planning/roadmap.md
 - Project config: ../project/project.yaml
 

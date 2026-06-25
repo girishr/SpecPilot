@@ -44,7 +44,6 @@ describe('SpecGenerator', () => {
       'planning/tasks.md',
       'development/context.md',
       'development/prompts.md',
-      'development/docs.md',
       'development/onboarding.md',
     ];
 

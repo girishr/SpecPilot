@@ -74,11 +74,11 @@ describe('SpecGenerator', () => {
 
     const content = readFileSync(copilotPath, 'utf-8');
     expect(content).toContain('test-project');
-    expect(content).toContain('NEVER commit');
-    expect(content).toContain('NEVER push');
-    expect(content).toContain('NEVER deploy');
-    expect(content).toContain('NEVER modify');
-    expect(content).toContain('ALWAYS update');
+    expect(content).toContain('No commit unless asked');
+    expect(content).toContain('No push unless asked');
+    expect(content).toContain('No deploy/publish/release unless asked');
+    expect(content).toContain('No `.specs/` structure changes');
+    expect(content).toContain('Update specs after change');
     expect(content).toContain('Spec Report');
     expect(content).toContain('yes, proceed');
     expect(content).toContain('.specs/project/project.yaml');
@@ -194,7 +194,7 @@ describe('SpecGenerator', () => {
     const copilotPath = join(testDir, '.github', 'copilot-instructions.md');
     expect(existsSync(copilotPath)).toBe(true);
     const content = readFileSync(copilotPath, 'utf-8');
-    expect(content).toContain('NEVER commit');
+    expect(content).toContain('No commit unless asked');
     expect(content).toContain('test-project');
   });
 
@@ -209,7 +209,7 @@ describe('SpecGenerator', () => {
     await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
 
     const content = readFileSync(copilotPath, 'utf-8');
-    expect(content).toContain('NEVER commit');
+    expect(content).toContain('No commit unless asked');
     expect(content).not.toContain('Some existing content');
   });
 
@@ -226,7 +226,7 @@ describe('SpecGenerator', () => {
     const content = readFileSync(copilotPath, 'utf-8');
     expect(content).toContain('Some existing content');
     expect(content).toContain('SpecPilot Mandates');
-    expect(content).toContain('NEVER commit');
+    expect(content).toContain('No commit unless asked');
     expect(content).toContain('Spec Report');
   });
 
@@ -271,11 +271,10 @@ describe('SpecGenerator', () => {
 
     const content = readFileSync(claudePath, 'utf-8');
     expect(content).toContain('test-project');
-    expect(content).toContain('NEVER commit');
-    expect(content).toContain('NEVER push');
+    expect(content).toContain('No commit unless asked');
+    expect(content).toContain('No push unless asked');
     expect(content).toContain('Spec Report');
     expect(content).toContain('.specs/project/project.yaml');
-    expect(content).toContain('.claude/skills/specpilot-project/SKILL.md');
     expect(content).toContain('Re-Anchor');
   });
 

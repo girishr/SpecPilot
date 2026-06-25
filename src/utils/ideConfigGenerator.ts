@@ -173,13 +173,7 @@ ${this.buildCriticalMandatesMarkdown()}
 
 ${this.buildProcessMandatesMarkdown()}
 
-## Context Files \u2014 Read in this order
-
-1. \`.specs/project/project.yaml\` \u2014 project config, rules, tech stack
-2. \`.specs/project/requirements.md\` \u2014 functional and non-functional requirements
-3. \`.specs/architecture/architecture.md\` \u2014 system design and decisions
-4. \`.specs/planning/tasks.md\` \u2014 current sprint and backlog
-5. \`.claude/skills/specpilot-project/SKILL.md\` \u2014 project skill context
+${this.buildContextRoutingTable()}
 
 ## Re-Anchor
 
@@ -211,13 +205,7 @@ ${this.buildCriticalMandatesMarkdown()}
 
 ${this.buildProcessMandatesMarkdown()}
 
-### Context Files \u2014 Read in this order
-
-1. \`.specs/project/project.yaml\` \u2014 project config, rules, tech stack
-2. \`.specs/project/requirements.md\` \u2014 functional and non-functional requirements
-3. \`.specs/architecture/architecture.md\` \u2014 system design and decisions
-4. \`.specs/planning/tasks.md\` \u2014 current sprint and backlog
-5. \`.claude/skills/specpilot-project/SKILL.md\` \u2014 project skill context
+${this.buildContextRoutingTable()}
 `;
   }
 
@@ -293,6 +281,8 @@ ${this.buildCriticalMandatesMarkdown()}
 
 ${this.buildProcessMandatesMarkdown()}
 
+${this.buildContextRoutingTable()}
+
 ### Re-Anchor
 
 If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
@@ -323,6 +313,8 @@ ${this.buildCriticalMandatesMarkdown()}
 
 ${this.buildProcessMandatesMarkdown()}
 
+${this.buildContextRoutingTable()}
+
 ## Re-Anchor
 
 If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.\nFor a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
@@ -330,19 +322,33 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
   }
 
   private buildCriticalMandatesMarkdown(): string {
-    return `1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.
-2. **NEVER push** to git unless the developer explicitly asks. Always ask first.
-3. **NEVER deploy, publish, or release** the project unless the developer explicitly asks. Always ask first.
-4. **NEVER modify** the \`.specs/\` folder structure, subfolder names, or file names. Only update file contents.
-5. **ALWAYS update** affected \`.specs/\` files after every code change — without being asked:
-   - Structural changes → \`architecture/architecture.md\`
-   - Feature changes → \`project/requirements.md\`
-   - Test changes → \`quality/tests.md\`
-   - Task status → \`planning/tasks.md\`
-   - Completed work → \`CHANGELOG.md\`
-6. **NEVER describe, quote, or reference file contents** without first reading the file via a tool call in this session. If you have not read the file yet, say so explicitly before answering.
-7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.
-8. **SPEC-FIRST review gate**: Before touching any code or non-spec files, read all relevant \`.specs/\` files, update all affected spec files first, present a **Spec Report** summarizing what changed, which files were affected, and what the specs now say, then wait for the developer's explicit \`yes, proceed\` before writing code. If the developer declines, revert the spec changes and stop.`;
+    return `1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\``;
+  }
+
+  private buildContextRoutingTable(): string {
+    return `## Context — read on demand by task type
+
+| Task type | Read |
+|---|---|
+| Session start | \`.specs/project/project.yaml\` |
+| Feature / bug | + \`project/requirements.md\`, \`planning/tasks.md\` |
+| Architecture | + \`architecture/architecture.md\` |
+| Tests | + \`quality/tests.md\` |
+| Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
+| Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |`;
   }
 
   private buildProcessMandatesMarkdown(): string {

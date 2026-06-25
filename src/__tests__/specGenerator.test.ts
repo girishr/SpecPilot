@@ -44,7 +44,8 @@ describe('SpecGenerator', () => {
       'planning/tasks.md',
       'development/context.md',
       'development/prompts.md',
-      'development/docs.md'
+      'development/docs.md',
+      'development/onboarding.md',
     ];
 
     for (const file of requiredFiles) {
@@ -258,6 +259,94 @@ describe('SpecGenerator', () => {
     expect(promptSpy).not.toHaveBeenCalled();
     const content = readFileSync(copilotPath, 'utf-8');
     expect(content).toBe(original);
+  });
+
+  // CS-068: onboarding.md + greenfield/brownfield prompt selection
+
+  test('onboarding.md defaults to greenfield when no projectType set', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'onboarding.md'), 'utf-8');
+    expect(content).toContain('Greenfield');
+    expect(content).toContain('new project');
+    expect(content).toContain('Begin drafting now.');
+    expect(content).not.toContain('Begin your analysis now.');
+  });
+
+  test('onboarding.md uses greenfield prompt when projectType=greenfield', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, projectType: 'greenfield' });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'onboarding.md'), 'utf-8');
+    expect(content).toContain('Greenfield');
+    expect(content).toContain('Begin drafting now.');
+  });
+
+  test('onboarding.md uses brownfield prompt when projectType=brownfield', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, projectType: 'brownfield' });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'onboarding.md'), 'utf-8');
+    expect(content).toContain('Brownfield');
+    expect(content).toContain('Begin your analysis now.');
+    expect(content).not.toContain('Begin drafting now.');
+  });
+
+  test('onboarding.md defaults to brownfield when mode=existing and no projectType', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, mode: 'existing' });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'onboarding.md'), 'utf-8');
+    expect(content).toContain('Brownfield');
+    expect(content).toContain('Begin your analysis now.');
+  });
+
+  test('explicit projectType overrides mode-based default', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, mode: 'existing', projectType: 'greenfield' });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'onboarding.md'), 'utf-8');
+    expect(content).toContain('Greenfield');
+    expect(content).toContain('Begin drafting now.');
+  });
+
+  test('onboarding.md contains self-destruct instruction', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'onboarding.md'), 'utf-8');
+    expect(content).toContain('One-time file — delete after use');
+    expect(content).toContain('delete `.specs/development/onboarding.md`');
+  });
+
+  test('generateSpecs returns onboardingPrompt string', async () => {
+    const result = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    expect(typeof result.onboardingPrompt).toBe('string');
+    expect(result.onboardingPrompt.length).toBeGreaterThan(100);
+  });
+
+  test('generateSpecs returns greenfield prompt text', async () => {
+    const result = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, projectType: 'greenfield' });
+    expect(result.onboardingPrompt).toContain('Begin drafting now.');
+  });
+
+  test('generateSpecs returns brownfield prompt text', async () => {
+    const result = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, projectType: 'brownfield' });
+    expect(result.onboardingPrompt).toContain('Begin your analysis now.');
+  });
+
+  test('prompts.md no longer contains onboarding prompt sections', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    const content = readFileSync(join(testDir, '.specs', 'development', 'prompts.md'), 'utf-8');
+    expect(content).not.toContain('Begin drafting now.');
+    expect(content).not.toContain('Begin your analysis now.');
+    expect(content).not.toContain('Onboarding Prompt');
+    expect(content).not.toContain('specification co-pilot for a new project');
+  });
+
+  test('README points to onboarding.md not prompts.md for quick start', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    const readme = readFileSync(join(testDir, '.specs', 'README.md'), 'utf-8');
+    expect(readme).toContain('onboarding.md');
+    expect(readme).not.toContain('Onboarding Prompt" section');
   });
 
   // CS-059: CLAUDE.md generation for Cowork IDE

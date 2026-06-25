@@ -15,6 +15,7 @@ export interface SpecGeneratorOptions {
   description?: string;
   ide?: string;
   mode?: 'new' | 'existing';
+  projectType?: 'greenfield' | 'brownfield';
   noPrompts?: boolean;
   projectContext?: {
     whatItDoes: string;
@@ -53,7 +54,7 @@ export class SpecGenerator {
     this.agentConfigGenerator = new AgentConfigGenerator(templateEngine);
   }
 
-  async generateSpecs(options: SpecGeneratorOptions): Promise<void> {
+  async generateSpecs(options: SpecGeneratorOptions): Promise<{ onboardingPrompt: string }> {
     const specsDir = join(options.targetDir, options.specsName);
     mkdirSync(specsDir, { recursive: true });
     const subfolders = ['project', 'architecture', 'planning', 'quality', 'development', 'security'];
@@ -69,9 +70,10 @@ export class SpecGenerator {
       architecture: options.analysis && options.analysis.architecture,
       ide: options.ide || 'vscode',
       mode: options.mode || 'new',
+      projectType: options.projectType ?? (options.mode === 'existing' ? 'brownfield' : 'greenfield'),
       projectContext: options.projectContext,
     };
-    await this.specFileGenerator.generateAll(specsDir, context);
+    const { onboardingPrompt } = await this.specFileGenerator.generateAll(specsDir, context);
     const ide = (options.ide || 'vscode').toLowerCase();
     if (AGENT_IDES.has(ide)) {
       await this.agentConfigGenerator.generate(options.targetDir, context, ide);
@@ -82,5 +84,6 @@ export class SpecGenerator {
     await this.ideConfigGenerator.generateAiContextFile(options.targetDir, context, ide, options.noPrompts ?? false);
     // Generate .gitattributes with merge=union for append-heavy spec files
     this.ideConfigGenerator.generateGitAttributes(options.targetDir);
+    return { onboardingPrompt };
   }
 }

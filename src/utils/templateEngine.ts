@@ -15,6 +15,7 @@ export interface TemplateContext {
   description?: string;
   ide?: string;
   mode?: 'new' | 'existing';
+  projectType?: 'greenfield' | 'brownfield';
   projectContext?: ProjectContext;
   architecture?: {
     components: string[];

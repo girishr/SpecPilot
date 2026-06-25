@@ -100,6 +100,21 @@ export async function initCommand(name: string, options: InitOptions) {
       return;
     }
 
+    // Get project type (greenfield vs brownfield)
+    let projectType: 'greenfield' | 'brownfield' = 'greenfield';
+    if (options.prompts) {
+      const typeResponse = await inquirer.prompt([{
+        type: 'list',
+        name: 'projectType',
+        message: 'Is this a greenfield or brownfield project?',
+        choices: [
+          { name: 'Greenfield — new project, writing code from scratch', value: 'greenfield' },
+          { name: 'Brownfield — existing codebase, initializing specs retroactively', value: 'brownfield' },
+        ],
+      }]);
+      projectType = typeResponse.projectType;
+    }
+
     // Get framework if not provided and prompts enabled
     let framework = options.framework;
     if (!framework && options.prompts) {
@@ -279,7 +294,7 @@ export async function initCommand(name: string, options: InitOptions) {
     const specGenerator = new SpecGenerator(templateEngine);
     
     // Generate .specs directory structure
-    await specGenerator.generateSpecs({
+    const { onboardingPrompt } = await specGenerator.generateSpecs({
       projectName,
       language: options.lang,
       framework,
@@ -288,11 +303,25 @@ export async function initCommand(name: string, options: InitOptions) {
       author: developerName,
       ide,
       mode: 'new',
+      projectType,
       projectContext,
     });
-    
+
     // Show success with logo (includes initialization message and all details)
     logger.displayInitSuccess(projectName, targetDir, join(targetDir, options.specsName));
+
+    // Print onboarding prompt to stdout for immediate use
+    const specsRelPath = join(options.specsName, 'development', 'onboarding.md');
+    console.log('');
+    console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
+    console.log(chalk.bold.cyan('📋 NEXT STEP: Populate your .specs/ files'));
+    console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
+    console.log(chalk.white('Paste this prompt into your AI agent:'));
+    console.log('');
+    console.log(chalk.gray(onboardingPrompt));
+    console.log('');
+    console.log(chalk.cyan(`💡 Also saved to ${specsRelPath} — delete it after first use.`));
+    console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
     
   } catch (error) {
     logger.displayError('Initialization Failed', error instanceof Error ? error.message : 'Unknown error');

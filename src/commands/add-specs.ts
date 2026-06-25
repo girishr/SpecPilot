@@ -56,6 +56,21 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       process.exit(1);
     }
     
+    // Get project type (greenfield vs brownfield)
+    let projectType: 'greenfield' | 'brownfield' = 'brownfield';
+    if (options.prompts) {
+      const typeResponse = await inquirer.prompt([{
+        type: 'list',
+        name: 'projectType',
+        message: 'Is this a greenfield or brownfield project?',
+        choices: [
+          { name: 'Brownfield — existing codebase, initializing specs retroactively', value: 'brownfield' },
+          { name: 'Greenfield — new project, writing code from scratch', value: 'greenfield' },
+        ],
+      }]);
+      projectType = typeResponse.projectType;
+    }
+
     // Prompt for missing information
     if (!framework && options.prompts) {
       const frameworks = getFrameworksForLanguage(language);
@@ -133,7 +148,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     const description = projectInfo?.description || 
       `A ${language} project${framework ? ` using ${framework}` : ''}`;
     
-    await specGenerator.generateSpecs({
+    const { onboardingPrompt } = await specGenerator.generateSpecs({
       projectName,
       language,
       framework,
@@ -144,14 +159,27 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       ide,
       analysis: (!options.noAnalysis && analysis) ? analysis : undefined,
       mode: 'existing',
+      projectType,
       noPrompts: !options.prompts,
     });
-    
+
     logger.success('✅ .specs folder created successfully!');
     logger.info(`📁 Location: ${specsDir}`);
-    
+
     // Show next steps with logo
     logger.displayInitSuccess(projectInfo?.name || 'Project', projectDir, specsDir);
+
+    // Print onboarding prompt to stdout for immediate use
+    console.log('');
+    console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
+    console.log(chalk.bold.cyan('📋 NEXT STEP: Populate your .specs/ files'));
+    console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
+    console.log(chalk.white('Paste this prompt into your AI agent:'));
+    console.log('');
+    console.log(chalk.gray(onboardingPrompt));
+    console.log('');
+    console.log(chalk.cyan('💡 Also saved to .specs/development/onboarding.md — delete it after first use.'));
+    console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
     
   } catch (error) {
     logger.error(`❌ Failed to add specs: ${error instanceof Error ? error.message : 'Unknown error'}`);

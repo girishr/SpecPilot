@@ -17,23 +17,14 @@ This folder contains structured documentation for your project.
 
 ## 🚀 Quick Start: Generate Your Specs with AI
 
-Your specs files have been scaffolded with placeholders. Use your AI agent to draft them based on the project description you provided during \`specpilot init\`.
+Your spec files have been scaffolded with placeholders. An onboarding prompt has been saved to [\`development/onboarding.md\`](development/onboarding.md).
 
-### Step 1: Copy the Onboarding Prompt
-1. Open [\`development/prompts.md\`](development/prompts.md).
-2. Find the **"New Project Onboarding Prompt"** section.
-3. Copy the entire fenced code block (\`\`\`...\`\`\`).
-
-### Step 2: Paste into Your AI Agent
-1. In your IDE (VS Code, Cursor, etc.), open the AI chat.
-2. Paste the prompt and run it.
+1. Open \`development/onboarding.md\` and copy the prompt inside it.
+2. Paste it into your AI agent (VS Code, Cursor, etc.).
 3. The AI will draft all spec files based on your project description.
+4. Review each file, refine as needed, then **delete \`onboarding.md\`**.
 
-### Step 3: Review & Refine
-- The generated specs are a **starting point** based on the AI's understanding.
-- Review each file — change, add, or remove anything as your project evolves.
-- Add details the AI couldn't know before you start coding.
-- Run \`specpilot validate\` to ensure consistency.
+Run \`specpilot validate\` to check consistency at any time.
 
 ## 📁 File Structure
 - \`project/\`: Metadata and requirements
@@ -59,22 +50,14 @@ This folder contains structured documentation for your codebase.
 
 ## 🚀 Quick Start: Populate Your Specs
 
-Your specs files have been scaffolded with placeholders. Use your AI agent to populate them by analyzing your existing codebase.
+Your spec files have been scaffolded with placeholders. An onboarding prompt has been saved to [\`development/onboarding.md\`](development/onboarding.md).
 
-### Step 1: Copy the Onboarding Prompt
-1. Open [\`development/prompts.md\`](development/prompts.md).
-2. Find the **"Existing Project Onboarding Prompt"** section.
-3. Copy the entire fenced code block (\`\`\`...\`\`\`).
-
-### Step 2: Paste into Your AI Agent
-1. In your IDE (VS Code, Cursor, etc.), open the AI chat.
-2. Paste the prompt and run it.
+1. Open \`development/onboarding.md\` and copy the prompt inside it.
+2. Paste it into your AI agent (VS Code, Cursor, etc.).
 3. The AI will analyze your codebase and populate all spec files.
+4. Review each file, refine as needed, then **delete \`onboarding.md\`**.
 
-### Step 3: Review & Iterate
-- Check the generated content in each \`.specs\` file.
-- Refine as needed (e.g., add missing details).
-- Run \`specpilot validate\` to ensure consistency.
+Run \`specpilot validate\` to check consistency at any time.
 
 ## 📁 File Structure
 - \`project/\`: Metadata and requirements
@@ -95,7 +78,7 @@ specpilot add-specs
 For AI guidelines and prompt history, see [\`development/prompts.md\`](development/prompts.md).`;
 
   /** Generate all spec files into the pre-created specs directory. */
-  async generateAll(specsDir: string, context: TemplateContext): Promise<void> {
+  async generateAll(specsDir: string, context: TemplateContext): Promise<{ onboardingPrompt: string }> {
     await this.generateReadmeMd(specsDir, context);
     await this.generateProjectYaml(join(specsDir, 'project'), context);
     await this.generateRequirementsMd(join(specsDir, 'project'), context);
@@ -106,11 +89,13 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
     await this.generateDocsMd(join(specsDir, 'development'), context);
     await this.generateContextMd(join(specsDir, 'development'), context);
     await this.generatePromptsMd(join(specsDir, 'development'), context);
+    const onboardingPrompt = await this.generateOnboardingMd(join(specsDir, 'development'), context);
     await this.generateTestsMd(join(specsDir, 'quality'), context);
     const securityDir = join(specsDir, 'security');
     mkdirSync(securityDir, { recursive: true });
     await this.generateThreatModelMd(securityDir, context);
     await this.generateSecurityDecisionsMd(securityDir, context);
+    return { onboardingPrompt };
   }
 
   private async generateReadmeMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -484,140 +469,9 @@ sourceOfTruth: project/project.yaml
   }
 
   private async generatePromptsMd(specsDir: string, context: TemplateContext): Promise<void> {
-    const isNew = context.mode !== 'existing';
-    const pc = context.projectContext;
-
-    // ── Shared conventions block (used by both prompts) ──────────
-    const conventions = `**Conventions & Rules:**
-1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-{{author}}-001, PROMPT-{{author}}-001); Completed task IDs and Prompt log IDs use your personal handle as prefix to avoid collisions in multi-dev teams
-2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
-3. **Priority values**: Must be: critical, high, medium, low
-4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
-5. **YAML**: Use proper indentation (2 spaces), include all required fields
-6. **Markdown**: Use ATX headers (#), fenced code blocks, and consistent formatting
-7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
-8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS. The directory structure is IMMUTABLE.
-
-**File Structure Standards:**
-
-- \\\`project/project.yaml\\\`: name, version, description, tech_stack[], dependencies[], metadata
-- \\\`project/requirements.md\\\`: ## Functional/Non-Functional Requirements with REQ-XXX IDs, priority, status
-- \\\`architecture/architecture.md\\\`: ## Overview, Components, Data Flow, Tech Stack, Decisions (ADR format)
-- \\\`architecture/api.yaml\\\`: OpenAPI 3.0 spec or endpoints list with methods, paths, descriptions
-- \\\`planning/tasks.md\\\`: ## Backlog/In Progress/Completed with TASK-XXX, assignee, priority, dependencies
-- \\\`planning/roadmap.md\\\`: ## Milestones with versions, dates, features, status
-- \\\`quality/tests.md\\\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals, CI/CD integration
-- \\\`development/docs.md\\\`: ## Getting Started, Architecture, API, Deployment, Contributing
-- \\\`development/context.md\\\`: ## Project Context, Key Decisions, Known Issues, Future Considerations`;
-
-    // ── New-project prompt ────────────────────────────────────────
-    const projectContextBlock = pc
-      ? `**Project context (provided by the developer):**
-- **What it does:** ${pc.whatItDoes}
-- **Target users:** ${pc.targetUsers}
-- **Expected scale:** ${pc.expectedScale}
-- **Key constraints:** ${pc.constraints}`
-      : `**Project context:**
-- **What it does:** [DESCRIBE YOUR PROJECT HERE]
-- **Target users:** Not specified — use your judgment and mark as [ASSUMPTION]
-- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
-- **Key constraints:** Not specified — use your judgment and mark as [ASSUMPTION]`;
-
-    const newProjectPrompt = `You are the specification co-pilot for a new project called "{{projectName}}".
-Tech stack: {{language}}{{#if framework}} / {{framework}}{{/if}}
-
-${projectContextBlock}
-
-**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
-
-Based on this context, populate all .specs files following these strict conventions:
-
-${conventions}
-
-**Your Process:**
-1. Read the project context above carefully
-2. For each .specs file, generate content that:
-   - Derives requirements, architecture, and tasks from the project description
-   - Follows the conventions above exactly
-   - Maintains internal consistency (cross-references work)
-   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
-3. Propose a realistic roadmap with milestones
-4. Draft a test strategy appropriate for the project type
-
-**Output Format:**
-For each file, provide the complete content in a markdown code block:
-\\\\\`\\\\\`\\\\\`markdown
-// filepath: .specs/project/project.yaml
-[full file content]
-\\\\\`\\\\\`\\\\\`
-
-**Constraints:**
-- These specs are a starting point — the developer will review and refine them
-- Flag uncertainties and assumptions with [ASSUMPTION] comments
-- Keep descriptions clear, concise, and technical
-- Ensure all IDs are unique within their domain
-
-After populating all files, provide a summary of:
-- What you understood about the project
-- Assumptions you made and why
-- Recommended next steps before the developer starts coding
-
-**Important:** These specifications are generated based on the AI's understanding of the project description. They are a draft — the developer should review, change, add, or remove anything as the project evolves. Add more detail into the spec files before starting AI-assisted coding.
-
-Begin drafting now.`;
-
-    // ── Existing-project prompt ──────────────────────────────────
-    const existingProjectPrompt = `You are onboarding as the specification co-pilot for this repository. We just initialized the .specs directory using SpecPilot SDD. Your task is to inspect the codebase and populate all .specs files following these strict conventions:
-
-${conventions}
-
-**Your Process:**
-1. Analyze the codebase: language, framework, structure, existing tests, dependencies
-2. For each .specs file, generate content that:
-   - Reflects the actual implementation state
-   - Follows the conventions above exactly
-   - Maintains internal consistency (cross-references work)
-   - Scales appropriately to project size (small projects = concise specs, large = comprehensive)
-3. Identify gaps: missing tests, undocumented APIs, unclear requirements, architectural debt
-4. Propose actionable next steps in planning/tasks.md
-
-**Output Format:**
-For each file, provide the complete content in a markdown code block:
-\\\\\`\\\\\`\\\\\`markdown
-// filepath: .specs/project/project.yaml
-[full file content]
-\\\\\`\\\\\`\\\\\`
-
-**Constraints:**
-- Maintain the exact file paths and names from the .specs structure
-- Don't invent features that don't exist in the code
-- Flag uncertainties with TODO comments
-- Keep descriptions clear, concise, and technical
-- Ensure all IDs are unique within their domain
-
-After populating all files, provide a summary of:
-- What was discovered about the project
-- What's documented vs. what's implemented
-- Critical gaps or risks
-- Recommended immediate actions
-
-Begin your analysis now.`;
-
-    // ── Assemble the full prompts.md ─────────────────────────────
-    const primaryLabel = isNew ? 'New Project' : 'Existing Project';
-    const secondaryLabel = isNew ? 'Existing Project' : 'New Project';
-    const primaryPrompt = isNew ? newProjectPrompt : existingProjectPrompt;
-    const secondaryPrompt = isNew ? existingProjectPrompt : newProjectPrompt;
-    const primaryNote = isNew
-      ? 'Use this prompt to have your AI agent draft all specification files based on your project description.'
-      : 'Use this prompt to have your AI agent analyze your codebase and populate all specification files.';
-    const secondaryNote = isNew
-      ? 'If you later need to re-generate specs from an existing codebase (e.g., after significant implementation), use this prompt instead.'
-      : 'If you start a fresh module or sub-project and want to plan specs before writing code, use this prompt instead.';
-
     const content = `---
 title: Prompts Log
-  description: AI interaction log and onboarding prompts for the project
+description: AI interaction log for {{projectName}}
 project: {{projectName}}
 language: {{language}}
 framework: {{framework}}
@@ -643,26 +497,6 @@ This file (prompts.md) contains ALL AI interactions for {{projectName}}. Update 
 > This will move older entries from this file into \`development/prompts-archive.md\` automatically, keeping the most recent entries here. A \`--dry-run\` flag is available to preview changes before writing.
 >
 > No stub \`prompts-archive.md\` file is generated during \`specpilot init\` — it is created on first archive run.
-
-## ${primaryLabel} Onboarding Prompt
-
-${primaryNote}
-
-~~~
-${primaryPrompt}
-~~~
-
----
-
-## ${secondaryLabel} Onboarding Prompt (Reference)
-
-${secondaryNote}
-
-~~~
-${secondaryPrompt}
-~~~
-
----
 
 ## Re-Anchor Prompt
 
@@ -707,7 +541,6 @@ specpilot validate
 When working with AI agents on this codebase:
 - Always reference relevant .specs files for context
 - Update specifications before/after significant changes
-- Use the conventions defined in the onboarding prompt
 - Link code changes to tasks (TASK-XXX) and requirements (REQ-XXX)
 - Keep development/context.md current with architectural decisions
 - **🚨 MANDATE**: Never modify the .specs folder structure or file names - only update file contents
@@ -722,6 +555,139 @@ When working with AI agents on this codebase:
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'prompts.md'), rendered);
+  }
+
+  private async generateOnboardingMd(specsDir: string, context: TemplateContext): Promise<string> {
+    const isGreenfield = context.projectType !== 'brownfield';
+    const pc = context.projectContext;
+
+    const conventions = `**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-${context.author || '{{author}}'}-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues`;
+
+    let prompt: string;
+
+    if (isGreenfield) {
+      const projectContextBlock = pc
+        ? `**Project context (provided by the developer):**
+- **What it does:** ${pc.whatItDoes}
+- **Target users:** ${pc.targetUsers}
+- **Expected scale:** ${pc.expectedScale}
+- **Key constraints:** ${pc.constraints}`
+        : `**Project context:**
+- **What it does:** [DESCRIBE YOUR PROJECT HERE]
+- **Target users:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Key constraints:** Not specified — use your judgment and mark as [ASSUMPTION]`;
+
+      prompt = `You are the specification co-pilot for a new project called "${context.projectName}".
+Tech stack: ${context.language}${context.framework ? ` / ${context.framework}` : ''}
+
+${projectContextBlock}
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+${conventions}
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what you understood, assumptions you made, and recommended next steps.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin drafting now.`;
+    } else {
+      prompt = `You are onboarding as the specification co-pilot for this repository. We just initialized the .specs directory using SpecPilot SDD. Your task is to inspect the codebase and populate all .specs files following these strict conventions:
+
+${conventions}
+
+**Your Process:**
+1. Analyze the codebase: language, framework, structure, existing tests, dependencies
+2. For each .specs file, generate content that:
+   - Reflects the actual implementation state
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project size (small = concise, large = comprehensive)
+3. Identify gaps: missing tests, undocumented APIs, unclear requirements, architectural debt
+4. Propose actionable next steps in planning/tasks.md
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- Maintain the exact file paths and names from the .specs structure
+- Don't invent features that don't exist in the code
+- Flag uncertainties with TODO comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what was discovered, what's documented vs. implemented, critical gaps, and recommended immediate actions.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin your analysis now.`;
+    }
+
+    const label = isGreenfield ? 'Greenfield' : 'Brownfield';
+    const content = `---
+title: Onboarding Prompt (${label})
+description: One-time AI prompt to bootstrap .specs/ files — delete after use
+project: ${context.projectName}
+lastUpdated: ${new Date().toISOString().split('T')[0]}
+---
+
+> **One-time file — delete after use.**
+> Copy the prompt below and paste it into your AI agent. Once all \`.specs/\` files are populated, your AI will delete this file as its final step. If it doesn't, delete it manually.
+
+---
+
+${prompt}`;
+
+    writeFileSync(join(specsDir, 'onboarding.md'), content);
+    return prompt;
   }
 
   private async generateTestsMd(specsDir: string, context: TemplateContext): Promise<void> {

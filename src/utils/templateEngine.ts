@@ -110,48 +110,8 @@ language: ${language}
 ${framework ? `framework: ${framework}` : ''}
 description: {{description}}
 
-# Project Rules and AI Context
-rules:
-  # ============================================================
-  # 🔴 CRITICAL — Never violate. No exceptions.
-  # ============================================================
-  critical:
-    - "MANDATE: Never commit code to git unless prompted by the developer. Always ask first."
-    - "MANDATE: Never push to git unless prompted by the developer. Always ask first."
-    - "MANDATE: Never deploy, publish, or release the project unless prompted by the developer. Always ask first."
-    - "MANDATE: Never modify the .specs/ folder structure, subfolder names, or file names. Only update file contents."
-    - "MANDATE: After every code change, addition, or removal — proactively update all affected .specs/ files without being asked: architecture.md for structural changes, requirements.md for feature changes, tests.md for test changes, tasks.md for task status, and CHANGELOG.md for completed work."
-    - "MANDATE: Never describe, quote, or reference file contents without first reading the file via a tool call in this session. If the file has not been read, say so explicitly before answering."
-    - "MANDATE: Never implement, write code, or make file changes unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume."
-    - "MANDATE: Spec-First review gate — before touching any code or non-spec files, read all relevant .specs/ files, update all affected spec files first (requirements.md, architecture.md, tasks.md, CHANGELOG.md), present a Spec Report summarizing what changed, which files were affected, and what the specs now say, then wait for the developer's explicit 'yes, proceed' before writing code. If the developer declines, revert the spec changes and stop."
+# Rules and mandates: see your AI agent configuration file (single source of truth)
 
-  # ============================================================
-  # 🟡 PROCESS — Important workflow guides. Follow consistently.
-  # ============================================================
-  process:
-    - "MANDATE: Spec-First Development — all changes start with specification updates before code changes."
-    - "MANDATE: Context Preservation — document all important decisions and learnings in .specs/context.md."
-    - "MANDATE: Progress Tracking — keep tasks.md current with actual development status."
-    - "MANDATE: Track ALL AI Prompts — log every AI interaction in .specs/prompts.md with timestamps and context."
-    - "Follow specification-driven development principles throughout the project lifecycle."
-
-  # ============================================================
-  # 🟢 PREFERENCES — Good practice. Apply where appropriate.
-  # ============================================================
-  preferences:
-    - "Follow ${language} best practices and coding standards."
-    - "Test-Driven — write tests before implementation."
-    - "Incremental — small, focused commits."
-    - "Self-review before pushing changes."
-    - "Use semantic versioning for releases."
-
-# Development Context for AI
-ai_context:
-  - "This is a specification-driven development project."
-  - "All changes should be documented in appropriate .specs/ files."
-  - "Follow the established architecture patterns."
-  - "Maintain backwards compatibility when possible."
-  
 # Team Guidelines
 team:
   devPrefix: "{{author}}"

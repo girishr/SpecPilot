@@ -112,8 +112,8 @@ describe('TemplateEngine', () => {
       const result = engine.getBuiltinTemplate('typescript', undefined, 'project.yaml');
       expect(result.length).toBeGreaterThan(0);
       expect(result).toContain('typescript');
-      expect(result).toContain('Spec-First review gate');
-      expect(result).toContain('Spec Report');
+      expect(result).toContain('Rules and mandates: see your AI agent configuration file');
+      expect(result).not.toContain('MANDATE:');
     });
 
     it('returns non-empty content for python project.yaml', () => {

@@ -84,7 +84,7 @@ describe('SpecGenerator', () => {
     expect(content).toContain('.specs/project/project.yaml');
   });
 
-  test('should generate project.yaml with spec-first review gate mandate', async () => {
+  test('should generate project.yaml pointing to AI agent config for mandates', async () => {
     const options = {
       projectName: 'test-project',
       language: 'typescript',
@@ -97,9 +97,8 @@ describe('SpecGenerator', () => {
     const projectYamlPath = join(testDir, '.specs', 'project', 'project.yaml');
     const content = readFileSync(projectYamlPath, 'utf-8');
 
-    expect(content).toContain('Spec-First review gate');
-    expect(content).toContain('Spec Report');
-    expect(content).toContain("'yes, proceed'");
+    expect(content).toContain('Rules and mandates: see your AI agent configuration file');
+    expect(content).not.toContain('MANDATE:');
   });
 
   test('should include mandate in prompts.md', async () => {

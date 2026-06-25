@@ -16,6 +16,7 @@ export interface SpecGeneratorOptions {
   ide?: string;
   mode?: 'new' | 'existing';
   projectType?: 'greenfield' | 'brownfield';
+  apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
   noPrompts?: boolean;
   projectContext?: {
     whatItDoes: string;
@@ -42,6 +43,17 @@ export interface SpecGeneratorOptions {
 }
 
 const AGENT_IDES = new Set(['cowork', 'codex']);
+
+const REST_FRAMEWORKS = new Set(['express', 'fastapi', 'django', 'flask', 'next', 'nest', 'spring', 'ktor', 'vapor']);
+const NO_API_FRAMEWORKS = new Set(['react', 'vue', 'angular', 'android', 'ios', 'swiftui', 'compose', 'streamlit']);
+
+function inferApiParadigm(framework?: string): 'rest' | 'cli' | 'graphql' | 'none' {
+  if (!framework) return 'rest';
+  const f = framework.toLowerCase();
+  if (REST_FRAMEWORKS.has(f)) return 'rest';
+  if (NO_API_FRAMEWORKS.has(f)) return 'none';
+  return 'rest';
+}
 
 export class SpecGenerator {
   private specFileGenerator: SpecFileGenerator;
@@ -71,6 +83,7 @@ export class SpecGenerator {
       ide: options.ide || 'vscode',
       mode: options.mode || 'new',
       projectType: options.projectType ?? (options.mode === 'existing' ? 'brownfield' : 'greenfield'),
+      apiParadigm: options.apiParadigm ?? inferApiParadigm(options.framework),
       projectContext: options.projectContext,
     };
     const { onboardingPrompt } = await this.specFileGenerator.generateAll(specsDir, context);

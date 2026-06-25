@@ -143,6 +143,23 @@ export async function initCommand(name: string, options: InitOptions) {
       }
     }
     
+    // Get API paradigm
+    let apiParadigm: 'rest' | 'cli' | 'graphql' | 'none' | undefined;
+    if (options.prompts) {
+      const paradigmResponse = await inquirer.prompt([{
+        type: 'list',
+        name: 'apiParadigm',
+        message: 'What API paradigm does this project use?',
+        choices: [
+          { name: 'REST / OpenAPI — HTTP endpoints, JSON responses', value: 'rest' },
+          { name: 'CLI — command-line tool with commands and flags', value: 'cli' },
+          { name: 'GraphQL — schema-first query/mutation API', value: 'graphql' },
+          { name: 'None — skip api.yaml (UI library, mobile app, etc.)', value: 'none' },
+        ],
+      }]);
+      apiParadigm = paradigmResponse.apiParadigm;
+    }
+
     // Get short handle for task/prompt ID namespacing (mandatory when prompts enabled)
     const osUsername = os.userInfo().username;
     let developerName = osUsername;
@@ -304,6 +321,7 @@ export async function initCommand(name: string, options: InitOptions) {
       ide,
       mode: 'new',
       projectType,
+      apiParadigm,
       projectContext,
     });
 

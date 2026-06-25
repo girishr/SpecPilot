@@ -163,21 +163,19 @@ sourceOfTruth: project/project.yaml
   }
 
   private async generateApiYaml(specsDir: string, context: TemplateContext): Promise<void> {
-    const content = `# .specs/architecture/api.yaml
-# ------------------------------------------------------------
-# API & Interface Specification
-# Purpose: CLI / REST API / GraphQL interface spec
-# Remove the section(s) that don't apply to your project.
+    const paradigm = context.apiParadigm ?? 'rest';
+    if (paradigm === 'none') return;
+
+    const header = `# .specs/architecture/api.yaml
 # meta: project={{projectName}} language={{language}} framework={{framework}} updated={{currentDate}}
-# ------------------------------------------------------------
 
 project: "{{projectName}}"
 version: "1.0.0"
 lastUpdated: "{{currentDate}}"
+`;
 
-# ============================================================
-# OPTION A: REST API (remove if not a web API project)
-# ============================================================
+    const sections: Record<string, string> = {
+      rest: `
 openapi: "3.0.0"
 info:
   title: "{{projectName}} API"
@@ -195,10 +193,8 @@ paths:
       responses:
         "200":
           description: "Success"
-
-# ============================================================
-# OPTION B: CLI Interface (remove if not a CLI project)
-# ============================================================
+`,
+      cli: `
 cli:
   name: "{{projectName}}"
   version: "1.0.0"
@@ -212,10 +208,8 @@ cli:
       options:
         - flag: "--example <value>"
           description: "[TODO: option description]"
-
-# ============================================================
-# OPTION C: GraphQL (remove if not a GraphQL project)
-# ============================================================
+`,
+      graphql: `
 graphql:
   endpoint: "/graphql"
   queries:
@@ -224,8 +218,10 @@ graphql:
   mutations:
     - name: "[TODO: firstMutation]"
       description: "[TODO: What does this mutation do?]"
-`;
+`,
+    };
 
+    const content = header + sections[paradigm];
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'api.yaml'), rendered);
   }

@@ -16,6 +16,7 @@ export interface TemplateContext {
   ide?: string;
   mode?: 'new' | 'existing';
   projectType?: 'greenfield' | 'brownfield';
+  apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
   projectContext?: ProjectContext;
   architecture?: {
     components: string[];

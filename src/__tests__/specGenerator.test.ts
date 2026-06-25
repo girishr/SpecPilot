@@ -26,6 +26,7 @@ describe('SpecGenerator', () => {
       projectName: 'test-project',
       language: 'typescript',
       framework: 'react',
+      apiParadigm: 'rest' as const,
       targetDir: testDir,
       specsName: '.specs'
     };
@@ -346,6 +347,82 @@ describe('SpecGenerator', () => {
     const readme = readFileSync(join(testDir, '.specs', 'README.md'), 'utf-8');
     expect(readme).toContain('onboarding.md');
     expect(readme).not.toContain('Onboarding Prompt" section');
+  });
+
+  // CS-070: api.yaml conditional generation
+
+  test('api.yaml generated with REST section when apiParadigm=rest', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, apiParadigm: 'rest' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(true);
+    const content = readFileSync(apiPath, 'utf-8');
+    expect(content).toContain('openapi:');
+    expect(content).not.toContain('cli:');
+    expect(content).not.toContain('graphql:');
+  });
+
+  test('api.yaml generated with CLI section when apiParadigm=cli', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, apiParadigm: 'cli' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(true);
+    const content = readFileSync(apiPath, 'utf-8');
+    expect(content).toContain('cli:');
+    expect(content).not.toContain('openapi:');
+    expect(content).not.toContain('graphql:');
+  });
+
+  test('api.yaml generated with GraphQL section when apiParadigm=graphql', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, apiParadigm: 'graphql' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(true);
+    const content = readFileSync(apiPath, 'utf-8');
+    expect(content).toContain('graphql:');
+    expect(content).not.toContain('openapi:');
+    expect(content).not.toContain('cli:');
+  });
+
+  test('api.yaml skipped entirely when apiParadigm=none', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, apiParadigm: 'none' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(false);
+  });
+
+  test('api.yaml infers rest from express framework under --no-prompts', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, framework: 'express' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(true);
+    const content = readFileSync(apiPath, 'utf-8');
+    expect(content).toContain('openapi:');
+  });
+
+  test('api.yaml infers none from react framework under --no-prompts', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, framework: 'react' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(false);
+  });
+
+  test('explicit apiParadigm overrides framework inference', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, framework: 'react', apiParadigm: 'graphql' });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(true);
+    const content = readFileSync(apiPath, 'utf-8');
+    expect(content).toContain('graphql:');
+  });
+
+  test('api.yaml defaults to rest when no framework and no apiParadigm', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    const apiPath = join(testDir, '.specs', 'architecture', 'api.yaml');
+    expect(existsSync(apiPath)).toBe(true);
+    const content = readFileSync(apiPath, 'utf-8');
+    expect(content).toContain('openapi:');
   });
 
   // CS-059: CLAUDE.md generation for Cowork IDE

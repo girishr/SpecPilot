@@ -114,10 +114,13 @@ describe('SpecGenerator', () => {
 
     const promptsPath = join(testDir, '.specs', 'development', 'prompts.md');
     const content = readFileSync(promptsPath, 'utf-8');
-    
+
     expect(content).toContain('MANDATE');
     expect(content).toContain('AI interactions');
     expect(content).toContain('prompts.md');
+    // CS-071: Common Commands and AI Agent Guidelines removed
+    expect(content).not.toContain('## Common Commands');
+    expect(content).not.toContain('## AI Agent Guidelines');
   });
 
   test('should include application structure placeholder when analysis missing', async () => {

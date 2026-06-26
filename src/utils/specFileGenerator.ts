@@ -437,37 +437,7 @@ For full project context, read .specs/project/project.yaml.
 
 | Date | User | Prompt Summary | Context |
 |------|------|----------------|---------|
-| YYYY-MM-DD | @username | Example prompt | Brief context or outcome |
-
-## Common Commands
-
-\\\`\\\`\\\`bash
-# Generate specs for new project
-specpilot init
-
-# Add specs to existing project
-specpilot add-specs
-
-# Validate spec files
-specpilot validate
-\\\`\\\`\\\`
-
-## AI Agent Guidelines
-
-When working with AI agents on this codebase:
-- Always reference relevant .specs files for context
-- Update specifications before/after significant changes
-- Link code changes to tasks (TASK-XXX) and requirements (REQ-XXX)
-- Keep development/context.md current with architectural decisions
-- **🚨 MANDATE**: Never modify the .specs folder structure or file names - only update file contents
-- **🚨 RELEASE MANDATE**: Never commit, push, create tags, publish releases, or publish to npm without explicit user consent and approval
-
-## Cross-References
-- Context: ./context.md
-- Project config: ../project/project.yaml
-
----
-*Last updated: {{currentDate}}*`;
+| YYYY-MM-DD | @username | Example prompt | Brief context or outcome |`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'prompts.md'), rendered);

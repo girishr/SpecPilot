@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-06-25
-version: 5.22
+lastUpdated: 2026-06-26
+version: 5.23
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,7 +77,7 @@ Notes
 
 ## Current Sprint
 
-1. [CS-073] Terse generated spec file templates (`specFileGenerator.ts`) — strip three categories of verbosity from all `generateXxx()` template strings: (a) instructional prose aimed at the dev (explanatory blockquotes, HTML comments, example `[ASSUMPTION]` rows); (b) `## Cross-References` footer blocks in every file (~4 lines × 10 files); (c) verbose multi-line `[TODO: ...]` filler — replace with single `[TODO]` per section; target skeleton: front-matter + section headers with stable IDs + one `[TODO]` per section; no prose, no navigation links
+_(empty — all sprint items completed)_
 
 ## Completed
 
@@ -103,4 +103,5 @@ Notes
 95. [CD-girishr-013] [CS-069] [BL-035] Remove `docs.md` from generated output — deleted `generateDocsMd()` from `specFileGenerator.ts` and its call in `generateAll()`; removed `Docs: ./docs.md` cross-reference from `context.md` template; dropped `development/docs.md` from required-files test assertion (26 tests pass)
 96. [CD-girishr-014] [CS-071] [BL-037] `prompts.md` token trims — removed `## Common Commands` (specpilot CLI docs) and `## AI Agent Guidelines` (duplicates AI config file mandates) and `## Cross-References` footer from `generatePromptsMd()` in `specFileGenerator.ts`; 2 new assertions added to existing prompts.md test (188 total)
 95. [CD-girishr-013] [CS-070] [BL-036] Conditional `api.yaml` generation — added `apiParadigm: 'rest' | 'cli' | 'graphql' | 'none'` to `TemplateContext` and `SpecGeneratorOptions`; `inferApiParadigm()` helper in `specGenerator.ts` maps REST frameworks → `rest`, UI/mobile frameworks → `none`, fallback → `rest`; explicit `inquirer` list prompt ("What API paradigm does this project use?") added in `init.ts` and `add-specs.ts` after framework question; `generateApiYaml()` in `specFileGenerator.ts` routes on `context.apiParadigm` — emits only the matching section (REST/CLI/GraphQL) or skips file entirely for `none`; 8 new tests (180 → 188 total)
+107. [CD-girishr-015] [CS-073] Terse spec file templates — stripped (a) instructional prose/blockquotes/HTML comments/example rows, (b) `## Cross-References` footer blocks, and (c) verbose `[TODO: ...]` filler (→ bare `[TODO]`) from 7 `generateXxx()` methods in `specFileGenerator.ts`; removed `## Multi-Dev Notes` blockquote from `tasks.md` template; collapsed roadmap milestones to single `## Milestones` section; dropped ADR-001/ADR-002 example subsections from `security-decisions.md`; updated 1 test assertion (ADR-001/002 checks removed); 188 tests still passing
 94. [CD-girishr-012] [CS-068] [CS-072] Token optimization — `prompts.md` + new `onboarding.md` (`specFileGenerator.ts`, `templateEngine.ts`, `specGenerator.ts`, `init.ts`, `add-specs.ts`) — stripped both onboarding prompt sections from `generatePromptsMd()`; new `generateOnboardingMd()` writes `.specs/development/onboarding.md` with self-destruct header and greenfield or brownfield prompt selected via new `context.projectType: 'greenfield' | 'brownfield'` field; `generateSpecs()` return type changed from `void` to `{ onboardingPrompt: string }`; greenfield/brownfield `inquirer` list prompt added as first interactive prompt in `init.ts` (default greenfield) and `add-specs.ts` (default brownfield); onboarding prompt printed to stdout in highlighted block after generation; `NEW_PROJECT_README` and `EXISTING_PROJECT_README` Quick Start rewritten to point to `onboarding.md` (absorbs CS-072); 11 new tests (169 → 180 total)

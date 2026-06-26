@@ -140,23 +140,10 @@ sourceOfTruth: project/project.yaml
 {{description}}
 
 ## Functional Requirements
-[TODO: Add requirements with proper template]
+[TODO]
 
 ## Assumptions
-
-> Label each assumption with [ASSUMPTION] so it can be reviewed and revised.
-
-- [ASSUMPTION] [e.g. Users have internet access at runtime]
-- [ASSUMPTION] [e.g. Single-user deployment, no multi-tenancy required]
-- [ASSUMPTION] [e.g. Input data is well-formed; no adversarial input expected]
-
-## Cross-References
-- Architecture: ../architecture/architecture.md
-- API: ../architecture/api.yaml
-- Project config: ../project/project.yaml
-
----
-*Last updated: {{currentDate}}*`;
+[TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'requirements.md'), rendered);
@@ -245,45 +232,17 @@ Task ID conventions
 - CD-{devPrefix}-###: Completed items (e.g. CD-{{author}}-001)
 - PROMPT-{devPrefix}-###: Prompt log entries (e.g. PROMPT-{{author}}-001)
 
-Notes
-
-- IDs are stable; do not change once assigned (even if reordered or moved between sections).
-- Reference tasks by ID in commits, prompts, PRs, and discussions.
-- When moving an item from Backlog to Current Sprint, retain its original BL ID or create a CS mirror that references the BL ID.
-- Archive guidance: when Completed grows large, move older entries to \`tasks-archive.md\` and add a pointer here.
-
-## Multi-Dev Notes
-
-> **ID collisions are the #1 source of merge conflicts in shared spec files.**
-> Follow these rules when more than one person commits to this repo:
->
-> - Always \`git pull\` before appending to the Completed section.
-> - Use your personal prefix in all Completed IDs: \`CD-{your-handle}-###\`
->   so two devs never claim the same number independently.
-> - Only run \`specpilot archive\` on the default branch (main/master) **after** merging,
->   never on a feature branch — diverged trim points break the archive history.
-
 ## Backlog
 
-1. [BL-001] Plan initial feature set
-2. [BL-002] Gather user feedback and feature requests
-3. [BL-003] Write documentation and usage guide
+[TODO]
 
 ## Current Sprint
 
-1. [CS-001] Set up project foundation and tooling
-2. [CS-002] Implement core features
-3. [CS-003] Write unit tests
+[TODO]
 
 ## Completed
 
-1. [CD-001] Initialise .specs directory ({{currentDate}})
-
-## Cross-References
-
-- Roadmap (milestones): ./roadmap.md
-- Requirements: ../project/requirements.md
-- Project config: ../project/project.yaml`;
+1. [CD-001] Initialise .specs directory ({{currentDate}})`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'tasks.md'), rendered);
@@ -300,58 +259,19 @@ lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
 
-<!--
-  PURPOSE: Release-level milestone planner — the "when are we shipping what" file.
-  Scope: Quarter-level phases, version targets, feature groupings, goals, and risks.
-  Update cadence: Per release / per sprint planning session.
-
-  Boundary guide:
-  - roadmap.md → release milestones, timeline, objectives, and risks (this file)
-  - tasks.md   → individual work items and sprint status
--->
-
 # {{projectName}} — Development Roadmap
 
-## v0.1.0 — Foundation _(current)_
-**Goal:** Get a working skeleton in place.
-- [x] Project initialised
-- [ ] Core data model implemented
-- [ ] Basic CLI / API working
-
-## v0.2.0 — Core Features
-**Goal:** Deliver the primary user-facing functionality.
-- [ ] Feature A
-- [ ] Feature B
-- [ ] Unit test coverage ≥ 80 %
-
-## v1.0.0 — Production Ready
-**Goal:** Stable, documented, deployable release.
-- [ ] All P0/P1 requirements met
-- [ ] Documentation complete
-- [ ] CI/CD pipeline green
-
-## Unscheduled / Icebox
-- [ ] Nice-to-have feature ideas go here
+## Milestones
+[TODO]
 
 ## Objectives
-- [Primary goal for this project]
-- [Secondary goal]
+[TODO]
 
 ## Goals & Success Criteria
-| Goal | Success Metric | Target |
-|------|----------------|--------|
-| [Primary goal] | [How we measure it] | [Target value] |
+[TODO]
 
 ## Risks and Mitigations
-- [Risk 1]: [Mitigation]
-- [Risk 2]: [Mitigation]
-
-## Cross-References
-- Sprint tasks: ./tasks.md
-- Requirements: ../project/requirements.md
-
----
-*Last updated: {{currentDate}}*`;
+[TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'roadmap.md'), rendered);
@@ -371,14 +291,7 @@ sourceOfTruth: project/project.yaml
 # {{projectName}} Development Context
 
 ## Project Memory
-[TODO: Add project context and decisions]
-
-## Cross-References
-- Roadmap: ../planning/roadmap.md
-- Project config: ../project/project.yaml
-
----
-*Last updated: {{currentDate}}*`;
+[TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'context.md'), rendered);
@@ -590,14 +503,7 @@ sourceOfTruth: project/project.yaml
 # {{projectName}} Test Strategy
 
 ## Overview
-[TODO: Add testing strategy and approach]
-
-## Cross-References
-- Requirements: ../project/requirements.md
-- Project config: ../project/project.yaml
-
----
-*Last updated: {{currentDate}}*`;
+[TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'tests.md'), rendered);
@@ -616,48 +522,16 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 # Threat Model
 
 ## Overview [SEC-001.1]
-
-> Describe the attack surface: what the system does, what it reads/writes, and what it does NOT do (e.g., no network calls at runtime).
-
-[TODO: Summarise the system's threat surface — input sources, outputs, and offline/online constraints.]
+[TODO]
 
 ## Threat Model [SEC-002]
-
-### [Threat Name] [SEC-002.1]
-
-| Field | Detail |
-|---|---|
-| **Description** | [TODO: Describe the threat] |
-| **Impact** | [TODO: High / Medium / Low] |
-| **Likelihood** | [TODO: High / Medium / Low / Very low] |
-| **Entry point** | [TODO: Where does attacker-controlled data enter?] |
-| **Mitigation** | [TODO: What control prevents or limits this threat?] |
-| **Residual risk** | [TODO: What risk remains after mitigation?] |
-
-### [Threat Name] [SEC-002.2]
-
-| Field | Detail |
-|---|---|
-| **Description** | [TODO: Describe the threat] |
-| **Impact** | [TODO: High / Medium / Low] |
-| **Likelihood** | [TODO: High / Medium / Low / Very low] |
-| **Entry point** | [TODO: Where does attacker-controlled data enter?] |
-| **Mitigation** | [TODO: What control prevents or limits this threat?] |
-| **Residual risk** | [TODO: What risk remains after mitigation?] |
+[TODO]
 
 ## Attack Surface Summary [SEC-003]
-
-| Entry Point | Data Type | Validated? | Used In |
-|---|---|---|---|
-| [TODO: entry point] | [TODO: type] | [TODO: ✅ / ⚠️ / ❌] | [TODO: component] |
+[TODO]
 
 ## Out of Scope [SEC-004]
-
-- [TODO: List threats explicitly out of scope, e.g. OS-level permissions, container isolation]
-
----
-
-_Last updated: {{currentDate}}_`;
+[TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'threat-model.md'), rendered);
@@ -675,39 +549,8 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
 
 # Security Decisions
 
-> Record security-relevant architectural decisions here in ADR style.
-> Each entry should capture: what was decided, why, and any trade-offs.
-
 ## Decisions [SEC-002.1]
-
-### [Decision title] [ADR-001]
-
-| Field | Detail |
-|---|---|
-| **Decision** | [TODO: What was decided?] |
-| **Status** | [TODO: Accepted / Proposed / Deprecated] |
-| **Context** | [TODO: What problem does this solve?] |
-| **Rationale** | [TODO: Why was this approach chosen over alternatives?] |
-| **Trade-offs** | [TODO: What are the downsides or limitations?] |
-| **Related threat** | [TODO: Which threat in threat-model.md does this address?] |
-
-### [Decision title] [ADR-002]
-
-| Field | Detail |
-|---|---|
-| **Decision** | [TODO: What was decided?] |
-| **Status** | [TODO: Accepted / Proposed / Deprecated] |
-| **Context** | [TODO: What problem does this solve?] |
-| **Rationale** | [TODO: Why was this approach chosen over alternatives?] |
-| **Trade-offs** | [TODO: What are the downsides or limitations?] |
-| **Related threat** | [TODO: Which threat in threat-model.md does this address?] |
-
-## Cross-References
-- Threat model: ./threat-model.md
-- Architecture: ../architecture/architecture.md
-
----
-*Last updated: {{currentDate}}*`;
+[TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
     writeFileSync(join(specsDir, 'security-decisions.md'), rendered);

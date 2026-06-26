@@ -179,8 +179,6 @@ describe('SpecGenerator', () => {
     expect(content).toContain('fileID: SEC-002');
     expect(content).toContain('# Security Decisions');
     expect(content).toContain('## Decisions [SEC-002.1]');
-    expect(content).toContain('ADR-001');
-    expect(content).toContain('ADR-002');
   });
 
   // CS-047: Handle existing copilot-instructions.md during add-specs

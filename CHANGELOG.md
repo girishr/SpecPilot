@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-26
+
+### Changed
+
+- **Terse AI agent mandates** (CS-066): rewrote all 8 critical mandates in `ideConfigGenerator.ts` to compact caveman style ("No commit unless asked" vs "NEVER commit"); mandate 5 now tiered (Trivial → `tasks.md`, Feature → `requirements.md` + `tasks.md`, Architectural → all files + `CHANGELOG.md`); mandate 8 now tiered spec-first gate (Trivial → no gate, Feature → read 1–2 files, Architectural → full Spec Report + `yes, proceed`); replaced static "Read in this order" list with on-demand `buildContextRoutingTable()` keyed by task type across all 4 IDE config builders.
+- **Token-optimized `project.yaml` template** (CS-067): removed entire `rules:` block (`critical:`, `process:`, `preferences:`) and `ai_context:` block from generated `project.yaml`; replaced with single comment `# Rules and mandates: see your AI agent configuration file (single source of truth)`.
+- **Onboarding prompt extracted to `onboarding.md`** (CS-068/CS-072): both onboarding prompts removed from `prompts.md`; new `generateOnboardingMd()` writes `.specs/development/onboarding.md` with a self-destruct header and the correct greenfield or brownfield prompt selected via new `projectType` option; `init` and `add-specs` now prompt for project type and print the onboarding prompt to stdout after generation; `generateSpecs()` return type changed to `{ onboardingPrompt: string }`; `.specs/README.md` Quick Start rewritten to point to `onboarding.md`.
+- **`docs.md` removed from generated output** (CS-069): deleted `generateDocsMd()` — spec file conventions are enforced by `specpilot validate`, the update checklist duplicated mandate #5, and the CLI reference belongs in SpecPilot's own docs, not every user project.
+- **Conditional `api.yaml` generation** (CS-070): new `apiParadigm` option (`rest` | `cli` | `graphql` | `none`) on `TemplateContext` and `SpecGeneratorOptions`; `generateApiYaml()` emits only the matching section or skips the file entirely for `none`; `inferApiParadigm()` auto-detects from framework (e.g. `react` → `none`, `express` → `rest`); interactive list prompt added to `init` and `add-specs`.
+- **Slimmer `prompts.md` template** (CS-071): removed "Common Commands" (SpecPilot CLI docs) and "AI Agent Guidelines" (duplicates AI config file mandates) sections from generated `prompts.md`.
+- **Terse generated spec file templates** (CS-073): stripped instructional prose, `## Cross-References` footer blocks, and verbose multi-line `[TODO: ...]` filler from all `generateXxx()` template strings; skeleton is now: front-matter + section headers with stable IDs + one `[TODO]` per section.
+
 ## [1.8.0] - 2026-06-06
 
 ### Added

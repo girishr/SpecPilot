@@ -1,7 +1,7 @@
 ---
 fileID: DOC-001
-lastUpdated: 2026-05-10
-version: 1.5
+lastUpdated: 2026-06-26
+version: 1.6
 contributors: [girishr]
 relatedFiles:
   [
@@ -98,8 +98,8 @@ The `.specs/` folder structure is IMMUTABLE and must not be altered. This includ
 **Protected Structure**:
 
 - Subfolder hierarchy: `project/`, `planning/`, `development/`, `quality/`, `architecture/`, `security/` (as defined)
-- Core file names: `project.yaml`, `requirements.md`, `architecture.md`, `api.yaml`, `tests.md`, `context.md`, `docs.md`, `prompts.md`, `tasks.md`, `threat-model.md`, `security-decisions.md`
-- Root-level AI config: `.github/copilot-instructions.md` (generated for all IDE/agent selections)
+- Core file names: `project.yaml`, `requirements.md`, `architecture.md`, `api.yaml`, `tests.md`, `context.md`, `onboarding.md`, `prompts.md`, `tasks.md`, `threat-model.md`, `security-decisions.md`
+- Root-level AI config: IDE-specific file (`CLAUDE.md` for Cowork, `.cursor/rules/project.mdc` for Cursor, `.windsurfrules` for Windsurf, `.antigravity/rules.md` for Antigravity, `.github/copilot-instructions.md` for VSCode/Codex)
 - All existing files and directories
 
 **What IS Allowed**:
@@ -138,13 +138,12 @@ Before each commit, verify and update:
 
 - [ ] **`tasks.md`**: Move completed tasks, update progress status
 - [ ] **`context.md`**: Add lessons learned, important decisions, challenges overcome
-- [ ] **`docs.md`**: Update procedures if development processes changed
 - [ ] **`prompts.md`**: Log all AI interactions (automated, but verify completeness)
 - [ ] **`requirements.md`**: Update if new features or changes affect requirements
 - [ ] **`architecture.md`**: Update if code structure or design patterns changed
 - [ ] **`api.yaml`**: Update if CLI interface or commands modified
 - [ ] **`tests.md`**: Update if testing approach or coverage changed
-- [ ] **`.github/copilot-instructions.md`**: Update if critical mandates or project context change
+- [ ] **AI config file** (`CLAUDE.md` / `.github/copilot-instructions.md` / etc.): Update if critical mandates or project context change
 - [ ] **File Metadata**: Update footer sections (dates, counts, status summaries) in all modified files
 
 #### **Enforcement Mechanisms**

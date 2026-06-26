@@ -1,14 +1,14 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-05-10
-# version: 1.6
+# lastUpdated: 2026-06-26
+# version: 2.0
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
 
 cli:
   binary: specpilot
-  version: 1.6.7
+  version: 2.0.0
   runtime: Node.js >= 16
   install: npm install -g specpilot
 
@@ -25,10 +25,10 @@ commands:
     options:
       --lang:
         type: string
-        description: Programming language (typescript, javascript, python)
+        description: Programming language (typescript, javascript, python, kotlin, swift)
       --framework:
         type: string
-        description: Framework (react, express, next, nest, vue, angular, fastapi, django, flask, streamlit)
+        description: Framework (react, express, next, nest, vue, angular, fastapi, django, flask, streamlit, android, spring, ktor, compose, ios, swiftui, vapor)
       --dir:
         type: string
         default: "."
@@ -44,8 +44,11 @@ commands:
         type: boolean
         description: List files that would be created without writing them
     interactive-prompts:
-      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
+      - "Greenfield or brownfield project type"
+      - "Framework selection"
+      - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
+      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
       - "What does your project do? (mandatory)"
       - "Who are the target users? (optional)"
       - "Expected scale? (optional)"
@@ -60,7 +63,7 @@ commands:
     options:
       --lang:
         type: string
-        description: Override auto-detected language
+        description: Override auto-detected language (typescript, javascript, python, kotlin, swift)
       --framework:
         type: string
         description: Override auto-detected framework
@@ -74,8 +77,11 @@ commands:
         type: boolean
         description: Skip interactive prompts
     interactive-prompts:
-      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
+      - "Greenfield or brownfield project type"
+      - "Framework selection"
+      - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
+      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
     exit-codes:
       0: Success
       1: .specs/ already exists or error

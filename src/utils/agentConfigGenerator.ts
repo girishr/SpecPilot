@@ -4,7 +4,7 @@ import { TemplateEngine, TemplateContext } from './templateEngine';
 
 /**
  * Generates AI agent configuration files:
- * - Cowork Skills (.claude/skills/specpilot-project/SKILL.md)
+ * - Claude Code Skills (.claude/skills/specpilot-project/SKILL.md)
  * - Codex Instructions (CODEX_INSTRUCTIONS.md at project root)
  */
 export class AgentConfigGenerator {
@@ -13,8 +13,8 @@ export class AgentConfigGenerator {
   /** Entry point — routes to the correct agent config generator. */
   async generate(projectDir: string, context: TemplateContext, agent: string): Promise<void> {
     switch (agent.toLowerCase()) {
-      case 'cowork':
-        await this.generateCoworkSkills(projectDir, context);
+      case 'claude-code':
+        await this.generateClaudeCodeSkills(projectDir, context);
         break;
       case 'codex':
         await this.generateCodexInstructions(projectDir, context);
@@ -22,7 +22,7 @@ export class AgentConfigGenerator {
     }
   }
 
-  private async generateCoworkSkills(projectDir: string, context: TemplateContext): Promise<void> {
+  private async generateClaudeCodeSkills(projectDir: string, context: TemplateContext): Promise<void> {
     const skillsDir = join(projectDir, '.claude', 'skills', 'specpilot-project');
     mkdirSync(skillsDir, { recursive: true });
 

@@ -508,7 +508,7 @@ Each IDE/Agent selection generates one AI context file:
 | Cursor      | `.cursor/rules/project.mdc`           |
 | Windsurf    | `.windsurfrules`                      |
 | Antigravity | `.antigravity/rules.md`               |
-| Cowork      | `CLAUDE.md`                           |
+| Claude Code      | `CLAUDE.md`                           |
 
 All context files contain: project name/stack, critical mandates, process mandates, and a Re-Anchor Prompt.
 
@@ -528,7 +528,7 @@ specpilot init my-project --lang typescript --framework react
 # When prompted for IDE/Agent, select your preferred option
 ```
 
-Supported values: `vscode`, `cursor`, `windsurf`, `antigravity`, `cowork`, `codex`
+Supported values: `vscode`, `cursor`, `windsurf`, `antigravity`, `claude-code`, `codex`
 
 ## Troubleshooting
 

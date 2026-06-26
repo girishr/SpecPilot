@@ -760,7 +760,7 @@ rules:
     });
   });
 
-  describe('backfillIdeFiles — Cowork SKILL.md', () => {
+  describe('backfillIdeFiles — Claude Code SKILL.md', () => {
     it('does not report SKILL.md when the file is absent', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: FULL_YAML,

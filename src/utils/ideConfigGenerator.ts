@@ -77,7 +77,7 @@ export class IdeConfigGenerator {
       await this.generateWindsurfRules(projectDir, context);
     } else if (key === 'antigravity') {
       await this.generateAntigravityRules(projectDir, context);
-    } else if (key === 'cowork') {
+    } else if (key === 'claude-code') {
       await this.generateClaudeMd(projectDir, context, noPrompts);
     } else {
       // vscode, codex, and unknown IDEs → copilot-instructions.md
@@ -155,7 +155,7 @@ export class IdeConfigGenerator {
       : context.language;
     return `# CLAUDE.md \u2014 ${context.projectName}
 
-> This file is the primary instructions file for Claude Code / Cowork.
+> This file is the primary instructions file for Claude Code.
 > Keep it lean \u2014 use it as a router to your \`.specs/\` files, not a dumping ground.
 > Full project context is in \`.specs/project/project.yaml\`.
 

@@ -12,7 +12,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 
 - **Phase**: Active Development (v1.6.7)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: IDE-routed AI context files, Cowork `CLAUDE.md` router generation, IDE-native non-destructive `backfill`, archive branch guard and lower thresholds, mandatory devPrefix ID conventions, `.gitattributes` union merge rules, purpose descriptions in generated spec files (CS-062), and 144-test coverage
+- **Recent Implementations**: IDE-routed AI context files, Claude Code `CLAUDE.md` router generation, IDE-native non-destructive `backfill`, archive branch guard and lower thresholds, mandatory devPrefix ID conventions, `.gitattributes` union merge rules, purpose descriptions in generated spec files (CS-062), and 144-test coverage
 - **Next Steps**: See tasks.md Current Sprint for the next generated-output and multi-dev alignment items
 
 ## Key Decisions [CTX-003]
@@ -26,7 +26,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Existing Projects**: add-specs command with codebase analysis [CTX-003.7]
 - **Git Mandates**: Require explicit developer prompts for all git operations [CTX-003.8]
 - **Folder Structure Display**: Show nested tree instead of flat list in architecture.md [CTX-003.9]
-- **AI IDE Integration**: Support for VSCode, Cursor, Windsurf, Antigravity, Cowork/Claude, and Codex context files; existing-project updates flow through non-destructive backfill where possible [CTX-003.10]
+- **AI IDE Integration**: Support for VSCode, Cursor, Windsurf, Antigravity, Claude Code/Claude, and Codex context files; existing-project updates flow through non-destructive backfill where possible [CTX-003.10]
 - **Visual CLI**: Gemini-style graphical interface with ASCII branding [CTX-003.11]
 - **Module Split**: specGenerator.ts split into specFileGenerator, ideConfigGenerator, agentConfigGenerator for maintainability (FIX-011) [CTX-003.12]
 - **Template Simplification**: Removed TemplateRegistry abstraction; inlined catalog as constant (FIX-013) [CTX-003.13]
@@ -36,7 +36,7 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Existing-Project Backfills**: `specpilot backfill` (alias `bf`) for non-destructive backfills after upgrading SpecPilot — detects new mandates, rules, or files from the newer version and inserts only what's missing into the project's existing `.specs/`; never overwrites user-authored content [CTX-003.17]
 - **Migrate Scope**: keep `specpilot migrate` for rare legacy structure conversion only; do not position it as a general version-update command in docs/help text [CTX-003.18]
 - **Aggressive Archive Thresholds**: keep active working spec files short — archive `planning/tasks.md` once `## Completed` exceeds 25 lines and archive `development/prompts.md` once the file exceeds 100 lines so day-to-day navigation stays fast [CTX-003.19]
-- **IDE-Native Backfill Scope**: `specpilot backfill` should inspect IDE files already present on disk and patch missing mandate blocks for Cursor, Cowork/Claude, Windsurf, and Antigravity without requiring a new IDE-selection prompt; Cowork SKILL.md is reported stale rather than auto-patched [CTX-003.20]
+- **IDE-Native Backfill Scope**: `specpilot backfill` should inspect IDE files already present on disk and patch missing mandate blocks for Cursor, Claude Code/Claude, Windsurf, and Antigravity without requiring a new IDE-selection prompt; Claude Code SKILL.md is reported stale rather than auto-patched [CTX-003.20]
 - **Spec File Purpose Metadata**: generated markdown spec files should include a one-line front-matter `description:` to make file purpose obvious to new contributors; generated `api.yaml` should carry a `# Purpose:` header comment because it is YAML config, not markdown front-matter [CTX-003.21]
 
 ## Established Patterns [CTX-004]

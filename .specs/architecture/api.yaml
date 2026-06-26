@@ -48,7 +48,7 @@ commands:
       - "Framework selection"
       - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
-      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
+      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
       - "What does your project do? (mandatory)"
       - "Who are the target users? (optional)"
       - "Expected scale? (optional)"
@@ -81,7 +81,7 @@ commands:
       - "Framework selection"
       - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
-      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Cowork, Codex)"
+      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
     exit-codes:
       0: Success
       1: .specs/ already exists or error
@@ -213,7 +213,7 @@ commands:
       - Non-destructively patches missing mandates in project.yaml and AI context files
       - Backfills tasks.md with devPrefix ID conventions and Multi-Dev Notes
       - Detects existing IDE files and patches only the files present on disk
-      - Reports stale Cowork SKILL.md structure without auto-patching it
+      - Reports stale Claude Code SKILL.md structure without auto-patching it
     exit-codes:
       0: Success
       1: Backfill error

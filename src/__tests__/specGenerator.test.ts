@@ -426,10 +426,10 @@ describe('SpecGenerator', () => {
     expect(content).toContain('openapi:');
   });
 
-  // CS-059: CLAUDE.md generation for Cowork IDE
+  // CS-059: CLAUDE.md generation for Claude Code
 
-  test('CLAUDE.md absent, cowork → writes full router file', async () => {
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cowork', noPrompts: true });
+  test('CLAUDE.md absent, claude-code → writes full router file', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: true });
 
     const claudePath = join(testDir, 'CLAUDE.md');
     expect(existsSync(claudePath)).toBe(true);
@@ -450,7 +450,7 @@ describe('SpecGenerator', () => {
 
     const promptSpy = jest.spyOn(inquirer, 'prompt');
 
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cowork', noPrompts: true });
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: true });
 
     expect(promptSpy).not.toHaveBeenCalled();
     const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
@@ -464,7 +464,7 @@ describe('SpecGenerator', () => {
 
     jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 's' });
 
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cowork', noPrompts: false });
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: false });
 
     const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
     expect(content).toBe(original);

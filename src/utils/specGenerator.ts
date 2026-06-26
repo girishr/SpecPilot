@@ -42,7 +42,7 @@ export interface SpecGeneratorOptions {
   };
 }
 
-const AGENT_IDES = new Set(['cowork', 'codex']);
+const AGENT_IDES = new Set(['claude-code', 'codex']);
 
 const REST_FRAMEWORKS = new Set(['express', 'fastapi', 'django', 'flask', 'next', 'nest', 'spring', 'ktor', 'vapor']);
 const NO_API_FRAMEWORKS = new Set(['react', 'vue', 'angular', 'android', 'ios', 'swiftui', 'compose', 'streamlit']);

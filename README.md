@@ -165,7 +165,7 @@ SpecPilot generates AI agent configuration files during project initialization. 
 
 **Cloud-Based AI Agents (Instruction Files):**
 
-- **Cowork** - Anthropic Claude agent with Skills framework
+- **Claude Code** - Anthropic Claude Code CLI agent (`CLAUDE.md`)
 - **Codex** - OpenAI Codex agent with instruction context
 
 **Generated Configuration Files:**
@@ -179,7 +179,7 @@ Each IDE/Agent selection generates one AI context file at the project root:
 | Cursor      | `.cursor/rules/project.mdc`           |
 | Windsurf    | `.windsurfrules`                      |
 | Antigravity | `.antigravity/rules.md`               |
-| Cowork      | `CLAUDE.md`                           |
+| Claude Code      | `CLAUDE.md`                           |
 
 All context files contain: project name/stack, critical mandates, and a Re-Anchor Prompt.
 
@@ -203,7 +203,7 @@ The generated settings/instructions automatically configure your AI agent to:
 specpilot init my-project --lang typescript --framework react
 # Respond with your preferred IDE/Agent:
 # - vscode, cursor, windsurf, antigravity (desktop)
-# - cowork, codex (cloud agents)
+# - claude-code, codex (cloud agents)
 ```
 
 ## Troubleshooting

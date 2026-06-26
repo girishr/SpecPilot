@@ -111,11 +111,11 @@ ls -la .specs/
 ### 3. Use AI Onboarding (Recommended)
 
 ```bash
-# Open the onboarding prompt
-open .specs/development/prompts.md
+# Open the onboarding prompt (printed to stdout during init — also saved here)
+open .specs/development/onboarding.md
 
 # Copy the prompt and paste into your AI assistant
-# The AI will populate all specification files
+# The AI will populate all specification files, then delete onboarding.md
 ```
 
 ### 4. Start Development
@@ -169,8 +169,8 @@ specpilot init my-project --no-prompts
 
 **Options:**
 
-- `--lang, -l <language>`: Programming language (typescript, javascript, python) · default: `typescript`
-- `--framework, -f <framework>`: Framework (react, express, fastapi, django, etc.)
+- `--lang, -l <language>`: Programming language (typescript, javascript, python, kotlin, swift) · default: `typescript`
+- `--framework, -f <framework>`: Framework (react, express, fastapi, django, android, ktor, ios, vapor, etc.)
 - `--dir, -d <directory>`: Target directory · default: `.`
 - `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
 - `--no-prompts`: Skip all interactive prompts
@@ -194,8 +194,8 @@ specpilot add-specs --deep-analysis
 
 **Options:**
 
-- `--lang, -l <language>`: Programming language (typescript, javascript, python)
-- `--framework, -f <framework>`: Framework (react, express, fastapi, django, etc.)
+- `--lang, -l <language>`: Programming language (typescript, javascript, python, kotlin, swift)
+- `--framework, -f <framework>`: Framework (react, express, fastapi, django, android, ktor, ios, vapor, etc.)
 - `--no-analysis`: Skip automatic codebase analysis
 - `--deep-analysis`: Perform comprehensive code analysis
 - `--no-prompts`: Skip all interactive prompts
@@ -301,6 +301,7 @@ specpilot archive --dry-run
 **Options:**
 
 - `--dry-run`: Preview changes without writing any files
+- `--force`: Skip branch warning and archive without confirmation
 
 **What it archives:**
 
@@ -324,6 +325,7 @@ specpilot backfill --dry-run
 - `--dir, -d <directory>`: Project directory · default: `.`
 - `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
 - `--dry-run`: Preview changes without writing any files
+- `--no-prompts`: Accept suggested devPrefix silently without interactive confirmation
 
 **When to use backfill:**
 
@@ -386,6 +388,25 @@ specpilot list --verbose
 | Flask     | `flask`     | Lightweight REST API          |
 | Streamlit | `streamlit` | Data Science / ML apps        |
 
+### Kotlin
+
+| Framework | Template   | Description                     |
+| --------- | ---------- | ------------------------------- |
+| Generic   | `kotlin`   | Basic Kotlin project            |
+| Android   | `android`  | Native Android app              |
+| Spring    | `spring`   | Server-side REST API            |
+| Ktor      | `ktor`     | Async Kotlin web framework      |
+| Compose   | `compose`  | Jetpack Compose UI              |
+
+### Swift
+
+| Framework | Template   | Description                     |
+| --------- | ---------- | ------------------------------- |
+| Generic   | `swift`    | Basic Swift project             |
+| iOS       | `ios`      | Native iOS app                  |
+| SwiftUI   | `swiftui`  | Declarative Apple UI            |
+| Vapor     | `vapor`    | Swift server-side framework     |
+
 ## Project Structure
 
 SpecPilot generates a comprehensive `.specs/` folder structure:
@@ -393,11 +414,11 @@ SpecPilot generates a comprehensive `.specs/` folder structure:
 ```
 .specs/
 ├── architecture/
-│   ├── api.yaml              # CLI / REST API / GraphQL interface spec
+│   ├── api.yaml              # REST / CLI / GraphQL interface spec (conditional on paradigm)
 │   └── architecture.md       # Architecture decisions & patterns
 ├── development/
 │   ├── context.md            # Development memory & learnings
-│   ├── docs.md               # Dev guidelines, spec conventions, checklist
+│   ├── onboarding.md         # One-time AI bootstrap prompt — delete after first use
 │   └── prompts.md            # AI interaction log — MANDATED, update every session
 ├── planning/
 │   ├── roadmap.md            # Release milestones, objectives & risks
@@ -405,13 +426,14 @@ SpecPilot generates a comprehensive `.specs/` folder structure:
 ├── project/
 │   ├── project.yaml          # Project config, rules, and AI context (MANDATED)
 │   └── requirements.md       # Functional & non-functional requirements
-└── quality/
-    └── tests.md              # Test strategy, coverage targets, acceptance criteria
+├── quality/
+│   └── tests.md              # Test strategy, coverage targets, acceptance criteria
+└── security/
+    ├── security-decisions.md # ADR-style security design decisions
+    └── threat-model.md       # Threat inventory with impact/likelihood/mitigation
 ```
 
-Also generated at project root:
-
-- **`.github/copilot-instructions.md`** — AI mandate enforcement file; read automatically by GitHub Copilot, Cursor, and most AI tools on every interaction. Contains project name/stack, critical mandates, process mandates, and a Re-Anchor Prompt reference.
+Also generated at project root: an AI context file based on your selected IDE/Agent (see IDE & Agent Configuration below).
 
 ### Key Files Explained
 
@@ -477,9 +499,18 @@ SpecPilot currently does not support custom templates. All templates are built-i
 
 During project initialization, SpecPilot prompts you to select your AI IDE or agent. This configures automatically generated files to integrate `.specs/` context into your chosen environment.
 
-**All IDE/Agent selections** also generate:
+Each IDE/Agent selection generates one AI context file:
 
-- `.github/copilot-instructions.md` — critical mandates injected into every AI request automatically (GitHub Copilot, Cursor, and most AI tools read this file on every interaction). Contains project name/stack, 5 critical mandates, process mandates, and a Re-Anchor instruction.
+| IDE/Agent   | Generated file                        |
+|-------------|---------------------------------------|
+| VSCode      | `.github/copilot-instructions.md`     |
+| Codex       | `.github/copilot-instructions.md`     |
+| Cursor      | `.cursor/rules/project.mdc`           |
+| Windsurf    | `.windsurfrules`                      |
+| Antigravity | `.antigravity/rules.md`               |
+| Cowork      | `CLAUDE.md`                           |
+
+All context files contain: project name/stack, critical mandates, process mandates, and a Re-Anchor Prompt.
 
 **Desktop IDEs** additionally generate workspace settings:
 
@@ -488,27 +519,9 @@ During project initialization, SpecPilot prompts you to select your AI IDE or ag
 - `.windsurf/settings.json` for Windsurf
 - `.antigravity/settings.json` for Antigravity
 
-These files include:
-
-- Workspace folder configuration
-- File associations for markdown/YAML
-- Extensions recommendations
-- AI context paths pointing to `.specs/` folder
-
-**Cloud Agents** generate instruction files:
-
-- `.claude/skills/specpilot-project/SKILL.md` for Cowork (Claude)
-  - Provides project context in Skills format
-  - Includes SDD principles and development guidelines
-  - Links to onboarding prompts and key reference files
-
-- `CODEX_INSTRUCTIONS.md` for Codex (OpenAI)
-  - Provides project overview and architecture guidance
-  - Includes development mandates and best practices
-  - Links to `.specs/` folder structure and key files
+These files include workspace folder configuration, file associations, extensions recommendations, and AI context paths pointing to `.specs/`.
 
 **To reconfigure your IDE/Agent:**
-Re-run `specpilot init` for the project and select a different IDE/Agent when prompted:
 
 ```bash
 specpilot init my-project --lang typescript --framework react
@@ -739,7 +752,7 @@ This project follows specification-driven development principles. Please review 
 
 1. **Read the specs**: Review [`.specs/project/requirements.md`](.specs/project/requirements.md) and [`.specs/architecture/architecture.md`](.specs/architecture/architecture.md)
 2. **Check current tasks**: See [`.specs/planning/tasks.md`](.specs/planning/tasks.md) for open issues
-3. **Follow conventions**: Use the metadata format documented in [`.specs/development/docs.md`](.specs/development/docs.md)
+3. **Follow conventions**: Use the metadata format documented in [`.specs/development/context.md`](.specs/development/context.md)
 4. **Update specs**: Modify relevant spec files when making changes
 5. **Validate**: Run `specpilot validate` before committing
 
@@ -771,7 +784,7 @@ node cli.js init my-test --lang python
 
 - **TypeScript**: Strict mode enabled
 - **Linting**: ESLint configuration
-- **Testing**: Jest — 73 tests across 5 suites
+- **Testing**: Jest — 188 tests across 7 suites
 - **Commits**: Conventional commit format
 
 ### Pull Request Process

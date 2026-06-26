@@ -27,7 +27,7 @@ specpilot validate
 After creating a project, follow these steps to populate your specifications using AI:
 
 1. **Open the generated guide**: Check `.specs/README.md` for full guidance
-2. **Copy the onboarding prompt**: Use the prompt from `.specs/development/prompts.md`
+2. **Copy the onboarding prompt**: Use the prompt from `.specs/development/onboarding.md`
 3. **Paste into your AI agent**: ChatGPT, Claude, or other AI assistants
 4. **Review generated spec files**: Examine the AI-generated requirements and architecture
 
@@ -60,9 +60,9 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `migrate`   | `--from` · `--to` · `--backup`                                                      |
 | `list`      | `--lang` · `--verbose`                                                              |
 | `refine`    | `--update` · `--no-prompts`                                                         |
-| `archive`   | `--dry-run`                                                                         |
+| `archive`   | `--dry-run` · `--force`                                                             |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
-| `backfill`  | `--dir` · `--specs-name` · `--dry-run`                                              |
+| `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 
@@ -107,6 +107,19 @@ specpilot validate --fix
 - **Flask**: Lightweight REST APIs
 - **Streamlit**: Data Science / ML apps
 
+### Kotlin
+
+- **Android**: Native Android apps
+- **Spring**: Server-side REST APIs
+- **Ktor**: Async Kotlin web framework
+- **Compose**: Jetpack Compose UI
+
+### Swift
+
+- **iOS**: Native iOS apps
+- **SwiftUI**: Declarative Apple UI
+- **Vapor**: Swift server-side framework
+
 ## Project Structure
 
 SpecPilot generates a `.specs/` folder with organized subdirectories:
@@ -118,7 +131,7 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
 │   └── architecture.md       # System design decisions and patterns
 ├── development/
 │   ├── context.md            # Development memory, decisions, learnings
-│   ├── docs.md               # Dev guidelines, spec conventions, checklist
+│   ├── onboarding.md         # One-time AI bootstrap prompt — delete after first use
 │   └── prompts.md            # AI interaction log — MANDATED, update every session
 ├── planning/
 │   ├── roadmap.md            # Release milestones and objectives
@@ -133,7 +146,7 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
     └── threat-model.md       # Threat inventory with impact/likelihood/mitigation
 ```
 
-> Also generated at project root: `.github/copilot-instructions.md` (AI mandate enforcement)
+> Also generated at project root: an AI context file (`.github/copilot-instructions.md`, `CLAUDE.md`, `.cursor/rules/project.mdc` , `.windsurfrules`, `.antigravity/rules.md`  etc.) based on your selected IDE/Agent
 
 ## Configuration
 
@@ -157,22 +170,24 @@ SpecPilot generates AI agent configuration files during project initialization. 
 
 **Generated Configuration Files:**
 
-For **all** IDE/Agent selections: `.github/copilot-instructions.md`
+Each IDE/Agent selection generates one AI context file at the project root:
 
-- Critical mandates injected into every AI request automatically
-- Read on every interaction by GitHub Copilot, Cursor, and most AI tools
-- Contains project name/stack, 5 critical mandates, and a Re-Anchor Prompt reference
+| IDE/Agent   | Generated file                        |
+|-------------|---------------------------------------|
+| VSCode      | `.github/copilot-instructions.md`     |
+| Codex       | `.github/copilot-instructions.md`     |
+| Cursor      | `.cursor/rules/project.mdc`           |
+| Windsurf    | `.windsurfrules`                      |
+| Antigravity | `.antigravity/rules.md`               |
+| Cowork      | `CLAUDE.md`                           |
+
+All context files contain: project name/stack, critical mandates, and a Re-Anchor Prompt.
 
 For desktop IDEs: `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
 
 - IDE-specific workspace folder setup for code + .specs
 - Extensions recommendations for development
 - AI context configuration for better spec integration
-
-For cloud agents:
-
-- **Cowork**: `.claude/skills/specpilot-project/SKILL.md` with project context and development guidelines
-- **Codex**: `CODEX_INSTRUCTIONS.md` at project root with architecture overview and mandates
 
 The generated settings/instructions automatically configure your AI agent to:
 

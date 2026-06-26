@@ -16,9 +16,9 @@ const SPEC_FOLDERS: FolderEntry[] = [
   {
     folder: 'development',
     files: [
-      { name: 'context.md', description: 'development memory, decisions, learnings' },
-      { name: 'docs.md',    description: 'dev guidelines, spec conventions, checklist' },
-      { name: 'prompts.md', description: 'AI interaction log — MANDATED, update every session' },
+      { name: 'context.md',    description: 'development memory, decisions, learnings' },
+      { name: 'prompts.md',    description: 'AI interaction log — MANDATED, update every session' },
+      { name: 'onboarding.md', description: 'one-time onboarding prompt — delete after first use' },
     ],
   },
   {

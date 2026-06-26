@@ -126,7 +126,14 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
         type: 'list',
         name: 'ide',
         message: 'Select your AI IDE/Agent for SpecPilot context:',
-        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', { name: 'Claude Code', value: 'claude-code' }, 'Codex']
+        choices: [
+          { name: 'VSCode', value: 'vscode' },
+          { name: 'Cursor', value: 'Cursor' },
+          { name: 'Windsurf', value: 'Windsurf' },
+          { name: 'Antigravity', value: 'Antigravity' },
+          { name: 'Claude Code', value: 'claude-code' },
+          { name: 'Codex', value: 'Codex' },
+        ]
       }]);
       ide = ideResponse.ide;
     }

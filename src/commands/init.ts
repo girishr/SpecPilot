@@ -72,9 +72,9 @@ export async function initCommand(name: string, options: InitOptions) {
         join(specsDir, 'quality') + '/',
         join(specsDir, 'quality', 'tests.md'),
         join(specsDir, 'development') + '/',
-        join(specsDir, 'development', 'docs.md'),
         join(specsDir, 'development', 'context.md'),
         join(specsDir, 'development', 'prompts.md'),
+        join(specsDir, 'development', 'onboarding.md'),
         join(specsDir, 'security') + '/',
         join(specsDir, 'security', 'threat-model.md'),
         join(specsDir, 'security', 'security-decisions.md'),
@@ -100,6 +100,14 @@ export async function initCommand(name: string, options: InitOptions) {
       return;
     }
 
+    // Print a simple header before interactive prompts (logo appears once at end via displayInitSuccess)
+    if (options.prompts) {
+      console.log('');
+      console.log(chalk.blue.bold('🚀 Initializing SDD project...'));
+      console.log(chalk.white(`   Project: ${projectName}  ·  Language: ${options.lang}`));
+      console.log('');
+    }
+
     // Get project type (greenfield vs brownfield)
     let projectType: 'greenfield' | 'brownfield' = 'greenfield';
     if (options.prompts) {
@@ -120,19 +128,6 @@ export async function initCommand(name: string, options: InitOptions) {
     if (!framework && options.prompts) {
       const frameworks = getFrameworksForLanguage(options.lang);
       if (frameworks.length > 0) {
-        // Display logo before framework selection
-        const frameworkPromptContent = [
-          chalk.blue('🚀 Initializing SDD project...'),
-          '',
-          chalk.blue.bold('Framework Selection'),
-          '',
-          chalk.white(`Project: ${projectName}`),
-          chalk.white(`Language: ${options.lang}`),
-          '',
-          chalk.cyan('Please choose a framework for your project:')
-        ];
-        logger.displayWithLogo(frameworkPromptContent);
-        
         const response = await inquirer.prompt([{
           type: 'list',
           name: 'framework',
@@ -184,7 +179,14 @@ export async function initCommand(name: string, options: InitOptions) {
         type: 'list',
         name: 'ide',
         message: 'Select your AI IDE/Agent for SpecPilot context:',
-        choices: ['vscode', 'Cursor', 'Windsurf', 'Antigravity', { name: 'Claude Code', value: 'claude-code' }, 'Codex']
+        choices: [
+          { name: 'VSCode', value: 'vscode' },
+          { name: 'Cursor', value: 'Cursor' },
+          { name: 'Windsurf', value: 'Windsurf' },
+          { name: 'Antigravity', value: 'Antigravity' },
+          { name: 'Claude Code', value: 'claude-code' },
+          { name: 'Codex', value: 'Codex' },
+        ]
       }]);
       ide = ideResponse.ide;
     }

@@ -169,7 +169,7 @@ export class Logger {
       '',
       chalk.cyan('🚀 Next steps to populate your specs with AI:'),
       chalk.white('1. Open .specs/README.md for full guidance'),
-      chalk.white('2. Copy the onboarding prompt from .specs/development/prompts.md'),
+      chalk.white('2. Copy the onboarding prompt from .specs/development/onboarding.md'),
       chalk.white('3. Paste into your AI agent and run it'),
       chalk.white('4. Review the generated spec files'),
       '',

@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-05-24
-version: 1.9
+lastUpdated: 2026-06-28
+version: 2.0
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -10,9 +10,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ## Current Coverage [TESTS-001.1]
 
-**7 test suites, 169 tests, all passing** (Jest)
-
-- CS-065 (BL-034): Kotlin and Swift language support added. `projectDetector.test.ts` +15 cases (Kotlin: build.gradle/.kts/settings.gradle.kts detection, Spring/Ktor/Android/Compose/generic framework sniffing; Swift: Package.swift, .xcodeproj, .xcworkspace, Vapor/SwiftUI/iOS framework sniffing). `templateEngine.test.ts` +10 cases (kotlin/swift project.yaml and architecture.md templates, kotlin-android/spring/ktor/compose and swift-vapor/ios/swiftui framework-specific dependency sections).
+**7 test suites, 188 tests, all passing** (Jest)
 
 | Suite            | File                      | Tests | Covers                                                                                           |
 | ---------------- | ------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
@@ -24,16 +22,15 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 | Spec Archiver    | `specArchiver.test.ts`    | 14    | Prompt/tasks archive thresholds (100/25), dry-run behaviour, archived block formatting           |
 | Spec Backfiller  | `specBackfiller.test.ts`  | 39    | `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths (CS-060); IDE file backfill: cursor/claude/windsurf/antigravity mandate fingerprinting, SKILL.md structural fingerprint + stale detection, absent files skipped, dry-run (CS-061) |
 
-## Test Plans [TESTS-002]
+## Coverage Areas [TESTS-002]
 
 ### Unit Tests [TESTS-002.1]
 
-- Template engine helpers and rendering
+- Template engine helpers, rendering, Kotlin/Swift template keys
 - Spec file validation rules and auto-fix
 - Migration file mapping (simple ↔ complex structure)
-- Project detection (Node.js, Python, **Kotlin, Swift**)
-- Framework identification
-- Spec Backfiller: fingerprint detection, text-based mandate insertion (3 strategies), `readContributorsFirst` (inline/block/fallback), `writeDevPrefix` (with/without existing `team:` block), `ensureDevPrefix` (`noPrompts`, `dryRun`), dry-run guard for all backfill targets, IDE-native file mandate backfill, and SKILL.md stale detection
+- Project detection: Node.js, Python, Kotlin, Swift; framework identification
+- Spec Backfiller: fingerprint detection, mandate insertion (3 strategies), `readContributorsFirst`, `writeDevPrefix`, `ensureDevPrefix`, dry-run guard, IDE file backfill, SKILL.md stale detection
 
 ### Integration Tests [TESTS-002.2]
 
@@ -43,11 +40,8 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ### Validation Tests [TESTS-002.3]
 
-- Spec file structure validation
-- YAML front-matter presence and format
-- Cross-reference validation
-- Mandate checking
-- Archive threshold warnings and archive-trigger behaviour for `prompts.md` and `tasks.md`
+- Spec file structure, YAML front-matter, cross-references, mandate checking
+- Archive threshold warnings for `prompts.md` (100 lines) and `tasks.md` (25 lines)
 
 ## Acceptance Criteria [TESTS-003]
 

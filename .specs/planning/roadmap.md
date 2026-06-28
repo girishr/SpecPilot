@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-05-10
-version: 1.6
+lastUpdated: 2026-06-28
+version: 1.7
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -19,6 +19,8 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Production deployment to NPM [ROADMAP-002.7] ✅
 - Spec maintenance commands (`backfill`, `archive`) complete [ROADMAP-002.8] ✅
 - IDE-native AI context routing for GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, and Codex complete [ROADMAP-002.9] ✅
+- Kotlin and Swift language support, conditional api.yaml, onboarding.md, terse spec templates complete [ROADMAP-002.10] ✅
+- Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] 🔄
 
 ## Timeline [ROADMAP-003]
 
@@ -58,12 +60,18 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-05-05: `specBackfiller.test.ts` added; 7 suites / 129 tests documented
 - 2026-05-10: Spec files refreshed to match the current CLI surface and package version 1.6.7
 
+### v2.0.x - Language Expansion + Output Quality (June 2026)
+
+- 2026-06-06: v1.8.0 → v2.0.0 — Kotlin and Swift language support; conditional api.yaml (rest/cli/graphql/none); onboarding.md split from prompts.md; mandatory devPrefix; terse spec templates; Cursor output renamed to `specpilot.mdc`; 188 tests
+- 2026-06-28: Code Philosophy + Code Rules injected into all generated AI instruction files and backfillable via `specpilot backfill` (CS-074 in progress)
+
 ## Objectives [ROADMAP-004]
 
 - Deliver working templates for TypeScript, JavaScript, and Python [ROADMAP-004.1]
 - Enforce safeguards (prevent init in folders that already have .specs/) [ROADMAP-004.2]
 - Ship clear docs and getting-started guidance [ROADMAP-004.3]
 - Keep generated and live `.specs/` files aligned with the evolving CLI surface [ROADMAP-004.4]
+- Embed minimal-code principles (Code Philosophy + Code Rules) into every generated AI instruction file [ROADMAP-004.5]
 
 ## Risks and Mitigations [ROADMAP-005]
 

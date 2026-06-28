@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-05-28
-version: 2.8
+lastUpdated: 2026-06-28
+version: 2.9
 contributors: [girishr]
 relatedFiles:
   [
@@ -35,7 +35,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 - **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
 - **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitSuccess()` [ARCH-003.10]
-- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing SpecPilot mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, and IDE-specific files using fingerprint-based detection and append-only writes; when `team.devPrefix` is absent, prompts for the handle using `contributors[0]` from `project.yaml` as the suggested default (fallback: `os.userInfo().username`); writes `team:\n  devPrefix:` into `project.yaml` before patching `tasks.md`; `--no-prompts` accepts the suggestion silently; IDE file backfill: detects which of `.cursor/rules/specpilot.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md` exist in the project and backfills missing MD mandates into each; SKILL.md is checked for structural fingerprints only (not auto-patched); absent IDE files are skipped; `--dry-run` support for all paths; used by the `backfill` command [ARCH-003.11]
+- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, and existing IDE files; fingerprint-based detection, append-only writes; prompts for missing `devPrefix`; SKILL.md stale-detected only, not auto-patched; `--dry-run` supported [ARCH-003.11]
 
 ## Design Decisions [ARCH-004]
 
@@ -57,17 +57,18 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Post-Init Tree Display**: After `specpilot init` and `specpilot add-specs` success, `Logger.displayInitSuccess()` renders a tree of generated `.specs/` files via the shared `SpecTreePrinter` helper, with hardcoded one-line descriptions [ARCH-004.15]
 - **Security Subfolder Generation**: `specpilot init` now generates `security/threat-model.md` and `security/security-decisions.md` starter templates in every new project; both files use YAML front-matter and labelled placeholder sections; `specTreePrinter.ts` includes both in the post-init tree [ARCH-004.16]
 - **Spec-First Review Gate**: generated `project.yaml` and `.github/copilot-instructions.md` both include a critical mandate that blocks code or non-spec edits until the AI has read relevant `.specs/` files, updated the affected specs first, produced a Spec Report, and received an explicit developer `yes, proceed` [ARCH-004.17]
-- **Non-Destructive Existing-Project Backfills**: `specpilot backfill` (alias `bf`) command detects what the current SpecPilot version would generate vs what the project currently has, and inserts only the missing mandates/instructions/files; for `planning/tasks.md`, reads `team.devPrefix` from `project.yaml` and inserts the `CD-{devPrefix}-###` convention line and `## Multi-Dev Notes` section if absent; append-only writes preserve existing user-authored spec and instruction content; `--dry-run` prints the planned changes without writing [ARCH-004.18]
+- **Non-Destructive Backfills**: `specpilot backfill` detects missing mandates vs current SpecPilot version and inserts only what's absent; append-only writes preserve user-authored content; `--dry-run` available [ARCH-004.18]
 - **Archive Branch Guard**: before `specpilot archive` runs, `archiveCommand()` calls `git rev-parse --abbrev-ref HEAD`; if the branch is not `main` or `master`, a yellow warning is printed and the user is prompted `[y/N]`; declining aborts without writing files; `--force` flag skips the prompt; branch detection failure (e.g. not a git repo) is silently ignored [ARCH-004.19]
 - **CLAUDE.md as Router**: when IDE = Claude Code, `generateAiContextFile()` routes to `generateClaudeMd()` which writes a project-root `CLAUDE.md`; file is intentionally lean — critical mandates inline plus ordered list of context pointers (`.specs/project/project.yaml`, `requirements.md`, `architecture.md`, `tasks.md`, `.claude/skills/specpilot-project/SKILL.md`); design follows the "router not a dumping ground" principle (BL-023); existing-file handling mirrors `generateCopilotInstructions()`: `[o]verwrite / [a]ppend / [s]kip` with prompts, auto-skip + yellow warning with `--no-prompts`; closes BL-023 and BL-028 [ARCH-004.23]
-- **IDE File Backfill via Filesystem Detection**: `specpilot backfill` detects which IDE files exist in the project without requiring an IDE selection prompt; `.cursor/rules/specpilot.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md` are checked against the same MD_MANDATES fingerprints used for `copilot-instructions.md`; missing mandates are appended as a `## SpecPilot Mandates (backfilled)` block; `.claude/skills/specpilot-project/SKILL.md` is checked for structural fingerprints only (auto-patching is not safe since content is Handlebars-rendered); stale SKILL.md is reported with `action: 'stale'` and a re-run hint; IDE files absent from the project are silently skipped; `BackfillResult.ideFiles` field added as `IdeFileBackfillResult[]` [ARCH-004.24]
+- **IDE File Backfill via Filesystem Detection**: `specpilot backfill` detects existing IDE files without an IDE-selection prompt and appends missing mandate blocks; SKILL.md stale-detected only, not auto-patched; absent files silently skipped [ARCH-004.24]
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]
-- **devPrefix in Generated ID Conventions**: generated `tasks.md` template shows `CD-{{author}}-###` as the Completed ID pattern and includes a `## Multi-Dev Notes` callout with pull-before-append and archive-on-default-branch guidance; generated `prompts.md` template references `PROMPT-{{author}}-###` as the prompt log ID pattern; both use the GitHub username collected at init time via `TemplateContext.author` [ARCH-004.22]
-- **Purpose Descriptions in Generated Spec Files**: every generated `.specs/` markdown file includes a `description:` field in its YAML front-matter stating the file's role in one line (e.g. `"Sprint tracker — backlog, current sprint, and completed work"`); `architecture/api.yaml` gets a `# Purpose:` comment instead (it is a YAML config file, not a markdown file with front-matter); descriptions align with the labels used in `specTreePrinter.ts` for consistency; `project/project.yaml` already has a descriptive header comment and a user-supplied `description:` field — no change needed [ARCH-004.25]
+- **devPrefix in Generated ID Conventions**: generated `tasks.md` shows `CD-{{author}}-###` and `## Multi-Dev Notes`; generated `prompts.md` shows `PROMPT-{{author}}-###` [ARCH-004.22]
+- **Purpose Descriptions in Generated Spec Files**: every generated markdown spec file includes a `description:` front-matter field; `api.yaml` gets a `# Purpose:` comment [ARCH-004.25]
 - **IDE/Agent prompt in `add-specs`**: `specpilot add-specs` now shows the same 6-choice IDE/Agent prompt as `specpilot init` (vscode / Cursor / Windsurf / Antigravity / Claude Code / Codex) instead of hardcoding `vscode`; selected IDE flows into `SpecGenerator.generateSpecs()` so the correct AI context file is generated for existing projects; `--no-prompts` defaults to `vscode` [ARCH-004.26]
-- **Claude Code Plugin (`specpilot-plugin`)**: a standalone public GitHub repo (`girishr/specpilot-plugin`) separate from the npm CLI; contains `.claude-plugin/plugin.json` (manifest), `skills/` directory with four SKILL.md files (`spec-first`, `validate-specs`, `refine-specs`, `spec-init`), optional `agents/spec-driven-dev.md` (SDD system prompt + tool restrictions), optional `hooks/hooks.json` (PostToolUse guard when `.specs/` is stale), and `README.md`; installable via `claude plugins install github:girishr/specpilot-plugin`; all spec operations delegate to the `specpilot` npm CLI rather than reimplementing logic [ARCH-004.27]
+- **Claude Code Plugin**: standalone `girishr/specpilot-plugin` repo with `.claude-plugin/plugin.json`, four skills (`spec-first`, `validate-specs`, `refine-specs`, `spec-init`), and optional agents/hooks; all spec ops delegate to the `specpilot` npm CLI [ARCH-004.27]
+- **Code Philosophy + Code Rules in Generated Outputs**: all generated AI instruction files include `## Code Philosophy — Write Only What Needed` (7 YAGNI/minimal-code items) and `## Code Rules` (7 behavioral constraints) in caveman style; injected via `buildCodePhilosophyMarkdown()` in `ideConfigGenerator.ts` and inline in `agentConfigGenerator.ts`; `specpilot backfill` detects missing sections and appends them to existing IDE files [ARCH-004.28]
 
 ## Technology Stack [ARCH-005]
 
@@ -88,9 +89,8 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 5. Prompts for IDE/agent selection
 6. Asks 4 project context questions (1 mandatory, 3 optional)
 7. Spec File Generator creates subfolder structure with mode-aware prompts
-8. IDE/Agent configs generated based on selection
-9. `.github/copilot-instructions.md` generated unconditionally
-10. Validator confirms structure integrity
+8. IDE-native AI context file generated based on selection; agent skill/instruction file generated (SKILL.md or CODEX_INSTRUCTIONS.md)
+9. Validator confirms structure integrity
 
 ### Add-Specs Command Flow [ARCH-006.2]
 
@@ -131,6 +131,3 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **TypeScript compilation**: Source is compiled with `tsc` to `dist/`; the published package ships the compiled JS, not the TS source [ARCH-007.6]
 - **No global state**: All generator functions are stateless and receive all inputs as parameters — safe for programmatic use [ARCH-007.7]
 
----
-
-_Last updated: 2026-04-05_

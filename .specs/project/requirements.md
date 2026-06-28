@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-05-28
+lastUpdated: 2026-06-28
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.13
+version: 1.14
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -24,7 +24,7 @@ relatedFiles:
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
-- `specpilot backfill` — after upgrading SpecPilot to a newer version (which may include new mandates, rules, files, or features), non-destructively backfill the missing content into projects that already have `.specs/`, without overwriting or deleting existing user-authored content; also backfills `planning/tasks.md` with the `CD-{devPrefix}-###` ID convention line and `## Multi-Dev Notes` section; when `team.devPrefix` is absent from `project.yaml`, prompts the user for their handle using `contributors[0]` from `project.yaml` as the suggested default (falling back to `os.userInfo().username`); `--no-prompts` accepts the suggestion silently; also detects which IDE-specific files exist in the project (`.cursor/rules/specpilot.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md`) and backfills missing mandates into them using fingerprint-based detection; IDE files absent from the project are skipped (no IDE selection required); SKILL.md is reported as stale if key structural sections are missing, but is not auto-patched (re-run `specpilot add-specs` to regenerate) [REQ-002.A.7]
+- `specpilot backfill` — non-destructively backfills missing mandates, rules, and IDE config into projects already running `.specs/`; reads `project.yaml` and existing IDE files, inserts only what's absent (append-only, no overwrites); prompts for `devPrefix` if absent; IDE files detected by filesystem presence without IDE-selection prompt; SKILL.md reported stale if structural sections missing, not auto-patched; `--dry-run` supported [REQ-002.A.7]
 - `specpilot archive [--dry-run] [--force]` — archive oversized `.specs/` files; before archiving, detect the current git branch and warn (with `[y/N]` confirmation) when not on `main` or `master`; `--force` bypasses the branch warning [REQ-002.A.8]
 
 ### Project Initialization [REQ-002.B]
@@ -54,7 +54,7 @@ relatedFiles:
 
 ### IDE & Agent Configuration [REQ-002.E]
 
-- Generate the IDE-native AI context file based on the selected IDE — **not** `copilot-instructions.md` for non-GitHub-Copilot IDEs: GitHub Copilot → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/specpilot.mdc` (YAML front-matter: `description`, `globs`, `alwaysApply: true`); Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Claude Code → `CLAUDE.md` (project-root router file — critical mandates inline + pointers to `.specs/` and `.claude/skills/specpilot-project/SKILL.md`); Codex → `.github/copilot-instructions.md`; `--no-prompts` defaults to `vscode`; existing `CLAUDE.md` handling: with prompts enabled ask `[o]verwrite / [a]ppend / [s]kip`; with `--no-prompts` auto-skip with yellow warning [REQ-002.E.1]
+- Generate the IDE-native AI context file based on selected IDE: GitHub Copilot/Codex → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/specpilot.mdc` (front-matter: `alwaysApply: true`); Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Claude Code → `CLAUDE.md` (critical mandates + context pointers); `--no-prompts` defaults to `vscode`; existing `CLAUDE.md`: `[o]verwrite / [a]ppend / [s]kip` with prompts, auto-skip + warning without [REQ-002.E.1]
 - Generate workspace settings for desktop IDEs: GitHub Copilot (`.vscode/`), Cursor (`.cursor/`), Windsurf (`.windsurf/`), Antigravity (`.antigravity/`) [REQ-002.E.2]
 - Generate agent instruction files for cloud agents: Claude Code (`.claude/skills/specpilot-project/SKILL.md`), Codex (`CODEX_INSTRUCTIONS.md`) [REQ-002.E.3]
 - IDE settings include: search inclusion for `.specs/`, markdown/YAML formatting, extensions recommendations [REQ-002.E.4]
@@ -67,10 +67,11 @@ relatedFiles:
 - Generated `prompts.md` must include a Re-Anchor Prompt section for AI context recovery mid-session [REQ-002.F.3]
 - Dual onboarding prompts: new projects get planning-focused prompt with baked-in project context; existing projects get codebase-analysis prompt [REQ-002.F.4]
 - Generated `project.yaml` and `.github/copilot-instructions.md` must include a Spec-First review gate mandate requiring a Spec Report and explicit developer `yes, proceed` before any code or non-spec file changes [REQ-002.F.5]
-- Generated `tasks.md` ID conventions section must show `CD-{devPrefix}-###` pattern (using the GitHub username collected at init time) with a `## Multi-Dev Notes` callout advising: always pull before appending to Completed, use prefixed IDs to avoid collisions, only archive on the default branch; generated `prompts.md` ID conventions must reference `PROMPT-{devPrefix}-###` [REQ-002.F.6]
+- Generated `tasks.md` must show `CD-{devPrefix}-###` ID pattern with `## Multi-Dev Notes` callout; generated `prompts.md` must reference `PROMPT-{devPrefix}-###` [REQ-002.F.6]
 - `specpilot archive`, generated archive guidance, and `specpilot validate` line-limit warnings must use lower active-file thresholds to reduce clutter in day-to-day work: archive `planning/tasks.md` when the `## Completed` section exceeds 25 lines and archive `development/prompts.md` when the file exceeds 100 lines [REQ-002.F.7]
 - Every generated `.specs/` markdown file must include a `description:` field in its YAML front-matter stating the file's purpose in one line, so a new developer can immediately understand the role of each file when browsing the specs folder; `api.yaml` (YAML config, no front-matter) gets a `# Purpose:` comment instead [REQ-002.F.8]
 - `specpilot add-specs` must prompt for IDE/Agent preference using the same 6-choice list as `specpilot init` (vscode, Cursor, Windsurf, Antigravity, Claude Code, Codex); selected IDE must be passed to `SpecGenerator.generateSpecs()` so the correct AI context file is generated for the existing project; must respect `--no-prompts` flag by defaulting to `vscode` [REQ-002.F.9]
+- All generated AI instruction files must include `## Code Philosophy — Write Only What Needed` (7 items) and `## Code Rules` (7 rules) in caveman style; injected into every IDE/agent output: `CLAUDE.md`, `copilot-instructions.md`, Cursor rules, Windsurf rules, Antigravity rules, `SKILL.md`, `CODEX_INSTRUCTIONS.md`; `specpilot backfill` must detect missing sections and append them to existing IDE files [REQ-002.F.10]
 
 ### Plugin Distribution [REQ-002.G]
 
@@ -94,12 +95,3 @@ relatedFiles:
 - AI IDE/agent is optional — SpecPilot works without any AI tooling [REQ-004.5]
 - Internet access is not required at runtime (all templates are built-in) [REQ-004.6]
 
-## Cross-References
-
-- Architecture: ../architecture/architecture.md
-- API/CLI interface: ../architecture/api.yaml
-- Project config: ./project.yaml
-
----
-
-_Last updated: 2026-04-05_

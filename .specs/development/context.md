@@ -1,19 +1,19 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-05-24
-version: 1.9
+lastUpdated: 2026-06-28
+version: 2.0
 contributors: [girishr]
-relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
+relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
 
 # Project Context & Memory
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (v1.6.7)
+- **Phase**: Active Development (v2.0.1)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: IDE-routed AI context files, Claude Code `CLAUDE.md` router generation, IDE-native non-destructive `backfill`, archive branch guard and lower thresholds, mandatory devPrefix ID conventions, `.gitattributes` union merge rules, purpose descriptions in generated spec files (CS-062), and 144-test coverage
-- **Next Steps**: See tasks.md Current Sprint for the next generated-output and multi-dev alignment items
+- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074 pending), Cursor output renamed to `specpilot.mdc`
+- **Next Steps**: See tasks.md Current Sprint
 
 ## Key Decisions [CTX-003]
 
@@ -26,18 +26,19 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Existing Projects**: add-specs command with codebase analysis [CTX-003.7]
 - **Git Mandates**: Require explicit developer prompts for all git operations [CTX-003.8]
 - **Folder Structure Display**: Show nested tree instead of flat list in architecture.md [CTX-003.9]
-- **AI IDE Integration**: Support for GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code/Claude, and Codex context files; existing-project updates flow through non-destructive backfill where possible [CTX-003.10]
+- **AI IDE Integration**: Support for GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, and Codex; existing-project updates via non-destructive backfill [CTX-003.10]
 - **Visual CLI**: Gemini-style graphical interface with ASCII branding [CTX-003.11]
-- **Module Split**: specGenerator.ts split into specFileGenerator, ideConfigGenerator, agentConfigGenerator for maintainability (FIX-011) [CTX-003.12]
-- **Template Simplification**: Removed TemplateRegistry abstraction; inlined catalog as constant (FIX-013) [CTX-003.13]
-- **Dual Onboarding**: Separate prompts for new projects (planning-focused) and existing projects (analysis-focused) with baked-in project context (FIX-018) [CTX-003.14]
-- **Diff Preview**: specify command shows changes before writing, with confirmation prompt (FIX-019) [CTX-003.15]
-- **IDE Settings**: Fabricated setting keys removed; aspirational keys marked clearly (FIX-017) [CTX-003.16]
-- **Existing-Project Backfills**: `specpilot backfill` (alias `bf`) for non-destructive backfills after upgrading SpecPilot — detects new mandates, rules, or files from the newer version and inserts only what's missing into the project's existing `.specs/`; never overwrites user-authored content [CTX-003.17]
-- **Migrate Scope**: keep `specpilot migrate` for rare legacy structure conversion only; do not position it as a general version-update command in docs/help text [CTX-003.18]
-- **Aggressive Archive Thresholds**: keep active working spec files short — archive `planning/tasks.md` once `## Completed` exceeds 25 lines and archive `development/prompts.md` once the file exceeds 100 lines so day-to-day navigation stays fast [CTX-003.19]
-- **IDE-Native Backfill Scope**: `specpilot backfill` should inspect IDE files already present on disk and patch missing mandate blocks for Cursor, Claude Code/Claude, Windsurf, and Antigravity without requiring a new IDE-selection prompt; Claude Code SKILL.md is reported stale rather than auto-patched [CTX-003.20]
-- **Spec File Purpose Metadata**: generated markdown spec files should include a one-line front-matter `description:` to make file purpose obvious to new contributors; generated `api.yaml` should carry a `# Purpose:` header comment because it is YAML config, not markdown front-matter [CTX-003.21]
+- **Module Split**: specGenerator.ts split into specFileGenerator, ideConfigGenerator, agentConfigGenerator for maintainability [CTX-003.12]
+- **Template Simplification**: Removed TemplateRegistry abstraction; inlined catalog as constant [CTX-003.13]
+- **Dual Onboarding**: Separate prompts for new projects (planning-focused) and existing projects (analysis-focused); onboarding.md written separately, deleted after first use [CTX-003.14]
+- **Diff Preview**: refine command shows changes before writing, with confirmation prompt [CTX-003.15]
+- **IDE Settings**: Fabricated setting keys removed; aspirational keys marked clearly [CTX-003.16]
+- **Existing-Project Backfills**: `specpilot backfill` for non-destructive backfills — detects missing mandates and inserts only what's absent; never overwrites user-authored content [CTX-003.17]
+- **Migrate Scope**: `specpilot migrate` for legacy structure conversion only; do not position as a general version-update command [CTX-003.18]
+- **Aggressive Archive Thresholds**: archive `tasks.md` once `## Completed` exceeds 25 lines; archive `prompts.md` once file exceeds 100 lines [CTX-003.19]
+- **IDE-Native Backfill Scope**: `specpilot backfill` inspects IDE files on disk and patches missing mandate blocks without requiring an IDE-selection prompt; SKILL.md reported stale rather than auto-patched [CTX-003.20]
+- **Spec File Purpose Metadata**: generated markdown spec files include a one-line `description:` front-matter field; generated `api.yaml` carries a `# Purpose:` header comment [CTX-003.21]
+- **Code Philosophy + Code Rules**: all generated AI instruction files include a 7-item YAGNI/minimal-code decision ladder and 7 behavioral coding rules in caveman style; injected at generation time and backfilled into existing files via `specpilot backfill` [CTX-003.22]
 
 ## Established Patterns [CTX-004]
 
@@ -49,37 +50,13 @@ relatedFiles: [development/docs.md, planning/roadmap.md, project/project.yaml]
 - **Stable IDs**: REQ-###, ARCH-###, TASK-### format for traceability [CTX-004.6]
 - **Cross-References**: Relative paths between related spec files [CTX-004.7]
 
-## Known Issues [CTX-005]
-
-- **Template Complexity**: Need to balance flexibility with simplicity [CTX-005.1]
-- **Migration Strategy**: Version compatibility across updates [CTX-005.2]
-- **Validation Scope**: Determine optimal validation depth [CTX-005.3]
-- **Performance**: Ensure fast initialization times [CTX-005.4]
-
 ## Lessons Learned [CTX-006]
 
 - **Start Simple**: Complex structures lead to maintenance burden [CTX-006.1]
 - **Developer Control**: Guidelines work better than prescriptions [CTX-006.2]
-- **AI Integration**: Prompts tracking provides valuable context [CTX-006.3]
-- **Iterative Design**: Refine structure based on actual usage [CTX-006.4]
-- **Documentation First**: Specs before code improves clarity [CTX-006.5]
 - **Existing Projects**: Detecting and analyzing existing codebases provides immediate value [CTX-006.6]
-- **Metadata Matters**: YAML front-matter enables powerful validation and cross-referencing [CTX-006.7]
-- **TODO Discovery**: Parsing existing TODOs/FIXMEs helps with task prioritization [CTX-006.8]
-- **Git Mandates**: Explicit prompts prevent accidental commits and maintain developer control [CTX-006.9]
-- **User Experience**: Providing real analysis value exceeds placeholder requirements [CTX-006.10]
-- **IDE-Specific Settings**: Multi-IDE support provides flexibility for different AI coding environments [CTX-006.11]
-- **Visual Identity**: Branded CLI interface improves professional perception and user engagement [CTX-006.12]
-- **Code Review Value**: Systematic code review (19 fixes) caught dead code, security gaps, and architecture debt [CTX-006.13]
+- **Code Review Value**: Systematic code review caught dead code, security gaps, and architecture debt [CTX-006.13]
 - **Module Boundaries**: Splitting large files (1,298 → 3 focused modules) reduces merge conflicts and cognitive load [CTX-006.14]
-- **Test Investment**: Going from 3 to 72 tests caught real alignment issues during the review process [CTX-006.15]
+- **Test Investment**: Going from 3 to 188 tests caught real alignment issues [CTX-006.15]
 - **Aspirational vs Real**: Marking unconfirmed IDE settings as ASPIRATIONAL prevents user trust erosion [CTX-006.16]
 - **Specs Drift**: CLI surface changes should update `architecture/api.yaml`, `planning/roadmap.md`, and `development/context.md` in the same pass so generated-command docs and project memory do not lag behind implementation [CTX-006.17]
-
-## Development Insights [CTX-007]
-
-- **Specification-Driven**: Writing specs first clarifies requirements [CTX-007.1]
-- **Prompt Tracking**: Complete audit trail improves continuity [CTX-007.2]
-- **Structure Evolution**: Start minimal, expand as needed [CTX-007.3]
-- **Tool Purpose**: Helper tool, not replacement for developer expertise [CTX-007.4]
-- **Production Focus**: Design for serious development workflows [CTX-007.5]

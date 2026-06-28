@@ -99,7 +99,7 @@ The `.specs/` folder structure is IMMUTABLE and must not be altered. This includ
 
 - Subfolder hierarchy: `project/`, `planning/`, `development/`, `quality/`, `architecture/`, `security/` (as defined)
 - Core file names: `project.yaml`, `requirements.md`, `architecture.md`, `api.yaml`, `tests.md`, `context.md`, `onboarding.md`, `prompts.md`, `tasks.md`, `threat-model.md`, `security-decisions.md`
-- Root-level AI config: IDE-specific file (`CLAUDE.md` for Cowork, `.cursor/rules/project.mdc` for Cursor, `.windsurfrules` for Windsurf, `.antigravity/rules.md` for Antigravity, `.github/copilot-instructions.md` for GitHub Copilot/Codex)
+- Root-level AI config: IDE-specific file (`CLAUDE.md` for Cowork, `.cursor/rules/specpilot.mdc` for Cursor, `.windsurfrules` for Windsurf, `.antigravity/rules.md` for Antigravity, `.github/copilot-instructions.md` for GitHub Copilot/Codex)
 - All existing files and directories
 
 **What IS Allowed**:

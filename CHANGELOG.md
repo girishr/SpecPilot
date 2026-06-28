@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Rename Cursor output file to `specpilot.mdc`** (CS-077): `ideConfigGenerator.ts` now writes `.cursor/rules/specpilot.mdc` instead of `project.mdc`; `specBackfiller.ts` backfills `specpilot.mdc`; migration warning emitted when old `project.mdc` exists but `specpilot.mdc` does not (no auto-rename); 2 new tests (188 → 190); swept all `project.mdc` references in `.specs/`, `README.md`, `docs/GUIDE.md`.
 - **Rename `VSCode` IDE label to `GitHub Copilot`** (CS-076): display name only change in `init.ts` and `add-specs.ts` (`{ name: 'VSCode' }` → `{ name: 'GitHub Copilot' }`); internal value stays `'vscode'`; all `VSCode` label references updated in `.specs/` docs, `README.md`, `docs/GUIDE.md`, and `CHANGELOG.md`.
 
 ## [2.0.0] - 2026-06-26

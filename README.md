@@ -146,7 +146,7 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
     └── threat-model.md       # Threat inventory with impact/likelihood/mitigation
 ```
 
-> Also generated at project root: an AI context file (`.github/copilot-instructions.md`, `CLAUDE.md`, `.cursor/rules/project.mdc` , `.windsurfrules`, `.antigravity/rules.md`  etc.) based on your selected IDE/Agent
+> Also generated at project root: an AI context file (`.github/copilot-instructions.md`, `CLAUDE.md`, `.cursor/rules/specpilot.mdc` , `.windsurfrules`, `.antigravity/rules.md`  etc.) based on your selected IDE/Agent
 
 ## Configuration
 
@@ -176,7 +176,7 @@ Each IDE/Agent selection generates one AI context file at the project root:
 |-------------|---------------------------------------|
 | GitHub Copilot | `.github/copilot-instructions.md`  |
 | Codex       | `.github/copilot-instructions.md`     |
-| Cursor      | `.cursor/rules/project.mdc`           |
+| Cursor      | `.cursor/rules/specpilot.mdc`         |
 | Windsurf    | `.windsurfrules`                      |
 | Antigravity | `.antigravity/rules.md`               |
 | Claude Code      | `CLAUDE.md`                           |

@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-06-28
-version: 2.7
+version: 2.8
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-077: Rename Cursor output to `specpilot.mdc` — `ideConfigGenerator.ts` and `specBackfiller.ts` updated; migration warning added for old `project.mdc` (no auto-rename); 2 new tests (188 → 190); docs/specs swept (June 28, 2026) [PROMPT-002.0.0.23]
 - CS-076: Rename `VSCode` IDE choice label to `GitHub Copilot` — display name only in `init.ts` and `add-specs.ts`; swept all `VSCode` label references in `.specs/`, `README.md`, `docs/GUIDE.md`, `CHANGELOG.md`; no routing logic or test changes; 188 tests passing (June 28, 2026) [PROMPT-002.0.0.22]
 - Release management session: bump version 1.7.0 → 1.8.0; promote `[Unreleased]` (Kotlin/Swift language support, CS-065/BL-034) to `[1.8.0] - 2026-06-06` in `CHANGELOG.md`; update `package.json`, commit, tag `v1.8.0`, push, create GitHub release, publish to npm (June 6, 2026) [PROMPT-002.0.0.21]
 - CS-062: BL-022 implemented — template generation now adds one-line front-matter `description:` fields to all generated `.specs/` markdown files (`requirements.md`, `architecture.md`, `tasks.md`, `roadmap.md`, `tests.md`, `docs.md`, `context.md`, `prompts.md`, `threat-model.md`, `security-decisions.md`); generated `architecture/api.yaml` now includes a `# Purpose:` header comment; aligned with `specTreePrinter.ts` labels; full test suite re-run stays green at 144 tests (May 24, 2026) [PROMPT-002.0.0.20]

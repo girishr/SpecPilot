@@ -60,7 +60,7 @@ export class IdeConfigGenerator {
   /**
    * Routes to the correct IDE-native AI context file based on the selected IDE.
    * - vscode / codex → .github/copilot-instructions.md
-   * - cursor         → .cursor/rules/project.mdc
+   * - cursor         → .cursor/rules/specpilot.mdc
    * - windsurf       → .windsurfrules
    * - antigravity    → .antigravity/rules.md
    */
@@ -88,7 +88,7 @@ export class IdeConfigGenerator {
   private generateCursorRules(projectDir: string, context: TemplateContext): void {
     const rulesDir = join(projectDir, '.cursor', 'rules');
     mkdirSync(rulesDir, { recursive: true });
-    const filePath = join(rulesDir, 'project.mdc');
+    const filePath = join(rulesDir, 'specpilot.mdc');
     const content =
       `---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n` +
       this.buildCopilotInstructions(context);

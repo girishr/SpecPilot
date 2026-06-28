@@ -505,7 +505,7 @@ Each IDE/Agent selection generates one AI context file:
 |-------------|---------------------------------------|
 | GitHub Copilot | `.github/copilot-instructions.md`  |
 | Codex       | `.github/copilot-instructions.md`     |
-| Cursor      | `.cursor/rules/project.mdc`           |
+| Cursor      | `.cursor/rules/specpilot.mdc`         |
 | Windsurf    | `.windsurfrules`                      |
 | Antigravity | `.antigravity/rules.md`               |
 | Claude Code      | `CLAUDE.md`                           |

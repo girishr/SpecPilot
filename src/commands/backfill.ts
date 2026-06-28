@@ -67,7 +67,9 @@ function fileResultLines(label: string, r: BackfillFileResult, dryRun: boolean):
 function ideFileResultLines(r: IdeFileBackfillResult, dryRun: boolean): string[] {
   const lines: string[] = [chalk.cyan(`📄 ${r.path}`)];
 
-  if (r.action === 'stale') {
+  if (r.action === 'warn') {
+    lines.push(chalk.yellow(`  ⚠️  ${r.reason}`));
+  } else if (r.action === 'stale') {
     lines.push(chalk.yellow(`  ⚠️  Stale — ${r.found}/${r.total} structural fingerprints found`));
     r.added.forEach((label) => lines.push(chalk.white(`     • Missing: ${label}`)));
     if (r.reason) {

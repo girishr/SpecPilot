@@ -554,7 +554,7 @@ rules:
       const result = await backfiller.backfill(testDir, '.specs', false, true);
 
       expect(result.ideFiles).toHaveLength(0);
-      expect(existsSync(join(testDir, '.cursor', 'rules', 'project.mdc'))).toBe(false);
+      expect(existsSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'))).toBe(false);
       expect(existsSync(join(testDir, 'CLAUDE.md'))).toBe(false);
       expect(existsSync(join(testDir, '.windsurfrules'))).toBe(false);
       expect(existsSync(join(testDir, '.antigravity', 'rules.md'))).toBe(false);
@@ -569,12 +569,12 @@ rules:
         tasksMd: makeFullTasksMd('girishr'),
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
-      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD, 'utf-8');
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.ideFiles).toEqual([
         expect.objectContaining({
-          path: '.cursor/rules/project.mdc',
+          path: '.cursor/rules/specpilot.mdc',
           action: 'skipped',
           found: 8,
           total: 8,
@@ -590,16 +590,16 @@ rules:
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
       writeFileSync(
-        join(testDir, '.cursor', 'rules', 'project.mdc'),
+        join(testDir, '.cursor', 'rules', 'specpilot.mdc'),
         '---\nalwaysApply: true\n---\n\n1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n',
         'utf-8'
       );
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      const written = readFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), 'utf-8');
+      const written = readFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), 'utf-8');
 
       expect(result.ideFiles[0]).toMatchObject({
-        path: '.cursor/rules/project.mdc',
+        path: '.cursor/rules/specpilot.mdc',
         action: 'updated',
       });
       expect(written).toContain('SpecPilot Mandates (backfilled');
@@ -614,7 +614,7 @@ rules:
         tasksMd: makeFullTasksMd('girishr'),
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
-      const cursorPath = join(testDir, '.cursor', 'rules', 'project.mdc');
+      const cursorPath = join(testDir, '.cursor', 'rules', 'specpilot.mdc');
       writeFileSync(cursorPath, '# Cursor Rules\n', 'utf-8');
       const before = readFileSync(cursorPath, 'utf-8');
 
@@ -622,10 +622,42 @@ rules:
       const after = readFileSync(cursorPath, 'utf-8');
 
       expect(result.ideFiles[0]).toMatchObject({
-        path: '.cursor/rules/project.mdc',
+        path: '.cursor/rules/specpilot.mdc',
         action: 'updated',
       });
       expect(after).toBe(before);
+    });
+
+    it('emits migration warning when project.mdc exists but specpilot.mdc does not', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const warnResult = result.ideFiles.find((r) => r.path === '.cursor/rules/project.mdc');
+
+      expect(warnResult).toMatchObject({ action: 'warn' });
+      expect(warnResult?.reason).toContain('specpilot.mdc');
+    });
+
+    it('does not emit migration warning when specpilot.mdc already exists', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const warnResult = result.ideFiles.find((r) => r.action === 'warn');
+
+      expect(warnResult).toBeUndefined();
     });
 
     it('appends missing mandates to CLAUDE.md', async () => {
@@ -727,7 +759,7 @@ rules:
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
       mkdirSync(join(testDir, '.antigravity'), { recursive: true });
-      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD, 'utf-8');
       writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD, 'utf-8');
       writeFileSync(join(testDir, '.windsurfrules'), FULL_MD, 'utf-8');
       writeFileSync(join(testDir, '.antigravity', 'rules.md'), FULL_MD, 'utf-8');
@@ -736,7 +768,7 @@ rules:
       const paths = result.ideFiles.map((r) => r.path);
 
       expect(paths).toEqual([
-        '.cursor/rules/project.mdc',
+        '.cursor/rules/specpilot.mdc',
         'CLAUDE.md',
         '.windsurfrules',
         '.antigravity/rules.md',

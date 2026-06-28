@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-075: Fix stale `Cowork` reference in `docs.md:102` → `CLAUDE.md` for Claude Code; single-line text change (June 28, 2026) [PROMPT-002.0.0.24]
 - CS-077: Rename Cursor output to `specpilot.mdc` — `ideConfigGenerator.ts` and `specBackfiller.ts` updated; migration warning added for old `project.mdc` (no auto-rename); 2 new tests (188 → 190); docs/specs swept (June 28, 2026) [PROMPT-002.0.0.23]
 - CS-076: Rename `VSCode` IDE choice label to `GitHub Copilot` — display name only in `init.ts` and `add-specs.ts`; swept all `VSCode` label references in `.specs/`, `README.md`, `docs/GUIDE.md`, `CHANGELOG.md`; no routing logic or test changes; 188 tests passing (June 28, 2026) [PROMPT-002.0.0.22]
 - Release management session: bump version 1.7.0 → 1.8.0; promote `[Unreleased]` (Kotlin/Swift language support, CS-065/BL-034) to `[1.8.0] - 2026-06-06` in `CHANGELOG.md`; update `package.json`, commit, tag `v1.8.0`, push, create GitHub release, publish to npm (June 6, 2026) [PROMPT-002.0.0.21]

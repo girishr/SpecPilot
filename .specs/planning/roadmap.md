@@ -18,7 +18,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Multi-IDE workspace settings support [ROADMAP-002.6] ✅
 - Production deployment to NPM [ROADMAP-002.7] ✅
 - Spec maintenance commands (`backfill`, `archive`) complete [ROADMAP-002.8] ✅
-- IDE-native AI context routing for VSCode, Cursor, Windsurf, Antigravity, Claude Code, and Codex complete [ROADMAP-002.9] ✅
+- IDE-native AI context routing for GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, and Codex complete [ROADMAP-002.9] ✅
 
 ## Timeline [ROADMAP-003]
 
@@ -41,7 +41,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 
 - 2026-02-01 to 2026-02-05: Multi-IDE workspace settings implementation
 - 2026-02-06: IDE selection prompts and configuration generation
-- 2026-02-07: v1.4.0 release with AI IDE support for VSCode, Cursor, Windsurf, and Antigravity
+- 2026-02-07: v1.4.0 release with AI IDE support for GitHub Copilot, Cursor, Windsurf, and Antigravity
 - 2026-02-08: Cloud-based AI agent integration (Claude Code Skills, Codex Instructions)
 
 ### v1.5.x - Spec Maintenance Workflow (March-April 2026)

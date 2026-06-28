@@ -48,7 +48,7 @@ commands:
       - "Framework selection"
       - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
-      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
+      - "IDE selection (GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
       - "What does your project do? (mandatory)"
       - "Who are the target users? (optional)"
       - "Expected scale? (optional)"
@@ -81,7 +81,7 @@ commands:
       - "Framework selection"
       - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
-      - "IDE selection (VSCode, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
+      - "IDE selection (GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
     exit-codes:
       0: Success
       1: .specs/ already exists or error

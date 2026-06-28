@@ -180,7 +180,7 @@ export async function initCommand(name: string, options: InitOptions) {
         name: 'ide',
         message: 'Select your AI IDE/Agent for SpecPilot context:',
         choices: [
-          { name: 'VSCode', value: 'vscode' },
+          { name: 'GitHub Copilot', value: 'vscode' },
           { name: 'Cursor', value: 'Cursor' },
           { name: 'Windsurf', value: 'Windsurf' },
           { name: 'Antigravity', value: 'Antigravity' },

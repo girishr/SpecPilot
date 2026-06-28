@@ -503,7 +503,7 @@ Each IDE/Agent selection generates one AI context file:
 
 | IDE/Agent   | Generated file                        |
 |-------------|---------------------------------------|
-| VSCode      | `.github/copilot-instructions.md`     |
+| GitHub Copilot | `.github/copilot-instructions.md`  |
 | Codex       | `.github/copilot-instructions.md`     |
 | Cursor      | `.cursor/rules/project.mdc`           |
 | Windsurf    | `.windsurfrules`                      |
@@ -514,7 +514,7 @@ All context files contain: project name/stack, critical mandates, process mandat
 
 **Desktop IDEs** additionally generate workspace settings:
 
-- `.vscode/settings.json` for VSCode
+- `.vscode/settings.json` for GitHub Copilot
 - `.cursor/settings.json` for Cursor
 - `.windsurf/settings.json` for Windsurf
 - `.antigravity/settings.json` for Antigravity

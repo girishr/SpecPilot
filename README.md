@@ -158,7 +158,7 @@ SpecPilot generates AI agent configuration files during project initialization. 
 
 **Desktop IDEs (Workspace Settings):**
 
-- **VSCode** - Industry standard with Copilot integration
+- **GitHub Copilot** - Industry standard with Copilot integration
 - **Cursor** - AI-first code editor with enhanced AI context
 - **Windsurf** - Advanced AI coding assistant
 - **Antigravity** - AI-powered IDE with context awareness
@@ -174,7 +174,7 @@ Each IDE/Agent selection generates one AI context file at the project root:
 
 | IDE/Agent   | Generated file                        |
 |-------------|---------------------------------------|
-| VSCode      | `.github/copilot-instructions.md`     |
+| GitHub Copilot | `.github/copilot-instructions.md`  |
 | Codex       | `.github/copilot-instructions.md`     |
 | Cursor      | `.cursor/rules/project.mdc`           |
 | Windsurf    | `.windsurfrules`                      |

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Rename `VSCode` IDE label to `GitHub Copilot`** (CS-076): display name only change in `init.ts` and `add-specs.ts` (`{ name: 'VSCode' }` → `{ name: 'GitHub Copilot' }`); internal value stays `'vscode'`; all `VSCode` label references updated in `.specs/` docs, `README.md`, `docs/GUIDE.md`, and `CHANGELOG.md`.
+
 ## [2.0.0] - 2026-06-26
 
 ### Changed

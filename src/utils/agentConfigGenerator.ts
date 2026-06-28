@@ -86,6 +86,26 @@ Framework: {{framework}}
 For full AI onboarding instructions, see **.specs/development/prompts.md**.
 This includes a comprehensive first-use prompt for populating all specs.
 
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+
 ## Cross-References
 
 All spec files link to each other for easy navigation. Follow the links in relative paths like:
@@ -211,6 +231,26 @@ Always ask before:
 - Log all significant interactions in .specs/development/prompts.md
 - Reference spec IDs (REQ-001, TASK-###) in commit messages
 - Keep .specs/development/context.md current with project state
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
 
 ## Testing and Validation
 

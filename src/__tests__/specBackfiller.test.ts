@@ -70,7 +70,7 @@ team:
   devPrefix: "girishr"
 `;
 
-/** Minimal copilot-instructions.md with all 8 MD mandates present */
+/** Minimal copilot-instructions.md with all 8 MD mandates + 2 code sections present */
 const FULL_MD = `# AI Coding Instructions
 
 ## 🔴 Critical Mandates — Never violate, no exceptions
@@ -88,6 +88,26 @@ const FULL_MD = `# AI Coding Instructions
 6. **NEVER describe, quote, or reference file contents** without first reading the file via a tool call in this session. If you have not read the file yet, say so explicitly before answering.
 7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.
 8. **SPEC-FIRST review gate**: Before touching any code or non-spec files, read all relevant \`.specs/\` files, update all affected spec files first, present a **Spec Report** summarizing what changed, which files were affected, and what the specs now say, then wait for the developer's explicit \`yes, proceed\` before writing code. If the developer declines, revert the spec changes and stop.
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
 `;
 
 /** tasks.md already containing both the convention line and Multi-Dev Notes */
@@ -292,7 +312,7 @@ rules:
   });
 
   describe('backfillCopilotInstructions — all mandates present', () => {
-    it('returns action=skipped when all 8 MD mandates found', async () => {
+    it('returns action=skipped when all 8 mandates + 2 code sections found', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: FULL_YAML,
         copilotMd: FULL_MD,
@@ -300,8 +320,8 @@ rules:
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.copilotInstructions.action).toBe('skipped');
-      expect(result.copilotInstructions.found).toBe(8);
-      expect(result.copilotInstructions.total).toBe(8);
+      expect(result.copilotInstructions.found).toBe(10);
+      expect(result.copilotInstructions.total).toBe(10);
       expect(result.copilotInstructions.added).toHaveLength(0);
     });
   });
@@ -562,7 +582,7 @@ rules:
   });
 
   describe('backfillIdeFiles — mandate-bearing files', () => {
-    it('skips Cursor rules when all 8 MD mandates are already present', async () => {
+    it('skips Cursor rules when all 8 mandates + 2 code sections are already present', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: FULL_YAML,
         copilotMd: FULL_MD,
@@ -576,8 +596,8 @@ rules:
         expect.objectContaining({
           path: '.cursor/rules/specpilot.mdc',
           action: 'skipped',
-          found: 8,
-          total: 8,
+          found: 10,
+          total: 10,
         }),
       ]);
     });
@@ -694,7 +714,7 @@ rules:
         path: 'CLAUDE.md',
         action: 'updated',
         found: 1,
-        total: 8,
+        total: 10,
       });
       expect(result.ideFiles[0].added).toContain('Never push');
     });
@@ -712,7 +732,7 @@ rules:
       const written = readFileSync(claudePath, 'utf-8');
 
       expect(result.ideFiles[0]).toMatchObject({ path: 'CLAUDE.md', action: 'updated' });
-      expect(result.ideFiles[0].added).toHaveLength(8);
+      expect(result.ideFiles[0].added).toHaveLength(10);
       expect(written).toBe('# CLAUDE.md\n');
     });
 
@@ -789,6 +809,54 @@ rules:
 
       expect(written.startsWith('# Team Windsurf Rules\n\nKeep custom guidance.')).toBe(true);
       expect(written).toContain('## SpecPilot Mandates (backfilled');
+    });
+
+    it('appends Code Philosophy and Code Rules sections when missing', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      const windsurfPath = join(testDir, '.windsurfrules');
+      // File has all 8 mandates but no Code Philosophy/Code Rules
+      writeFileSync(windsurfPath,
+        '## 🔴 Critical Mandates — Never violate, no exceptions\n\n' +
+        '1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n' +
+        '2. **NEVER push** to git unless the developer explicitly asks. Always ask first.\n' +
+        '3. **NEVER deploy, publish, or release** the project unless the developer explicitly asks. Always ask first.\n' +
+        '4. **NEVER modify** the `.specs/` folder structure, subfolder names, or file names. Only update file contents.\n' +
+        '5. **ALWAYS update** affected `.specs/` files after every code change — without being asked:\n' +
+        '6. **NEVER describe, quote, or reference file contents** without first reading the file via a tool call in this session. If you have not read the file yet, say so explicitly before answering.\n' +
+        '7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.\n' +
+        '8. **SPEC-FIRST review gate**: Before touching any code or non-spec files.\n',
+        'utf-8'
+      );
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      const written = readFileSync(windsurfPath, 'utf-8');
+
+      expect(result.ideFiles).toContainEqual(
+        expect.objectContaining({ path: '.windsurfrules', action: 'updated', found: 8, total: 10 })
+      );
+      expect(written).toContain('## Code Philosophy — Write Only What Needed');
+      expect(written).toContain('## Code Rules');
+      expect(written).toContain('Need exist? No → skip');
+      expect(written).toContain('Boring over clever');
+    });
+
+    it('skips when all 8 mandates + 2 code sections present in IDE file', async () => {
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      writeFileSync(join(testDir, '.windsurfrules'), FULL_MD, 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      expect(result.ideFiles).toContainEqual(
+        expect.objectContaining({ path: '.windsurfrules', action: 'skipped', found: 10, total: 10 })
+      );
     });
   });
 

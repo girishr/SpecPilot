@@ -83,6 +83,8 @@ describe('SpecGenerator', () => {
     expect(content).toContain('Spec Report');
     expect(content).toContain('yes, proceed');
     expect(content).toContain('.specs/project/project.yaml');
+    expect(content).toContain('Code Philosophy — Write Only What Needed');
+    expect(content).toContain('Code Rules');
   });
 
   test('should generate project.yaml pointing to AI agent config for mandates', async () => {

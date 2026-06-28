@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-06-28
-version: 2.8
+version: 2.9
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-074: Add Code Philosophy + Code Rules to all generated AI instruction files — `buildCodePhilosophyMarkdown()` in `ideConfigGenerator.ts`; SKILL.md + CODEX_INSTRUCTIONS.md updated; `specBackfiller.ts` extended with `CODE_SECTIONS` (2 entries, 8→10 checks); 3 new tests (190 → 192) (June 28, 2026) [PROMPT-002.0.0.25]
 - CS-075: Fix stale `Cowork` reference in `docs.md:102` → `CLAUDE.md` for Claude Code; single-line text change (June 28, 2026) [PROMPT-002.0.0.24]
 - CS-077: Rename Cursor output to `specpilot.mdc` — `ideConfigGenerator.ts` and `specBackfiller.ts` updated; migration warning added for old `project.mdc` (no auto-rename); 2 new tests (188 → 190); docs/specs swept (June 28, 2026) [PROMPT-002.0.0.23]
 - CS-076: Rename `VSCode` IDE choice label to `GitHub Copilot` — display name only in `init.ts` and `add-specs.ts`; swept all `VSCode` label references in `.specs/`, `README.md`, `docs/GUIDE.md`, `CHANGELOG.md`; no routing logic or test changes; 188 tests passing (June 28, 2026) [PROMPT-002.0.0.22]

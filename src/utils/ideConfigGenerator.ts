@@ -175,6 +175,8 @@ ${this.buildProcessMandatesMarkdown()}
 
 ${this.buildContextRoutingTable()}
 
+${this.buildCodePhilosophyMarkdown()}
+
 ## Re-Anchor
 
 If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
@@ -206,6 +208,8 @@ ${this.buildCriticalMandatesMarkdown()}
 ${this.buildProcessMandatesMarkdown()}
 
 ${this.buildContextRoutingTable()}
+
+${this.buildCodePhilosophyMarkdown()}
 `;
   }
 
@@ -315,6 +319,8 @@ ${this.buildProcessMandatesMarkdown()}
 
 ${this.buildContextRoutingTable()}
 
+${this.buildCodePhilosophyMarkdown()}
+
 ## Re-Anchor
 
 If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.\nFor a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
@@ -355,6 +361,28 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
     return `- **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.`;
+  }
+
+  private buildCodePhilosophyMarkdown(): string {
+    return `## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.`;
   }
 
   private async generateIDESettings(projectDir: string, context: TemplateContext, ide: string): Promise<void> {

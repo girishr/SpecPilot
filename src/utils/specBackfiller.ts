@@ -106,6 +106,35 @@ const MD_MANDATES: { fingerprint: string; mdText: string; label: string }[] = [
   },
 ];
 
+const CODE_SECTIONS: { fingerprint: string; content: string; label: string }[] = [
+  {
+    fingerprint: '## Code Philosophy — Write Only What Needed',
+    label: 'Code Philosophy',
+    content: `## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.`,
+  },
+  {
+    fingerprint: '## Code Rules',
+    label: 'Code Rules',
+    content: `## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.`,
+  },
+];
+
 export interface BackfillFileResult {
   action: 'updated' | 'created' | 'skipped' | 'missing';
   found: number;
@@ -253,28 +282,37 @@ export class SpecBackfiller {
       return {
         action: 'created',
         found: 0,
-        total: MD_MANDATES.length,
-        added: MD_MANDATES.map((m) => m.label),
+        total: MD_MANDATES.length + CODE_SECTIONS.length,
+        added: [...MD_MANDATES.map((m) => m.label), ...CODE_SECTIONS.map((s) => s.label)],
       };
     }
 
     const content = readFileSync(filePath, 'utf-8');
-    const missing = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingMandates = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
+    const total = MD_MANDATES.length + CODE_SECTIONS.length;
+    const found = (MD_MANDATES.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
 
-    if (missing.length === 0) {
-      return { action: 'skipped', found: MD_MANDATES.length, total: MD_MANDATES.length, added: [] };
+    if (missingMandates.length === 0 && missingSections.length === 0) {
+      return { action: 'skipped', found: total, total, added: [] };
     }
 
     if (!dryRun) {
-      const backfillBlock = this.buildMdBackfillBlock(missing.map((m) => m.mdText));
-      writeFileSync(filePath, content.trimEnd() + '\n\n' + backfillBlock + '\n', 'utf-8');
+      let toAppend = '';
+      if (missingMandates.length > 0) {
+        toAppend += '\n\n' + this.buildMdBackfillBlock(missingMandates.map((m) => m.mdText));
+      }
+      if (missingSections.length > 0) {
+        toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
+      }
+      writeFileSync(filePath, content.trimEnd() + toAppend + '\n', 'utf-8');
     }
 
     return {
       action: 'updated',
-      found: MD_MANDATES.length - missing.length,
-      total: MD_MANDATES.length,
-      added: missing.map((m) => m.label),
+      found,
+      total,
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label)],
     };
   }
 
@@ -336,29 +374,38 @@ export class SpecBackfiller {
     }
 
     const content = readFileSync(filePath, 'utf-8');
-    const missing = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingMandates = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
+    const total = MD_MANDATES.length + CODE_SECTIONS.length;
+    const found = (MD_MANDATES.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
 
-    if (missing.length === 0) {
+    if (missingMandates.length === 0 && missingSections.length === 0) {
       return {
         path: relativePath,
         action: 'skipped',
-        found: MD_MANDATES.length,
-        total: MD_MANDATES.length,
+        found: total,
+        total,
         added: [],
       };
     }
 
     if (!dryRun) {
-      const backfillBlock = this.buildMdBackfillBlock(missing.map((m) => m.mdText));
-      writeFileSync(filePath, content.trimEnd() + '\n\n' + backfillBlock + '\n', 'utf-8');
+      let toAppend = '';
+      if (missingMandates.length > 0) {
+        toAppend += '\n\n' + this.buildMdBackfillBlock(missingMandates.map((m) => m.mdText));
+      }
+      if (missingSections.length > 0) {
+        toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
+      }
+      writeFileSync(filePath, content.trimEnd() + toAppend + '\n', 'utf-8');
     }
 
     return {
       path: relativePath,
       action: 'updated',
-      found: MD_MANDATES.length - missing.length,
-      total: MD_MANDATES.length,
-      added: missing.map((m) => m.label),
+      found,
+      total,
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label)],
     };
   }
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Code Philosophy + Code Rules in all generated AI instruction files** (CS-074): new `buildCodePhilosophyMarkdown()` in `ideConfigGenerator.ts` injected into `buildCopilotInstructions()` (GitHub Copilot, Cursor, Windsurf, Antigravity), `buildClaudeMd()`, and `buildClaudeMdSection()`; same 14-item block added to SKILL.md and CODEX_INSTRUCTIONS.md in `agentConfigGenerator.ts`; `specBackfiller.ts` extended with `CODE_SECTIONS` constant — backfill now detects missing Code Philosophy / Code Rules sections and appends them; total checks per IDE file increased 8→10; 3 new tests (190 → 192).
 - **Rename Cursor output file to `specpilot.mdc`** (CS-077): `ideConfigGenerator.ts` now writes `.cursor/rules/specpilot.mdc` instead of `project.mdc`; `specBackfiller.ts` backfills `specpilot.mdc`; migration warning emitted when old `project.mdc` exists but `specpilot.mdc` does not (no auto-rename); 2 new tests (188 → 190); swept all `project.mdc` references in `.specs/`, `README.md`, `docs/GUIDE.md`.
 - **Rename `VSCode` IDE label to `GitHub Copilot`** (CS-076): display name only change in `init.ts` and `add-specs.ts` (`{ name: 'VSCode' }` → `{ name: 'GitHub Copilot' }`); internal value stays `'vscode'`; all `VSCode` label references updated in `.specs/` docs, `README.md`, `docs/GUIDE.md`, and `CHANGELOG.md`.
 

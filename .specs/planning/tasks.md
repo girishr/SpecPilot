@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
 lastUpdated: 2026-06-28
-version: 5.27
+version: 5.28
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,24 +77,6 @@ Notes
 
 ## Current Sprint
 
-1. [CS-074] Add Code Philosophy + Code Rules to all generated agent/IDE/tool instruction files — same 14 items injected into every output SpecPilot generates; `agentConfigGenerator.ts` (SKILL.md, CODEX_INSTRUCTIONS.md) and `ideConfigGenerator.ts` new `buildCodePhilosophyMarkdown()` method called from `buildClaudeMd()`, `buildCopilotInstructions()`, `generateCursorRules()`, `generateWindsurfRules()`, `generateAntigravityRules()`; covers: Claude Code, Codex, Cursor, Windsurf, Antigravity, Github Copilot
-   - `## Code Philosophy — Write Only What Needed`
-     1. Need exist? No → skip. Say why.
-     2. Already in codebase? → reuse. Not rewrite.
-     3. Stdlib do it? → use it.
-     4. Native or installed dep cover it? → use. No new deps.
-     5. One line do it? → write that.
-     6. Only then: minimum code that work.
-     7. Never cut: validation, error handling, security, explicit requirement.
-   - `## Code Rules`
-     1. No abstraction, interface, factory, or pattern unless asked.
-     2. No scaffold "for later". Later scaffold itself.
-     3. Delete before add.
-     4. Shortest correct diff win.
-     5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
-     6. Boring over clever. Clever = 3am bug.
-     7. Read before write. Never reference code you haven't read.
-   - **Backfill sub-task**: after CS-074 ships, extend `specBackfiller.ts` to detect missing `## Code Philosophy` and `## Code Rules` sections in existing IDE files (`CLAUDE.md`, `copilot-instructions.md`, `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md`) and append both sections; same fingerprint-based append-only pattern as existing mandate backfill
 
 ## Completed
 
@@ -122,6 +104,7 @@ Notes
 95. [CD-girishr-013] [CS-070] [BL-036] Conditional `api.yaml` generation — added `apiParadigm: 'rest' | 'cli' | 'graphql' | 'none'` to `TemplateContext` and `SpecGeneratorOptions`; `inferApiParadigm()` helper in `specGenerator.ts` maps REST frameworks → `rest`, UI/mobile frameworks → `none`, fallback → `rest`; explicit `inquirer` list prompt ("What API paradigm does this project use?") added in `init.ts` and `add-specs.ts` after framework question; `generateApiYaml()` in `specFileGenerator.ts` routes on `context.apiParadigm` — emits only the matching section (REST/CLI/GraphQL) or skips file entirely for `none`; 8 new tests (180 → 188 total)
 107. [CD-girishr-015] [CS-073] Terse spec file templates — stripped (a) instructional prose/blockquotes/HTML comments/example rows, (b) `## Cross-References` footer blocks, and (c) verbose `[TODO: ...]` filler (→ bare `[TODO]`) from 7 `generateXxx()` methods in `specFileGenerator.ts`; removed `## Multi-Dev Notes` blockquote from `tasks.md` template; collapsed roadmap milestones to single `## Milestones` section; dropped ADR-001/ADR-002 example subsections from `security-decisions.md`; updated 1 test assertion (ADR-001/002 checks removed); 188 tests still passing
 94. [CD-girishr-012] [CS-068] [CS-072] Token optimization — `prompts.md` + new `onboarding.md` (`specFileGenerator.ts`, `templateEngine.ts`, `specGenerator.ts`, `init.ts`, `add-specs.ts`) — stripped both onboarding prompt sections from `generatePromptsMd()`; new `generateOnboardingMd()` writes `.specs/development/onboarding.md` with self-destruct header and greenfield or brownfield prompt selected via new `context.projectType: 'greenfield' | 'brownfield'` field; `generateSpecs()` return type changed from `void` to `{ onboardingPrompt: string }`; greenfield/brownfield `inquirer` list prompt added as first interactive prompt in `init.ts` (default greenfield) and `add-specs.ts` (default brownfield); onboarding prompt printed to stdout in highlighted block after generation; `NEW_PROJECT_README` and `EXISTING_PROJECT_README` Quick Start rewritten to point to `onboarding.md` (absorbs CS-072); 11 new tests (169 → 180 total)
+111. [CD-girishr-019] [CS-074] Add Code Philosophy + Code Rules to all generated AI instruction files — `ideConfigGenerator.ts`: new `buildCodePhilosophyMarkdown()` injected into `buildCopilotInstructions()` (covers GitHub Copilot, Cursor, Windsurf, Antigravity), `buildClaudeMd()`, and `buildClaudeMdSection()`; `agentConfigGenerator.ts`: same 14-item block added to SKILL.md and CODEX_INSTRUCTIONS.md templates; `specBackfiller.ts`: new `CODE_SECTIONS` constant (2 entries), `backfillMarkdownIdeFile()` and `backfillCopilotInstructions()` updated — total backfill checks 8→10, append Code Philosophy + Code Rules when missing; 2 new backfiller tests + 1 generator test (190 → 192)
 110. [CD-girishr-018] [CS-075] Fix stale `Cowork` reference in `.specs/development/docs.md` — replaced `` `CLAUDE.md` for Cowork `` with `` `CLAUDE.md` for Claude Code ``; single-line text change, no code or test impact
 109. [CD-girishr-017] [CS-077] Rename Cursor output to `specpilot.mdc` — `ideConfigGenerator.ts`: `project.mdc` → `specpilot.mdc`; `specBackfiller.ts`: backfill target updated; migration warning emitted when old `project.mdc` exists but `specpilot.mdc` does not (no auto-rename); 2 new tests (188 → 190); swept all `project.mdc` label refs in `.specs/`, `README.md`, `docs/GUIDE.md`, `CHANGELOG.md`
 108. [CD-girishr-016] [CS-076] Rename `VSCode` IDE choice label to `GitHub Copilot` — `init.ts` and `add-specs.ts`: `{ name: 'VSCode' }` → `{ name: 'GitHub Copilot' }`, internal value stays `'vscode'`; swept all `VSCode` label references in `.specs/` (`context.md`, `roadmap.md`, `requirements.md`, `docs.md`, `api.yaml`, `architecture.md`), `README.md`, `docs/GUIDE.md`, and `CHANGELOG.md`; no routing logic or test changes

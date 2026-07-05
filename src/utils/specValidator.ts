@@ -30,7 +30,6 @@ export class SpecValidator {
     'planning/tasks.md',
     'development/context.md',
     'development/prompts.md',
-    'development/docs.md',
     'security/threat-model.md',
     'security/security-decisions.md'
   ];
@@ -433,8 +432,7 @@ export class SpecValidator {
       { file: 'project/requirements.md', crossRefs: ['architecture/architecture.md', 'architecture/api.yaml', 'project/project.yaml'] },
       { file: 'planning/tasks.md', crossRefs: ['planning/roadmap.md', 'project/requirements.md', 'project/project.yaml'] },
       { file: 'planning/roadmap.md', crossRefs: ['planning/tasks.md', 'project/requirements.md'] },
-      { file: 'development/docs.md', crossRefs: ['development/context.md', 'planning/roadmap.md', 'planning/tasks.md', 'project/project.yaml'] },
-      { file: 'development/context.md', crossRefs: ['development/docs.md', 'planning/roadmap.md', 'project/project.yaml'] },
+      { file: 'development/context.md', crossRefs: ['planning/roadmap.md', 'project/project.yaml'] },
       { file: 'development/prompts.md', crossRefs: ['development/context.md', 'project/project.yaml'] },
       { file: 'quality/tests.md', crossRefs: ['project/requirements.md', 'project/project.yaml'] }
     ];

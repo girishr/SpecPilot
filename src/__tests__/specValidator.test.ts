@@ -87,13 +87,13 @@ function createValidSpecsDir(baseDir: string): string {
     'Completed: project init',
   ].join('\n'));
 
-  // context.md — front-matter + refs: docs.md, roadmap.md, project.yaml
+  // context.md — front-matter + refs: roadmap.md, project.yaml
   writeFileSync(join(specsDir, 'development', 'context.md'), [
     '---',
     'title: Context',
     '---',
     '# Development Context',
-    '<!-- refs: docs.md roadmap.md project.yaml -->',
+    '<!-- refs: roadmap.md project.yaml -->',
     'Working context for AI assistants.',
   ].join('\n'));
 
@@ -115,16 +115,6 @@ function createValidSpecsDir(baseDir: string): string {
   ].join('\n');
   // Pad to ensure length > 100
   writeFileSync(join(specsDir, 'development', 'prompts.md'), promptsBody.padEnd(200, '\n'));
-
-  // docs.md — front-matter + refs: context.md, roadmap.md, tasks.md, project.yaml
-  writeFileSync(join(specsDir, 'development', 'docs.md'), [
-    '---',
-    'title: Docs',
-    '---',
-    '# Documentation',
-    '<!-- refs: context.md roadmap.md tasks.md project.yaml -->',
-    'Developer documentation.',
-  ].join('\n'));
 
   // security/threat-model.md
   writeFileSync(join(specsDir, 'security', 'threat-model.md'), [
@@ -192,7 +182,7 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.isValid).toBe(false);
     const missingErrors = result.errors.filter(e => e.startsWith('Missing required file'));
-    expect(missingErrors.length).toBe(11); // all 11 required files missing
+    expect(missingErrors.length).toBe(10); // all 10 required files missing
   });
 
   it('counts only files that exist in filesChecked', async () => {

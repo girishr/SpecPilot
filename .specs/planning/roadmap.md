@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-06-28
-version: 1.7
+lastUpdated: 2026-07-06
+version: 1.8
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -20,7 +20,8 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Spec maintenance commands (`backfill`, `archive`) complete [ROADMAP-002.8] ✅
 - IDE-native AI context routing for GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, and Codex complete [ROADMAP-002.9] ✅
 - Kotlin and Swift language support, conditional api.yaml, onboarding.md, terse spec templates complete [ROADMAP-002.10] ✅
-- Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] 🔄
+- Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
+- `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 
 ## Timeline [ROADMAP-003]
 
@@ -63,7 +64,8 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 ### v2.0.x - Language Expansion + Output Quality (June 2026)
 
 - 2026-06-06: v1.8.0 → v2.0.0 — Kotlin and Swift language support; conditional api.yaml (rest/cli/graphql/none); onboarding.md split from prompts.md; mandatory devPrefix; terse spec templates; Cursor output renamed to `specpilot.mdc`; 188 tests
-- 2026-06-28: Code Philosophy + Code Rules injected into all generated AI instruction files and backfillable via `specpilot backfill` (CS-074 in progress)
+- 2026-06-28: v2.1.0 — Code Philosophy + Code Rules injected into all generated AI instruction files and backfillable via `specpilot backfill` (CS-074)
+- 2026-07-05: v2.2.0 — `slashCommandGenerator.ts` added with 8 `specpilot-*` commands (`status`, `reanchor`, `report`, `sync`, `refine`, `validate`, `archive`, `backfill`) routed across all supported IDEs, plus CLI-side backfill for missing command files (CS-079–088); fixed `specpilot validate` failing on every fresh project due to a stale `docs.md` required-file check; 209 tests
 
 ## Objectives [ROADMAP-004]
 

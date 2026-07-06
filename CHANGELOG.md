@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-05
+
+### Added
+
+- **Slash Command Generator — Core Infrastructure** (CS-079): new `src/utils/slashCommandGenerator.ts`, parallel to `ideConfigGenerator.ts`; commands defined once as `{ name, description, body }` and routed per IDE (Claude Code → `.claude/commands/`, Cursor → `.cursor/commands/`, Windsurf → `.windsurf/workflows/`, Antigravity → `.agent/workflows/`, GitHub Copilot → `.github/prompts/*.prompt.md`, Codex → `.codex/prompts/` reference copy with a one-time manual-copy notice); wired into `SpecGenerator.generateSpecs()`; `SLASH_COMMANDS` starts empty and is populated incrementally by upcoming tasks.
+- **Eight `specpilot-*` slash commands** (CS-080–087): `status`, `reanchor`, `report`, `sync`, `refine <description>`, `validate`, `archive`, and `backfill`, populating `SLASH_COMMANDS` end to end. `validate`, `archive`, and `backfill` embed deterministic bash scripts (rather than relying on model judgment for line-counting or fingerprint checks) that were extracted and run against real/synthetic fixtures before merging.
+- **CLI-side slash command backfill** (CS-088): `specpilot backfill` now also detects and generates missing `specpilot-*` command files for whichever IDEs are already in use, reusing the same `SLASH_COMMANDS` definitions as the generator so CLI-side and web-app-side output never drift apart; never overwrites an existing command file.
+
+### Fixed
+
+- **`specpilot validate` failing on every freshly-scaffolded project**: `specValidator.ts` still listed `development/docs.md` as a required file and cross-referenced it from `development/context.md`, even though `docs.md` generation was removed from `specFileGenerator.ts` back in 2.0.0 (CS-069). Every new project created via `init`/`add-specs` failed validation immediately with `Missing required file: development/docs.md`. Removed all 3 stale references; `specValidator.test.ts` updated to match (required-file count 11 → 10).
+
 ## [2.1.0] - 2026-06-28
 
 ### Changed

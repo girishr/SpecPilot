@@ -4,6 +4,7 @@ import { TemplateEngine, TemplateContext } from './templateEngine';
 import { SpecFileGenerator } from './specFileGenerator';
 import { IdeConfigGenerator } from './ideConfigGenerator';
 import { AgentConfigGenerator } from './agentConfigGenerator';
+import { SlashCommandGenerator } from './slashCommandGenerator';
 
 export interface SpecGeneratorOptions {
   projectName: string;
@@ -59,11 +60,13 @@ export class SpecGenerator {
   private specFileGenerator: SpecFileGenerator;
   private ideConfigGenerator: IdeConfigGenerator;
   private agentConfigGenerator: AgentConfigGenerator;
+  private slashCommandGenerator: SlashCommandGenerator;
 
   constructor(private templateEngine: TemplateEngine) {
     this.specFileGenerator = new SpecFileGenerator(templateEngine);
     this.ideConfigGenerator = new IdeConfigGenerator();
     this.agentConfigGenerator = new AgentConfigGenerator(templateEngine);
+    this.slashCommandGenerator = new SlashCommandGenerator();
   }
 
   async generateSpecs(options: SpecGeneratorOptions): Promise<{ onboardingPrompt: string }> {
@@ -95,6 +98,8 @@ export class SpecGenerator {
     }
     // Generate the IDE-native AI context file (routed per IDE choice)
     await this.ideConfigGenerator.generateAiContextFile(options.targetDir, context, ide, options.noPrompts ?? false);
+    // Generate per-IDE slash/workflow command files
+    this.slashCommandGenerator.generate(options.targetDir, ide);
     // Generate .gitattributes with merge=union for append-heavy spec files
     this.ideConfigGenerator.generateGitAttributes(options.targetDir);
     return { onboardingPrompt };

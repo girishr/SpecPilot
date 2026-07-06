@@ -933,4 +933,70 @@ rules:
       expect(written).toBe('# Old Skill\n');
     });
   });
+
+  // ===========================================================================
+  // Slash command backfill (CS-088)
+  // ===========================================================================
+
+  describe('backfillSlashCommands', () => {
+    it('returns an empty array when no IDE signal files exist', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+
+      expect(result.slashCommands).toEqual([]);
+    });
+
+    it('detects the CLAUDE.md signal and reports missing commands without writing in dry-run', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+
+      expect(result.slashCommands).toContainEqual(
+        expect.objectContaining({ ide: 'claude-code', signalFile: 'CLAUDE.md' })
+      );
+      const claudeResult = result.slashCommands.find((r) => r.ide === 'claude-code')!;
+      expect(claudeResult.added).toEqual(expect.arrayContaining(['status', 'backfill']));
+      expect(existsSync(join(testDir, '.claude', 'commands'))).toBe(false);
+    });
+
+    it('writes the missing command files for real when not a dry run', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      const claudeResult = result.slashCommands.find((r) => r.ide === 'claude-code')!;
+      expect(claudeResult.added.length).toBeGreaterThan(0);
+      for (const name of claudeResult.added) {
+        expect(existsSync(join(testDir, '.claude', 'commands', `specpilot-${name}.md`))).toBe(true);
+      }
+    });
+
+    it('never overwrites an already-existing command file', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+      mkdirSync(join(testDir, '.claude', 'commands'), { recursive: true });
+      writeFileSync(join(testDir, '.claude', 'commands', 'specpilot-status.md'), 'custom content', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+
+      const claudeResult = result.slashCommands.find((r) => r.ide === 'claude-code')!;
+      expect(claudeResult.added).not.toContain('status');
+      expect(readFileSync(join(testDir, '.claude', 'commands', 'specpilot-status.md'), 'utf-8')).toBe(
+        'custom content'
+      );
+    });
+
+    it('detects multiple IDE signals independently', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+      writeFileSync(join(testDir, '.windsurfrules'), '# Windsurf\n', 'utf-8');
+
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+
+      expect(result.slashCommands.map((r) => r.ide).sort()).toEqual(['claude-code', 'windsurf']);
+    });
+  });
 });

@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-06-28
-version: 2.9
+lastUpdated: 2026-07-05
+version: 2.11
 contributors: [girishr]
 relatedFiles:
   [
@@ -28,6 +28,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Spec File Generator**: Generates `.specs/` markdown and YAML files (prompts.md, README, project.yaml, etc.) [ARCH-003.3.1]
 - **IDE Config Generator**: Generates workspace settings and IDE-native AI context file based on selected IDE; GitHub Copilot/Codex → `.github/copilot-instructions.md`; Cursor → `.cursor/rules/specpilot.mdc`; Windsurf → `.windsurfrules`; Antigravity → `.antigravity/rules.md`; Claude Code → `CLAUDE.md` (lean router: mandates inline + pointers to `.specs/` + reference to SKILL.md) via `generateAiContextFile()` → `generateClaudeMd()` [ARCH-003.3.2]
 - **Agent Config Generator**: Generates Claude Code Skills (`.claude/skills/specpilot-project/SKILL.md`) and Codex Instructions (`CODEX_INSTRUCTIONS.md`); CLAUDE.md itself is in IdeConfigGenerator [ARCH-003.3.3]
+- **Slash Command Generator**: `src/utils/slashCommandGenerator.ts` — parallel to IdeConfigGenerator; commands defined once as `{ name, description, body }` in exported `SLASH_COMMANDS` (starts empty, populated incrementally by BL-039 through BL-046), rendered per IDE via `SlashCommandGenerator.generate()`; called from `SpecGenerator.generateSpecs()` right after the AI context file is generated [ARCH-003.3.4]
 - **Validator**: Spec file validation with cross-reference checking [ARCH-003.4]
 - **Archiver**: Archives oversized `.specs/` files (`prompts.md` > 100 lines → `prompts-archive.md`; `tasks.md` Completed > 25 lines → `tasks-archive.md`); supports `--dry-run` [ARCH-003.9]
 - **Migrator**: Version migration and structure updates [ARCH-003.5]
@@ -35,7 +36,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 - **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
 - **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitSuccess()` [ARCH-003.10]
-- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, and existing IDE files; fingerprint-based detection, append-only writes; prompts for missing `devPrefix`; SKILL.md stale-detected only, not auto-patched; `--dry-run` supported [ARCH-003.11]
+- **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, existing IDE files, and missing `specpilot-*` slash command files; fingerprint-based and file-existence-based detection, append-only writes; prompts for missing `devPrefix`; SKILL.md stale-detected only, not auto-patched; `--dry-run` supported [ARCH-003.11]
 
 ## Design Decisions [ARCH-004]
 
@@ -69,6 +70,8 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **IDE/Agent prompt in `add-specs`**: `specpilot add-specs` now shows the same 6-choice IDE/Agent prompt as `specpilot init` (vscode / Cursor / Windsurf / Antigravity / Claude Code / Codex) instead of hardcoding `vscode`; selected IDE flows into `SpecGenerator.generateSpecs()` so the correct AI context file is generated for existing projects; `--no-prompts` defaults to `vscode` [ARCH-004.26]
 - **Claude Code Plugin**: standalone `girishr/specpilot-plugin` repo with `.claude-plugin/plugin.json`, four skills (`spec-first`, `validate-specs`, `refine-specs`, `spec-init`), and optional agents/hooks; all spec ops delegate to the `specpilot` npm CLI [ARCH-004.27]
 - **Code Philosophy + Code Rules in Generated Outputs**: all generated AI instruction files include `## Code Philosophy — Write Only What Needed` (7 YAGNI/minimal-code items) and `## Code Rules` (7 behavioral constraints) in caveman style; injected via `buildCodePhilosophyMarkdown()` in `ideConfigGenerator.ts` and inline in `agentConfigGenerator.ts`; `specpilot backfill` detects missing sections and appends them to existing IDE files [ARCH-004.28]
+- **Per-IDE Slash Command Routing**: Claude Code → `.claude/commands/specpilot-<name>.md`; Cursor → `.cursor/commands/specpilot-<name>.md`; Windsurf → `.windsurf/workflows/specpilot-<name>.md`; Antigravity → `.agent/workflows/specpilot-<name>.md` (distinct from its `.antigravity/rules.md` mandate file); GitHub Copilot → `.github/prompts/specpilot-<name>.prompt.md`; Codex has no repo-level custom-prompt support (only `~/.codex/prompts/` is auto-discovered), so a reference copy is still written to `.codex/prompts/specpilot-<name>.md` plus a one-time printed instruction to copy it manually; `SLASH_COMMANDS` starts empty and is populated one command at a time by BL-039 through BL-046 [ARCH-004.29]
+- **CLI-Side Slash Command Backfill**: `SlashCommandGenerator.resolveTarget()` (per-IDE path/frontmatter) is shared by both `generate()` (fresh scaffolding, always writes) and `backfillMissing()` (existing projects, only writes files absent on disk, never overwrites); `SpecBackfiller.backfillSlashCommands()` calls `backfillMissing()` once per IDE whose signal file already exists (`CLAUDE.md`, `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md`, `.github/copilot-instructions.md` — same 5 signals `backfillIdeFiles` already checks; Codex excluded, no signal file convention); `BackfillResult.slashCommands: SlashCommandBackfillResult[]` reported in a new "Slash commands" section in `backfill.ts` CLI output; ensures CLI-side backfill and web-app-side `slashCommandGenerator.ts` generation never drift apart since both read from the same `SLASH_COMMANDS` constant [ARCH-004.30]
 
 ## Technology Stack [ARCH-005]
 

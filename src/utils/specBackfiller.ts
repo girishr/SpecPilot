@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
 import { TemplateContext } from './templateEngine';
+import { SlashCommandGenerator } from './slashCommandGenerator';
 
 /**
  * Fingerprint + YAML line for each critical mandate.
@@ -152,11 +153,18 @@ export interface IdeFileBackfillResult {
   reason?: string;
 }
 
+export interface SlashCommandBackfillResult {
+  ide: string;
+  signalFile: string;
+  added: string[];
+}
+
 export interface BackfillResult {
   projectYaml: BackfillFileResult;
   copilotInstructions: BackfillFileResult;
   tasksMd: BackfillFileResult;
   ideFiles: IdeFileBackfillResult[];
+  slashCommands: SlashCommandBackfillResult[];
 }
 
 export class SpecBackfiller {
@@ -182,8 +190,36 @@ export class SpecBackfiller {
     const copilotResult = await this.backfillCopilotInstructions(projectDir, specsDir, dryRun);
     const tasksResult = this.backfillTasksMd(specsDir, dryRun);
     const ideFiles = this.backfillIdeFiles(projectDir, dryRun);
+    const slashCommands = this.backfillSlashCommands(projectDir, dryRun);
 
-    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult, ideFiles };
+    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult, ideFiles, slashCommands };
+  }
+
+  /**
+   * Backfills missing `specpilot-*` slash command files for IDEs already in use —
+   * detected by the same signal file `backfillIdeFiles` checks for each IDE.
+   * Reuses `SlashCommandGenerator`'s per-IDE routing so CLI-side backfill and
+   * web-app-side generation (`slashCommandGenerator.ts`) never drift apart.
+   */
+  private backfillSlashCommands(projectDir: string, dryRun: boolean): SlashCommandBackfillResult[] {
+    const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
+      { ide: 'claude-code', signalFile: 'CLAUDE.md' },
+      { ide: 'cursor', signalFile: '.cursor/rules/specpilot.mdc' },
+      { ide: 'windsurf', signalFile: '.windsurfrules' },
+      { ide: 'antigravity', signalFile: '.antigravity/rules.md' },
+      { ide: 'vscode', signalFile: '.github/copilot-instructions.md' },
+    ];
+
+    const generator = new SlashCommandGenerator();
+    const results: SlashCommandBackfillResult[] = [];
+
+    for (const { ide, signalFile } of IDE_SIGNALS) {
+      if (!existsSync(join(projectDir, ...signalFile.split('/')))) continue;
+      const added = generator.backfillMissing(projectDir, ide, dryRun);
+      results.push({ ide, signalFile, added });
+    }
+
+    return results;
   }
 
   // ---------------------------------------------------------------------------

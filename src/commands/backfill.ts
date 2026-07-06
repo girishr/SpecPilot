@@ -5,6 +5,7 @@ import {
   BackfillResult,
   BackfillFileResult,
   IdeFileBackfillResult,
+  SlashCommandBackfillResult,
 } from '../utils/specBackfiller';
 import { Logger } from '../utils/logger';
 
@@ -89,6 +90,18 @@ function ideFileResultLines(r: IdeFileBackfillResult, dryRun: boolean): string[]
   return lines;
 }
 
+function slashCommandResultLines(r: SlashCommandBackfillResult, dryRun: boolean): string[] {
+  const lines: string[] = [chalk.cyan(`📄 ${r.ide} slash commands`)];
+  if (r.added.length === 0) {
+    lines.push(chalk.green('  ✅ All commands already present — nothing to backfill'));
+  } else {
+    const verb = dryRun ? 'Would add' : 'Added';
+    lines.push(chalk.white(`  ➕ ${verb} ${r.added.length} missing command(s):`));
+    r.added.forEach((name) => lines.push(chalk.white(`     • specpilot-${name}`)));
+  }
+  return lines;
+}
+
 function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger): void {
   const allResults = [result.projectYaml, result.copilotInstructions, result.tasksMd, ...result.ideFiles];
   const ideLines =
@@ -97,6 +110,14 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
           chalk.blue.bold('IDE-native AI context files'),
           '',
           ...result.ideFiles.flatMap((r) => [...ideFileResultLines(r, dryRun), '']),
+        ]
+      : [];
+  const slashLines =
+    result.slashCommands.length > 0
+      ? [
+          chalk.blue.bold('Slash commands'),
+          '',
+          ...result.slashCommands.flatMap((r) => [...slashCommandResultLines(r, dryRun), '']),
         ]
       : [];
 
@@ -110,10 +131,15 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     ...fileResultLines('.specs/planning/tasks.md', result.tasksMd, dryRun),
     '',
     ...ideLines,
+    ...slashLines,
   ];
 
-  const updatedCount = allResults.filter((r) => r.action === 'updated' || r.action === 'created').length;
-  const skippedCount = allResults.filter((r) => r.action === 'skipped').length;
+  const updatedCount =
+    allResults.filter((r) => r.action === 'updated' || r.action === 'created').length +
+    result.slashCommands.filter((r) => r.added.length > 0).length;
+  const skippedCount =
+    allResults.filter((r) => r.action === 'skipped').length +
+    result.slashCommands.filter((r) => r.added.length === 0).length;
   const staleCount = allResults.filter((r) => r.action === 'stale').length;
 
   if (updatedCount === 0 && staleCount === 0) {

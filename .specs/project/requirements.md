@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-06-28
+lastUpdated: 2026-07-05
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.14
+version: 1.24
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -24,7 +24,7 @@ relatedFiles:
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
-- `specpilot backfill` — non-destructively backfills missing mandates, rules, and IDE config into projects already running `.specs/`; reads `project.yaml` and existing IDE files, inserts only what's absent (append-only, no overwrites); prompts for `devPrefix` if absent; IDE files detected by filesystem presence without IDE-selection prompt; SKILL.md reported stale if structural sections missing, not auto-patched; `--dry-run` supported [REQ-002.A.7]
+- `specpilot backfill` — non-destructively backfills missing mandates, rules, IDE config, and `specpilot-*` slash command files into projects already running `.specs/`; reads `project.yaml` and existing IDE files, inserts only what's absent (append-only, no overwrites); prompts for `devPrefix` if absent; IDE files and slash-command targets both detected by filesystem presence without an IDE-selection prompt; SKILL.md reported stale if structural sections missing, not auto-patched; `--dry-run` supported [REQ-002.A.7]
 - `specpilot archive [--dry-run] [--force]` — archive oversized `.specs/` files; before archiving, detect the current git branch and warn (with `[y/N]` confirmation) when not on `main` or `master`; `--force` bypasses the branch warning [REQ-002.A.8]
 
 ### Project Initialization [REQ-002.B]
@@ -59,6 +59,16 @@ relatedFiles:
 - Generate agent instruction files for cloud agents: Claude Code (`.claude/skills/specpilot-project/SKILL.md`), Codex (`CODEX_INSTRUCTIONS.md`) [REQ-002.E.3]
 - IDE settings include: search inclusion for `.specs/`, markdown/YAML formatting, extensions recommendations [REQ-002.E.4]
 - Existing projects must be able to receive new generated instruction/rule mandates via a non-destructive update path that merges or appends missing SpecPilot content instead of overwriting user customizations [REQ-002.E.5]
+- Generate per-IDE slash/workflow command files from a single shared `{ name, description, body }` definition: Claude Code → `.claude/commands/`, Cursor → `.cursor/commands/`, Windsurf → `.windsurf/workflows/`, Antigravity → `.agent/workflows/`, GitHub Copilot → `.github/prompts/*.prompt.md`; Codex has no repo-level auto-discovery, so a reference copy is written to `.codex/prompts/` with a one-time manual-copy instruction printed to the user [REQ-002.E.6]
+- `specpilot-status` slash command (all IDEs) — summarizes `.specs/planning/tasks.md` Current Sprint items and the next incomplete `.specs/planning/roadmap.md` milestone in one screen [REQ-002.E.7]
+- `specpilot-reanchor` slash command (all IDEs) — reads `.specs/project/project.yaml` and the Re-Anchor Prompt section of `.specs/development/prompts.md` verbatim and restates them as current operating context [REQ-002.E.8]
+- `specpilot-report` slash command (all IDEs) — formalizes the Spec-First review gate (mandate 8): classifies the pending change, reads the relevant `.specs/` files per the Context routing table, updates specs first, presents a Spec Report, and requires the user's literal `yes, proceed` before any code is written [REQ-002.E.9]
+- `specpilot-sync` slash command (all IDEs) — compares `architecture/architecture.md`, `project/requirements.md`, and `quality/tests.md` against actual `src/` structure and `package.json`, lists discrepancies, and proposes per-file edits pending confirmation [REQ-002.E.10]
+- `specpilot-refine <description>` slash command (all IDEs, argument-taking) — takes a requirement description, reads `requirements.md`/`context.md`/`prompts.md`, proposes additions with a line-level diff preview, and writes only after confirmation; mirrors CLI `specpilot refine` (REQ-002.A.6) with no CLI dependency [REQ-002.E.11]
+- `specpilot-validate` slash command (all IDEs; `allowed-tools: Bash, Read`) — runs an embedded script checking required `.specs/` files exist, front-matter fields are present, and `relatedFiles` cross-references resolve; summarizes findings and suggests fixes without auto-applying; mirrors CLI `specpilot validate --fix --verbose` (REQ-002.A.3); on GitHub Copilot outside agent mode, degrades to prose-only (known platform limitation) [REQ-002.E.12]
+- `specpilot-archive` slash command (all IDEs; `allowed-tools: Bash, Read, Edit`) — runs an embedded script that archives `.specs/planning/tasks.md`'s `## Completed` section past 25 lines and `.specs/development/prompts.md` past 100 lines into timestamped archive files, preserving IDs verbatim; includes the same git branch guard as `specpilot archive` (warns and requires confirmation off `main`/`master`); mirrors CLI `specpilot archive --dry-run --force` (REQ-002.A.8) [REQ-002.E.13]
+- `specpilot-backfill` slash command (all IDEs; `allowed-tools: Bash, Read, Edit`) — runs an embedded script checking 4 mandate fingerprints (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) across 5 candidate IDE files and appends whichever are missing, append-only; also flags a missing `team.devPrefix` in `project.yaml`; the embedded baseline is a literal copy with no shared import from `ideConfigGenerator.ts`, so it must be manually kept in sync when those generator functions change [REQ-002.E.14]
+- CLI-side `specpilot backfill` must also detect and generate missing `.claude/commands/specpilot-*.md`, `.cursor/commands/specpilot-*.md`, `.windsurf/workflows/specpilot-*.md`, `.agent/workflows/specpilot-*.md`, and `.github/prompts/specpilot-*.prompt.md` files for whichever IDEs are already in use (signaled by the same files `backfillIdeFiles` checks), generated from the same shared `SLASH_COMMANDS` definitions used by `slashCommandGenerator.ts` so CLI-side backfill and web-app-side generation never drift apart; never overwrites an existing command file [REQ-002.A.9]
 
 ### Generated Spec Quality [REQ-002.F]
 

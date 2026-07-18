@@ -189,13 +189,20 @@ archive_prompts() {
   total=$(wc -l < "$file")
   if [ "$total" -le "$PROMPTS_LINE_LIMIT" ]; then return 0; fi
 
-  local preamble_end=0
-  if [ "$(sed -n '1p' "$file")" = "---" ]; then
-    preamble_end=$(awk 'NR>1 && $0=="---" {print NR; exit}' "$file")
+  # Anchor on "## Latest Entries" so boilerplate (Re-Anchor Prompt, etc.) is never
+  # mistaken for archivable log content; fall back to front-matter close, then line 0.
+  local anchor_line
+  anchor_line=$(grep -n '^## Latest Entries' "$file" | head -1 | cut -d: -f1)
+  if [ -z "$anchor_line" ]; then
+    if [ "$(sed -n '1p' "$file")" = "---" ]; then
+      anchor_line=$(awk 'NR>1 && $0=="---" {print NR; exit}' "$file")
+    else
+      anchor_line=0
+    fi
   fi
-  local body_start=$((preamble_end + 1))
-  local body_lines=$((total - preamble_end))
-  local keep=$((PROMPTS_KEEP_LINES - preamble_end))
+  local body_start=$((anchor_line + 1))
+  local body_lines=$((total - anchor_line))
+  local keep=$((PROMPTS_KEEP_LINES - anchor_line))
   if [ "$keep" -lt 50 ]; then keep=50; fi
   if [ "$body_lines" -le "$keep" ]; then return 0; fi
 
@@ -203,7 +210,7 @@ archive_prompts() {
   local archive_end=$((body_start + archive_count - 1))
 
   { echo "## Archived on $(timestamp)"; echo; sed -n "\${body_start},\${archive_end}p" "$file"; echo; echo "---"; echo; } >> "$archive"
-  { sed -n "1,\${preamble_end}p" "$file"; sed -n "$((archive_end + 1)),\\$p" "$file"; } > "$file.tmp"
+  { sed -n "1,\${anchor_line}p" "$file"; sed -n "$((archive_end + 1)),\\$p" "$file"; } > "$file.tmp"
   mv "$file.tmp" "$file"
   echo "Moved $archive_count lines from $file -> $archive"
 }

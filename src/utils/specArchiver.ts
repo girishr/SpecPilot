@@ -54,20 +54,6 @@ export class SpecArchiver {
     return `## Archived on ${now}\n\n${content.trimEnd()}\n\n---\n\n`;
   }
 
-  private extractFrontMatter(lines: string[]): { preamble: string[]; body: string[] } {
-    if (lines[0]?.trim() !== '---') {
-      return { preamble: [], body: lines };
-    }
-    const closeIdx = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
-    if (closeIdx === -1) {
-      return { preamble: [], body: lines };
-    }
-    return {
-      preamble: lines.slice(0, closeIdx + 1),
-      body: lines.slice(closeIdx + 1),
-    };
-  }
-
   private archivePrompts(specsDir: string, dryRun: boolean): ArchiveEntry | null {
     const filePath = join(specsDir, 'development', 'prompts.md');
     if (!existsSync(filePath)) return null;
@@ -76,13 +62,23 @@ export class SpecArchiver {
     const allLines = content.split('\n');
     if (allLines.length <= PROMPTS_LINE_LIMIT) return null;
 
-    const { preamble, body } = this.extractFrontMatter(allLines);
-    // Determine how many body lines to retain so total stays near PROMPTS_KEEP_LINES
-    const keepBodyCount = Math.max(50, PROMPTS_KEEP_LINES - preamble.length);
-    if (body.length <= keepBodyCount) return null;
+    // Anchor on the "## Latest Entries" heading (falls back to front matter close,
+    // then start of file) so boilerplate sections — Re-Anchor Prompt, etc. — are
+    // never mistaken for archivable log content.
+    let entryStartIdx = allLines.findIndex(l => l.trim().startsWith('## Latest Entries'));
+    if (entryStartIdx === -1) {
+      entryStartIdx = allLines[0]?.trim() === '---' ? allLines.findIndex((l, i) => i > 0 && l.trim() === '---') : -1;
+    }
+    entryStartIdx = entryStartIdx === -1 ? 0 : entryStartIdx + 1;
 
-    const archiveLines = body.slice(0, body.length - keepBodyCount);
-    const keepLines = body.slice(body.length - keepBodyCount);
+    const preambleLines = allLines.slice(0, entryStartIdx);
+    const entryLines = allLines.slice(entryStartIdx);
+
+    const keepBodyCount = Math.max(50, PROMPTS_KEEP_LINES - preambleLines.length);
+    if (entryLines.length <= keepBodyCount) return null;
+
+    const archiveLines = entryLines.slice(0, entryLines.length - keepBodyCount);
+    const keepLines = entryLines.slice(entryLines.length - keepBodyCount);
     const linesMoved = archiveLines.length;
 
     const archivePath = join(specsDir, 'development', 'prompts-archive.md');
@@ -91,7 +87,7 @@ export class SpecArchiver {
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';
       writeFileSync(archivePath, existing + block);
-      writeFileSync(filePath, [...preamble, ...keepLines].join('\n'));
+      writeFileSync(filePath, [...preambleLines, ...keepLines].join('\n'));
     }
 
     return {

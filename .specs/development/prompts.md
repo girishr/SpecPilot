@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-06-28
-version: 2.9
+lastUpdated: 2026-07-18
+version: 2.13
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- CS-089 + CS-090 implemented: fixed the archive-boilerplate bug in both copies — `archivePrompts()` in `specArchiver.ts` now anchors on `## Latest Entries` (falls back to front-matter close, then line 0) instead of pure line-count arithmetic on the front-matter/body split, matching `archiveTasks()`'s `## Completed` anchor; same fix ported into the embedded `archive_prompts()` bash function in the `specpilot-archive` slash command body (`slashCommandGenerator.ts`), which greps for `^## Latest Entries` instead of anchoring on `preamble_end`; new regression test in `specArchiver.test.ts` reproduces the real front-matter → Re-Anchor Prompt → Latest Entries file shape and asserts boilerplate is never archived (15 tests, 210/210 full suite); bash fix verified end-to-end against a synthetic fixture matching the same shape; `tsc --noEmit` and `npm run build` both clean (July 18, 2026) [PROMPT-002.0.0.29]
+- CS-090 identified (planning-only, no code): same archive-boilerplate bug as CS-089 also exists as an independent hand-written copy in `slashCommandGenerator.ts:180-192` — the `archive_prompts()` bash function embedded in the `specpilot-archive` slash command body, generated verbatim into every project; fixing `specArchiver.ts` does not fix this, since it's a separate reimplementation, not a shared call; added to Current Sprint alongside CS-089 (July 18, 2026) [PROMPT-002.0.0.28]
+- CS-089 identified (planning-only, no code): `archivePrompts()` in `specArchiver.ts:71-102` archives boilerplate instead of log content once `prompts.md` exceeds `PROMPTS_LINE_LIMIT` — `extractFrontMatter()` only knows the front-matter boundary, so the archive/keep split is line-count arithmetic on `body` with no content anchor, unlike `archiveTasks()` which anchors on `## Completed` + first `/^\d+\./` line; confirmed by simulating the real file shape (Re-Anchor Prompt + `## Latest Entries` heading get swept into `prompts-archive.md` before any real entry); added to Current Sprint (July 18, 2026) [PROMPT-002.0.0.27]
+- BL-032 added (planning-only, no code): deferred distant-future plan to extract a pure browser-safe `@specpilot/spec-core` from `specGenerator`/`templateEngine`/`specFileGenerator`/`ideConfigGenerator` so the `SpecPilot.Init` web app generates byte-identical CLI output; optional `TemplateContext` fields for the web's richer answers, CLI prompt flow unchanged; full design record lives in `SpecPilot.Init/.specs/` REQ-051/BL-028; ADR + Spec Report in both repos required at pickup (July 17, 2026) [PROMPT-002.0.0.26]
 - CS-074: Add Code Philosophy + Code Rules to all generated AI instruction files — `buildCodePhilosophyMarkdown()` in `ideConfigGenerator.ts`; SKILL.md + CODEX_INSTRUCTIONS.md updated; `specBackfiller.ts` extended with `CODE_SECTIONS` (2 entries, 8→10 checks); 3 new tests (190 → 192) (June 28, 2026) [PROMPT-002.0.0.25]
 - CS-075: Fix stale `Cowork` reference in `docs.md:102` → `CLAUDE.md` for Claude Code; single-line text change (June 28, 2026) [PROMPT-002.0.0.24]
 - CS-077: Rename Cursor output to `specpilot.mdc` — `ideConfigGenerator.ts` and `specBackfiller.ts` updated; migration warning added for old `project.mdc` (no auto-rename); 2 new tests (188 → 190); docs/specs swept (June 28, 2026) [PROMPT-002.0.0.23]

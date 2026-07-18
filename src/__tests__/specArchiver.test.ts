@@ -124,6 +124,46 @@ describe('SpecArchiver', () => {
     expect(retained.startsWith('---\ntitle: Prompts\n---')).toBe(true);
   });
 
+  it('never archives the Re-Anchor Prompt / Latest Entries boilerplate', async () => {
+    const specsDir = createSpecsDir(testDir);
+    const boilerplate = [
+      '---',
+      'title: Prompts',
+      '---',
+      '',
+      '# Development Prompts Log',
+      '',
+      '## Re-Anchor Prompt [PROMPT-000]',
+      '',
+      '> Paste this into your AI agent when: ...',
+      '',
+      '```',
+      'CRITICAL RULES — re-read these before continuing:',
+      '1. NEVER commit, push, or deploy unless explicitly asked.',
+      '```',
+      '',
+      '## Latest Entries [PROMPT-002]',
+    ].join('\n');
+    // 16 boilerplate lines + 120 bullet entries so total exceeds PROMPTS_LINE_LIMIT
+    const entries = makeLines(120, '- Entry');
+    writeFileSync(join(specsDir, 'development', 'prompts.md'), boilerplate + '\n' + entries);
+
+    await archiver.archive(testDir, { dryRun: false });
+
+    const retained = readFileSync(join(specsDir, 'development', 'prompts.md'), 'utf-8');
+    expect(retained).toContain('## Re-Anchor Prompt [PROMPT-000]');
+    expect(retained).toContain('CRITICAL RULES');
+    expect(retained).toContain('## Latest Entries [PROMPT-002]');
+
+    const archiveContent = readFileSync(
+      join(specsDir, 'development', 'prompts-archive.md'),
+      'utf-8'
+    );
+    expect(archiveContent).not.toContain('Re-Anchor Prompt');
+    expect(archiveContent).not.toContain('CRITICAL RULES');
+    expect(archiveContent).not.toContain('## Latest Entries');
+  });
+
   // ─── Archive file append ────────────────────────────────────────────────────
 
   it('appends to existing prompts-archive.md instead of overwriting', async () => {

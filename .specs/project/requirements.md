@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-07-05
+lastUpdated: 2026-07-26
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.24
+version: 1.25
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -85,11 +85,14 @@ relatedFiles:
 
 ### Plugin Distribution [REQ-002.G]
 
-- SpecPilot must be available as a Claude Code plugin in a separate public GitHub repo (`girishr/specpilot-plugin`), distinct from the npm CLI package [REQ-002.G.1]
-- The plugin must define skills covering the core SDD workflow: `spec-first` (enforce Spec-First review gate), `validate-specs` (run specpilot validate guidance), `refine-specs` (guide spec updates after code changes), `spec-init` (walk user through specpilot init interactively) [REQ-002.G.2]
-- The plugin must be installable via `claude plugins install github:girishr/specpilot-plugin` [REQ-002.G.3]
-- The plugin must pass `claude plugin validate` before being submitted to the community marketplace [REQ-002.G.4]
-- Plugin skills must reference the npm CLI (`specpilot`) for all spec file operations rather than reimplementing logic [REQ-002.G.5]
+- SpecPilot must be available as a Claude Code plugin that lives in a `plugin/` subdirectory **inside this repo** (not a separate repo), with a `plugin/.claude-plugin/plugin.json` manifest; the CLI remains at the repo root as the source of truth and the only option for non-Claude-Code IDEs [REQ-002.G.1]
+- The plugin must be **self-contained with no runtime dependency on the `specpilot` CLI**: `init`/`add-specs`/`migrate` commands instruct Claude to scaffold the fixed `.specs/` tree and IDE config files via plain Bash file operations (each surfacing as a normal permission prompt), then populate content in-session — replacing the CLI's paste-the-onboarding-prompt second step [REQ-002.G.2]
+- The plugin bundles: (a) `init`, `add-specs`, `migrate` scaffolding commands; (b) the eight existing self-contained workflow commands (`status`, `reanchor`, `report`, `sync`, `refine`, `validate`, `archive`, `backfill` — already CLI-independent per REQ-002.E.7–E.14); (c) the `specpilot-project` skill [REQ-002.G.3]
+- The plugin must be a **lowest-privilege** bundle: **no hooks, no MCP servers, no `bin/` executables, no monitors** — only skills/commands and templates, so its blast radius is limited to permission-gated file writes Claude proposes [REQ-002.G.4]
+- The plugin's committed files must be **generated from `src/utils` by a build step** (single source of truth, zero drift — the same pattern `slashCommandGenerator.ts` uses); the generated bundle is checked into `plugin/` and is never hand-edited [REQ-002.G.5]
+- The plugin must pass `claude plugin validate` locally before submission, and be distributed via the community marketplace using a `git-subdir` source (`url: github.com/girishr/SpecPilot, path: plugin`), which pins the plugin to a specific commit SHA [REQ-002.G.6]
+
+### Non-Functional Requirements [REQ-003]
 
 - Fast initialization (< 5 seconds) [REQ-003.1]
 - Minimal memory footprint [REQ-003.2]

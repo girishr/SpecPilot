@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-03-12
-version: 1.0
+lastUpdated: 2026-07-26
+version: 1.1
 contributors: [girishr]
 relatedFiles:
   [
@@ -17,7 +17,7 @@ relatedFiles:
 
 This document identifies and assesses security threats relevant to the SpecPilot CLI tool. SpecPilot is an offline, file-generating CLI — it reads user input (CLI arguments, interactive prompts) and writes files to disk. It makes no network calls at runtime.
 
-The threat model focuses on three attack surfaces: **path traversal** via user-supplied names, **template injection** through the Handlebars rendering engine, and **supply-chain compromise** of runtime dependencies.
+The threat model focuses on four attack surfaces: **path traversal** via user-supplied names, **template injection** through the Handlebars rendering engine, **supply-chain compromise** of runtime dependencies, and **plugin distribution** (the Claude Code plugin surface — repo/account compromise, plugin dependencies, and build-generator poisoning).
 
 ## Threat Model [SEC-002]
 
@@ -55,6 +55,19 @@ The threat model focuses on three attack surfaces: **path traversal** via user-s
 | **Mitigation**    | (1) Minimal dependency set — only 4 direct runtime dependencies. (2) `package-lock.json` pinned in the repository. (3) No network calls at runtime — a compromised dep cannot phone home silently during normal operation. (4) All dependencies are high-profile packages with large install bases and active security reporting. |
 | **Residual risk** | Non-zero but industry-standard. Periodic `npm audit` runs and lockfile review are recommended.                                                                                                                                                                                                                                    |
 
+### Plugin Distribution [SEC-002.4]
+
+Distributing SpecPilot as a Claude Code plugin (REQ-002.G, ARCH-004.27) adds a **new attack surface** distinct from the CLI. A Claude Code plugin runs with the user's privileges and is trusted on the basis of its source; Anthropic's marketplace review is a filter, not a guarantee.
+
+| Field             | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Description**   | (a) **Repo/account compromise → auto-pin bump**: because the plugin lives in this repo and the community catalog auto-bumps the pinned commit SHA as commits are pushed, a merged malicious PR or a stolen push credential produces a new commit that becomes the installable version for new installs and for users with auto-update enabled. (b) **Plugin-dependency supply chain**: if the plugin ever shipped its own npm deps + an install hook, every such dep would run on the user's machine. (c) **Generator poisoning**: since the plugin is built from `src/utils`, a compromise of the build tooling, a template, or a generator dependency flows silently into the committed `plugin/` bundle. |
+| **Impact**        | Critical — arbitrary code execution at the installing user's privilege level, on developer machines.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Likelihood**    | Low — requires compromising the maintainer's repo/account or the build/dependency chain.                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Entry point**   | `girishr/SpecPilot` git history (`plugin/` subtree), the `build:plugin` generator and its dependencies, and the community-marketplace `git-subdir` pin.                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Mitigation**    | (1) **Lowest-privilege plugin**: no hooks, no MCP, no `bin/`, no monitors, no shipped npm deps — the plugin only proposes permission-gated file writes (SEC-004.5). (2) **No install hook / no runtime deps** eliminates plugin-dependency supply chain (SEC-004.7). (3) **Repo hardening**: branch protection on `main`, required review, 2FA/passkeys, and treating everything under `plugin/` and the build generator as security-sensitive in review (SEC-004.6). (4) **SHA pinning + cache-copy**: users get exactly the reviewed commit; Claude Code copies marketplace plugins to a local cache and skips symlinks pointing outside the plugin dir, blocking host-file exfiltration. (5) **Generated-not-hand-edited** bundle keeps the audited surface in `src/utils` rather than in opaque plugin files.                                     |
+| **Residual risk** | Non-zero: users who enable auto-update receive a poisoned commit N+1 before manual review. Reduced by repo hardening and the no-code-execution plugin shape (worst case is permission-gated file writes the user still approves).                                                                                                                                                                                                                                                                                                               |
+
 ## Attack Surface Summary [SEC-003]
 
 | Entry Point                          | Data Type            | Validated?                     | Used In                                  |
@@ -65,6 +78,7 @@ The threat model focuses on three attack surfaces: **path traversal** via user-s
 | Language / framework selection       | Enum (fixed choices) | ✅ Inquirer choice list        | Template selection, file content         |
 | IDE / agent selection                | Enum (fixed choices) | ✅ Inquirer choice list        | Config generation                        |
 | Existing project files (add-specs)   | Disk read            | N/A — read-only scan           | Code analysis output                     |
+| Plugin git history / build generator | Code + templates     | ⚠️ Repo hardening + review     | Committed `plugin/` bundle (SEC-002.4)   |
 
 ## Out of Scope [SEC-004]
 
@@ -76,4 +90,4 @@ The threat model focuses on three attack surfaces: **path traversal** via user-s
 
 ---
 
-_Last updated: 2026-03-12_
+_Last updated: 2026-07-26_

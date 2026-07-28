@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-07-05
-version: 2.11
+lastUpdated: 2026-07-26
+version: 2.12
 contributors: [girishr]
 relatedFiles:
   [
@@ -68,7 +68,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **devPrefix in Generated ID Conventions**: generated `tasks.md` shows `CD-{{author}}-###` and `## Multi-Dev Notes`; generated `prompts.md` shows `PROMPT-{{author}}-###` [ARCH-004.22]
 - **Purpose Descriptions in Generated Spec Files**: every generated markdown spec file includes a `description:` front-matter field; `api.yaml` gets a `# Purpose:` comment [ARCH-004.25]
 - **IDE/Agent prompt in `add-specs`**: `specpilot add-specs` now shows the same 6-choice IDE/Agent prompt as `specpilot init` (vscode / Cursor / Windsurf / Antigravity / Claude Code / Codex) instead of hardcoding `vscode`; selected IDE flows into `SpecGenerator.generateSpecs()` so the correct AI context file is generated for existing projects; `--no-prompts` defaults to `vscode` [ARCH-004.26]
-- **Claude Code Plugin**: standalone `girishr/specpilot-plugin` repo with `.claude-plugin/plugin.json`, four skills (`spec-first`, `validate-specs`, `refine-specs`, `spec-init`), and optional agents/hooks; all spec ops delegate to the `specpilot` npm CLI [ARCH-004.27]
+- **Claude Code Plugin**: distributed from a `plugin/` subdirectory **inside this repo** (not a separate repo) via a `git-subdir` marketplace source (`url: github.com/girishr/SpecPilot, path: plugin`), so the CLI stays the root-level source of truth and users sparse-clone only `plugin/`; the plugin root holds `plugin/.claude-plugin/plugin.json`, `plugin/commands/` (the `init`/`add-specs`/`migrate` scaffolders plus the eight `specpilot-*` workflow commands), and `plugin/skills/specpilot-project/SKILL.md`. **Self-contained, no `specpilot` CLI dependency**: scaffolding commands instruct Claude to build the fixed `.specs/` tree and IDE config files via plain permission-gated Bash file writes, then populate content in-session (collapsing the CLI's two-step scaffold-then-paste-onboarding-prompt flow into one). **Lowest-privilege by design**: no hooks, no MCP servers, no `bin/`, no monitors. **Generated from a single source of truth**: the committed `plugin/` bundle is emitted from `src/utils` by a build step (same pattern `slashCommandGenerator.ts` already uses to render the 8 commands per IDE), never hand-edited, so the plugin and CLI can never drift [ARCH-004.27]
 - **Code Philosophy + Code Rules in Generated Outputs**: all generated AI instruction files include `## Code Philosophy — Write Only What Needed` (7 YAGNI/minimal-code items) and `## Code Rules` (7 behavioral constraints) in caveman style; injected via `buildCodePhilosophyMarkdown()` in `ideConfigGenerator.ts` and inline in `agentConfigGenerator.ts`; `specpilot backfill` detects missing sections and appends them to existing IDE files [ARCH-004.28]
 - **Per-IDE Slash Command Routing**: Claude Code → `.claude/commands/specpilot-<name>.md`; Cursor → `.cursor/commands/specpilot-<name>.md`; Windsurf → `.windsurf/workflows/specpilot-<name>.md`; Antigravity → `.agent/workflows/specpilot-<name>.md` (distinct from its `.antigravity/rules.md` mandate file); GitHub Copilot → `.github/prompts/specpilot-<name>.prompt.md`; Codex has no repo-level custom-prompt support (only `~/.codex/prompts/` is auto-discovered), so a reference copy is still written to `.codex/prompts/specpilot-<name>.md` plus a one-time printed instruction to copy it manually; `SLASH_COMMANDS` starts empty and is populated one command at a time by BL-039 through BL-046 [ARCH-004.29]
 - **CLI-Side Slash Command Backfill**: `SlashCommandGenerator.resolveTarget()` (per-IDE path/frontmatter) is shared by both `generate()` (fresh scaffolding, always writes) and `backfillMissing()` (existing projects, only writes files absent on disk, never overwrites); `SpecBackfiller.backfillSlashCommands()` calls `backfillMissing()` once per IDE whose signal file already exists (`CLAUDE.md`, `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md`, `.github/copilot-instructions.md` — same 5 signals `backfillIdeFiles` already checks; Codex excluded, no signal file convention); `BackfillResult.slashCommands: SlashCommandBackfillResult[]` reported in a new "Slash commands" section in `backfill.ts` CLI output; ensures CLI-side backfill and web-app-side `slashCommandGenerator.ts` generation never drift apart since both read from the same `SLASH_COMMANDS` constant [ARCH-004.30]
@@ -123,6 +123,16 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 5. Detects which IDE-specific files exist (`.cursor/rules/specpilot.mdc`, `CLAUDE.md`, `.windsurfrules`, `.antigravity/rules.md`, `.claude/skills/specpilot-project/SKILL.md`) and checks each for missing mandate fingerprints
 6. In `--dry-run`, prints the planned changes without writing
 7. In write mode, applies the minimal merge/appends and prints a summary of updated, skipped, stale, and missing files
+
+### Plugin Init Flow [ARCH-006.5]
+
+1. User installs the plugin from the community marketplace (`git-subdir`, SHA-pinned) and runs `/specpilot:init`
+2. Claude asks the project-context Q&A conversationally (replacing the CLI's `inquirer` prompts — no CLI invoked)
+3. Claude creates the fixed `.specs/` tree and IDE config files via permission-gated Bash file writes, using templates carried in the plugin bundle (emitted from `src/utils` at build time)
+4. Claude reads the generated onboarding prompt and executes it in-session to populate spec content, then removes it — no paste-into-an-agent second step
+5. `add-specs` and `migrate` follow the same in-session pattern; the eight `specpilot-*` workflow commands operate exactly as their CLI-generated counterparts (REQ-002.E.7–E.14)
+
+> **Open question — plugin build mechanism**: REQ-002.G.5 fixes the source of truth as `src/utils` (generate, don't hand-author). The concrete build step — a new `specpilot`-internal generator/npm script (e.g. `build:plugin`) that renders `plugin/commands/*.md`, `plugin/skills/`, and the manifest, extending the existing `slashCommandGenerator.ts` mechanism — is to be designed when the plugin work is scheduled (see BL-048).
 
 ## Assumptions [ARCH-007]
 

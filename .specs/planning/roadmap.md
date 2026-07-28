@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-07-06
-version: 1.8
+lastUpdated: 2026-07-26
+version: 1.9
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -22,6 +22,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Kotlin and Swift language support, conditional api.yaml, onboarding.md, terse spec templates complete [ROADMAP-002.10] ✅
 - Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
+- Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
 
 ## Timeline [ROADMAP-003]
 

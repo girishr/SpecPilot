@@ -259,6 +259,61 @@ describe('SpecArchiver', () => {
     expect(newContent).toContain('> **Line limit**: 25 lines.');
   });
 
+  it('never archives sections that follow ## Completed', async () => {
+    const specsDir = createSpecsDir(testDir);
+    writeFileSync(
+      join(specsDir, 'planning', 'tasks.md'),
+      [
+        '# Tasks',
+        '',
+        '## Completed',
+        '',
+        makeCompletedEntries(40),
+        '',
+        '## Multi-Dev Notes',
+        '',
+        '- IMPORTANT: coordinate before touching the parser',
+      ].join('\n')
+    );
+
+    const result = await archiver.archive(testDir, { dryRun: false });
+    expect(result.entries.length).toBeGreaterThan(0);
+
+    // The trailing section must survive in the active file...
+    const newContent = readFileSync(join(specsDir, 'planning', 'tasks.md'), 'utf-8');
+    expect(newContent).toContain('## Multi-Dev Notes');
+    expect(newContent).toContain('- IMPORTANT: coordinate before touching the parser');
+
+    // ...and must never leak into the archive, which gets only numbered entries.
+    const archived = readFileSync(join(specsDir, 'planning', 'tasks-archive.md'), 'utf-8');
+    expect(archived).not.toContain('## Multi-Dev Notes');
+    expect(archived).not.toContain('IMPORTANT: coordinate');
+  });
+
+  it('measures the Completed section to the next heading, not EOF', async () => {
+    const specsDir = createSpecsDir(testDir);
+    // 10 entries is well within the 25-line limit; a long trailing section must
+    // not inflate the measured size and trigger a needless archive.
+    writeFileSync(
+      join(specsDir, 'planning', 'tasks.md'),
+      [
+        '# Tasks',
+        '',
+        '## Completed',
+        '',
+        makeCompletedEntries(10),
+        '',
+        '## Multi-Dev Notes',
+        '',
+        ...Array.from({ length: 40 }, (_, i) => `- note ${i + 1}`),
+      ].join('\n')
+    );
+
+    const result = await archiver.archive(testDir, { dryRun: false });
+    expect(result.entries.find((e) => e.file === 'planning/tasks.md')).toBeUndefined();
+    expect(existsSync(join(specsDir, 'planning', 'tasks-archive.md'))).toBe(false);
+  });
+
   // ─── Both files over limit ──────────────────────────────────────────────────
 
   it('archives both files when both are over their limits', async () => {

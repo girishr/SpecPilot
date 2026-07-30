@@ -107,18 +107,25 @@ export class SpecArchiver {
     const completedIdx = allLines.findIndex(l => l.trim() === '## Completed');
     if (completedIdx === -1) return null;
 
-    // Section size consistent with specValidator's check
-    const sectionSize = allLines.length - completedIdx;
+    // The Completed section ends at the next `## ` heading, not at EOF — anything
+    // after it (e.g. `## Multi-Dev Notes`) is a separate section and must survive.
+    let sectionEndIdx = allLines.findIndex((l, i) => i > completedIdx && /^## /.test(l.trim()));
+    if (sectionEndIdx === -1) sectionEndIdx = allLines.length;
+    const trailingLines = allLines.slice(sectionEndIdx);
+
+    // Section size consistent with specValidator's check — measured to the section
+    // end, not EOF, so trailing sections never inflate it.
+    const sectionSize = sectionEndIdx - completedIdx;
     if (sectionSize <= COMPLETED_LINE_LIMIT) return null;
 
     // Skip past the ## Completed heading and any notes/blank lines to find numbered entries
     let entryStartIdx = completedIdx + 1;
-    while (entryStartIdx < allLines.length && !/^\d+\./.test(allLines[entryStartIdx])) {
+    while (entryStartIdx < sectionEndIdx && !/^\d+\./.test(allLines[entryStartIdx])) {
       entryStartIdx++;
     }
-    if (entryStartIdx >= allLines.length) return null;
+    if (entryStartIdx >= sectionEndIdx) return null;
 
-    const entryLines = allLines.slice(entryStartIdx);
+    const entryLines = allLines.slice(entryStartIdx, sectionEndIdx);
     if (entryLines.length <= COMPLETED_KEEP_ENTRIES) return null;
 
     const archiveEntries = entryLines.slice(0, entryLines.length - COMPLETED_KEEP_ENTRIES);
@@ -131,7 +138,10 @@ export class SpecArchiver {
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';
       writeFileSync(archivePath, existing + block);
-      writeFileSync(filePath, [...allLines.slice(0, entryStartIdx), ...keepEntries].join('\n'));
+      writeFileSync(
+        filePath,
+        [...allLines.slice(0, entryStartIdx), ...keepEntries, ...trailingLines].join('\n'),
+      );
     }
 
     return {

@@ -745,12 +745,17 @@ export class SpecBackfiller {
             newContent.slice(notesIdx);
         }
       }
-      added.push(`CD-${devPrefix}-### convention line`);
+      if (newContent !== content) {
+        added.push(`CD-${devPrefix}-### convention line`);
+      }
     }
 
-    // Insert ## Multi-Dev Notes section before ## Backlog
+    // Insert ## Multi-Dev Notes section before ## Backlog, falling back to before
+    // ## Completed — never append at EOF, since `specpilot archive` treats
+    // everything after the ## Completed heading as archivable entries.
     if (!hasMultiDevNotes) {
-      const backlogIdx = newContent.search(/^## Backlog$/m);
+      let backlogIdx = newContent.search(/^## Backlog$/m);
+      if (backlogIdx === -1) backlogIdx = newContent.search(/^## Completed$/m);
       if (backlogIdx !== -1) {
         const multiDevSection =
           `## Multi-Dev Notes\n\n` +

@@ -129,13 +129,10 @@ export class SpecValidator {
       try {
         if (fix.startsWith('create-')) {
           const fileName = fix.replace('create-', '');
+          // Only ever create files this validator actually requires — otherwise an
+          // arbitrary `create-*` token would write a junk file into .specs/.
+          if (!this.requiredFiles.includes(fileName)) continue;
           await this.createMissingFile(specsDir, fileName);
-          fixed.push(fix);
-        } else if (fix === 'add-mandates') {
-          await this.addMandatesToProjectYaml(specsDir);
-          fixed.push(fix);
-        } else if (fix === 'create-prompts-entry') {
-          await this.createInitialPromptsEntry(specsDir);
           fixed.push(fix);
         }
       } catch {
@@ -380,51 +377,6 @@ export class SpecValidator {
     }
 
     writeFileSync(filePath, content);
-  }
-
-  private async addMandatesToProjectYaml(specsDir: string): Promise<void> {
-    const projectYamlPath = join(specsDir, 'project', 'project.yaml');
-    
-    try {
-      const content = readFileSync(projectYamlPath, 'utf-8');
-      const projectData = yaml.load(content) as any;
-
-      if (!projectData.rules) {
-        projectData.rules = [];
-      }
-
-      const mandates = [
-        "MANDATE: Update .specs/prompts.md with ALL AI interactions and development prompts by default",
-        "MANDATE: Maintain chronological prompt history for complete development traceability"
-      ];
-
-      const flatRules = this.flattenRules(projectData.rules);
-      for (const mandate of mandates) {
-        if (!flatRules.some((rule: string) => rule.includes('MANDATE') && rule.includes('prompt'))) {
-          // Push into process sub-array if rules is nested, else push to flat array
-          if (Array.isArray(projectData.rules)) {
-            projectData.rules.push(mandate);
-          } else if (typeof projectData.rules === 'object' && projectData.rules !== null) {
-            const nested = projectData.rules as Record<string, string[]>;
-            if (!Array.isArray(nested['process'])) nested['process'] = [];
-            nested['process'].push(mandate);
-          }
-          flatRules.push(mandate); // keep flatRules in sync to avoid duplicate pushes
-        }
-      }
-
-      const updatedContent = yaml.dump(projectData, { lineWidth: 120, indent: 2 });
-      writeFileSync(projectYamlPath, updatedContent);
-
-    } catch (error) {
-      throw new Error(`Failed to update project.yaml: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
-    }
-  }
-
-  private async createInitialPromptsEntry(specsDir: string): Promise<void> {
-    const promptsPath = join(specsDir, 'development', 'prompts.md');
-    const content = this.getDefaultPromptsContent();
-    writeFileSync(promptsPath, content);
   }
 
   private async validateMetadataAndCrossRefs(specsDir: string, result: ValidationResult): Promise<void> {
@@ -686,7 +638,12 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
   }
 
   private async validateStaleDates(specsDir: string, result: ValidationResult): Promise<void> {
-    const mdFiles = this.requiredFiles.filter(f => f.endsWith('.md'));
+    // roadmap.md is not in requiredFiles (its absence isn't an error) but it does
+    // carry lastUpdated front-matter, so it still gets a staleness check.
+    const mdFiles = [
+      ...this.requiredFiles.filter(f => f.endsWith('.md')),
+      'planning/roadmap.md',
+    ];
     const today = new Date();
 
     for (const file of mdFiles) {
@@ -731,7 +688,12 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
       const lines = readFileSync(tasksPath, 'utf-8').split('\n');
       const completedIdx = lines.findIndex(line => line.trim() === '## Completed');
       if (completedIdx !== -1) {
-        const completedSize = lines.length - completedIdx;
+        // Measure to the next `## ` heading, not EOF, so trailing sections
+        // (e.g. `## Multi-Dev Notes`) don't inflate the count. Must stay
+        // consistent with specArchiver's archiveTasks().
+        let sectionEnd = lines.findIndex((line, i) => i > completedIdx && /^## /.test(line.trim()));
+        if (sectionEnd === -1) sectionEnd = lines.length;
+        const completedSize = sectionEnd - completedIdx;
         if (completedSize > SpecValidator.TASKS_COMPLETED_LINE_LIMIT) {
           result.warnings.push(
             `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`

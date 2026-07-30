@@ -463,6 +463,30 @@ rules:
       expect(written).toContain('CD-girishr-###');
     });
 
+    it('inserts Multi-Dev Notes before ## Completed when there is no ## Backlog', async () => {
+      // Appending at EOF would put the section after ## Completed, where
+      // `specpilot archive` would sweep it into tasks-archive.md.
+      scaffoldSpecs(testDir, {
+        projectYaml: FULL_YAML,
+        copilotMd: FULL_MD,
+        tasksMd: [
+          '# Task Tracking',
+          '',
+          '- CS-###: Current Sprint items',
+          '',
+          '## Completed',
+          '',
+          '1. [CD-girishr-001] did a thing',
+        ].join('\n'),
+      });
+
+      await backfiller.backfill(testDir, '.specs', false, true);
+
+      const written = readFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), 'utf-8');
+      expect(written).toContain('## Multi-Dev Notes');
+      expect(written.indexOf('## Multi-Dev Notes')).toBeLessThan(written.indexOf('## Completed'));
+    });
+
     it('dry-run: does NOT write tasks.md', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: FULL_YAML,

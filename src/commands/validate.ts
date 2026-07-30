@@ -59,8 +59,6 @@ export async function validateCommand(options: ValidateOptions) {
         for (const fix of fixed) {
           const label = fix.startsWith('create-')
             ? `Created missing file: ${fix.replace('create-', '')}`
-            : fix === 'create-prompts-entry'
-            ? 'Created initial prompts entry in prompts.md'
             : fix;
           console.log(chalk.green(`   • ${label}`));
         }

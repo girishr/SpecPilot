@@ -1,6 +1,6 @@
 import { SpecValidator } from '../utils/specValidator';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
 import * as os from 'os';
 
 const CURRENT_YEAR = new Date().getFullYear().toString();
@@ -244,24 +244,20 @@ describe('SpecValidator', () => {
 
   // ─── autoFix ──────────────────────────────────────────────────────────────
 
-  it('autoFix adds mandate to project.yaml when add-mandates is requested', async () => {
+  it('autoFix never rewrites project.yaml, preserving comments and quoting', async () => {
     createValidSpecsDir(testDir);
-    // Replace rules with one that has no mandate
-    writeFileSync(join(testDir, '.specs', 'project', 'project.yaml'), [
+    const original = [
+      '# IMPORTANT: rules live in the AI agent config',
       'name: my-app',
       'version: "1.0.0"',
       'language: typescript',
-      'rules:',
-      '  - "Write tests"',
-    ].join('\n'));
+    ].join('\n');
+    writeFileSync(join(testDir, '.specs', 'project', 'project.yaml'), original);
 
+    // `add-mandates` is no longer a supported token; project.yaml must be untouched
     const fixed = await validator.autoFix(testDir, ['add-mandates']);
-    expect(fixed).toContain('add-mandates');
-
-    // Re-validate — mandate error should now be gone
-    const result = await validator.validate(testDir, { fix: false, verbose: false });
-    const mandateErrors = result.errors.filter(e => e.includes('MANDATE') && e.includes('project.yaml'));
-    expect(mandateErrors).toHaveLength(0);
+    expect(fixed).toHaveLength(0);
+    expect(readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8')).toBe(original);
   });
 
   it('autoFix silently skips unknown fix tokens', async () => {
@@ -270,8 +266,15 @@ describe('SpecValidator', () => {
     expect(fixed).not.toContain('unknown-fix-token');
   });
 
+  it('autoFix ignores create-* tokens that are not required files', async () => {
+    createValidSpecsDir(testDir);
+    const fixed = await validator.autoFix(testDir, ['create-prompts-entry', 'create-../evil.md']);
+    expect(fixed).toHaveLength(0);
+    expect(existsSync(join(testDir, '.specs', 'prompts-entry'))).toBe(false);
+  });
+
   it('autoFix returns empty array when no .specs dir exists', async () => {
-    const fixed = await validator.autoFix(testDir, ['add-mandates']);
+    const fixed = await validator.autoFix(testDir, ['create-development/prompts.md']);
     expect(fixed).toHaveLength(0);
   });
 
@@ -376,6 +379,22 @@ describe('SpecValidator', () => {
 
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     const warn = result.warnings.find(w => w.includes('architecture/architecture.md') && w.includes('days old'));
+    expect(warn).toBeDefined();
+  });
+
+  it('warns on stale planning/roadmap.md even though it is not a required file', async () => {
+    createValidSpecsDir(testDir);
+    const staleDate = new Date();
+    staleDate.setDate(staleDate.getDate() - 100);
+    writeFileSync(join(testDir, '.specs', 'planning', 'roadmap.md'), [
+      '---',
+      `lastUpdated: ${staleDate.toISOString().split('T')[0]}`,
+      '---',
+      '# Roadmap',
+    ].join('\n'));
+
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const warn = result.warnings.find(w => w.includes('planning/roadmap.md') && w.includes('days old'));
     expect(warn).toBeDefined();
   });
 

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-07-30
+
+### Fixed
+
+- **`specpilot backfill` could never fix the "Missing MANDATE for prompt tracking" error** (CS-090): `specBackfiller.ts`'s `YAML_MANDATES` only listed the 8 `rules.critical` mandates, so the `rules.process` prompt-tracking mandate that `specValidator.ts` checks for was never written — `specpilot validate` reported an error that `specpilot backfill` structurally could not resolve. Added `YAML_PROCESS_MANDATES` and rewrote `insertYamlMandates()` to target `rules.critical` and `rules.process` independently.
+- **`specpilot backfill` corrupted `project.yaml` when it had no `rules:` key**: the fallback appended a bare, two-space-indented `critical:` block with no parent `rules:` key, which YAML silently nested under whatever top-level key happened to precede it (e.g. producing `dependencies.critical`), leaving the mandates invisible to the validator. Now emits a proper top-level `rules:` block.
+- **`specpilot archive` silently destroyed any `tasks.md` section after `## Completed`**: `archiveTasks()` assumed `## Completed` ran to end-of-file, so a following section (e.g. `## Multi-Dev Notes`) was swept into `tasks-archive.md` while the active `## Completed` section was left holding unrelated lines. The Completed section is now bounded by the next `## ` heading and trailing content is preserved; `specValidator.ts`'s line-limit check measures the same way so the warning and the archiver cannot disagree. Compounding this, `backfillTasksMd()` appended `## Multi-Dev Notes` at end-of-file when no `## Backlog` existed — placing SpecPilot's own generated section exactly where the archiver would eat it; it now inserts before `## Completed`.
+- **Dead and incorrect `validate --fix` paths removed**: `addMandatesToProjectYaml()` guarded on `rule.includes('prompt')`, which the critical mandate "unless prompt**ed** by the developer" satisfies while the validator requires `/prompts/i` — so it believed the mandate already existed and wrote nothing, while the validator kept erroring. It also used `yaml.dump()`, destroying all comments and rewriting quoting. Both it and `createInitialPromptsEntry()` were unreachable (nothing ever pushed `add-mandates`/`create-prompts-entry` into `fixable`) and are deleted; `specpilot backfill` already handles this via comment-preserving text insertion.
+- **`autoFix()` could write arbitrary files into `.specs/`**: the `fix.startsWith('create-')` catch-all treated any such token as a filename; now constrained to the validator's `requiredFiles`.
+- **`planning/roadmap.md` never got a staleness warning**: `validateStaleDates()` iterated `requiredFiles`, which omits `roadmap.md`; it is now checked explicitly without making its absence an error.
+
 ## [2.2.0] - 2026-07-05
 
 ### Added

@@ -67,6 +67,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-06-06: v1.8.0 → v2.0.0 — Kotlin and Swift language support; conditional api.yaml (rest/cli/graphql/none); onboarding.md split from prompts.md; mandatory devPrefix; terse spec templates; Cursor output renamed to `specpilot.mdc`; 188 tests
 - 2026-06-28: v2.1.0 — Code Philosophy + Code Rules injected into all generated AI instruction files and backfillable via `specpilot backfill` (CS-074)
 - 2026-07-05: v2.2.0 — `slashCommandGenerator.ts` added with 8 `specpilot-*` commands (`status`, `reanchor`, `report`, `sync`, `refine`, `validate`, `archive`, `backfill`) routed across all supported IDEs, plus CLI-side backfill for missing command files (CS-079–088); fixed `specpilot validate` failing on every fresh project due to a stale `docs.md` required-file check; 209 tests
+- 2026-07-30: v2.2.1 — bug-fix release from an audit of the validator/archiver/backfiller triangle (CS-090, CD-girishr-033/034): `specpilot backfill` now writes the `rules.process` prompt-tracking mandate the validator checks for (previously unfixable) and no longer corrupts a `project.yaml` that has no `rules:` key; `specpilot archive` no longer destroys `tasks.md` sections following `## Completed`; dead, comment-destroying `validate --fix` paths removed; 216 tests
 
 ## Objectives [ROADMAP-004]
 

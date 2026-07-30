@@ -59,6 +59,8 @@ rules:
     - "MANDATE: Never describe, quote, or reference file contents without first reading the file via a tool call in this session. If the file has not been read, say so explicitly before answering."
     - "MANDATE: Never implement, write code, or make file changes unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume."
     - "MANDATE: Spec-First review gate — before touching any code or non-spec files, read all relevant .specs/ files, update all affected spec files first (requirements.md, architecture.md, tasks.md, CHANGELOG.md), present a Spec Report summarizing what changed, which files were affected, and what the specs now say, then wait for the developer's explicit 'yes, proceed' before writing code. If the developer declines, revert the spec changes and stop."
+  process:
+    - "MANDATE: Track ALL AI interactions — update .specs/development/prompts.md with every AI prompt, including timestamps and context."
 `;
 
 /** Minimal project.yaml with zero mandates */
@@ -209,7 +211,7 @@ describe('SpecBackfiller', () => {
   });
 
   describe('backfillProjectYaml — all mandates present', () => {
-    it('returns action=skipped when all 8 YAML mandates found', async () => {
+    it('returns action=skipped when all 9 YAML mandates found', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: FULL_YAML,
         copilotMd: FULL_MD,
@@ -217,8 +219,8 @@ describe('SpecBackfiller', () => {
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.projectYaml.action).toBe('skipped');
-      expect(result.projectYaml.found).toBe(8);
-      expect(result.projectYaml.total).toBe(8);
+      expect(result.projectYaml.found).toBe(9);
+      expect(result.projectYaml.total).toBe(9);
       expect(result.projectYaml.added).toHaveLength(0);
     });
   });
@@ -267,7 +269,7 @@ rules:
       expect(written).toContain('Never commit code to git');
     });
 
-    it('appends complete critical: block when no critical key exists (strategy 3)', async () => {
+    it('appends complete rules: block with critical and process keys when neither exists (strategy 3)', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: BARE_YAML,
         copilotMd: FULL_MD,
@@ -278,6 +280,40 @@ rules:
       const written = readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8');
       expect(written).toContain('critical:');
       expect(written).toContain('Never commit code to git');
+      expect(written).toContain('process:');
+      expect(written).toContain('Track ALL AI interactions');
+
+      const yaml = require('js-yaml');
+      const parsed = yaml.load(written) as any;
+      expect(Array.isArray(parsed.rules.critical)).toBe(true);
+      expect(Array.isArray(parsed.rules.process)).toBe(true);
+      expect(parsed.rules.process.some((r: string) => r.includes('Track ALL AI interactions'))).toBe(true);
+      expect(parsed.dependencies?.critical).toBeUndefined();
+    });
+
+    it('adds missing process mandate under existing rules.critical without touching it', async () => {
+      const yamlWithCriticalOnly = `name: "TestProject"
+license: MIT
+contributors: ["girishr"]
+team:
+  devPrefix: "girishr"
+rules:
+  critical:
+    - "MANDATE: Never commit code to git unless prompted by the developer. Always ask first."
+`;
+      scaffoldSpecs(testDir, {
+        projectYaml: yamlWithCriticalOnly,
+        copilotMd: FULL_MD,
+        tasksMd: makeFullTasksMd('girishr'),
+      });
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.projectYaml.action).toBe('updated');
+      const written = readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8');
+
+      const yaml = require('js-yaml');
+      const parsed = yaml.load(written) as any;
+      expect(Array.isArray(parsed.rules.process)).toBe(true);
+      expect(parsed.rules.process.some((r: string) => r.includes('Track ALL AI interactions'))).toBe(true);
     });
 
     it('dry-run: does NOT write project.yaml', async () => {

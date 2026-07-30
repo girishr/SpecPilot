@@ -60,6 +60,20 @@ const YAML_MANDATES: { fingerprint: string; yamlText: string; label: string }[] 
   },
 ];
 
+/**
+ * `rules.process` mandate(s) — checked by specValidator's prompt-tracking rule.
+ * Kept separate from YAML_MANDATES since they belong under a different rules
+ * sub-key (`process` vs `critical`).
+ */
+const YAML_PROCESS_MANDATES: { fingerprint: string; yamlText: string; label: string }[] = [
+  {
+    fingerprint: 'Track ALL AI',
+    label: 'Track ALL AI prompts',
+    yamlText:
+      '    - "MANDATE: Track ALL AI interactions — update .specs/development/prompts.md with every AI prompt, including timestamps and context."',
+  },
+];
+
 const MD_MANDATES: { fingerprint: string; mdText: string; label: string }[] = [
   {
     fingerprint: 'NEVER commit',
@@ -240,58 +254,87 @@ export class SpecBackfiller {
     }
 
     const content = readFileSync(filePath, 'utf-8');
-    const missing = YAML_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingCritical = YAML_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingProcess = YAML_PROCESS_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const totalMandates = YAML_MANDATES.length + YAML_PROCESS_MANDATES.length;
 
-    if (missing.length === 0) {
-      return { action: 'skipped', found: YAML_MANDATES.length, total: YAML_MANDATES.length, added: [] };
+    if (missingCritical.length === 0 && missingProcess.length === 0) {
+      return { action: 'skipped', found: totalMandates, total: totalMandates, added: [] };
     }
 
     if (!dryRun) {
-      const newContent = this.insertYamlMandates(content, missing.map((m) => m.yamlText));
+      const newContent = this.insertYamlMandates(
+        content,
+        missingCritical.map((m) => m.yamlText),
+        missingProcess.map((m) => m.yamlText),
+      );
       writeFileSync(filePath, newContent, 'utf-8');
     }
 
     return {
       action: 'updated',
-      found: YAML_MANDATES.length - missing.length,
-      total: YAML_MANDATES.length,
-      added: missing.map((m) => m.label),
+      found: totalMandates - missingCritical.length - missingProcess.length,
+      total: totalMandates,
+      added: [...missingCritical.map((m) => m.label), ...missingProcess.map((m) => m.label)],
     };
   }
 
   /**
    * Text-based (not yaml.dump) insertion — preserves comments, emoji, and formatting.
    *
-   * Strategy: find the last `    - "MANDATE:` line in the file and insert
-   * missing mandate lines immediately after it.  If no MANDATE lines exist yet,
-   * find the `  critical:` key and append after it.  As a final fallback, append
-   * a complete `critical:` block at the end of the file.
+   * Strategy: insert missing `critical` lines after the last existing
+   * `    - "MANDATE:` line under `  critical:`, or after the `  critical:` key
+   * itself if no mandate lines exist yet. Missing `process` lines go after the
+   * `  process:` key. If neither key exists at all, append a complete `rules:`
+   * block (with both `critical:` and `process:` children) at the end of the file.
    */
-  private insertYamlMandates(content: string, lines: string[]): string {
-    const insertion = '\n' + lines.join('\n');
+  private insertYamlMandates(content: string, criticalLines: string[], processLines: string[]): string {
+    let result = content;
 
-    // Strategy 1: insert after the last existing MANDATE line
-    const lastMandateIdx = content.lastIndexOf('\n    - "MANDATE:');
-    if (lastMandateIdx !== -1) {
-      const lineEnd = content.indexOf('\n', lastMandateIdx + 1);
-      const insertPos = lineEnd !== -1 ? lineEnd : content.length;
-      return content.slice(0, insertPos) + insertion + content.slice(insertPos);
+    if (criticalLines.length > 0) {
+      const insertion = '\n' + criticalLines.join('\n');
+      const lastMandateIdx = result.lastIndexOf('\n    - "MANDATE:');
+      const criticalIdx = result.indexOf('\n  critical:');
+      if (lastMandateIdx !== -1) {
+        const lineEnd = result.indexOf('\n', lastMandateIdx + 1);
+        const insertPos = lineEnd !== -1 ? lineEnd : result.length;
+        result = result.slice(0, insertPos) + insertion + result.slice(insertPos);
+      } else if (criticalIdx !== -1) {
+        const afterKey = criticalIdx + '\n  critical:'.length;
+        result = result.slice(0, afterKey) + insertion + result.slice(afterKey);
+      } else {
+        result =
+          result.trimEnd() +
+          '\n\nrules:\n  # Backfilled by specpilot backfill\n  critical:\n' +
+          criticalLines.join('\n') +
+          '\n';
+      }
     }
 
-    // Strategy 2: insert after the `  critical:` key
-    const criticalIdx = content.indexOf('\n  critical:');
-    if (criticalIdx !== -1) {
-      const afterKey = criticalIdx + '\n  critical:'.length;
-      return content.slice(0, afterKey) + insertion + content.slice(afterKey);
+    if (processLines.length > 0) {
+      const insertion = '\n' + processLines.join('\n');
+      const processIdx = result.indexOf('\n  process:');
+      if (processIdx !== -1) {
+        const afterKey = processIdx + '\n  process:'.length;
+        result = result.slice(0, afterKey) + insertion + result.slice(afterKey);
+      } else if (result.includes('\nrules:')) {
+        const rulesIdx = result.indexOf('\nrules:');
+        const afterRules = rulesIdx + '\nrules:'.length;
+        result =
+          result.slice(0, afterRules) +
+          '\n  # Backfilled by specpilot backfill\n  process:\n' +
+          processLines.join('\n') +
+          result.slice(afterRules);
+      } else {
+        result =
+          result.trimEnd() +
+          '\n\nrules:\n  # Backfilled by specpilot backfill\n  process:\n' +
+          processLines.join('\n') +
+          '\n';
+      }
     }
 
-    // Strategy 3: append a complete rules block at the end
-    return (
-      content.trimEnd() +
-      '\n\n  # Backfilled by specpilot backfill\n  critical:\n' +
-      lines.join('\n') +
-      '\n'
-    );
+    return result;
   }
 
   // ---------------------------------------------------------------------------

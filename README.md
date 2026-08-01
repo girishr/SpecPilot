@@ -42,7 +42,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `add-specs`             | Add specs to existing project                                     |
 | `validate`              | Validate specification files                                      |
 | `archive`               | Archive oversized `prompts.md` / `tasks.md` entries               |
-| `backfill`              | Backfill missing mandates into existing project files             |
+| `backfill`              | Backfill missing mandates & slash commands into existing project files |
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
 | `refine [desc]`         | Refine project specifications                                     |
@@ -181,13 +181,17 @@ Each IDE/Agent selection generates one AI context file at the project root:
 | Antigravity | `.antigravity/rules.md`               |
 | Claude Code      | `CLAUDE.md`                           |
 
-All context files contain: project name/stack, critical mandates, and a Re-Anchor Prompt.
+All context files contain: project name/stack, critical mandates, Code Philosophy, Code Rules, and a Re-Anchor Prompt.
 
 For desktop IDEs: `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
 
 - IDE-specific workspace folder setup for code + .specs
 - Extensions recommendations for development
 - AI context configuration for better spec integration
+
+### Generated Slash Commands
+
+Each IDE/Agent selection also generates 8 `specpilot-*` slash/workflow commands (`status`, `reanchor`, `report`, `sync`, `refine`, `validate`, `archive`, `backfill`) that mirror key CLI operations as in-editor commands — e.g. `.claude/commands/specpilot-status.md` for Claude Code, `.cursor/commands/` for Cursor, `.github/prompts/` for GitHub Copilot. Running `backfill` on an existing project fills in any commands missing for your already-configured IDE(s). See the [Full Guide](docs/GUIDE.md#generated-slash-commands) for the complete list and per-IDE paths.
 
 The generated settings/instructions automatically configure your AI agent to:
 

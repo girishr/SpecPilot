@@ -31,6 +31,17 @@
 - **Log all AI interactions** in `.specs/development/prompts.md` with timestamps.
 - **Document decisions** in `.specs/development/context.md`.
 
+## Context — read on demand by task type
+
+| Task type | Read |
+|---|---|
+| Session start | `.specs/project/project.yaml` |
+| Feature / bug | + `project/requirements.md`, `planning/tasks.md` |
+| Architecture | + `architecture/architecture.md` |
+| Tests | + `quality/tests.md` |
+| Security | + `security/threat-model.md`, `security/security-decisions.md` |
+| Planning | + `planning/tasks.md`, `planning/roadmap.md` |
+
 ## Code Philosophy — Write Only What Needed
 
 1. Need exist? No → skip. Say why.

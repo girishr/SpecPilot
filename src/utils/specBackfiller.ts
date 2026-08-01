@@ -121,6 +121,57 @@ const MD_MANDATES: { fingerprint: string; mdText: string; label: string }[] = [
   },
 ];
 
+/**
+ * Terse-style mandate fingerprints for IDE-native files generated via
+ * `buildCriticalMandatesMarkdown()` (CLAUDE.md, Cursor, Windsurf, Antigravity) —
+ * distinct from MD_MANDATES, which matches copilot-instructions.md's verbose
+ * wording. Keep in sync with `buildCriticalMandatesMarkdown()` in ideConfigGenerator.ts.
+ */
+const TERSE_MD_MANDATES: { fingerprint: string; mdText: string; label: string }[] = [
+  {
+    fingerprint: 'No commit unless asked',
+    label: 'Never commit',
+    mdText: '1. No commit unless asked.',
+  },
+  {
+    fingerprint: 'No push unless asked',
+    label: 'Never push',
+    mdText: '2. No push unless asked.',
+  },
+  {
+    fingerprint: 'No deploy/publish/release unless asked',
+    label: 'Never deploy / publish / release',
+    mdText: '3. No deploy/publish/release unless asked.',
+  },
+  {
+    fingerprint: 'No `.specs/` structure changes',
+    label: 'Never modify .specs/ structure',
+    mdText: '4. No `.specs/` structure changes — content only.',
+  },
+  {
+    fingerprint: 'Update specs after change',
+    label: 'Always update .specs/ after changes',
+    mdText:
+      '5. Update specs after change:\n   - Trivial → `planning/tasks.md`\n   - Feature → `project/requirements.md` + `planning/tasks.md`\n   - Architectural → all affected files + `CHANGELOG.md`',
+  },
+  {
+    fingerprint: 'Never reference file contents without reading first',
+    label: 'Never describe without reading first',
+    mdText: '6. Never reference file contents without reading first. If unread, say so.',
+  },
+  {
+    fingerprint: 'Never write code or change files unless asked',
+    label: 'Never implement unless explicitly asked',
+    mdText: '7. Never write code or change files unless asked. Ask first.',
+  },
+  {
+    fingerprint: 'Spec-first gate',
+    label: 'Spec-First review gate',
+    mdText:
+      '8. Spec-first gate (scale to task size):\n   - Trivial → no gate\n   - Feature → read 1–2 relevant `.specs/` files before coding\n   - Architectural → update all affected specs, present Spec Report, wait for `yes, proceed`',
+  },
+];
+
 const CODE_SECTIONS: { fingerprint: string; content: string; label: string }[] = [
   {
     fingerprint: '## Code Philosophy — Write Only What Needed',
@@ -403,6 +454,10 @@ export class SpecBackfiller {
     );
   }
 
+  private buildTerseMdBackfillBlock(lines: string[]): string {
+    return '## 🔴 Critical Mandates — Never violate, no exceptions\n\n' + lines.join('\n');
+  }
+
   // ---------------------------------------------------------------------------
   // IDE-native AI context files
   // ---------------------------------------------------------------------------
@@ -453,10 +508,10 @@ export class SpecBackfiller {
     }
 
     const content = readFileSync(filePath, 'utf-8');
-    const missingMandates = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    const missingMandates = TERSE_MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
     const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
-    const total = MD_MANDATES.length + CODE_SECTIONS.length;
-    const found = (MD_MANDATES.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
+    const total = TERSE_MD_MANDATES.length + CODE_SECTIONS.length;
+    const found = (TERSE_MD_MANDATES.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
 
     if (missingMandates.length === 0 && missingSections.length === 0) {
       return {
@@ -471,7 +526,7 @@ export class SpecBackfiller {
     if (!dryRun) {
       let toAppend = '';
       if (missingMandates.length > 0) {
-        toAppend += '\n\n' + this.buildMdBackfillBlock(missingMandates.map((m) => m.mdText));
+        toAppend += '\n\n' + this.buildTerseMdBackfillBlock(missingMandates.map((m) => m.mdText));
       }
       if (missingSections.length > 0) {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');

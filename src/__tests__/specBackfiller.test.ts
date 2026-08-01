@@ -112,6 +112,50 @@ const FULL_MD = `# AI Coding Instructions
 7. Read before write. Never reference code you haven't read.
 `;
 
+/**
+ * Minimal IDE-native file (CLAUDE.md / Cursor / Windsurf / Antigravity) with all
+ * 8 terse mandates + 2 code sections present — matches buildCriticalMandatesMarkdown().
+ */
+const FULL_MD_TERSE = `# CLAUDE.md
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+`;
+
 /** tasks.md already containing both the convention line and Multi-Dev Notes */
 function makeFullTasksMd(devPrefix: string): string {
   return `# Task Tracking
@@ -649,7 +693,7 @@ rules:
         tasksMd: makeFullTasksMd('girishr'),
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
-      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD_TERSE, 'utf-8');
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.ideFiles).toEqual([
@@ -671,7 +715,7 @@ rules:
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
       writeFileSync(
         join(testDir, '.cursor', 'rules', 'specpilot.mdc'),
-        '---\nalwaysApply: true\n---\n\n1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n',
+        '---\nalwaysApply: true\n---\n\n1. No commit unless asked.\n',
         'utf-8'
       );
 
@@ -682,9 +726,9 @@ rules:
         path: '.cursor/rules/specpilot.mdc',
         action: 'updated',
       });
-      expect(written).toContain('SpecPilot Mandates (backfilled');
-      expect(written).toContain('NEVER push');
-      expect(written).toContain('SPEC-FIRST review gate');
+      expect(written).toContain('Critical Mandates');
+      expect(written).toContain('No push unless asked');
+      expect(written).toContain('Spec-first gate');
     });
 
     it('dry-run does not write Cursor rules', async () => {
@@ -752,8 +796,8 @@ rules:
       const written = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
 
       expect(result.ideFiles).toContainEqual(expect.objectContaining({ path: 'CLAUDE.md', action: 'updated' }));
-      expect(written).toContain('NEVER commit');
-      expect(written).toContain('SPEC-FIRST review gate');
+      expect(written).toContain('No commit unless asked');
+      expect(written).toContain('Spec-first gate');
     });
 
     it('reports found and total mandate counts for partial CLAUDE.md', async () => {
@@ -764,7 +808,7 @@ rules:
       });
       writeFileSync(
         join(testDir, 'CLAUDE.md'),
-        '1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n',
+        '1. No commit unless asked.\n',
         'utf-8'
       );
 
@@ -810,7 +854,7 @@ rules:
       expect(result.ideFiles).toContainEqual(
         expect.objectContaining({ path: '.windsurfrules', action: 'updated' })
       );
-      expect(written).toContain('NEVER deploy, publish, or release');
+      expect(written).toContain('No deploy/publish/release unless asked');
     });
 
     it('appends missing mandates to Antigravity rules', async () => {
@@ -828,7 +872,7 @@ rules:
       expect(result.ideFiles).toContainEqual(
         expect.objectContaining({ path: '.antigravity/rules.md', action: 'updated' })
       );
-      expect(written).toContain('NEVER modify');
+      expect(written).toContain('No `.specs/` structure changes');
     });
 
     it('returns one result per existing IDE-native file', async () => {
@@ -839,10 +883,10 @@ rules:
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
       mkdirSync(join(testDir, '.antigravity'), { recursive: true });
-      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD, 'utf-8');
-      writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD, 'utf-8');
-      writeFileSync(join(testDir, '.windsurfrules'), FULL_MD, 'utf-8');
-      writeFileSync(join(testDir, '.antigravity', 'rules.md'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), FULL_MD_TERSE, 'utf-8');
+      writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD_TERSE, 'utf-8');
+      writeFileSync(join(testDir, '.windsurfrules'), FULL_MD_TERSE, 'utf-8');
+      writeFileSync(join(testDir, '.antigravity', 'rules.md'), FULL_MD_TERSE, 'utf-8');
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       const paths = result.ideFiles.map((r) => r.path);
@@ -868,7 +912,7 @@ rules:
       const written = readFileSync(windsurfPath, 'utf-8');
 
       expect(written.startsWith('# Team Windsurf Rules\n\nKeep custom guidance.')).toBe(true);
-      expect(written).toContain('## SpecPilot Mandates (backfilled');
+      expect(written).toContain('## 🔴 Critical Mandates — Never violate, no exceptions');
     });
 
     it('appends Code Philosophy and Code Rules sections when missing', async () => {
@@ -881,14 +925,14 @@ rules:
       // File has all 8 mandates but no Code Philosophy/Code Rules
       writeFileSync(windsurfPath,
         '## 🔴 Critical Mandates — Never violate, no exceptions\n\n' +
-        '1. **NEVER commit** code to git unless the developer explicitly asks. Always ask first.\n' +
-        '2. **NEVER push** to git unless the developer explicitly asks. Always ask first.\n' +
-        '3. **NEVER deploy, publish, or release** the project unless the developer explicitly asks. Always ask first.\n' +
-        '4. **NEVER modify** the `.specs/` folder structure, subfolder names, or file names. Only update file contents.\n' +
-        '5. **ALWAYS update** affected `.specs/` files after every code change — without being asked:\n' +
-        '6. **NEVER describe, quote, or reference file contents** without first reading the file via a tool call in this session. If you have not read the file yet, say so explicitly before answering.\n' +
-        '7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.\n' +
-        '8. **SPEC-FIRST review gate**: Before touching any code or non-spec files.\n',
+        '1. No commit unless asked.\n' +
+        '2. No push unless asked.\n' +
+        '3. No deploy/publish/release unless asked.\n' +
+        '4. No `.specs/` structure changes — content only.\n' +
+        '5. Update specs after change:\n' +
+        '6. Never reference file contents without reading first. If unread, say so.\n' +
+        '7. Never write code or change files unless asked. Ask first.\n' +
+        '8. Spec-first gate (scale to task size):\n',
         'utf-8'
       );
 
@@ -910,7 +954,7 @@ rules:
         copilotMd: FULL_MD,
         tasksMd: makeFullTasksMd('girishr'),
       });
-      writeFileSync(join(testDir, '.windsurfrules'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.windsurfrules'), FULL_MD_TERSE, 'utf-8');
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
 
@@ -927,7 +971,7 @@ rules:
         copilotMd: FULL_MD,
         tasksMd: makeFullTasksMd('girishr'),
       });
-      writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD_TERSE, 'utf-8');
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
 

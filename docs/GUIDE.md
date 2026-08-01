@@ -310,7 +310,7 @@ specpilot archive --dry-run
 
 #### `specpilot backfill [options]`
 
-Backfill missing SpecPilot mandates into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates added in later releases. Operates on `.specs/project/project.yaml` and `.github/copilot-instructions.md` — never overwrites or deletes existing user-authored content.
+Backfill missing SpecPilot mandates and slash commands into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates and commands added in later releases. Operates on `.specs/project/project.yaml`, IDE/agent instruction files (e.g. `.github/copilot-instructions.md`, `CLAUDE.md`), and generates any missing `specpilot-*` slash command files for IDEs already configured in the project — never overwrites or deletes existing user-authored content.
 
 ```bash
 # Backfill in current project directory
@@ -338,6 +338,34 @@ specpilot backfill --dry-run
 - Starting a new project (use `init` instead)
 - Adding specs to a project that has none (use `add-specs` instead)
 - Converting an old folder structure (use `migrate` instead)
+
+### Generated Slash Commands
+
+Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-*` slash/workflow commands for your selected IDE/Agent, mirroring key CLI operations as in-editor commands that work even without the CLI installed:
+
+| Command | Purpose |
+|---|---|
+| `specpilot-status` | One-screen sprint status: current sprint items + next milestone |
+| `specpilot-reanchor` | Restore full project context after losing it mid-session |
+| `specpilot-report` | Run the Spec-First review gate — classify change, update specs, wait for `yes, proceed` |
+| `specpilot-sync` | Compare `.specs/` against actual project state and propose fixes for drift |
+| `specpilot-refine` | Refine `.specs/` requirements from a new requirement description, with a diff preview |
+| `specpilot-validate` | Validate `.specs/` structure, front-matter, and cross-references |
+| `specpilot-archive` | Archive oversized `.specs/` files, with a branch safety guard |
+| `specpilot-backfill` | Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files |
+
+**Per-IDE output locations:**
+
+| IDE/Agent | Directory | Filename pattern |
+|---|---|---|
+| Claude Code | `.claude/commands/` | `specpilot-<name>.md` |
+| Cursor | `.cursor/commands/` | `specpilot-<name>.md` |
+| Windsurf | `.windsurf/workflows/` | `specpilot-<name>.md` |
+| Antigravity | `.agent/workflows/` | `specpilot-<name>.md` |
+| Codex | `.codex/prompts/` | `specpilot-<name>.md` (copy manually to `~/.codex/prompts/` — Codex only auto-discovers from the home directory) |
+| GitHub Copilot / VS Code / unknown | `.github/prompts/` | `specpilot-<name>.prompt.md` |
+
+Running `specpilot backfill` on an existing project detects which command files are missing for your already-configured IDE(s) and generates only those — existing command files are never overwritten.
 
 ### Debug Mode
 
@@ -510,7 +538,7 @@ Each IDE/Agent selection generates one AI context file:
 | Antigravity | `.antigravity/rules.md`               |
 | Claude Code      | `CLAUDE.md`                           |
 
-All context files contain: project name/stack, critical mandates, process mandates, and a Re-Anchor Prompt.
+All context files contain: project name/stack, critical mandates, process mandates, Code Philosophy (7-point "write only what needed"), Code Rules (7-point), and a Re-Anchor Prompt.
 
 **Desktop IDEs** additionally generate workspace settings:
 
@@ -784,7 +812,7 @@ node cli.js init my-test --lang python
 
 - **TypeScript**: Strict mode enabled
 - **Linting**: ESLint configuration
-- **Testing**: Jest — 188 tests across 7 suites
+- **Testing**: Jest — 216 tests across 8 suites
 - **Commits**: Conventional commit format
 
 ### Pull Request Process

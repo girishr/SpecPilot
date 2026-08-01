@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-08-01
+
+### Fixed
+
+- **`specpilot backfill` falsely reported CLAUDE.md, Cursor, Windsurf, and Antigravity rule files as missing all 8 critical mandates**: `specBackfiller.ts`'s `MD_MANDATES` fingerprints only matched the verbose phrasing used in `copilot-instructions.md` (e.g. `"NEVER commit"`), but `buildCriticalMandatesMarkdown()` generates those four IDE-native files with terser wording (e.g. `"No commit unless asked."`). Every project's CLAUDE.md/Cursor/Windsurf/Antigravity file would show as missing mandates it already had, and running `backfill` for real would append a duplicate, differently-worded mandate block. Added `TERSE_MD_MANDATES` matching the actual generated wording and routed the four IDE-native file checks to use it instead.
+
 ## [2.2.1] - 2026-07-30
 
 ### Fixed

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.3] - 2026-08-02
+
+### Fixed
+
+- **`specpilot init`'s success screen scrolled past before it could be read** (CS-091): the generated file tree, next-steps text, and onboarding prompt dump printed back-to-back in one uninterrupted burst of `console.log` calls, so the file tree was gone from the terminal before a user could read it. `logger.ts`'s `displayInitSuccess()` split into `displayInitTree()` and `displayInitNextSteps()`; `init.ts` now inserts an `inquirer` "Press Enter to continue..." gate between the tree and the next-steps text, and a second "Press Enter to see your onboarding prompt..." gate before the dump — both skipped automatically when `--no-prompts` is set, so CI/scripted runs are unaffected. `add-specs.ts` updated to the renamed logger methods.
+
 ## [2.2.2] - 2026-08-01
 
 ### Fixed

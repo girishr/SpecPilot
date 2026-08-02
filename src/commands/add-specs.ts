@@ -192,7 +192,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     logger.info(`📁 Location: ${specsDir}`);
 
     // Show next steps with logo
-    logger.displayInitSuccess(projectInfo?.name || 'Project', projectDir, specsDir);
+    logger.displayInitTree(projectInfo?.name || 'Project', projectDir, specsDir);
+    logger.displayInitNextSteps();
 
     // Print onboarding prompt to stdout for immediate use
     console.log('');

@@ -37,6 +37,7 @@ relatedFiles:
 - Prevent duplicate initialization with informative errors [REQ-002.B.4]
 - Allow custom spec folder naming [REQ-002.B.5]
 - Support `--no-prompts` flag to skip all interactive prompts [REQ-002.B.6]
+- After the last onboarding question, pause for explicit developer confirmation (`Press Enter to continue...`) between the generated file tree and the next-steps text, and again (`Press Enter to see your onboarding prompt...`) between the next-steps text and the onboarding prompt dump, so each screen is readable before the next scrolls in; both pauses are skipped when `--no-prompts` is set [REQ-002.B.9]
 
 ### Language & Framework Support [REQ-002.C]
 

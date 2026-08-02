@@ -100,7 +100,7 @@ export async function initCommand(name: string, options: InitOptions) {
       return;
     }
 
-    // Print a simple header before interactive prompts (logo appears once at end via displayInitSuccess)
+    // Print a simple header before interactive prompts (logo appears once at end via displayInitTree)
     if (options.prompts) {
       console.log('');
       console.log(chalk.blue.bold('🚀 Initializing SDD project...'));
@@ -327,8 +327,30 @@ export async function initCommand(name: string, options: InitOptions) {
       projectContext,
     });
 
-    // Show success with logo (includes initialization message and all details)
-    logger.displayInitSuccess(projectName, targetDir, join(targetDir, options.specsName));
+    // Show success with logo (includes initialization message and generated file tree)
+    logger.displayInitTree(projectName, targetDir, join(targetDir, options.specsName));
+
+    // Pause so the file tree isn't scrolled away instantly by the next-steps text
+    if (options.prompts) {
+      console.log('');
+      await inquirer.prompt([{
+        type: 'input',
+        name: 'continue',
+        message: chalk.gray('Press Enter to continue...'),
+      }]);
+    }
+
+    logger.displayInitNextSteps();
+
+    // Pause so the success screen isn't scrolled away instantly by the onboarding dump
+    if (options.prompts) {
+      console.log('');
+      await inquirer.prompt([{
+        type: 'input',
+        name: 'continue',
+        message: chalk.gray('Press Enter to see your onboarding prompt...'),
+      }]);
+    }
 
     // Print onboarding prompt to stdout for immediate use
     const specsRelPath = join(options.specsName, 'development', 'onboarding.md');

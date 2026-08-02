@@ -153,8 +153,8 @@ export class Logger {
     this.displayWithLogo(content);
   }
 
-  // Project initialization success with logo
-  displayInitSuccess(projectName: string, targetDir: string, specsPath: string): void {
+  // Project initialization success — banner, project info, and generated file tree
+  displayInitTree(projectName: string, targetDir: string, specsPath: string): void {
     const content = [
       chalk.blue('🚀 Initializing SDD project...'),
       '',
@@ -166,7 +166,14 @@ export class Logger {
       '',
       chalk.cyan.bold('Generated specs:'),
       ...getSpecTreeLines(basename(specsPath)),
-      '',
+    ];
+
+    this.displayWithLogo(content);
+  }
+
+  // Project initialization success — next-steps text (printed after displayInitTree)
+  displayInitNextSteps(): void {
+    const content = [
       chalk.cyan('🚀 Next steps to populate your specs with AI:'),
       chalk.white('1. Open .specs/README.md for full guidance'),
       chalk.white('2. Copy the onboarding prompt from .specs/development/onboarding.md'),
@@ -176,7 +183,7 @@ export class Logger {
       chalk.gray('Your project is now ready for AI-assisted development!')
     ];
 
-    this.displayWithLogo(content);
+    console.log(content.join('\n'));
   }
 
   // Error display with logo

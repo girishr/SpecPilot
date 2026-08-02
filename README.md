@@ -3,7 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/specpilot.svg)](https://www.npmjs.com/package/specpilot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A CLI tool for initializing specification-driven development projects with flexible, production-ready structures.
+SpecPilot is a spec-driven development (SDD) CLI for AI coding agents like Claude Code, Cursor, and ChatGPT. It initializes, validates, and syncs a `.specs/` directory so AI-assisted coding stays grounded in living requirements, architecture, and task specs instead of drifting from the codebase.
+
+![SpecPilot CLI demo](docs/demo.gif)
 
 ## Quick Start
 

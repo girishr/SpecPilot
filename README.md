@@ -7,6 +7,33 @@ SpecPilot is a spec-driven development (SDD) CLI for AI coding agents like Claud
 
 ![SpecPilot CLI demo](docs/demo.gif)
 
+## MCP server
+
+Prefer to stay inside your editor? SpecPilot also runs as a remote MCP server, so
+Claude Code, Cursor or Copilot can run the whole onboarding itself - answering what
+it can infer from your repo and asking you only the rest.
+
+```bash
+claude mcp add --transport http specpilot https://init.specpilot.dev/mcp
+```
+
+Then ask your agent: *"Onboard this project with SpecPilot"*.
+
+For Cursor, VS Code and other clients, add it as an HTTP (streamable) server:
+
+```json
+{
+  "mcpServers": {
+    "specpilot": {
+      "type": "http",
+      "url": "https://init.specpilot.dev/mcp"
+    }
+  }
+}
+```
+
+No install, no API key. Full setup notes: <https://specpilot.dev/mcp-setup>
+
 ## Quick Start
 
 ```bash

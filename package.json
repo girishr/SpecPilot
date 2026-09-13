@@ -24,7 +24,15 @@
     "specification-driven-development",
     "project-initialization",
     "templates",
-    "development-tools"
+    "development-tools",
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "claude",
+    "claude-code",
+    "cursor",
+    "spec-driven-development",
+    "ai-agents"
   ],
   "author": {
     "name": "SpecPilot SDD CLI Contributors",

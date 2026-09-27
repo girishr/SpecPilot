@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
 lastUpdated: 2026-09-27
-version: 2.2
+version: 2.3
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,9 +10,9 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (v2.2.3 shipped; BL-050 `specpilot serve` Phase 0 groundwork done on `feat/serve-p0`; BL-051 Phase 1 next)
+- **Phase**: Active Development (current version v2.2.4; BL-050 `specpilot serve` Phase 0 groundwork shipped internally in it; BL-051 Phase 1 next)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3)
+- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4)
 - **Next Steps**: See tasks.md Current Sprint
 
 ## Key Decisions [CTX-003]

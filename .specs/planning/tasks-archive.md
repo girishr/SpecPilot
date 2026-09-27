@@ -194,3 +194,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-27 11:22:50
+
+| # | ID | Description |
+|---|---|---|
+| 114 | [CD-girishr-022] [CS-080] [BL-039] | `specpilot-status` slash command — first entry in `SLASH_COMMANDS`: `{ name: 'status', description: 'Show current sprint status and next milestone at a glance', body }`; natural-language body instructs reading `.specs/planning/tasks.md` `## Current Sprint` and `.specs/planning/roadmap.md` `## Milestones`, then producing a one-screen summary; no script, renders identically across all IDE routing paths; test updated to assert `SLASH_COMMANDS` now contains `status` and that default `generate()` writes it; 192 → 201 total |
+
+---
+

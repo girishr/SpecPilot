@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2026-09-27
+
 ### Fixed
 
 - **`specpilot archive` did nothing on a table-shaped `## Completed` section while `specpilot validate` kept telling you to run it** (BL-057): `archiveTasks()` only recognised numbered-list entries, so a Completed section written as a markdown table was never archived. Tables are now supported: the body rows are the entries, the header and separator stay in place and are repeated above the moved rows in `tasks-archive.md`, and rows move by position, byte for byte, oldest first. Validator and archiver now share one decision (`planCompletedArchive()`), so `validate` warns about the Completed section only when `archive` would move something, and after `archive` runs the warning is gone. Numbered-list sections (the generated template) archive exactly as before.

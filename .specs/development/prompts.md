@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-27
-version: 2.15
+version: 2.16
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Release v2.2.4 prepared, not pushed or published: version 2.2.3 → 2.2.4 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml` `cli.version`; CHANGELOG `[Unreleased]` → `[2.2.4] - 2026-09-27`; roadmap, CTX-002 and CD-girishr-039 updated; commit `chore(release): v2.2.4` and annotated tag `v2.2.4` (September 27, 2026) [PROMPT-002.0.0.35]
 - BL-057 implemented after `yes, proceed` (CD-girishr-038), with conditions: validate calls the archiver's own `planCompletedArchive()` (same path as `--dry-run`); this repo's two `specpilot-archive` command files regenerated via `SlashCommandGenerator`; BL-058 added (backfill cannot update existing command files) and CHANGELOG tells existing projects to delete each IDE's copy and re-run `backfill`; generated command files carry no SpecPilot marker (only the `specpilot-` filename prefix). 238 tests green, `tsc`/build clean, dry run moves the oldest rows and writes nothing; not committed (September 27, 2026) [PROMPT-002.0.0.34]
 - BL-057 Spec-First gate, specs only: BL-057 moved to Current Sprint (row count 42→43); ARCH-004.32 shared `planCompletedArchive()` for validator + archiver, table-shaped Completed support, bash `archive_tasks()` parity (it also still had the pre-CD-girishr-034 EOF bound); REQ-002.F.7/E.13, ARCH-003.9, ARCH-004.15 (`displayInitTree()`), TESTS-001.1, CTX-003.25, CHANGELOG `[Unreleased]` updated; awaiting `yes, proceed` (September 27, 2026) [PROMPT-002.0.0.33]
 - BL-050 fold-ins before commit: CHANGELOG `[Unreleased]` entry; ARCH-003.10 `displayInitSuccess()` → `displayInitTree()`; SEC-002.3/SEC-004.4 `fs-extra` wording → "declared in package.json, not imported anywhere; removal tracked as BL-056"; retroactive CD-girishr-037 for v2.2.2 (from CHANGELOG + `b0ff532`); then BL-056 (drop `fs-extra`) and BL-057 (archive table-shaped Completed) added to Backlog in a separate commit (September 27, 2026) [PROMPT-002.0.0.32]

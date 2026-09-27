@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-09-27
-version: 1.10
+version: 1.11
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -70,6 +70,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-07-30: v2.2.1 — bug-fix release from an audit of the validator/archiver/backfiller triangle (CS-090, CD-girishr-033/034): `specpilot backfill` now writes the `rules.process` prompt-tracking mandate the validator checks for (previously unfixable) and no longer corrupts a `project.yaml` that has no `rules:` key; `specpilot archive` no longer destroys `tasks.md` sections following `## Completed`; dead, comment-destroying `validate --fix` paths removed; 216 tests
 - 2026-08-01: v2.2.2 — `specpilot backfill` no longer falsely reports `CLAUDE.md`, Cursor, Windsurf, and Antigravity rule files as missing all 8 critical mandates: new `TERSE_MD_MANDATES` fingerprints match the terse wording `buildCriticalMandatesMarkdown()` actually generates (per CHANGELOG `[2.2.2]`)
 - 2026-08-02: v2.2.3 — `specpilot init` success screen gets two "Press Enter" read-pause gates (tree → next steps → onboarding prompt), skipped under `--no-prompts` (CS-091; per CHANGELOG `[2.2.3]`)
+- 2026-09-27: v2.2.4 — Fixed: `specpilot archive` did nothing on a table-shaped `## Completed` section while `specpilot validate` kept telling you to run it (BL-057); The `specpilot-archive` slash command could still sweep sections after `## Completed` into the archive. Changed: Internal: shared section-bounds helper and pure spec reader (per CHANGELOG `[2.2.4]`)
 
 ## Objectives [ROADMAP-004]
 

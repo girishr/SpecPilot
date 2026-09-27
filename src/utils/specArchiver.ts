@@ -24,6 +24,55 @@ const COMPLETED_LINE_LIMIT = 25;
 /** How many Completed entries to retain in the active file. */
 const COMPLETED_KEEP_ENTRIES = 20;
 
+export interface CompletedArchivePlan {
+  /** Line indices [start, end) moved out of tasks.md. */
+  start: number;
+  end: number;
+  /** Table header + separator, repeated above the moved rows in the archive; empty for lists. */
+  tableHeader: string[];
+}
+
+const TABLE_SEPARATOR = /^\|[\s:|-]+$/;
+
+/**
+ * Decide what `specpilot archive` moves out of tasks.md's `## Completed` section, or null
+ * if nothing. The validator warns exactly when this returns non-null, so "validate warns"
+ * and "archive acts" can never disagree.
+ */
+export function planCompletedArchive(lines: string[]): CompletedArchivePlan | null {
+  // The Completed section ends at the next `## ` heading, not at EOF — anything
+  // after it (e.g. `## Multi-Dev Notes`) is a separate section and must survive.
+  const bounds = findSectionBounds(lines, '## Completed');
+  if (!bounds) return null;
+  const { start, end } = bounds;
+  const sectionSize = end - start;
+  if (sectionSize <= COMPLETED_LINE_LIMIT) return null;
+
+  // List shape: skip past the heading and any notes/blank lines to the first numbered entry,
+  // then keep the last COMPLETED_KEEP_ENTRIES lines (oldest entries are at the top).
+  let entryStart = start + 1;
+  while (entryStart < end && !/^\d+\./.test(lines[entryStart])) entryStart++;
+  if (entryStart < end) {
+    const entryCount = end - entryStart;
+    if (entryCount <= COMPLETED_KEEP_ENTRIES) return null;
+    return { start: entryStart, end: entryStart + entryCount - COMPLETED_KEEP_ENTRIES, tableHeader: [] };
+  }
+
+  // Table shape: entries are the body rows under the header + separator, oldest first.
+  // Keep only as many rows as fit the line limit, so the section passes validation afterwards.
+  const header = lines.findIndex(
+    (l, i) => i > start && i < end - 1 && l.trim().startsWith('|') && TABLE_SEPARATOR.test(lines[i + 1].trim()),
+  );
+  if (header === -1) return null;
+  const bodyStart = header + 2;
+  let bodyEnd = bodyStart;
+  while (bodyEnd < end && lines[bodyEnd].trim().startsWith('|')) bodyEnd++;
+  const rows = bodyEnd - bodyStart;
+  const keep = Math.min(COMPLETED_KEEP_ENTRIES, Math.max(0, COMPLETED_LINE_LIMIT - (sectionSize - rows)));
+  if (rows <= keep) return null;
+  return { start: bodyStart, end: bodyStart + rows - keep, tableHeader: [lines[header], lines[header + 1]] };
+}
+
 export class SpecArchiver {
   private findSpecsDir(projectDir: string): string | null {
     for (const name of SPECS_DIR_CANDIDATES) {
@@ -50,9 +99,9 @@ export class SpecArchiver {
     return result;
   }
 
-  private buildTimestampedBlock(content: string): string {
+  private buildTimestampedBlock(content: string, trim = true): string {
     const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    return `## Archived on ${now}\n\n${content.trimEnd()}\n\n---\n\n`;
+    return `## Archived on ${now}\n\n${trim ? content.trimEnd() : content}\n\n---\n\n`;
   }
 
   private archivePrompts(specsDir: string, dryRun: boolean): ArchiveEntry | null {
@@ -102,45 +151,23 @@ export class SpecArchiver {
     const filePath = join(specsDir, 'planning', 'tasks.md');
     if (!existsSync(filePath)) return null;
 
-    const content = readFileSync(filePath, 'utf-8');
-    const allLines = content.split('\n');
+    const allLines = readFileSync(filePath, 'utf-8').split('\n');
+    const plan = planCompletedArchive(allLines);
+    if (!plan) return null;
 
-    // The Completed section ends at the next `## ` heading, not at EOF — anything
-    // after it (e.g. `## Multi-Dev Notes`) is a separate section and must survive.
-    const completed = findSectionBounds(allLines, '## Completed');
-    if (!completed) return null;
-    const { start: completedIdx, end: sectionEndIdx } = completed;
-    const trailingLines = allLines.slice(sectionEndIdx);
-
-    // Section size consistent with specValidator's check — measured to the section
-    // end, not EOF, so trailing sections never inflate it.
-    const sectionSize = sectionEndIdx - completedIdx;
-    if (sectionSize <= COMPLETED_LINE_LIMIT) return null;
-
-    // Skip past the ## Completed heading and any notes/blank lines to find numbered entries
-    let entryStartIdx = completedIdx + 1;
-    while (entryStartIdx < sectionEndIdx && !/^\d+\./.test(allLines[entryStartIdx])) {
-      entryStartIdx++;
-    }
-    if (entryStartIdx >= sectionEndIdx) return null;
-
-    const entryLines = allLines.slice(entryStartIdx, sectionEndIdx);
-    if (entryLines.length <= COMPLETED_KEEP_ENTRIES) return null;
-
-    const archiveEntries = entryLines.slice(0, entryLines.length - COMPLETED_KEEP_ENTRIES);
-    const keepEntries = entryLines.slice(entryLines.length - COMPLETED_KEEP_ENTRIES);
-    const linesMoved = archiveEntries.length;
+    const moved = allLines.slice(plan.start, plan.end);
+    const linesMoved = moved.length;
 
     const archivePath = join(specsDir, 'planning', 'tasks-archive.md');
-    const block = this.buildTimestampedBlock(archiveEntries.join('\n'));
+    // Table rows move byte for byte, so the table block is not trimmed.
+    const block = plan.tableHeader.length
+      ? this.buildTimestampedBlock([...plan.tableHeader, ...moved].join('\n'), false)
+      : this.buildTimestampedBlock(moved.join('\n'));
 
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';
       writeFileSync(archivePath, existing + block);
-      writeFileSync(
-        filePath,
-        [...allLines.slice(0, entryStartIdx), ...keepEntries, ...trailingLines].join('\n'),
-      );
+      writeFileSync(filePath, [...allLines.slice(0, plan.start), ...allLines.slice(plan.end)].join('\n'));
     }
 
     return {

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
-import { findSectionBounds } from './markdownSections';
+import { planCompletedArchive } from './specArchiver';
 
 export interface ValidationOptions {
   fix: boolean;
@@ -686,17 +686,12 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
 
     const tasksPath = join(specsDir, 'planning', 'tasks.md');
     if (existsSync(tasksPath)) {
-      const lines = readFileSync(tasksPath, 'utf-8').split('\n');
-      // Measured to the next `## ` heading, not EOF, via the same helper as
-      // specArchiver's archiveTasks(), so the warning and the archiver agree.
-      const completed = findSectionBounds(lines, '## Completed');
-      if (completed) {
-        const completedSize = completed.end - completed.start;
-        if (completedSize > SpecValidator.TASKS_COMPLETED_LINE_LIMIT) {
-          result.warnings.push(
-            `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`
-          );
-        }
+      // Warn exactly when `specpilot archive` (and its --dry-run) would move something:
+      // same planning function, so the warning and the archiver cannot disagree.
+      if (planCompletedArchive(readFileSync(tasksPath, 'utf-8').split('\n'))) {
+        result.warnings.push(
+          `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`
+        );
       }
     }
   }

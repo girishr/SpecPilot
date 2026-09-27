@@ -219,31 +219,51 @@ archive_tasks() {
   local file=".specs/planning/tasks.md"
   local archive=".specs/planning/tasks-archive.md"
   [ -f "$file" ] || return 0
-  local total
-  total=$(wc -l < "$file")
-  local completed_line
-  completed_line=$(grep -n '^## Completed$' "$file" | head -1 | cut -d: -f1)
-  [ -n "$completed_line" ] || return 0
 
-  local section_size=$((total - completed_line + 1))
-  if [ "$section_size" -le "$COMPLETED_LINE_LIMIT" ]; then return 0; fi
+  # Mirrors the CLI's planCompletedArchive() line for line. The section runs from
+  # "## Completed" to the next "## " heading, not EOF. Sizes use the CLI's arithmetic,
+  # which counts one more line than wc -l at EOF, so the EOF section end is total + 2.
+  # Entries are numbered-list lines, or else the body rows of a table (header and
+  # separator stay put); a table keeps only as many rows as fit the line limit.
+  # Prints "<shape> <first> <last> <header>" as 1-based lines to move, or nothing.
+  local plan
+  plan=$(awk -v total="$(wc -l < "$file")" -v limit="$COMPLETED_LINE_LIMIT" -v keep_max="$COMPLETED_KEEP_ENTRIES" '
+    { line[NR] = $0; t = $0; gsub(/^[ \\t]+|[ \\t]+$/, "", t); trimmed[NR] = t }
+    END {
+      for (i = 1; i <= NR; i++) if (trimmed[i] == "## Completed") { start = i; break }
+      if (!start) exit
+      end_ = total + 2
+      for (i = start + 1; i <= NR; i++) if (trimmed[i] ~ /^## /) { end_ = i; break }
+      size = end_ - start
+      if (size <= limit) exit
+      for (i = start + 1; i < end_; i++) if (line[i] ~ /^[0-9]+\\./) {
+        if (end_ - i <= keep_max) exit
+        print "list", i, end_ - keep_max - 1, 0
+        exit
+      }
+      for (i = start + 1; i < end_ - 1; i++) if (trimmed[i] ~ /^\\|/ && trimmed[i + 1] ~ /^\\|[ \\t:|-]+$/) {
+        body = i + 2; stop = body
+        while (stop < end_ && trimmed[stop] ~ /^\\|/) stop++
+        rows = stop - body
+        keep = limit - (size - rows); if (keep < 0) keep = 0; if (keep > keep_max) keep = keep_max
+        if (rows <= keep) exit
+        print "table", body, stop - keep - 1, i
+        exit
+      }
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  local shape first last header
+  read -r shape first last header <<< "$plan"
 
-  local entry_start=$((completed_line + 1))
-  while [ "$entry_start" -le "$total" ] && ! sed -n "\${entry_start}p" "$file" | grep -qE '^[0-9]+\\.'; do
-    entry_start=$((entry_start + 1))
-  done
-  if [ "$entry_start" -gt "$total" ]; then return 0; fi
-
-  local entry_count=$((total - entry_start + 1))
-  if [ "$entry_count" -le "$COMPLETED_KEEP_ENTRIES" ]; then return 0; fi
-
-  local archive_count=$((entry_count - COMPLETED_KEEP_ENTRIES))
-  local archive_end=$((entry_start + archive_count - 1))
-
-  { echo "## Archived on $(timestamp)"; echo; sed -n "\${entry_start},\${archive_end}p" "$file"; echo; echo "---"; echo; } >> "$archive"
-  { sed -n "1,$((entry_start - 1))p" "$file"; sed -n "$((archive_end + 1)),\\$p" "$file"; } > "$file.tmp"
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$shape" = "table" ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    echo; echo "---"; echo
+  } >> "$archive"
+  { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
   mv "$file.tmp" "$file"
-  echo "Moved $archive_count entries from $file -> $archive"
+  echo "Moved $((last - first + 1)) entries from $file -> $archive"
 }
 
 archive_prompts

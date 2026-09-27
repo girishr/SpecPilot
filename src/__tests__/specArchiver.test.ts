@@ -1,4 +1,8 @@
-import { SpecArchiver } from '../utils/specArchiver';
+import { SpecArchiver, planCompletedArchive } from '../utils/specArchiver';
+import { SpecValidator } from '../utils/specValidator';
+import { SLASH_COMMANDS } from '../utils/slashCommandGenerator';
+import { execFileSync } from 'child_process';
+import { findSectionBounds } from '../utils/markdownSections';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
 import * as os from 'os';
@@ -367,5 +371,186 @@ describe('SpecArchiver', () => {
     expect(typeof entry.linesMoved).toBe('number');
     expect(entry.linesMoved).toBeGreaterThan(0);
     expect(entry.linesMoved).toBe(350 - 80); // 270 lines moved (350 - keep 80)
+  });
+});
+
+// ─── Table-shaped ## Completed (BL-057) ────────────────────────────────────────
+
+/**
+ * 43 body rows shaped like the real tasks.md: `#` and ID cells repeat, and descriptions
+ * contain `|` inside backticks. Rows 25 and 26 are a duplicate `#`/ID pair that straddles
+ * the archive boundary (25 moves, 26 stays); row 25 also ends in trailing spaces.
+ */
+function makeTableRows(): string[] {
+  return Array.from({ length: 43 }, (_, i) => {
+    if (i === 3 || i === 4) return `| 95 | [CD-girishr-013] [CS-07${i}] | Conditional \`'rest' | 'cli'\` row ${i} |`;
+    if (i === 25 || i === 26) return `| 124 | [CD-girishr-033] | Duplicate pair row ${i} |${i === 25 ? '  ' : ''}`;
+    return `| ${78 + i} | [CD-${100 + i}] [CS-0${i}] | Task row ${i} |`;
+  });
+}
+
+const TABLE_HEADER = ['| # | ID | Description |', '|---|---|---|'];
+
+function makeTableTasks(rows: string[], trailing: string[] = []): string {
+  return [
+    '# Task Tracking',
+    '',
+    '## Completed',
+    '',
+    '> CD-001 through CD-039 have been archived to [tasks-archive.md](tasks-archive.md).',
+    '> **Line limit**: The Completed section has a 25-line limit.',
+    '',
+    ...TABLE_HEADER,
+    ...rows,
+    '',
+    ...trailing,
+  ].join('\n');
+}
+
+const stamp = (s: string) => s.replace(/## Archived on .*/g, '## Archived on <T>');
+
+/** The bash script embedded in the specpilot-archive slash command, exactly as generated. */
+function archiveScript(): string {
+  const body = SLASH_COMMANDS.find(c => c.name === 'archive')!.body;
+  return /```bash\n([\s\S]*?)```/.exec(body)![1];
+}
+
+describe('SpecArchiver — table-shaped Completed (BL-057)', () => {
+  let testDir: string;
+  let specsDir: string;
+  let tasksPath: string;
+  let archivePath: string;
+
+  beforeEach(() => {
+    testDir = join(os.tmpdir(), `specpilot-archiver-table-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    specsDir = createSpecsDir(testDir);
+    tasksPath = join(specsDir, 'planning', 'tasks.md');
+    archivePath = join(specsDir, 'planning', 'tasks-archive.md');
+  });
+
+  afterEach(() => rmSync(testDir, { recursive: true, force: true }));
+
+  it('moves the oldest body rows by position, keeps header and separator, rows byte-identical', async () => {
+    const rows = makeTableRows();
+    writeFileSync(tasksPath, makeTableTasks(rows));
+
+    const result = await new SpecArchiver().archive(testDir, { dryRun: false });
+
+    // 8 non-row lines (heading, 2 blanks, 2 notes, header, separator, trailing "") → keep 17, move 26
+    expect(result.entries).toEqual([{ file: 'planning/tasks.md', archiveFile: 'planning/tasks-archive.md', linesMoved: 26 }]);
+    expect(readFileSync(tasksPath, 'utf-8')).toBe(makeTableTasks(rows.slice(26)));
+    expect(stamp(readFileSync(archivePath, 'utf-8'))).toBe(
+      `## Archived on <T>\n\n${[...TABLE_HEADER, ...rows.slice(0, 26)].join('\n')}\n\n---\n\n`,
+    );
+  });
+
+  it('moves the right one of rows that share a # value and ID', async () => {
+    const rows = makeTableRows();
+    writeFileSync(tasksPath, makeTableTasks(rows));
+
+    await new SpecArchiver().archive(testDir, { dryRun: false });
+
+    const active = readFileSync(tasksPath, 'utf-8');
+    const archived = readFileSync(archivePath, 'utf-8');
+    // Both `| 95 |` rows are old enough to move.
+    expect(archived).toContain(rows[3]);
+    expect(archived).toContain(rows[4]);
+    // The `| 124 |` pair straddles the boundary: position 25 moves (with its trailing spaces), 26 stays.
+    expect(archived).toContain(`${rows[25]}\n\n---`);
+    expect(active).not.toContain('Duplicate pair row 25');
+    expect(active).toContain(rows[26]);
+    expect(archived).not.toContain('Duplicate pair row 26');
+  });
+
+  it('keeps a section after ## Completed out of the archive', async () => {
+    const rows = makeTableRows();
+    const trailing = ['## Multi-Dev Notes', '', '| Not | A | Task |', '|---|---|---|', '| x | y | z |', ''];
+    writeFileSync(tasksPath, makeTableTasks(rows, trailing));
+
+    const result = await new SpecArchiver().archive(testDir, { dryRun: false });
+
+    expect(result.entries[0].linesMoved).toBe(26);
+    expect(readFileSync(tasksPath, 'utf-8')).toBe(makeTableTasks(rows.slice(26), trailing));
+    expect(readFileSync(archivePath, 'utf-8')).not.toContain('Multi-Dev Notes');
+  });
+
+  it('dry-run reports the rows it would move and writes nothing', async () => {
+    const content = makeTableTasks(makeTableRows());
+    writeFileSync(tasksPath, content);
+
+    const result = await new SpecArchiver().archive(testDir, { dryRun: true });
+
+    expect(result.entries[0].linesMoved).toBe(26);
+    expect(readFileSync(tasksPath, 'utf-8')).toBe(content);
+    expect(existsSync(archivePath)).toBe(false);
+  });
+
+  it('leaves list-shaped sections exactly as before (golden output)', async () => {
+    const entries = makeCompletedEntries(30).split('\n');
+    writeFileSync(tasksPath, ['## Completed', '', '> note', ...entries, '', '## Notes', 'x'].join('\n'));
+
+    const result = await new SpecArchiver().archive(testDir, { dryRun: false });
+
+    // 31 entry lines (30 entries + the blank before ## Notes); keep the last 20 → move 11
+    expect(result.entries[0].linesMoved).toBe(11);
+    expect(readFileSync(tasksPath, 'utf-8')).toBe(
+      ['## Completed', '', '> note', ...entries.slice(11), '', '## Notes', 'x'].join('\n'),
+    );
+    expect(stamp(readFileSync(archivePath, 'utf-8'))).toBe(
+      `## Archived on <T>\n\n${entries.slice(0, 11).join('\n')}\n\n---\n\n`,
+    );
+  });
+
+  it.each([
+    ['table', () => makeTableTasks(makeTableRows())],
+    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30) + '\n'],
+  ])('round trip (%s): validate warns before archive and not after', async (_shape, make) => {
+    writeFileSync(tasksPath, make());
+    const validator = new SpecValidator();
+    const completedWarning = async () =>
+      (await validator.validate(testDir, { fix: false, verbose: false })).warnings.find(
+        w => w.includes('tasks.md') && w.includes('limit: 25'),
+      );
+
+    expect(await completedWarning()).toBeDefined();
+    await new SpecArchiver().archive(testDir, { dryRun: false });
+    expect(await completedWarning()).toBeUndefined();
+    const lines = readFileSync(tasksPath, 'utf-8').split('\n');
+    expect(planCompletedArchive(lines)).toBeNull();
+    // Not just "nothing left to move": the section really is back within the 25-line limit.
+    const bounds = findSectionBounds(lines, '## Completed')!;
+    expect(bounds.end - bounds.start).toBeLessThanOrEqual(25);
+  });
+
+  it('validate does not tell you to archive when archive would move nothing', async () => {
+    // Over 25 lines, but only 20 entries: nothing to archive, so no warning.
+    writeFileSync(tasksPath, ['## Completed', ...Array(10).fill('> note'), ...makeCompletedEntries(20).split('\n')].join('\n'));
+    const { warnings } = await new SpecValidator().validate(testDir, { fix: false, verbose: false });
+    expect(warnings.find(w => w.includes('tasks.md') && w.includes('limit: 25'))).toBeUndefined();
+  });
+
+  // ─── The specpilot-archive slash command's bash archive_tasks() ──────────────
+
+  it.each([
+    ['table', () => makeTableTasks(makeTableRows())],
+    ['table with a trailing section', () => makeTableTasks(makeTableRows(), ['## Multi-Dev Notes', '', 'keep me', ''])],
+    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30) + '\n'],
+    ['list with a trailing section', () => '## Completed\n\n> note\n' + makeCompletedEntries(40) + '\n\n## Notes\nkeep me\n'],
+  ])('bash archive_tasks() matches the CLI byte for byte (%s)', async (_shape, make) => {
+    const content = make();
+    writeFileSync(tasksPath, content);
+    await new SpecArchiver().archive(testDir, { dryRun: false });
+    const cliTasks = readFileSync(tasksPath, 'utf-8');
+    const cliArchive = stamp(readFileSync(archivePath, 'utf-8'));
+
+    // Fresh copy of the same fixture, run through the extracted script. testDir is not a
+    // git repo, so the script's branch guard never prompts.
+    rmSync(archivePath);
+    writeFileSync(tasksPath, content);
+    const out = execFileSync('bash', ['-c', archiveScript()], { cwd: testDir, encoding: 'utf-8' });
+
+    expect(out).toContain('Moved');
+    expect(readFileSync(tasksPath, 'utf-8')).toBe(cliTasks);
+    expect(stamp(readFileSync(archivePath, 'utf-8'))).toBe(cliArchive);
   });
 });

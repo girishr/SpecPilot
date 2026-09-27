@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
 lastUpdated: 2026-09-27
-version: 2.1
+version: 2.2
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -41,6 +41,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 - **Code Philosophy + Code Rules**: all generated AI instruction files include a 7-item YAGNI/minimal-code decision ladder and 7 behavioral coding rules in caveman style; injected at generation time and backfilled into existing files via `specpilot backfill` [CTX-003.22]
 - **Shared Section Bounds (BL-050)**: the "`## ` section ends at the next `## ` heading, not EOF" rule lives once in `markdownSections.ts` `findSectionBounds()`; CD-girishr-034 had to patch it in two TypeScript places "identically", which is the drift this removes. The bash copy in the `specpilot-archive` slash command stays separate — it runs in the user's shell and cannot import TypeScript [CTX-003.23]
 - **Pure Spec Reader (BL-050)**: `specReader.ts` takes file contents, never paths, and imports neither `fs` nor `path`, so it can move into `@specpilot/spec-core` (BL-032) unchanged. Front matter is parsed by hand for the five metadata keys rather than with `js-yaml`: this repo's own `tasks.md` has `lastUpdated: 2026-09-05 (BL-049 cross-ref: …)`, whose bare `: ` makes `js-yaml` throw, and the default schema would turn `2026-07-26` into a `Date` and `version: 5.10` into `5.1`. Table rows are split on the first N−1 pipes only, with the last cell taking the rest of the row, because Completed descriptions contain literal `|` inside backticks (e.g. `'rest' | 'cli'`) [CTX-003.24]
+- **Validator and archiver share one Completed plan (BL-057)**: validate said "run `specpilot archive`" on this repo while archive did nothing, because the table-shaped Completed section had no numbered lines. Fixing the archiver alone would not have closed it: keeping 20 rows leaves 28 section lines (8 non-row lines: heading, 2 blanks, 2 blockquotes, header, separator, and the trailing `""` that `split('\n')` yields), so validate would warn straight after archiving. Rather than two measures that must be kept equal by hand, `validateLineLimits()` calls `planCompletedArchive()` and warns only when it would move something; for tables the keep count is sized so the section lands at ≤ 25 lines. List behaviour is left byte-identical because other projects rely on it [CTX-003.25]
 
 ## Established Patterns [CTX-004]
 

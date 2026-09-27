@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-27
-version: 2.14
+version: 2.15
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- BL-057 implemented after `yes, proceed` (CD-girishr-038), with conditions: validate calls the archiver's own `planCompletedArchive()` (same path as `--dry-run`); this repo's two `specpilot-archive` command files regenerated via `SlashCommandGenerator`; BL-058 added (backfill cannot update existing command files) and CHANGELOG tells existing projects to delete each IDE's copy and re-run `backfill`; generated command files carry no SpecPilot marker (only the `specpilot-` filename prefix). 238 tests green, `tsc`/build clean, dry run moves the oldest rows and writes nothing; not committed (September 27, 2026) [PROMPT-002.0.0.34]
+- BL-057 Spec-First gate, specs only: BL-057 moved to Current Sprint (row count 42→43); ARCH-004.32 shared `planCompletedArchive()` for validator + archiver, table-shaped Completed support, bash `archive_tasks()` parity (it also still had the pre-CD-girishr-034 EOF bound); REQ-002.F.7/E.13, ARCH-003.9, ARCH-004.15 (`displayInitTree()`), TESTS-001.1, CTX-003.25, CHANGELOG `[Unreleased]` updated; awaiting `yes, proceed` (September 27, 2026) [PROMPT-002.0.0.33]
 - BL-050 fold-ins before commit: CHANGELOG `[Unreleased]` entry; ARCH-003.10 `displayInitSuccess()` → `displayInitTree()`; SEC-002.3/SEC-004.4 `fs-extra` wording → "declared in package.json, not imported anywhere; removal tracked as BL-056"; retroactive CD-girishr-037 for v2.2.2 (from CHANGELOG + `b0ff532`); then BL-056 (drop `fs-extra`) and BL-057 (archive table-shaped Completed) added to Backlog in a separate commit (September 27, 2026) [PROMPT-002.0.0.32]
 - BL-050 implemented after `yes, proceed` (CD-girishr-036): `markdownSections.ts` `findSectionBounds()` extracted and used by `archiveTasks()`/`archivePrompts()`/`validateLineLimits()`; pure `specReader.ts` + `specReader.test.ts` (10 tests); 9 suites / 226 tests green, `tsc --noEmit` and `npm run build` clean, `/specpilot-validate` passes; not committed (September 27, 2026) [PROMPT-002.0.0.31]
 - BL-050 (`specpilot serve` Phase 0) Spec-First gate, specs only, no code yet: seeded BL-050–055 in Backlog and moved BL-050 to Current Sprint; removed the stale empty-sprint note from `tasks.md`; ARCH-003.12 `markdownSections.ts` (`findSectionBounds`, shared by `archiveTasks()`/`archivePrompts()`/`validateLineLimits()`; bash copy in `slashCommandGenerator.ts` left alone) and ARCH-003.13 `specReader.ts` (pure, fs-free) added; duplicate ARCH-004.19 (Migrate Is Legacy-Only) renumbered to ARCH-004.31; drift fixed: TESTS-001.1 counts (216, per-suite), SEC-002.3/SEC-004.4 deps (+`js-yaml`, +`fs-extra`, which is unused), versions aligned to 2.2.3 (`project.yaml`, `api.yaml`), CTX-002 phase, roadmap v2.2.2/v2.2.3 from CHANGELOG; CTX-003.23/.24 decisions logged; awaiting `yes, proceed` (September 27, 2026) [PROMPT-002.0.0.30]

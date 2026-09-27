@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Internal: shared section-bounds helper and pure spec reader** (BL-050, `specpilot serve` Phase 0 groundwork; no user-visible change): new `src/utils/markdownSections.ts` `findSectionBounds()` is now the single TypeScript source of the "a `## ` section ends at the next `## ` heading, not EOF" rule, used by `specArchiver.ts` (`archiveTasks()`, `archivePrompts()`) and `specValidator.ts` (`validateLineLimits()`) with identical behaviour. New `src/utils/specReader.ts` is a pure, fs-free parser from `.specs/` file contents to per-file metadata and `tasks.md` Backlog / Current Sprint / Completed rows, cell text verbatim. 10 new tests (216 → 226).
+
 ## [2.2.3] - 2026-08-02
 
 ### Fixed

@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-07-26
-version: 2.12
+lastUpdated: 2026-09-27
+version: 2.13
 contributors: [girishr]
 relatedFiles:
   [
@@ -35,8 +35,10 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Project Detector**: Auto-detects language/framework from existing files [ARCH-003.6]
 - **Code Analyzer**: Scans codebase for TODOs, tests, and architecture with nested folder tree display [ARCH-003.7]
 - **Frameworks Utility**: Shared `getFrameworksForLanguage()` function [ARCH-003.8]
-- **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitSuccess()` [ARCH-003.10]
+- **Spec Tree Printer**: `src/utils/specTreePrinter.ts` — hardcoded `.specs/` file list with one-line descriptions; called by `Logger.displayInitTree()` (split from `displayInitSuccess()` into `displayInitTree()` + `displayInitNextSteps()` in CD-girishr-035) [ARCH-003.10]
 - **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, existing IDE files, and missing `specpilot-*` slash command files; fingerprint-based and file-existence-based detection, append-only writes; prompts for missing `devPrefix`; SKILL.md stale-detected only, not auto-patched; `--dry-run` supported [ARCH-003.11]
+- **Markdown Sections**: `src/utils/markdownSections.ts` — `findSectionBounds(lines, heading, prefix = false)` returns `{ start, end }` for a `## ` section (`start` = index of the first line whose trimmed text equals `heading`, or starts with it when `prefix` is true — `archivePrompts()` needs prefix matching because real headings carry an ID suffix, e.g. `## Latest Entries [PROMPT-002]`; `end` = index of the next line whose trimmed text starts with `## `, or `lines.length`), or `null` when the heading is absent; the single TypeScript source of the "section ends at the next `## ` heading, not EOF" rule, used by `specArchiver.ts` (`archiveTasks()`, `archivePrompts()`) and `specValidator.ts` (`validateLineLimits()`); the bash copy embedded in the `specpilot-archive` slash command (`slashCommandGenerator.ts`) stays separate because it runs in the user's shell and cannot import TypeScript [ARCH-003.12]
+- **Spec Reader**: `src/utils/specReader.ts` — pure, fs-free parser (no `fs`/`path` imports): input is a map of `.specs/`-relative path → file contents; output is per-file metadata (`fileID`, `version`, `lastUpdated`, `contributors`, `relatedFiles` from markdown front matter, or from leading `# key: value` comments for `.yaml` files) plus, for `planning/tasks.md`, the table rows of `## Backlog`, `## Current Sprint` (ID | Description) and `## Completed` (# | ID | Description) with cell text verbatim (outer whitespace only trimmed); section bounds via `findSectionBounds()`; no CLI caller yet (groundwork for `specpilot serve`, BL-050) and written to move into `@specpilot/spec-core` (BL-032) unchanged [ARCH-003.13]
 
 ## Design Decisions [ARCH-004]
 
@@ -62,7 +64,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Archive Branch Guard**: before `specpilot archive` runs, `archiveCommand()` calls `git rev-parse --abbrev-ref HEAD`; if the branch is not `main` or `master`, a yellow warning is printed and the user is prompted `[y/N]`; declining aborts without writing files; `--force` flag skips the prompt; branch detection failure (e.g. not a git repo) is silently ignored [ARCH-004.19]
 - **CLAUDE.md as Router**: when IDE = Claude Code, `generateAiContextFile()` routes to `generateClaudeMd()` which writes a project-root `CLAUDE.md`; file is intentionally lean — critical mandates inline plus ordered list of context pointers (`.specs/project/project.yaml`, `requirements.md`, `architecture.md`, `tasks.md`, `.claude/skills/specpilot-project/SKILL.md`); design follows the "router not a dumping ground" principle (BL-023); existing-file handling mirrors `generateCopilotInstructions()`: `[o]verwrite / [a]ppend / [s]kip` with prompts, auto-skip + yellow warning with `--no-prompts`; closes BL-023 and BL-028 [ARCH-004.23]
 - **IDE File Backfill via Filesystem Detection**: `specpilot backfill` detects existing IDE files without an IDE-selection prompt and appends missing mandate blocks; SKILL.md stale-detected only, not auto-patched; absent files silently skipped [ARCH-004.24]
-- **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.19]
+- **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.31]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]
 - **devPrefix in Generated ID Conventions**: generated `tasks.md` shows `CD-{{author}}-###` and `## Multi-Dev Notes`; generated `prompts.md` shows `PROMPT-{{author}}-###` [ARCH-004.22]

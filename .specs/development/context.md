@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-06-28
-version: 2.0
+lastUpdated: 2026-09-27
+version: 2.1
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,9 +10,9 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (v2.0.1)
+- **Phase**: Active Development (v2.2.3 shipped; BL-050 `specpilot serve` Phase 0 groundwork done on `feat/serve-p0`; BL-051 Phase 1 next)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074 pending), Cursor output renamed to `specpilot.mdc`
+- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3)
 - **Next Steps**: See tasks.md Current Sprint
 
 ## Key Decisions [CTX-003]
@@ -39,6 +39,8 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 - **IDE-Native Backfill Scope**: `specpilot backfill` inspects IDE files on disk and patches missing mandate blocks without requiring an IDE-selection prompt; SKILL.md reported stale rather than auto-patched [CTX-003.20]
 - **Spec File Purpose Metadata**: generated markdown spec files include a one-line `description:` front-matter field; generated `api.yaml` carries a `# Purpose:` header comment [CTX-003.21]
 - **Code Philosophy + Code Rules**: all generated AI instruction files include a 7-item YAGNI/minimal-code decision ladder and 7 behavioral coding rules in caveman style; injected at generation time and backfilled into existing files via `specpilot backfill` [CTX-003.22]
+- **Shared Section Bounds (BL-050)**: the "`## ` section ends at the next `## ` heading, not EOF" rule lives once in `markdownSections.ts` `findSectionBounds()`; CD-girishr-034 had to patch it in two TypeScript places "identically", which is the drift this removes. The bash copy in the `specpilot-archive` slash command stays separate — it runs in the user's shell and cannot import TypeScript [CTX-003.23]
+- **Pure Spec Reader (BL-050)**: `specReader.ts` takes file contents, never paths, and imports neither `fs` nor `path`, so it can move into `@specpilot/spec-core` (BL-032) unchanged. Front matter is parsed by hand for the five metadata keys rather than with `js-yaml`: this repo's own `tasks.md` has `lastUpdated: 2026-09-05 (BL-049 cross-ref: …)`, whose bare `: ` makes `js-yaml` throw, and the default schema would turn `2026-07-26` into a `Date` and `version: 5.10` into `5.1`. Table rows are split on the first N−1 pipes only, with the last cell taking the rest of the row, because Completed descriptions contain literal `|` inside backticks (e.g. `'rest' | 'cli'`) [CTX-003.24]
 
 ## Established Patterns [CTX-004]
 

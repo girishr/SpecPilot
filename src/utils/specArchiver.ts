@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { findSectionBounds } from './markdownSections';
 
 export interface ArchiveEntry {
   file: string;
@@ -65,7 +66,7 @@ export class SpecArchiver {
     // Anchor on the "## Latest Entries" heading (falls back to front matter close,
     // then start of file) so boilerplate sections — Re-Anchor Prompt, etc. — are
     // never mistaken for archivable log content.
-    let entryStartIdx = allLines.findIndex(l => l.trim().startsWith('## Latest Entries'));
+    let entryStartIdx = findSectionBounds(allLines, '## Latest Entries', true)?.start ?? -1;
     if (entryStartIdx === -1) {
       entryStartIdx = allLines[0]?.trim() === '---' ? allLines.findIndex((l, i) => i > 0 && l.trim() === '---') : -1;
     }
@@ -104,13 +105,11 @@ export class SpecArchiver {
     const content = readFileSync(filePath, 'utf-8');
     const allLines = content.split('\n');
 
-    const completedIdx = allLines.findIndex(l => l.trim() === '## Completed');
-    if (completedIdx === -1) return null;
-
     // The Completed section ends at the next `## ` heading, not at EOF — anything
     // after it (e.g. `## Multi-Dev Notes`) is a separate section and must survive.
-    let sectionEndIdx = allLines.findIndex((l, i) => i > completedIdx && /^## /.test(l.trim()));
-    if (sectionEndIdx === -1) sectionEndIdx = allLines.length;
+    const completed = findSectionBounds(allLines, '## Completed');
+    if (!completed) return null;
+    const { start: completedIdx, end: sectionEndIdx } = completed;
     const trailingLines = allLines.slice(sectionEndIdx);
 
     // Section size consistent with specValidator's check — measured to the section

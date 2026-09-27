@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
+import { findSectionBounds } from './markdownSections';
 
 export interface ValidationOptions {
   fix: boolean;
@@ -686,14 +687,11 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
     const tasksPath = join(specsDir, 'planning', 'tasks.md');
     if (existsSync(tasksPath)) {
       const lines = readFileSync(tasksPath, 'utf-8').split('\n');
-      const completedIdx = lines.findIndex(line => line.trim() === '## Completed');
-      if (completedIdx !== -1) {
-        // Measure to the next `## ` heading, not EOF, so trailing sections
-        // (e.g. `## Multi-Dev Notes`) don't inflate the count. Must stay
-        // consistent with specArchiver's archiveTasks().
-        let sectionEnd = lines.findIndex((line, i) => i > completedIdx && /^## /.test(line.trim()));
-        if (sectionEnd === -1) sectionEnd = lines.length;
-        const completedSize = sectionEnd - completedIdx;
+      // Measured to the next `## ` heading, not EOF, via the same helper as
+      // specArchiver's archiveTasks(), so the warning and the archiver agree.
+      const completed = findSectionBounds(lines, '## Completed');
+      if (completed) {
+        const completedSize = completed.end - completed.start;
         if (completedSize > SpecValidator.TASKS_COMPLETED_LINE_LIMIT) {
           result.warnings.push(
             `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`

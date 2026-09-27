@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-07-26
-version: 1.1
+lastUpdated: 2026-09-27
+version: 1.2
 contributors: [girishr]
 relatedFiles:
   [
@@ -51,8 +51,8 @@ The threat model focuses on four attack surfaces: **path traversal** via user-su
 | **Impact**        | Critical — full code execution in the context of the CLI process.                                                                                                                                                                                                                                                                 |
 | **Likelihood**    | Very low — all dependencies are widely-used, actively maintained packages.                                                                                                                                                                                                                                                        |
 | **Entry point**   | `npm install` / dependency resolution at install time.                                                                                                                                                                                                                                                                            |
-| **Dependencies**  | `commander` (CLI parsing), `handlebars` (templating), `chalk` (terminal colors), `inquirer` (interactive prompts).                                                                                                                                                                                                                |
-| **Mitigation**    | (1) Minimal dependency set — only 4 direct runtime dependencies. (2) `package-lock.json` pinned in the repository. (3) No network calls at runtime — a compromised dep cannot phone home silently during normal operation. (4) All dependencies are high-profile packages with large install bases and active security reporting. |
+| **Dependencies**  | `commander` (CLI parsing), `handlebars` (templating), `chalk` (terminal colors), `inquirer` (interactive prompts), `js-yaml` (YAML parsing in `specValidator.ts` and `init.ts`), `fs-extra` (declared in package.json, not imported anywhere; removal tracked as BL-056).                                                                                                                                                                                                                |
+| **Mitigation**    | (1) Minimal dependency set — 6 direct runtime dependencies, one of them (`fs-extra`) unused. (2) `package-lock.json` pinned in the repository. (3) No network calls at runtime — a compromised dep cannot phone home silently during normal operation. (4) All dependencies are high-profile packages with large install bases and active security reporting. |
 | **Residual risk** | Non-zero but industry-standard. Periodic `npm audit` runs and lockfile review are recommended.                                                                                                                                                                                                                                    |
 
 ### Plugin Distribution [SEC-002.4]

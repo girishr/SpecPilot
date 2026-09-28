@@ -202,3 +202,12 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-28 16:26:53
+
+| # | ID | Description |
+|---|---|---|
+| 115 | [CD-girishr-023] [CS-081] [BL-040] | `specpilot-reanchor` slash command — second `SLASH_COMMANDS` entry: `{ name: 'reanchor', description: 'Restore full project context after losing it mid-session', body }`; near-static body instructs reading `.specs/project/project.yaml` in full and the `## Re-Anchor Prompt` section of `.specs/development/prompts.md` verbatim, then restating both as current operating context without paraphrasing; formalizes the existing `## Re-Anchor` mandate in `CLAUDE.md`/`copilot-instructions.md` as a one-keystroke action; test updated to assert both `status` and `reanchor` are present and written by default `generate()` |
+| 116 | [CD-girishr-025] [CS-082] [BL-041] | `specpilot-report` slash command — third `SLASH_COMMANDS` entry: `{ name: 'report', description: 'Run the Spec-First review gate: classify the change, update specs, then wait for confirmation before coding', body }`; body formalizes CLAUDE.md mandate 8: classify trivial/feature/architectural, read the relevant `.specs/` files per the Context routing table, update specs first, present a Spec Report (files touched, what changed, what specs now say), then require the user's literal `yes, proceed` before writing code — explicitly calls out that an ambiguous "ok"/"sure" isn't sufficient for architectural-tier changes; test updated to assert `status`, `reanchor`, and `report` all present and written by default `generate()` |
+
+---
+

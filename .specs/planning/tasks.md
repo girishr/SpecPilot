@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-09-27 (v2.2.4 shipped, CD-girishr-039 updated; Release v2.2.4 as CD-girishr-039; BL-057 completed as CD-girishr-038; BL-058 added; BL-056/BL-057 added; BL-050–055 `specpilot serve` phases added; BL-050 completed as CD-girishr-036; retroactive CD-girishr-037 for v2.2.2; stale empty-sprint note removed)
-version: 5.54
+lastUpdated: 2026-09-28 (BL-056 fs-extra removal moved to Current Sprint)
+version: 5.55
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -46,7 +46,6 @@ Notes
 | BL-053 | `specpilot serve` Phase 3: move a task between `tasks.md` sections by drag; single writer `taskMover.ts` on the shared helper; CSRF token, mtime guard, `--read-only`. |
 | BL-054 | `specpilot serve` Phase 4: multiple projects; a project registry outside the repo (a new decision against ARCH-007.4 and ARCH-007.5); one server vs one per folder. |
 | BL-055 | `specpilot serve` Phase 5: guided setup in the browser; decide between the CLI's own question set now and BL-032 spec-core first. |
-| BL-056 | Remove unused `fs-extra` from `dependencies`. Confirm first with a search across `src/`, `cli.js` and `src/__tests__/` that nothing imports it; then update `package.json`, `package-lock.json`, SEC-002.3 and SEC-004.4. |
 | BL-058 | Generated `specpilot-*` command files cannot be updated in existing projects: `specpilot backfill` never overwrites an existing command file (CS-088), so a fix to a command body, such as BL-057's bash `archive_tasks()` fix, never reaches projects that already have the file. Needs a way to tell a SpecPilot-generated, unmodified file from a user-edited one before offering to replace it. Codex copies are also unreachable: backfill skips Codex, and the user's working copy lives in ~/.codex/prompts/, outside the repo. |
 
 ## Current Sprint
@@ -54,6 +53,7 @@ Notes
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
+| BL-056 | Remove unused `fs-extra` from `dependencies`. Confirm first with a search across `src/`, `cli.js` and `src/__tests__/` that nothing imports it; then update `package.json`, `package-lock.json`, SEC-002.3 and SEC-004.4. |
 
 ## Completed
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Unused `fs-extra` dependency** (BL-056): declared since the first release but never imported. `@types/fs-extra` removed with it.
+
 ## [2.2.4] - 2026-09-27
 
 ### Fixed

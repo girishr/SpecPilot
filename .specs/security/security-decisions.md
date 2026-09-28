@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-09-27
-version: 1.2
+lastUpdated: 2026-09-28
+version: 1.3
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -48,7 +48,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.4] Minimal runtime dependency set
 
 - **Date**: 2026-02-28
-- **Decision**: Keep runtime dependencies to the smallest practical set: `commander`, `handlebars`, `chalk`, `inquirer`. No additional libraries unless strictly necessary. As shipped (`package.json`, 2026-09-27) the set is 6: those 4 plus `js-yaml` (YAML parsing in `specValidator.ts` and `init.ts`) and `fs-extra` (declared in package.json, not imported anywhere; removal tracked as BL-056).
+- **Decision**: Keep runtime dependencies to the smallest practical set: `commander`, `handlebars`, `chalk`, `inquirer`, `js-yaml` (YAML parsing in `specValidator.ts` and `init.ts`). No additional libraries unless strictly necessary. `fs-extra`, declared since the initial release but never imported, was removed in BL-056 (with `@types/fs-extra`), leaving 5.
 - **Rationale**: Each dependency is a potential supply-chain attack surface. Fewer dependencies = smaller attack surface, easier audit, and fewer transitive risks.
 - **Alternatives considered**:
   - Using a full framework (e.g., `oclif`) — rejected because it brings a large dependency tree for marginal benefit.
@@ -92,4 +92,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-07-26_
+_Last updated: 2026-09-28_

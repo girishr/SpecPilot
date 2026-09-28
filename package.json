@@ -50,6 +50,7 @@
   "type": "commonjs",
   "files": [
     "dist/**/*",
+    "ui/**/*",
     "cli.js",
     "README.md",
     "LICENSE"

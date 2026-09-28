@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-09-27
-# version: 2.2
+# lastUpdated: 2026-09-28
+# version: 2.3
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -217,6 +217,30 @@ commands:
     exit-codes:
       0: Success
       1: Backfill error
+
+  serve:
+    description: Serve a read-only local web UI over the current project's .specs/ (BL-051)
+    usage: specpilot serve [options]
+    options:
+      --port:
+        type: number
+        default: 4321
+        description: Port to listen on (127.0.0.1 only)
+      --open:
+        type: boolean
+        description: Open the UI in the default browser
+    routes:
+      "GET /": The UI page
+      "GET /assets/<file>": The UI's stylesheet, scripts and favicon (the SpecPilot logo)
+      "GET /api/specs": Project metadata, readSpecs() output and the nav tree (JSON)
+      "GET /api/file?p=<path>": One allowlisted file as text/plain
+    behavior:
+      - Binds 127.0.0.1 only; rejects any Host header other than 127.0.0.1:<port> or localhost:<port> (403)
+      - Read-only; re-reads files on every request, so a browser refresh shows the current disk state
+      - Non-GET methods return 405; unknown paths return 404
+    exit-codes:
+      0: Stopped with Ctrl+C
+      1: No .specs/ in the current directory, invalid --port, or port already in use
 
 global-options:
   --version:

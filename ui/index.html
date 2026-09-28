@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SpecPilot Local</title>
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/app.css">
+<script src="/assets/md.js" defer></script>
+<script src="/assets/app.js" defer></script>
+</head>
+<body>
+<svg class="sprite" width="0" height="0" aria-hidden="true" focusable="false"><defs>
+<symbol id="logo" viewBox="0 0 300 300" fill="none">
+<rect width="300" height="300" rx="60" fill="url(#paint0_linear_18_9)"/>
+<g filter="url(#filter0_d_18_9)">
+<rect x="46.5" y="73.5" width="207.888" height="153" rx="76.5" stroke="white" stroke-width="41"/>
+<circle cx="116.376" cy="150" r="16.561" fill="#FFFEFE"/>
+<circle cx="116.376" cy="150" r="16.561" stroke="black"/>
+<path d="M184.985 133.439C194.131 133.439 201.546 140.853 201.546 150C201.546 159.146 194.131 166.561 184.985 166.561C175.839 166.561 168.424 159.146 168.424 150C168.425 140.854 175.839 133.439 184.985 133.439Z" fill="white"/>
+<path d="M184.985 133.439C194.131 133.439 201.546 140.853 201.546 150C201.546 159.146 194.131 166.561 184.985 166.561C175.839 166.561 168.424 159.146 168.424 150C168.425 140.854 175.839 133.439 184.985 133.439Z" stroke="black"/>
+</g>
+<defs>
+<filter id="filter0_d_18_9" x="24" y="52" width="252.888" height="198" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="1"/>
+<feGaussianBlur stdDeviation="1"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_18_9"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_18_9" result="shape"/>
+</filter>
+<linearGradient id="paint0_linear_18_9" x1="150" y1="0" x2="150" y2="300" gradientUnits="userSpaceOnUse">
+<stop stop-color="#1481FC"/>
+<stop offset="1" stop-color="#0077FF"/>
+</linearGradient>
+<symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 10l3 2.5-3 2.5M13 15h4"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.7 4.8L18.5 9.5l-4.8 1.7L12 16l-1.7-4.8L5.5 9.5l4.8-1.7z"/><path d="M18 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
+</defs>
+</symbol>
+<symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="13" rx="1"/></symbol>
+<symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+<symbol id="i-req" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></symbol>
+<symbol id="i-arch" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="8.5" y="14" width="7" height="7" rx="1"/><path d="M6.5 10v2h11v-2M12 12v2"/></symbol>
+<symbol id="i-test" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5.5 9a2 2 0 001.7 3h11.6a2 2 0 001.7-3L14 9V3"/><path d="M7 15h10"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M12 8V4M8 4h8"/><circle cx="9" cy="14" r="1"/><circle cx="15" cy="14" r="1"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></symbol>
+<symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="8" r="2.5"/><path d="M6 8.5v7M18 10.5c0 4-12 2-12 5"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+<symbol id="i-hd" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 12h18M7 16h2"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1h5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></symbol>
+</defs></svg>
+
+<a class="skip" href="#content">Skip to Content</a>
+<div class="win" id="win">
+<nav class="rail" id="rail" aria-label="Projects">
+  <svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
+  <div class="rsep" aria-hidden="true"></div>
+  <div class="rlist" id="projList" role="group" aria-label="Open projects"></div>
+  <div class="rfoot">
+    <button class="tile ghost" id="themeBtn" aria-label="Switch between light and dark" data-tip="Light / dark"><svg aria-hidden="true" focusable="false"><use href="#i-sun"/></svg></button>
+  </div>
+</nav>
+<aside class="src" id="src">
+  <div class="top"><b id="curGrp" translate="no"></b><span class="br mono" id="curBranch" translate="no"></span></div>
+  <button class="search" id="palBtn"><svg class="ico ico-13" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>Search<kbd>&#8984;K</kbd></button>
+  <div class="snav">
+    <div class="grp" id="gPlan">Plan</div>
+    <div role="group" aria-labelledby="gPlan">
+      <button class="srow on" data-v="board"><svg aria-hidden="true" focusable="false"><use href="#i-board"/></svg><span class="t">Tasks</span><span class="meta" translate="no">tasks.md</span></button>
+      <button class="srow" data-v="file" data-f="planning/roadmap.md"><svg aria-hidden="true" focusable="false"><use href="#i-map"/></svg><span class="t">Roadmap</span><span class="meta" translate="no">roadmap.md</span></button>
+      <button class="srow" data-v="file" data-f="project/requirements.md"><svg aria-hidden="true" focusable="false"><use href="#i-req"/></svg><span class="t">Requirements</span><span class="meta" translate="no">requirements.md</span></button>
+    </div>
+    <div class="grp" id="gSpecs">Specs</div>
+    <div role="group" aria-labelledby="gSpecs">
+      <button class="srow" data-v="explorer"><svg aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><span class="t">Explorer</span><span class="meta" translate="no">.specs/</span></button>
+      <button class="srow" data-v="file" data-f="architecture/architecture.md"><svg aria-hidden="true" focusable="false"><use href="#i-arch"/></svg><span class="t">Architecture</span><span class="meta" translate="no">architecture/</span></button>
+      <button class="srow" data-v="file" data-f="quality/tests.md"><svg aria-hidden="true" focusable="false"><use href="#i-test"/></svg><span class="t">Tests</span><span class="meta" translate="no">quality/</span></button>
+      <button class="srow" data-v="security"><svg aria-hidden="true" focusable="false"><use href="#i-shield"/></svg><span class="t">Security</span><span class="meta" translate="no">security/</span></button>
+    </div>
+    <div class="grp" id="gAuto">Automation</div>
+    <div role="group" aria-labelledby="gAuto">
+      <button class="srow" data-v="instructions"><svg aria-hidden="true" focusable="false"><use href="#i-file"/></svg><span class="t">Instructions</span><span class="meta" id="insMeta" translate="no"></span></button>
+      <button class="srow" data-v="commands"><svg aria-hidden="true" focusable="false"><use href="#i-term"/></svg><span class="t">Commands</span><span class="meta" id="cmdMeta" translate="no">.claude/commands/</span></button>
+      <button class="srow" data-v="skills"><svg aria-hidden="true" focusable="false"><use href="#i-spark"/></svg><span class="t">Skills</span><span class="meta" id="sklMeta" translate="no">.claude/skills/</span></button>
+    </div>
+  </div>
+  <div class="foot"><span class="v" id="footAddr" title="Local server, read-only" translate="no"></span><span class="v ml-auto" id="footVer" translate="no"></span></div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<main class="pane">
+  <div class="tb">
+    <button class="ib menu" id="menuBtn" aria-label="Show sidebar"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span></div></div>
+    <div class="right">
+      <div class="seg" id="modeSeg"><button class="on" data-m="list">List</button><button data-m="board">Board</button></div>
+    </div>
+  </div>
+  <div class="content" id="content">
+    <p class="note" id="loadErr" hidden></p>
+
+    <!-- TASKS: the rows of planning/tasks.md, from readSpecs() -->
+    <section class="view on" id="v-board">
+      <div id="listMode">
+        <div class="gl" id="gSprint" data-col="currentSprint"></div>
+        <div class="gl mt18" id="gBacklog" data-col="backlog"></div>
+        <div class="gl mt18" id="gDone" data-col="completed"></div>
+      </div>
+      <div id="boardMode" class="board" hidden></div>
+      <div class="gl" id="gRaw" hidden></div>
+      <div class="gl" id="gConv"></div>
+    </section>
+
+    <!-- EXPLORER: the .specs/ folder -->
+    <section class="view" id="v-explorer">
+      <div id="exBody"></div>
+      <p class="note" id="exNote"></p>
+    </section>
+
+    <!-- SECURITY: both files in security/, each as written -->
+    <section class="view" id="v-security">
+      <div id="secBody"></div>
+    </section>
+
+    <!-- FILE: any .specs/ file, rendered as written -->
+    <section class="view" id="v-file">
+      <div class="gl" id="fmBox"></div>
+      <div class="md doc" id="fileBody"></div>
+    </section>
+
+    <!-- INSTRUCTIONS -->
+    <section class="view" id="v-instructions">
+      <div class="gl"><div class="gh">Instruction Files</div><div class="box" id="insBox"></div></div>
+    </section>
+
+    <!-- COMMANDS -->
+    <section class="view" id="v-commands">
+      <div class="gl"><div class="gh"><span translate="no">.claude/commands/</span> <span class="cnt" id="cmdCnt"></span></div><div class="box" id="cmdBox"></div></div>
+      <div class="gl"><div class="gh"><span translate="no">.github/prompts/</span> <span class="cnt" id="prmCnt"></span></div><div class="box" id="prmBox"></div></div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="view" id="v-skills">
+      <div class="gl"><div class="gh"><span translate="no">.claude/skills/</span> <span class="cnt" id="sklCnt"></span></div><div class="box" id="sklBox"></div></div>
+    </section>
+
+  </div>
+
+  <aside class="insp" id="insp" aria-label="Details"></aside>
+</main>
+</div>
+
+<!-- PALETTE -->
+<div class="veil pal-veil" id="palVeil"><div class="pal"><input id="palIn" type="search" name="q" aria-label="Search views, spec files and tasks" placeholder="Jump to a view, spec file or task…" autocomplete="off" spellcheck="false"><ul id="palList"></ul></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

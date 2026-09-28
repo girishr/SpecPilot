@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
 lastUpdated: 2026-09-28
-version: 1.3
+version: 1.4
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -28,7 +28,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.2] No network calls at runtime
 
 - **Date**: 2026-02-28
-- **Decision**: All templates are built-in (inline in source code). SpecPilot makes zero HTTP/network calls during `init`, `add-specs`, `validate`, or any other command.
+- **Decision**: All templates are built-in (inline in source code). SpecPilot makes zero outbound HTTP/network calls during `init`, `add-specs`, `validate`, or any other command. `specpilot serve` (BL-051) is a loopback-only listener and makes no outbound calls either; its UI loads no external fonts or scripts (SEC-004.8).
 - **Rationale**: Eliminates an entire class of attacks (SSRF, DNS exfiltration, man-in-the-middle on template downloads). Also ensures the tool works fully offline.
 - **Alternatives considered**:
   - Remote template registry — rejected for security and reliability reasons.
@@ -48,7 +48,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.4] Minimal runtime dependency set
 
 - **Date**: 2026-02-28
-- **Decision**: Keep runtime dependencies to the smallest practical set: `commander`, `handlebars`, `chalk`, `inquirer`, `js-yaml` (YAML parsing in `specValidator.ts` and `init.ts`). No additional libraries unless strictly necessary. `fs-extra`, declared since the initial release but never imported, was removed in BL-056 (with `@types/fs-extra`), leaving 5.
+- **Decision**: Keep runtime dependencies to the smallest practical set: `commander`, `handlebars`, `chalk`, `inquirer`, `js-yaml` (YAML parsing in `specValidator.ts`, `init.ts` and `specServer.ts`). No additional libraries unless strictly necessary. `fs-extra`, declared since the initial release but never imported, was removed in BL-056 (with `@types/fs-extra`), leaving 5. `specpilot serve` added none.
 - **Rationale**: Each dependency is a potential supply-chain attack surface. Fewer dependencies = smaller attack surface, easier audit, and fewer transitive risks.
 - **Alternatives considered**:
   - Using a full framework (e.g., `oclif`) — rejected because it brings a large dependency tree for marginal benefit.
@@ -83,6 +83,17 @@ This file records security-related architectural and implementation decisions ma
 - **Alternatives considered**:
   - Shipping a `package.json` + `SessionStart` `npm install` hook (a documented plugin pattern) — rejected: turns every transitive dep into code that runs at session start.
 - **Reference**: REQ-002.G.2, REQ-002.G.5, SEC-002.4
+
+### [SEC-004.8] `specpilot serve` is loopback-only, Host-checked, allowlisted and read-only
+
+- **Date**: 2026-09-28
+- **Decision**: Listen on `127.0.0.1` only; reject any `Host` other than `127.0.0.1:<port>` / `localhost:<port>` with 403; serve files only from a fixed allowlist (`.specs/**`, `CLAUDE.md`, `AGENTS.md`, `.claude/commands/**`, `.claude/skills/**`, `.github/copilot-instructions.md`, `.github/prompts/**`) after rejecting `..`, absolute paths and NUL, and after checking the `realpath` stays inside both the root and the allowlist; send `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff` and `Cache-Control: no-store` on every response and no CORS headers; expose no write route.
+- **Rationale**: A local server is reachable by every web page the user visits. Loopback binding stops other machines; the Host check stops DNS rebinding; the allowlist plus `realpath` stops traversal and symlink escape; the CSP limits the damage of any rendering bug; no CORS keeps responses opaque to other origins. With no writes there is nothing to forge, so a CSRF token would be dead code until Phase 3.
+- **Alternatives considered**:
+  - A per-session token on every request — deferred to Phase 3 (BL-053), where the first write route needs one anyway.
+  - Serving the whole project root — rejected: the UI needs only specs and generated instruction files; source and secrets stay unreachable.
+  - Loading Google Fonts as the mockup does — rejected: breaks the CSP and the offline guarantee (SEC-004.2).
+- **Reference**: SEC-002.5, REQ-002.H.4, ARCH-004.33
 
 ## Open Questions [SEC-005]
 

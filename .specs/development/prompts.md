@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-28
-version: 2.17
+version: 2.18
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- BL-051 + BL-056 implemented after `yes, proceed` (with additions: URL printed as `http://127.0.0.1:<port>`, renderer must escape raw HTML, `ui/` resolved from the install path, branch read handles worktree `.git` files and detached HEAD): `src/utils/specServer.ts`, `src/commands/serve.ts`, `ui/` (index.html, app.css, md.js, app.js, favicon.svg), `fs-extra` + `@types/fs-extra` removed, `ui/**/*` added to `files`; 71 new tests (238 → 309); browser check of all ten views against this repo found and fixed three renderer changes to file text (dropped `[ID]` brackets, renumbered lists, uppercased headers); packed tarball installed to an isolated prefix serves the UI from the install path; not committed (September 28, 2026) [PROMPT-002.0.0.38]
+- BL-051 (`specpilot serve` Phase 1, read-only) Spec-First gate, specs only, on `feat/serve-p1`: BL-051 moved to Current Sprint; REQ-002.A.10 + REQ-002.H, ARCH-003.14/.15, ARCH-004.33/.34, ARCH-005.6, ARCH-006.6, ARCH-007.3, SEC-002.5 + SEC-004.8 (local server threat model, CSRF deferred to Phase 3), api.yaml `serve`, TESTS-001.1, CTX-003.26, ROADMAP-002.14, CHANGELOG `[Unreleased]`; awaiting `yes, proceed` (September 28, 2026) [PROMPT-002.0.0.37]
 - BL-056: removed unused `fs-extra` and `@types/fs-extra` (confirmed no import in `src/`, `cli.js` or `src/__tests__/`); SEC-002.3 and SEC-004.4 now list 5 runtime dependencies; committed separately from BL-051 (September 28, 2026) [PROMPT-002.0.0.36]
 - Release v2.2.4 prepared, not pushed or published: version 2.2.3 → 2.2.4 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml` `cli.version`; CHANGELOG `[Unreleased]` → `[2.2.4] - 2026-09-27`; roadmap, CTX-002 and CD-girishr-039 updated; commit `chore(release): v2.2.4` and annotated tag `v2.2.4` (September 27, 2026) [PROMPT-002.0.0.35]
 - BL-057 implemented after `yes, proceed` (CD-girishr-038), with conditions: validate calls the archiver's own `planCompletedArchive()` (same path as `--dry-run`); this repo's two `specpilot-archive` command files regenerated via `SlashCommandGenerator`; BL-058 added (backfill cannot update existing command files) and CHANGELOG tells existing projects to delete each IDE's copy and re-run `backfill`; generated command files carry no SpecPilot marker (only the `specpilot-` filename prefix). 238 tests green, `tsc`/build clean, dry run moves the oldest rows and writes nothing; not committed (September 27, 2026) [PROMPT-002.0.0.34]

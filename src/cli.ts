@@ -10,6 +10,7 @@ import { refineCommand } from './commands/refine';
 import { addSpecsCommand } from './commands/add-specs';
 import { archiveCommand } from './commands/archive';
 import { backfillCommand } from './commands/backfill';
+import { serveCommand } from './commands/serve';
 import { Logger } from './utils/logger';
 
 const packageJson = require('../package.json');
@@ -106,6 +107,14 @@ program
   .option('--dry-run', 'Preview changes without writing any files')
   .option('--no-prompts', 'Accept suggested devPrefix silently when team.devPrefix is missing')
   .action(backfillCommand);
+
+// Serve command
+program
+  .command('serve')
+  .description('Serve a read-only local web UI over this project\'s .specs/ (127.0.0.1 only)')
+  .option('-p, --port <number>', 'Port to listen on', '4321')
+  .option('--open', 'Open the UI in your default browser')
+  .action(serveCommand);
 
 program.addHelpText('after', `
 Aliases:

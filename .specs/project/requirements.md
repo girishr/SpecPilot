@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-09-27
+lastUpdated: 2026-09-28
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.26
+version: 1.27
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -26,6 +26,7 @@ relatedFiles:
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]
 - `specpilot backfill` — non-destructively backfills missing mandates, rules, IDE config, and `specpilot-*` slash command files into projects already running `.specs/`; reads `project.yaml` and existing IDE files, inserts only what's absent (append-only, no overwrites); prompts for `devPrefix` if absent; IDE files and slash-command targets both detected by filesystem presence without an IDE-selection prompt; SKILL.md reported stale if structural sections missing, not auto-patched; `--dry-run` supported [REQ-002.A.7]
 - `specpilot archive [--dry-run] [--force]` — archive oversized `.specs/` files; before archiving, detect the current git branch and warn (with `[y/N]` confirmation) when not on `main` or `master`; `--force` bypasses the branch warning [REQ-002.A.8]
+- `specpilot serve [--port <n>] [--open]` — serve a read-only local web UI over the current project's `.specs/` (see REQ-002.H) [REQ-002.A.10]
 
 ### Project Initialization [REQ-002.B]
 
@@ -92,6 +93,16 @@ relatedFiles:
 - The plugin must be a **lowest-privilege** bundle: **no hooks, no MCP servers, no `bin/` executables, no monitors** — only skills/commands and templates, so its blast radius is limited to permission-gated file writes Claude proposes [REQ-002.G.4]
 - The plugin's committed files must be **generated from `src/utils` by a build step** (single source of truth, zero drift — the same pattern `slashCommandGenerator.ts` uses); the generated bundle is checked into `plugin/` and is never hand-edited [REQ-002.G.5]
 - The plugin must pass `claude plugin validate` locally before submission, and be distributed via the community marketplace using a `git-subdir` source (`url: github.com/girishr/SpecPilot, path: plugin`), which pins the plugin to a specific commit SHA [REQ-002.G.6]
+
+### Local Spec Server — `specpilot serve` [REQ-002.H]
+
+- `specpilot serve` serves the project in the current directory, which must contain `.specs/`; otherwise it exits 1 with a clear message. It binds `127.0.0.1` only, prints the URL, defaults to port 4321, accepts `--port <n>`, and fails with a message suggesting `--port` when the port is in use. `--open` opens the URL in the default browser via `child_process` (no new dependency) [REQ-002.H.1]
+- Read-only: no route writes to disk, and the UI has no drag, keyboard-move or edit controls. Every request re-reads the files, so refreshing the page shows the current state of disk (live reload is BL-052) [REQ-002.H.2]
+- Routes: `GET /` (the UI page), `GET /assets/<file>` (the UI's own stylesheet, scripts and favicon — required because the CSP forbids inline code), `GET /api/specs` (project metadata, `readSpecs()` output and the nav tree), `GET /api/file?p=<path>` (one allowlisted file, raw text). Any other method → 405; any other path → 404 [REQ-002.H.3]
+- Security: requests whose `Host` header is not exactly `127.0.0.1:<port>` or `localhost:<port>` are rejected with 403 (DNS rebinding); `/api/file` serves only `.specs/**`, `CLAUDE.md`, `AGENTS.md`, `.claude/commands/**`, `.claude/skills/**`, `.github/copilot-instructions.md` and `.github/prompts/**`, rejects `..` segments, absolute paths and NUL bytes, and requires the file's `realpath` to be inside the project root **and** still inside the allowlist; every response carries `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff` and `Cache-Control: no-store`, and no CORS headers [REQ-002.H.4]
+- Content rule: every title, heading, task row, ID and text the UI shows is the file's own text, verbatim. The UI may group and order; it may not reword, summarise, invent statuses, add badges or derive labels. Task rows come from `readSpecs()`; anything that cannot be parsed is shown as raw text [REQ-002.H.5]
+- Navigation (from the approved mockup): Plan — Tasks, Roadmap, Requirements; Specs — Explorer, Architecture, Tests, Security; Automation — Instructions, Commands, Skills. Hash routing, keyboard navigation, light/dark theme and the mockup's markdown renderer are kept; the project rail shows only the current project. The client fetches `/api/specs` and `/api/file`; the page embeds no data [REQ-002.H.6]
+- Zero new runtime dependencies: the server uses `node:http`, `node:fs` and the existing `js-yaml`. The UI's HTML, CSS and JS ship inside the npm package [REQ-002.H.7]
 
 ### Non-Functional Requirements [REQ-003]
 

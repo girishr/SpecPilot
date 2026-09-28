@@ -1,7 +1,7 @@
 ---
 fileID: ARCH-001
-lastUpdated: 2026-09-27
-version: 2.14
+lastUpdated: 2026-09-28
+version: 2.15
 contributors: [girishr]
 relatedFiles:
   [
@@ -39,6 +39,8 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **Spec Backfiller**: `src/utils/specBackfiller.ts` — non-destructively backfills missing mandates into `project.yaml`, `copilot-instructions.md`, `planning/tasks.md`, existing IDE files, and missing `specpilot-*` slash command files; fingerprint-based and file-existence-based detection, append-only writes; prompts for missing `devPrefix`; SKILL.md stale-detected only, not auto-patched; `--dry-run` supported [ARCH-003.11]
 - **Markdown Sections**: `src/utils/markdownSections.ts` — `findSectionBounds(lines, heading, prefix = false)` returns `{ start, end }` for a `## ` section (`start` = index of the first line whose trimmed text equals `heading`, or starts with it when `prefix` is true — `archivePrompts()` needs prefix matching because real headings carry an ID suffix, e.g. `## Latest Entries [PROMPT-002]`; `end` = index of the next line whose trimmed text starts with `## `, or `lines.length`), or `null` when the heading is absent; the single TypeScript source of the "section ends at the next `## ` heading, not EOF" rule, used by `specArchiver.ts` (`archiveTasks()`, `archivePrompts()`) and `specValidator.ts` (`validateLineLimits()`); the bash copy embedded in the `specpilot-archive` slash command (`slashCommandGenerator.ts`) stays separate because it runs in the user's shell and cannot import TypeScript [ARCH-003.12]
 - **Spec Reader**: `src/utils/specReader.ts` — pure, fs-free parser (no `fs`/`path` imports): input is a map of `.specs/`-relative path → file contents; output is per-file metadata (`fileID`, `version`, `lastUpdated`, `contributors`, `relatedFiles` from markdown front matter, or from leading `# key: value` comments for `.yaml` files) plus, for `planning/tasks.md`, the table rows of `## Backlog`, `## Current Sprint` (ID | Description) and `## Completed` (# | ID | Description) with cell text verbatim (outer whitespace only trimmed); section bounds via `findSectionBounds()`; no CLI caller yet (groundwork for `specpilot serve`, BL-050) and written to move into `@specpilot/spec-core` (BL-032) unchanged [ARCH-003.13]
+- **Spec Server**: `src/utils/specServer.ts` — read-only `node:http` server behind `specpilot serve` (`src/commands/serve.ts`); exports the path guard (`resolveAllowedPath()`), the Host check (`isAllowedHost()`), the `/api/specs` payload builder (`buildSpecsPayload()`, which walks `.specs/` and calls `readSpecs()`) and `startSpecServer(root, port)`; reads files on every request, caches nothing, writes nothing [ARCH-003.14]
+- **Serve UI**: `ui/index.html`, `ui/app.css`, `ui/md.js`, `ui/app.js` and `ui/favicon.svg` (the SpecPilot logo) at the package root (shipped via `package.json` `files`), ported from the approved mockup `specpilot-local.html`; no inline script or style (CSP `default-src 'self'`), no embedded data — it fetches `/api/specs` and `/api/file`; renders spec files with the mockup's markdown renderer (`ui/md.js`, also `require`d by Jest); the server resolves `ui/` from its own install location (`__dirname`), never from cwd [ARCH-003.15]
 
 ## Design Decisions [ARCH-004]
 
@@ -66,6 +68,8 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **IDE File Backfill via Filesystem Detection**: `specpilot backfill` detects existing IDE files without an IDE-selection prompt and appends missing mandate blocks; SKILL.md stale-detected only, not auto-patched; absent files silently skipped [ARCH-004.24]
 - **Migrate Is Legacy-Only**: `specpilot migrate` remains for rare old-structure conversions and should be documented as such; same-structure backfills belong to `specpilot backfill`, not `migrate` [ARCH-004.31]
 - **One Completed-Archive Plan for Validator and Archiver**: `planCompletedArchive(lines)` in `specArchiver.ts` returns the line range to move out of `tasks.md` `## Completed` (plus, for a table, the header + separator lines to repeat in the archive block), or `null`; `archiveTasks()` executes it and `validateLineLimits()` warns if and only if it is non-null, so "validate warns" and "archive acts" cannot disagree (the CD-girishr-033 bug class). Section bounds come from `findSectionBounds()`. Trigger for both shapes is unchanged: section lines (`end - start`) > 25. **List** shape (first `/^\d+\./` line): byte-identical to before — keep the last 20 entry lines. **Table** shape (a `|` row followed by a separator row, used only when no numbered line exists): entries are the body rows; keep `min(20, max(0, 25 - overhead))` rows, where overhead = section lines that are not body rows, so the section ends at ≤ 25 lines; move the oldest (top) rows by position. The bash `archive_tasks()` in the `specpilot-archive` slash command mirrors this line for line, including the TS section-size arithmetic [ARCH-004.32]
+- **Read-Only Local Server (BL-051)**: `specpilot serve` listens on `127.0.0.1` only and never on `0.0.0.0`; a `Host` allowlist (`127.0.0.1:<port>`, `localhost:<port>`) blocks DNS rebinding; `/api/file` is a fixed path allowlist with a `realpath` re-check so a symlink cannot escape the root or the allowlist; no route writes, so no CSRF token until writes arrive in Phase 3 (BL-053). Zero new dependencies: `node:http` + `node:fs` + existing `js-yaml` (project name from `project.yaml`). The server re-reads disk per request instead of caching, so a browser refresh is the Phase 1 reload mechanism (BL-052 adds live reload) [ARCH-004.33]
+- **UI Shows File Text Only**: the Serve UI keeps the mockup's layout, nav, routing, keyboard nav, theme and markdown renderer, but drops every mockup element that was not file content or that implies a write: the first-run screen, open/clone sheet and guided setup (BL-054/BL-055), the "needs you" badges, "in sync" / "out of date" pills, the "From SpecPilot / Yours" split (no file records which files SpecPilot generated), the hand-written "What Goes In Them" mandate list, drag and `Alt`+arrow moves, New Task, Regenerate and Open-in-Editor. Board rows show the whole description (CSS line clamp, not a cut at the first clause). Four renderer fixes against the mockup, each because it changed file text on screen: `[ID]` references keep their brackets; numbered list items show the number written in the file (`<li value>`), not a renumbering; table rows split on the first N−1 pipes like `readSpecs()`; content group headers are not CSS-uppercased. Front matter is shown as its raw block, so no key is dropped. External fonts are not loaded (CSP and ARCH-007.3); the DESIGN.md font stacks fall back to system fonts [ARCH-004.34]
 - **GitHub Username as devPrefix**: `init` and `add-specs` prompt for GitHub username instead of display name; stored as `TemplateContext.author` (used in `contributors: [{{author}}]` front-matter) and written as `team.devPrefix` in generated `project.yaml` to namespace task and prompt IDs (e.g. `CD-{devPrefix}-001`); default obtained via `git config user.name`, falling back to `'your-username'` [ARCH-004.20]
 - **Git Merge Strategy for Spec Files**: `specpilot init` and `specpilot add-specs` generate a `.gitattributes` file at project root with `merge=union` for `.specs/development/prompts*.md`, `.specs/planning/tasks.md`, and `CHANGELOG.md`; if `.gitattributes` already exists, only missing lines are appended; implemented in `IdeConfigGenerator.generateGitAttributes()`, called unconditionally from `SpecGenerator.generateSpecs()` [ARCH-004.21]
 - **devPrefix in Generated ID Conventions**: generated `tasks.md` shows `CD-{{author}}-###` and `## Multi-Dev Notes`; generated `prompts.md` shows `PROMPT-{{author}}-###` [ARCH-004.22]
@@ -83,6 +87,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 - **CLI Framework**: Commander.js [ARCH-005.3]
 - **Template Engine**: Handlebars [ARCH-005.4]
 - **Package Manager**: NPM [ARCH-005.5]
+- **Local Server**: Node.js built-in `node:http` (no web framework) [ARCH-005.6]
 
 ## Data Flow [ARCH-006]
 
@@ -135,13 +140,21 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 4. Claude reads the generated onboarding prompt and executes it in-session to populate spec content, then removes it — no paste-into-an-agent second step
 5. `add-specs` and `migrate` follow the same in-session pattern; the eight `specpilot-*` workflow commands operate exactly as their CLI-generated counterparts (REQ-002.E.7–E.14)
 
+### Serve Flow [ARCH-006.6]
+
+1. User runs `specpilot serve [--port <n>] [--open]` in a folder containing `.specs/`
+2. `startSpecServer()` listens on `127.0.0.1:<port>` (default 4321); `EADDRINUSE` → exit 1 with a message suggesting `--port`
+3. The command prints `http://127.0.0.1:<port>/`; with `--open`, spawns the platform opener (`open` / `xdg-open` / `cmd /c start`) on that fixed URL
+4. Each request: Host check (403) → method check (405) → route: `/` and `/assets/*` from `ui/`; `/api/specs` walks `.specs/` and the Automation folders and returns `readSpecs()` output plus the nav tree; `/api/file?p=` runs the path guard and returns the file as `text/plain`
+5. Ctrl+C closes the server
+
 > **Open question — plugin build mechanism**: REQ-002.G.5 fixes the source of truth as `src/utils` (generate, don't hand-author). The concrete build step — a new `specpilot`-internal generator/npm script (e.g. `build:plugin`) that renders `plugin/commands/*.md`, `plugin/skills/`, and the manifest, extending the existing `slashCommandGenerator.ts` mechanism — is to be designed when the plugin work is scheduled (see BL-048).
 
 ## Assumptions [ARCH-007]
 
 - **Node.js runtime**: Node.js >= 16 is required; the output module format is CommonJS (`"module": "commonjs"` in `tsconfig.json`) [ARCH-007.1]
 - **File paths**: All file path operations use `path.join()` / `path.resolve()` to ensure cross-platform compatibility (macOS, Linux, Windows) [ARCH-007.2]
-- **No network at runtime**: All templates are built-in; no HTTP calls are made during `init`, `add-specs`, or `validate` [ARCH-007.3]
+- **No network at runtime**: All templates are built-in; no HTTP calls are made during `init`, `add-specs`, or `validate`. `specpilot serve` opens a listener on the loopback interface only and makes no outbound requests; its UI loads nothing from outside the local server [ARCH-007.3]
 - **Single project root**: The CLI operates on a single root directory; monorepo support is out of scope [ARCH-007.4]
 - **Write access**: The user has write permission to the target project directory [ARCH-007.5]
 - **TypeScript compilation**: Source is compiled with `tsc` to `dist/`; the published package ships the compiled JS, not the TS source [ARCH-007.6]

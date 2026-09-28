@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-09-27
-version: 2.7
+lastUpdated: 2026-09-28
+version: 2.8
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -10,7 +10,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 
 ## Current Coverage [TESTS-001.1]
 
-**9 test suites, 238 tests, all passing** (Jest) — 216 before BL-050, +10 in `specReader.test.ts` (BL-050), +12 in `specArchiver.test.ts` (BL-057)
+**10 test suites, 309 tests, all passing** (Jest) — 216 before BL-050, +10 in `specReader.test.ts` (BL-050), +12 in `specArchiver.test.ts` (BL-057), +71 in `specServer.test.ts` (BL-051)
 
 | Suite                 | File                          | Tests | Covers                                                                                           |
 | --------------------- | ----------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
@@ -23,6 +23,7 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 | Spec Backfiller       | `specBackfiller.test.ts`      | 50    | `backfillProjectYaml()` (3 insertion strategies), `backfillCopilotInstructions()` (created/skipped/updated), `backfillTasksMd()` (devPrefix convention line + Multi-Dev Notes), `ensureDevPrefix`/`writeDevPrefix`/`readContributorsFirst`, dry-run for all paths (CS-060); IDE file backfill: cursor/claude/windsurf/antigravity mandate fingerprinting, SKILL.md structural fingerprint + stale detection, absent files skipped, dry-run (CS-061); slash command backfill: no signals → empty result, single/multiple IDE signal detection, dry-run reports without writing, real writes land at the correct per-IDE path, never overwrites an existing command file (CS-088) |
 | Slash Command Generator | `slashCommandGenerator.test.ts` | 12  | Per-IDE routing/path/frontmatter (Claude Code, Cursor, Windsurf, Antigravity, GitHub Copilot), Codex reference-copy + one-time console notice, empty-list no-op (CS-079), all 8 commands present in `SLASH_COMMANDS` by default including `argument-hint`/`$ARGUMENTS` for `specpilot-refine` (CS-080–084), `allowed-tools` + embedded bash script + Copilot limitation note for `specpilot-validate` (CS-085), `allowed-tools` + branch guard + archive thresholds for `specpilot-archive` (CS-086); the extracted `archive_tasks()` bash is exercised in `specArchiver.test.ts` (BL-057), `allowed-tools` + fingerprint functions + devPrefix check + no-stray-backslash regression for `specpilot-backfill` (CS-087) |
 | Spec Reader           | `specReader.test.ts`          | 10    | Pure parse of spec contents: front-matter metadata, `.yaml` leading-comment metadata, `tasks.md` Backlog / Current Sprint / Completed rows from a real-shaped fixture (incl. stray `_(empty …)_` line), malformed table row, missing section, section after `## Completed`, byte-for-byte cell round-trip |
+| Spec Server           | `specServer.test.ts`          | 71    | Path guard (traversal, absolute, NUL, non-allowlisted file, symlink escaping the root, symlink escaping the allowlist), Host check (DNS rebinding), `/api/specs` shape against this repo's own `.specs/`, every task row byte-identical to its `tasks.md` line; `.git/HEAD` branch read incl. worktree `.git` files and detached HEAD; UI markdown renderer (`ui/md.js`) escapes raw HTML in every block type, keeps `[ID]` brackets and file list numbers, bounds table cells; integration on port 0 incl. the favicon route and the page's icon link: each route's status and security headers, 405 for other methods, 404 for unknown paths, 403 for a foreign Host, port-in-use error |
 
 ## Coverage Areas [TESTS-002]
 

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-09-29 (v2.3.0 shipped, CD-girishr-043 updated)
-version: 5.61
+lastUpdated: 2026-09-29 (BL-059 and BL-060 added as 2.3.0 follow-ups)
+version: 5.62
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -45,6 +45,8 @@ Notes
 | BL-054 | `specpilot serve` Phase 4: multiple projects; a project registry outside the repo (a new decision against ARCH-007.4 and ARCH-007.5); one server vs one per folder. |
 | BL-055 | `specpilot serve` Phase 5: guided setup in the browser; decide between the CLI's own question set now and BL-032 spec-core first. |
 | BL-058 | Generated `specpilot-*` command files cannot be updated in existing projects: `specpilot backfill` never overwrites an existing command file (CS-088), so a fix to a command body, such as BL-057's bash `archive_tasks()` fix, never reaches projects that already have the file. Needs a way to tell a SpecPilot-generated, unmodified file from a user-edited one before offering to replace it. Codex copies are also unreachable: backfill skips Codex, and the user's working copy lives in ~/.codex/prompts/, outside the repo. |
+| BL-059 | Announce 2.3.0: add `specpilot serve` docs and a 2.3.0 release entry to the website (`SpecPilotWebsite-v2`), then a LinkedIn post with a short screen recording of live reload. |
+| BL-060 | Review `COMPLETED_LINE_LIMIT`: a table-shaped `## Completed` fits only ~17 rows in 25 lines, so every completion trips the validate warning. Consider raising it, with a test and a spec update (REQ-002.F.7). |
 
 ## Current Sprint
 

@@ -235,3 +235,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-29 15:59:27
+
+| # | ID | Description |
+|---|---|---|
+| 120 | [CD-girishr-029] [CS-086] [BL-045] | `specpilot-archive` slash command — seventh `SLASH_COMMANDS` entry: `{ name: 'archive', description: 'Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard', allowedTools: ['Bash', 'Read', 'Edit'], body }`; body embeds a fully mechanical bash script (extracted and executed end-to-end against synthetic fixtures before committing, confirmed byte-identical to the version tested) that mirrors `specArchiver.ts`'s thresholds (`COMPLETED_LINE_LIMIT=25`/`COMPLETED_KEEP_ENTRIES=20` for `tasks.md`, `PROMPTS_LINE_LIMIT=100`/`PROMPTS_KEEP_LINES=80` for `prompts.md`) and moves oldest lines/entries into `tasks-archive.md`/`prompts-archive.md` under a timestamped `## Archived on <UTC datetime>` header, IDs preserved verbatim since content is moved not rewritten; includes the same branch guard as `archive.ts` (`git rev-parse --abbrev-ref HEAD`, warns + requires `y` confirmation off `main`/`master`, mirrors ARCH-004.19); mirrors CLI `specpilot archive --dry-run --force` (REQ-002.A.8); 1 new test (202 → 203 total) |
+
+---
+

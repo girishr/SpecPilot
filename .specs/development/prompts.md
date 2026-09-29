@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-28
-version: 2.30
+version: 2.31
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- `fix/prompts-archive-order` fast-forwarded into `main`; PROMPT-002.7 moved above PROMPT-002.2 (`docs(prompts): fix entry order`); `specpilot archive` then moved the 25 oldest entries (PROMPT-002.0.0.9 to PROMPT-002.8) byte for byte; BL-061 moved to Completed as CD-girishr-045; no version bump, tag or publish (September 29, 2026) [PROMPT-002.0.0.51]
 - BL-061 implemented after `yes, proceed` (abbreviated months incl. "Sept" with/without a dot; both bugs named in CHANGELOG; "mixed → refuse" kept): `planPromptsArchive()` + `lastDate()` in `specArchiver.ts` shared with `validateLineLimits()`, `ArchiveResult.refused` printed by `specpilot archive`, bash `archive_prompts()` rewritten to match (a macOS awk quirk, `substr(s, 0, 1)` returning the first character, was caught by the table parity test), two `specpilot-archive` command files regenerated; 43 new tests (402 → 445; incl. bash parity for files with no trailing newline), 7 old prompts fixtures changed to dated logs; this repo is refused until PROMPT-002.7 is moved above PROMPT-002.2 (September 29, 2026) [PROMPT-002.0.0.50]
 - BL-061 (prompts archive order) Spec-First gate, specs only, on `fix/prompts-archive-order`: BL-061 added and moved to Current Sprint; REQ-002.F.7 and E.13 amended, ARCH-003.9 amended, ARCH-004.37, api.yaml archive behaviour, tests.md, CTX-003.29, CHANGELOG `[Unreleased]` Fixed; this log has one date inversion (PROMPT-002.2 October 3, 2025 above PROMPT-002.7 2025-10-04), which the new rule refuses; awaiting `yes, proceed` (September 29, 2026) [PROMPT-002.0.0.49]
 - `feat/serve-p3` fast-forwarded into `main`; BL-053 moved to Completed as CD-girishr-044; `specpilot archive` run for `tasks.md` (oldest Completed row moved); the `prompts.md` archive was undone because the archiver moved the 22 newest entries of this newest-first log, and is deferred to BL-061; no version bump, tag or publish (September 29, 2026) [PROMPT-002.0.0.48]
@@ -71,31 +72,6 @@ For full project context, read .specs/project/project.yaml.
 - CS-054: Branch warning for `specpilot archive` — `archiveCommand()` detects branch via `execSync`, warns + prompts `[y/N]` if not `main`/`master`, `--force` bypasses; committed (April 26, 2026) [PROMPT-002.0.0.12]
 - CS-056: Lower archive thresholds — `PROMPTS_LINE_LIMIT` 300→100, `COMPLETED_LINE_LIMIT` 150→25; tests updated; `specpilot archive` run on SpecPilot's own spec files; committed `fd10048` (April 26, 2026) [PROMPT-002.0.0.11]
 - CS-055: Added to Current Sprint tasks.md — backfill `tasks.md` devPrefix ID conventions in existing projects by reading `team.devPrefix` from `project.yaml` in `specBackfiller.ts`; no prompt needed (April 26, 2026) [PROMPT-002.0.0.10]
-- CS-053: Mandatory short handle prompt in `init.ts` and `add-specs.ts`; `os.userInfo().username` for `--no-prompts`; loop until non-empty; `generateTasksMd()` updated with `CD-{devPrefix}-###` convention + `## Multi-Dev Notes`; `generatePromptsMd()` updated with prefixed ID examples; committed `c9875db` (April 26, 2026) [PROMPT-002.0.0.9]
-- CS-052: Generate `.gitattributes` with `merge=union` for shared spec files; committed `bdb2762` (April 26, 2026) [PROMPT-002.0.0.8]
-- CS-051: GitHub username prompt + `team.devPrefix` in generated `project.yaml`; committed `2aacf28` (April 26, 2026) [PROMPT-002.0.0.7]
-- CS-050: Add `specpilot backfill` (alias `bf`) command — fingerprint-based detection for missing mandates in `project.yaml` and `copilot-instructions.md`; committed `715ab3d` (April 26, 2026) [PROMPT-002.0.0.6]- CS-040: Add “never implement unless asked” mandate to copilot-instructions.md, project.yaml, templateEngine.ts (March 7, 2026) [PROMPT-002.0.0.5]
-- CS-039: Add “read before describe” mandate to copilot-instructions.md, project.yaml, templateEngine.ts (March 7, 2026) [PROMPT-002.0.0.4]
-- CS-022 + CS-030: Closed as won't do — status: active on all files is noise; field used organically when non-active (March 7, 2026) [PROMPT-002.0.0.3]
-- CS-021: Add `## Assumptions [ARCH-007]` section to `architecture/architecture.md` (v1.5→1.6) (March 7, 2026) [PROMPT-002.0.0.2]
-- CS-019: Archive prompts.md (447→56 lines) to prompts-archive.md; add Archive Policy + 150-line note to tasks.md Completed (March 7, 2026) [PROMPT-002.0.0.1]
-- CS-018: Rewrite `project/requirements.md` to v1.3 — add IDE config, agent config, specify command, Assumptions section (March 7, 2026) [PROMPT-002.0.0]
-- CS-008: IDE Workspace Settings - Windsurf/Antigravity/Kiro Implementation (February 7, 2026) [PROMPT-002.0]
-- CS-008: IDE Workspace Settings - Cursor Implementation (February 7, 2026) [PROMPT-002.0.1]
-- CS-008: IDE Workspace Settings - VSCode Implementation (February 7, 2026) [PROMPT-002.0.2]
-- CS-011: Fix Generator for Application Structure Display (October 18, 2025) [PROMPT-002.0.3]
-- CS-009: Enhanced add-specs Command Implementation (October 12-16, 2025) [PROMPT-002.1]
-- CS-005: Developer Name Prompt Implementation (October 12, 2025) [PROMPT-002.0.4]
-- CS-004: Existing .specs Folder Detection (October 12, 2025) [PROMPT-002.0.5]
-- Version 1.1.2 Release & Git Mandates (October 12, 2025) [PROMPT-002.0.6]
-- Implement CS-008: .specs Structure Optimization & Metadata (October 6, 2025) [PROMPT-002.1.1]
-- Specification Update (2025-10-04) [PROMPT-002.7]
-- Language Support Limitation & Java Removal (October 3, 2025) [PROMPT-002.2]
-- Publish SpecPilot v1.1.0 to NPM [PROMPT-002.3]
-- Add Metadata Mandate to SpecPilot Templates [PROMPT-002.4]
-- Add Metadata Update Mandate [PROMPT-002.5]
-- Add Spec Update Mandate to SpecPilot [PROMPT-002.6]
-- Project Initialization (September 14, 2025) [PROMPT-002.8]
 
 ## Archive Policy
 

@@ -89,12 +89,12 @@ For full project context, read .specs/project/project.yaml.
 - CS-004: Existing .specs Folder Detection (October 12, 2025) [PROMPT-002.0.5]
 - Version 1.1.2 Release & Git Mandates (October 12, 2025) [PROMPT-002.0.6]
 - Implement CS-008: .specs Structure Optimization & Metadata (October 6, 2025) [PROMPT-002.1.1]
+- Specification Update (2025-10-04) [PROMPT-002.7]
 - Language Support Limitation & Java Removal (October 3, 2025) [PROMPT-002.2]
 - Publish SpecPilot v1.1.0 to NPM [PROMPT-002.3]
 - Add Metadata Mandate to SpecPilot Templates [PROMPT-002.4]
 - Add Metadata Update Mandate [PROMPT-002.5]
 - Add Spec Update Mandate to SpecPilot [PROMPT-002.6]
-- Specification Update (2025-10-04) [PROMPT-002.7]
 - Project Initialization (September 14, 2025) [PROMPT-002.8]
 
 ## Archive Policy

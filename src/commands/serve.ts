@@ -10,6 +10,7 @@ const packageJson = require('../../package.json');
 export interface ServeOptions {
   port?: string;
   poll?: string;
+  readOnly?: boolean;
   open?: boolean;
 }
 
@@ -52,7 +53,7 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
 
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(root, port, packageJson.version, { pollMs, log: m => logger.warn(m) });
+    handle = await startSpecServer(root, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, log: m => logger.warn(m) });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -63,8 +64,14 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
   }
 
   const url = `http://127.0.0.1:${port}`;
-  console.log(chalk.green(`SpecPilot is serving ${root} read-only at ${url}`));
-  console.log(chalk.gray('Open pages update when a spec file changes. Press Ctrl+C to stop.'));
+  console.log(chalk.green(`SpecPilot is serving ${root} at ${url}`));
+  console.log(
+    chalk.gray(
+      options.readOnly
+        ? 'Read-only: nothing will be written. Open pages update when a spec file changes. Press Ctrl+C to stop.'
+        : 'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+    ),
+  );
   if (options.open) openBrowser(url, logger);
 
   process.once('SIGINT', () => {

@@ -76,7 +76,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
 | `refine [desc]`         | Refine project specifications                                     |
-| `serve`                 | Serve a read-only local web UI over the current project's `.specs/` |
+| `serve`                 | Serve a local web UI over the current project's `.specs/` (task moves unless `--read-only`) |
 
 > **Tip — command aliases:** All commands have a short alias you can use instead of the full name.
 > `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add` &nbsp;·&nbsp; `backfill` → `bf`
@@ -94,7 +94,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`   | `--dry-run` · `--force`                                                             |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
-| `serve`     | `--port` · `--poll` · `--open`                                                      |
+| `serve`     | `--port` · `--poll` · `--read-only` · `--open`                                      |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 
@@ -116,7 +116,7 @@ specpilot validate --fix
 
 ## specpilot serve
 
-Serve a read-only local web UI over the current project's `.specs/`. Run it from the project root (the folder that contains `.specs/`); press Ctrl+C to stop.
+Serve a local web UI over the current project's `.specs/`, where you can also move tasks between Backlog and Current Sprint. Run it from the project root (the folder that contains `.specs/`); press Ctrl+C to stop.
 
 ```bash
 specpilot serve                  # http://127.0.0.1:4321
@@ -127,13 +127,15 @@ specpilot serve --port 5000 --open
 | ------------- | ------- | ---------------------------------------------------------------------------------------- |
 | `--port <n>`  | `4321`  | Port to listen on (127.0.0.1 only)                                                       |
 | `--poll <ms>` | `1000`  | Change-detection interval in ms (minimum 250); polling runs only while a page is open    |
+| `--read-only` |        | No task moves: the UI only reads, with no drag handles and no write route                |
 | `--open`      |         | Open the UI in the default browser                                                       |
 
-- **Read-only**: re-reads files on every request and writes nothing.
+- **Task moves**: drag a row, or use `Alt+Up/Down` to reorder and `Alt+Left/Right` to move between Backlog and Current Sprint. A move changes exactly one line of `.specs/planning/tasks.md` and nothing else, and offers Undo; Completed rows do not move. If the file changed on disk since the page loaded, the move is refused and the page redraws. Start with `--read-only` to turn moves off.
+- **Nothing else is written**: `.specs/planning/tasks.md` is the only file the server can change; everything else is read on every request.
 - **Loopback only**: binds 127.0.0.1 only; rejects any Host header other than `127.0.0.1:<port>` or `localhost:<port>` (403).
 - **Live reload**: polls allowlisted files with `stat()` every `--poll` ms while a page is open, and pushes changed paths on `/api/events`; open pages update in place.
 - **What it shows**: `.specs/`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.claude/commands/`, `.claude/skills/` and `.github/prompts/`, as the files' own text.
-- **Limits**: paths through symlinked folders, hidden files and `node_modules` are not shown.
+- **Limits**: paths through symlinked folders, hidden files and `node_modules` are not shown. Task moves are refused, not approximated, when they cannot change exactly one line: a section with no table yet (a fresh project's `[TODO]`), a move involving the file's last line when it has no trailing newline, and a `tasks.md` that is not valid UTF-8. If an editor saves `tasks.md` in the same instant the server writes it, that save can be overwritten; git keeps it recoverable.
 
 ## Supported Languages & Frameworks
 

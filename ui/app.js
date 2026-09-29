@@ -4,7 +4,13 @@
 (function(){
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const toastEl=$('#toast');let toastT;
-const toast=m=>{toastEl.textContent=m;toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),2600);};
+const toast=(m,action)=>{
+  toastEl.textContent=m;toastEl.classList.toggle('has-action',!!action);
+  if(action){const b=document.createElement('button');b.type='button';b.className='tact';b.textContent=action.label;b.onclick=()=>{toastEl.classList.remove('show');action.fn();};toastEl.appendChild(b);}
+  toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),action?8000:2600);};
+/* Task moves (BL-053) are on only when the server put a token in the page (not with --read-only). */
+const TOKEN=(document.querySelector('meta[name="specpilot-token"]')||{}).content||null;
+const MOVABLE={backlog:true,currentSprint:true};
 const chev='<svg class="ico chev" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg>';
 
 /* theme: dark by default, light is a per-viewer toggle */
@@ -128,7 +134,8 @@ function rowsOf(col){
   return col==='completed'?items.reverse():items;
 }
 function taskRow({t,i},col){
-  return `<button type="button" class="row act" data-col="${col}" data-i="${i}">
+  const mv=TOKEN&&MOVABLE[col];
+  return `<button type="button" class="row act" data-col="${col}" data-i="${i}"${mv?' draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"':''}>
     <span class="st ${DOT[col]}" aria-hidden="true"></span>
     <div class="body"><div class="ttl clamp">${col==='completed'?`<span class="num" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span>${mdi(t.description)}</div></div>
     <div class="trail">${chev}</div>
@@ -175,6 +182,7 @@ function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidd
 function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
+  if(TOKEN)bindMoves();
   $$('[data-more]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(b.dataset.more==='completed')showAllDone=true;else showAllBacklog=true;renderTasks();});
   $$('[data-disc]').forEach(b=>b.onclick=e=>{e.stopPropagation();const g=$('#gDone');g.classList.toggle('closed');b.setAttribute('aria-expanded',!g.classList.contains('closed'));});
 }
@@ -274,6 +282,60 @@ document.addEventListener('keydown',e=>{
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$((mode==='board'?'#boardMode':'#listMode')+' .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
 });
 
+/* ---------------- task moves (BL-053) ----------------
+   A move is one line of planning/tasks.md cut and pasted unchanged; the server does it and
+   answers with the new file hash and the fresh payload. Completed rows never move. */
+let dragging=null,moving=false;
+function bindMoves(){
+  $$('#v-board .row[draggable="true"]').forEach(r=>{
+    r.ondragstart=e=>{dragging={col:r.dataset.col,i:+r.dataset.i};e.dataTransfer.setData('text/plain',DATA.tasks[dragging.col][dragging.i].id);e.dataTransfer.effectAllowed='move';r.classList.add('drag');};
+    r.ondragend=()=>{r.classList.remove('drag');dragging=null;$$('.gl.drop').forEach(g=>g.classList.remove('drop'));};
+    r.onkeydown=e=>{
+      if(!e.altKey||e.metaKey||e.ctrlKey)return;
+      const col=r.dataset.col,i=+r.dataset.i,n=DATA.tasks[col].length;
+      const go2={ArrowUp:i>0&&[col,i-1],ArrowDown:i<n-1&&[col,i+1],ArrowRight:col==='backlog'&&['currentSprint',DATA.tasks.currentSprint.length],ArrowLeft:col==='currentSprint'&&['backlog',DATA.tasks.backlog.length]}[e.key];
+      if(go2===undefined)return;
+      e.preventDefault();
+      if(go2)move(col,i,go2[0],go2[1]);
+    };
+  });
+  $$('#v-board .gl[data-col="backlog"],#v-board .gl[data-col="currentSprint"]').forEach(g=>{
+    g.ondragover=e=>{if(!dragging)return;e.preventDefault();e.dataTransfer.dropEffect='move';g.classList.add('drop');};
+    g.ondragleave=e=>{if(!g.contains(e.relatedTarget))g.classList.remove('drop');};
+    g.ondrop=e=>{
+      if(!dragging)return;e.preventDefault();g.classList.remove('drop');
+      const to=g.dataset.col,src=dragging;dragging=null;
+      // Position among the target's rows once the dragged row is out of the way.
+      const others=DATA.tasks[to].map((_,j)=>j).filter(j=>!(to===src.col&&j===src.i));
+      const over=e.target.closest&&e.target.closest('.row[data-col]');
+      let at=others.length;
+      if(over&&over.dataset.col===to){const j=+over.dataset.i,k=others.indexOf(j);if(k>=0){const b=over.getBoundingClientRect();at=k+(e.clientY>b.top+b.height/2?1:0);}}
+      move(src.col,src.i,to,at);
+    };
+  });
+}
+async function move(col,i,toSection,toIndex,isUndo){
+  const t=DATA.tasks[col][i];if(!t||moving)return;
+  moving=true;
+  let r,body={};
+  try{
+    r=await fetch('/api/tasks/move',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({id:t.id,toSection,toIndex})});
+    body=await r.json().catch(()=>({}));
+  }catch(e){moving=false;toast('The server did not answer. Nothing was moved.');return;}
+  moving=false;
+  if(r.status===200){
+    if(toSection==='backlog'&&toIndex>=6)showAllBacklog=true;
+    await apply(body.specs,['.specs/planning/tasks.md']);
+    const j=DATA.tasks[toSection].findIndex(x=>x.id===t.id);
+    const el=$(`${mode==='board'?'#boardMode':'#listMode'} .row[data-col="${toSection}"][data-i="${j}"]`);if(el)el.focus();
+    const msg=col===toSection?`${t.id} moved within ## ${COLS[col]} in planning/tasks.md`:`${t.id} moved from ## ${COLS[col]} to ## ${COLS[toSection]} in planning/tasks.md`;
+    toast(msg,isUndo?null:{label:'Undo',fn:()=>{const k=DATA.tasks[toSection].findIndex(x=>x.id===t.id);if(k>=0)move(toSection,k,body.from,body.fromIndex,true);}});
+  }else if(r.status===409){
+    if(body.specs)await apply(body.specs,null);
+    toast(body.error||'planning/tasks.md changed on disk since this page loaded. The move was not made.');
+  }else toast(body.error||`The move was not made (HTTP ${r.status}).`);
+}
+
 /* ---------------- live reload (BL-052) ----------------
    On a change event: re-fetch, redraw in place. Route, scroll, open inspector, selected row
    and focus stay where they were. If the server is gone, the last content stays on screen. */
@@ -303,6 +365,12 @@ function refresh(paths){refreshing=refreshing.then(()=>redraw(paths)).catch(()=>
 async function redraw(paths){
   let d;
   try{const r=await fetch('/api/specs',{cache:'no-store'});if(!r.ok)return;d=await r.json();}catch(e){return;} // server gone: keep what is shown
+  // The poller's echo of a move this page just made: same tasks.md hash, nothing to redraw.
+  if(paths&&paths.length&&paths.every(p=>p==='.specs/planning/tasks.md')&&DATA&&DATA.tasks&&d.tasks&&d.tasks.sha256===DATA.tasks.sha256)return;
+  await apply(d,paths);
+}
+/* Draw a fresh /api/specs payload in place: same route, scroll, inspector, selection and focus. */
+async function apply(d,paths){
   (paths||Object.keys(fileCache)).forEach(p=>{delete fileCache[p];});
   const key=focusKey(document.activeElement);
   const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;

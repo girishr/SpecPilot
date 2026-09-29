@@ -102,11 +102,14 @@ function parseMeta(lines: string[]): SpecMeta {
   return meta;
 }
 
+const TASK_SECTIONS = { backlog: ['## Backlog', 2], currentSprint: ['## Current Sprint', 2], completed: ['## Completed', 3] } as const;
+type TaskSection = keyof typeof TASK_SECTIONS;
+
 function parseTasks(lines: string[]): TasksData {
   const malformed: string[] = [];
   const rows = (heading: string, cols: number): string[][] => {
     const b = findSectionBounds(lines, heading);
-    return b ? tableRows(lines, b, cols, malformed) : [];
+    return b ? tableRows(lines, b, cols, malformed).rows.map(r => r.cells) : [];
   };
   return {
     backlog: rows('## Backlog', 2).map(([id, description]) => ({ id, description })),
@@ -116,14 +119,47 @@ function parseTasks(lines: string[]): TasksData {
   };
 }
 
+export interface TaskRowLines {
+  /** Each parsed row's ID cell and its index in `content.split('\n')`, in file order. */
+  rows: { id: string; line: number }[];
+  /** Index of the table's separator row (`|---|---|`), or null when the section has no table. */
+  separator: number | null;
+}
+
+/**
+ * Where tasks.md's rows sit, for writers that move whole lines (BL-053): the same walk as
+ * readSpecs(), reporting line indices instead of cells. Sections that are absent are null.
+ */
+export function taskRowLines(content: string): Record<TaskSection, TaskRowLines | null> {
+  const lines = content.split('\n');
+  const out = {} as Record<TaskSection, TaskRowLines | null>;
+  for (const [key, [heading, cols]] of Object.entries(TASK_SECTIONS) as [TaskSection, readonly [string, number]][]) {
+    const b = findSectionBounds(lines, heading);
+    if (!b) {
+      out[key] = null;
+      continue;
+    }
+    const t = tableRows(lines, b, cols, []);
+    out[key] = { rows: t.rows.map(r => ({ id: cols === 3 ? r.cells[1] : r.cells[0], line: r.line })), separator: t.separator };
+  }
+  return out;
+}
+
 const SEPARATOR = /^\|[\s:|-]+$/;
 
 // Splits on the first `cols - 1` pipes only; the last cell takes the rest of the row,
 // because descriptions contain literal `|` inside backticks (e.g. `'rest' | 'cli'`).
-function tableRows(lines: string[], { start, end }: SectionBounds, cols: number, malformed: string[]): string[][] {
-  const out: string[][] = [];
+function tableRows(
+  lines: string[],
+  { start, end }: SectionBounds,
+  cols: number,
+  malformed: string[],
+): { rows: { cells: string[]; line: number }[]; separator: number | null } {
+  const out: { cells: string[]; line: number }[] = [];
+  let separator: number | null = null;
   for (let i = start + 1; i < end; i++) {
     const line = lines[i].trim();
+    if (SEPARATOR.test(line) && separator === null) separator = i;
     if (!line.startsWith('|') || SEPARATOR.test(line)) continue;
     if (SEPARATOR.test(lines[i + 1]?.trim() ?? '')) continue; // header row
     let rest = line.slice(1);
@@ -140,7 +176,7 @@ function tableRows(lines: string[], { start, end }: SectionBounds, cols: number,
       continue;
     }
     cells.push(rest.trim());
-    out.push(cells);
+    out.push({ cells, line: i });
   }
-  return out;
+  return { rows: out, separator };
 }

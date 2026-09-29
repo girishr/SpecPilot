@@ -297,3 +297,10 @@ input.txt{width:100%}
 /* Group headers in the content and inspector carry file text (section headings, paths):
    show it as written instead of uppercasing it. Sidebar group labels stay uppercase. */
 .content .gl .gh,.insp .gl .gh{text-transform:none;letter-spacing:.02em}
+/* Task moves (BL-053): drag state, drop target, and the toast's Undo. */
+.row[draggable="true"]{cursor:grab}
+.row[draggable="true"]:active{cursor:grabbing}
+.row.drag{opacity:.4}
+.gl.drop .box{border-color:var(--focus);box-shadow:inset 0 0 0 1px var(--focus)}
+.toast.has-action.show{pointer-events:auto}
+.toast .tact{margin-left:12px;color:var(--ground);font-weight:600;text-decoration:underline;text-underline-offset:2px}

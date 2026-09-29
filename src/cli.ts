@@ -111,9 +111,10 @@ program
 // Serve command
 program
   .command('serve')
-  .description('Serve a read-only local web UI over this project\'s .specs/ (127.0.0.1 only)')
+  .description('Serve a local web UI over this project\'s .specs/ (127.0.0.1 only; task moves unless --read-only)')
   .option('-p, --port <number>', 'Port to listen on', '4321')
   .option('--poll <ms>', 'How often to check spec files for changes, in ms (minimum 250)', '1000')
+  .option('--read-only', 'Turn off task moves: the page only reads')
   .option('--open', 'Open the UI in your default browser')
   .action(serveCommand);
 

@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
 lastUpdated: 2026-09-29
-version: 2.6
+version: 2.7
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,7 +10,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (current version v2.3.0: `specpilot serve` read-only UI with live reload, BL-051/BL-052; next serve phase BL-053)
+- **Phase**: Active Development (current version v2.3.0; BL-053 `specpilot serve` task moves, the first write path, in progress on `feat/serve-p3`, target 2.4.0)
 - **Status**: Production-ready with continuous enhancements
 - **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4), `specpilot serve` read-only local UI with live reload (v2.3.0)
 - **Next Steps**: See tasks.md Current Sprint
@@ -44,6 +44,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 - **Validator and archiver share one Completed plan (BL-057)**: validate said "run `specpilot archive`" on this repo while archive did nothing, because the table-shaped Completed section had no numbered lines. Fixing the archiver alone would not have closed it: keeping 20 rows leaves 28 section lines (8 non-row lines: heading, 2 blanks, 2 blockquotes, header, separator, and the trailing `""` that `split('\n')` yields), so validate would warn straight after archiving. Rather than two measures that must be kept equal by hand, `validateLineLimits()` calls `planCompletedArchive()` and warns only when it would move something; for tables the keep count is sized so the section lands at ≤ 25 lines. List behaviour is left byte-identical because other projects rely on it [CTX-003.25]
 - **Serve UI shows file text only (BL-051)**: the approved mockup mixed file content with hand-written analysis — "needs you" badges, "in sync" / "out of date" pills, a "From SpecPilot / Yours" split that no file records (generated command files carry no marker), and a "What Goes In Them" list whose eight bullets are not this repo's `rules.critical`. The served UI keeps the mockup's layout and interactions but only shows what `readSpecs()` and the files say, raw text where parsing fails; board rows clamp with CSS instead of cutting at the first clause. The page carries no inline code and no external fonts, because `default-src 'self'` forbids both [CTX-003.26]
 - **Live reload polls, and stays silent (BL-052)**: polling `stat()` over the allowlisted set instead of `fs.watch`, because recursive watch is unreliable on Linux before Node 20 and polling a few dozen files is cheap; inode joins mtime and size because an atomic save can keep both. The page gains no connection indicator or "updated" marker: those would be states the files do not contain [CTX-003.27]
+- **A task move is a line move (BL-053)**: the server never re-renders the table; it removes one line and inserts the identical line, so the diff is one line and hand formatting survives. Backlog and Current Sprint share `ID | Description`, and the file's own Notes keep the BL ID when a row moves to Current Sprint, so no cell changes. When a move cannot keep every other byte (a section with no table, or a row that is the file's last line without a trailing newline) it is refused, not approximated [CTX-003.28]
 
 ## Established Patterns [CTX-004]
 

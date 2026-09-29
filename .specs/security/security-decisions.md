@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-09-28
-version: 1.5
+lastUpdated: 2026-09-29
+version: 1.6
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -88,7 +88,7 @@ This file records security-related architectural and implementation decisions ma
 
 - **Date**: 2026-09-28
 - **Decision**: Listen on `127.0.0.1` only; reject any `Host` other than `127.0.0.1:<port>` / `localhost:<port>` with 403; serve files only from a fixed allowlist (`.specs/**`, `CLAUDE.md`, `AGENTS.md`, `.claude/commands/**`, `.claude/skills/**`, `.github/copilot-instructions.md`, `.github/prompts/**`) after rejecting `..`, absolute paths, NUL, hidden and `node_modules` segments below an allowlisted folder and symlinked folders on the way, and after checking the `realpath` stays inside both the root and the allowlist (BL-052 aligned these rules with the live-reload scanner, so what is served is exactly what is watched); send `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff` and `Cache-Control: no-store` on every response and no CORS headers; expose no write route.
-- **Rationale**: A local server is reachable by every web page the user visits. Loopback binding stops other machines; the Host check stops DNS rebinding; the allowlist plus `realpath` stops traversal and symlink escape; the CSP limits the damage of any rendering bug; no CORS keeps responses opaque to other origins. With no writes there is nothing to forge, so a CSRF token would be dead code until Phase 3.
+- **Rationale**: A local server is reachable by every web page the user visits. Loopback binding stops other machines; the Host check stops DNS rebinding; the allowlist plus `realpath` stops traversal and symlink escape; the CSP limits the damage of any rendering bug; no CORS keeps responses opaque to other origins. With no writes there was nothing to forge in Phase 1; the Phase 3 write route adds the token (SEC-004.10).
 - **Alternatives considered**:
   - A per-session token on every request — deferred to Phase 3 (BL-053), where the first write route needs one anyway.
   - Serving the whole project root — rejected: the UI needs only specs and generated instruction files; source and secrets stay unreachable.
@@ -106,6 +106,17 @@ This file records security-related architectural and implementation decisions ma
   - Pushing file content in events — rejected: widens what the stream exposes and duplicates `/api/file`.
 - **Reference**: SEC-002.5 (g), REQ-002.H.8, ARCH-004.35
 
+### [SEC-004.10] Task moves: CSRF token + Origin + JSON-only, one write-allowlisted file, atomic replace
+
+- **Date**: 2026-09-29
+- **Decision**: `POST /api/tasks/move` is the only write route. It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3.
+- **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable.
+- **Alternatives considered**:
+  - SameSite cookies — rejected: localhost cookies are shared across ports and the page has no login; a header token is simpler and not sent automatically.
+  - Accepting a full new `tasks.md` from the client — rejected: turns the endpoint into an arbitrary-text writer.
+  - Merging on a hash mismatch — rejected: silent merges of a hand-edited file are how edits get lost; 409 and a redraw are explicit.
+- **Reference**: SEC-002.5 (f, h), REQ-002.H.10, REQ-002.H.11, ARCH-004.36
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
@@ -114,4 +125,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-09-28_
+_Last updated: 2026-09-29_

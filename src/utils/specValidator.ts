@@ -3,6 +3,39 @@ import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 import { planCompletedArchive } from './specArchiver';
 
+// ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
+// run exactly what `specpilot validate` runs, on content that is not on disk yet.
+
+const TASKS_STATUS_WARNING = 'tasks.md should track task status (In Progress, Completed, etc.)';
+const TASKS_CROSS_REFS = ['planning/roadmap.md', 'project/requirements.md', 'project/project.yaml'];
+
+function tasksStatusTracked(content: string): boolean {
+  return content.includes('In Progress') || content.includes('in-progress') || content.includes('Completed') || content.includes('completed');
+}
+
+function hasFrontMatter(content: string): boolean {
+  return /^---\n[\s\S]*?\n---/m.test(content);
+}
+
+/** The refs whose file name does not appear in the content (checked by filename presence). */
+function missingCrossRefs(content: string, refs: string[]): string[] {
+  return refs.filter(ref => !content.includes(ref.split('/').pop()!));
+}
+
+function tasksCompletedLimitWarning(): string {
+  return `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`;
+}
+
+/** Everything `specpilot validate` reports about tasks.md's content, worded as it words it. */
+export function tasksChecks(content: string): string[] {
+  const out: string[] = [];
+  if (!tasksStatusTracked(content)) out.push(TASKS_STATUS_WARNING);
+  if (!hasFrontMatter(content)) out.push('planning/tasks.md is missing YAML front-matter metadata.');
+  for (const ref of missingCrossRefs(content, TASKS_CROSS_REFS)) out.push(`planning/tasks.md should reference ${ref}`);
+  if (planCompletedArchive(content.split('\n'))) out.push(tasksCompletedLimitWarning());
+  return out;
+}
+
 export interface ValidationOptions {
   fix: boolean;
   verbose: boolean;
@@ -20,7 +53,7 @@ export interface ValidationResult {
 
 export class SpecValidator {
   private static readonly PROMPTS_LINE_LIMIT = 100;
-  private static readonly TASKS_COMPLETED_LINE_LIMIT = 25;
+  static readonly TASKS_COMPLETED_LINE_LIMIT = 25;
 
   private requiredFiles = [
     'project/project.yaml',
@@ -330,11 +363,8 @@ export class SpecValidator {
       const content = readFileSync(tasksPath, 'utf-8');
       
       // Check if tasks are being tracked
-      const hasInProgress = content.includes('In Progress') || content.includes('in-progress');
-      const hasCompleted = content.includes('Completed') || content.includes('completed');
-      
-      if (!hasInProgress && !hasCompleted) {
-        result.warnings.push('tasks.md should track task status (In Progress, Completed, etc.)');
+      if (!tasksStatusTracked(content)) {
+        result.warnings.push(TASKS_STATUS_WARNING);
       }
 
     } catch (error) {
@@ -383,7 +413,7 @@ export class SpecValidator {
   private async validateMetadataAndCrossRefs(specsDir: string, result: ValidationResult): Promise<void> {
     const checks: Array<{ file: string; crossRefs?: string[] }> = [
       { file: 'project/requirements.md', crossRefs: ['architecture/architecture.md', 'architecture/api.yaml', 'project/project.yaml'] },
-      { file: 'planning/tasks.md', crossRefs: ['planning/roadmap.md', 'project/requirements.md', 'project/project.yaml'] },
+      { file: 'planning/tasks.md', crossRefs: TASKS_CROSS_REFS },
       { file: 'planning/roadmap.md', crossRefs: ['planning/tasks.md', 'project/requirements.md'] },
       { file: 'development/context.md', crossRefs: ['planning/roadmap.md', 'project/project.yaml'] },
       { file: 'development/prompts.md', crossRefs: ['development/context.md', 'project/project.yaml'] },
@@ -395,7 +425,7 @@ export class SpecValidator {
       if (!existsSync(p)) continue;
       const content = readFileSync(p, 'utf-8');
       if (file.endsWith('.md')) {
-        if (!/^---\n[\s\S]*?\n---/m.test(content)) {
+        if (!hasFrontMatter(content)) {
           result.errors.push(`${file} is missing YAML front-matter metadata.`);
           result.fixPrompts.push({
             issue: `${file} is missing YAML front-matter metadata`,
@@ -408,8 +438,7 @@ export class SpecValidator {
         }
         if (crossRefs) {
           for (const ref of crossRefs) {
-            const needle = ref.split('/').pop()!; // check by filename presence
-            if (!content.includes(needle)) {
+            if (missingCrossRefs(content, [ref]).length) {
               result.warnings.push(`${file} should reference ${ref}`);
               result.fixPrompts.push({
                 issue: `${file} should reference ${ref}`,
@@ -689,9 +718,7 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
       // Warn exactly when `specpilot archive` (and its --dry-run) would move something:
       // same planning function, so the warning and the archiver cannot disagree.
       if (planCompletedArchive(readFileSync(tasksPath, 'utf-8').split('\n'))) {
-        result.warnings.push(
-          `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`
-        );
+        result.warnings.push(tasksCompletedLimitWarning());
       }
     }
   }

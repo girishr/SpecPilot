@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Move tasks in `specpilot serve`** (BL-053): drag a row, or use `Alt+Up/Down` and `Alt+Left/Right`, to reorder tasks or move them between `## Backlog` and `## Current Sprint`. A move changes exactly one line of `.specs/planning/tasks.md` (the row is cut and pasted unchanged) and every other byte stays as it was; Undo is one click. If the file changed on disk since the page loaded, the move is refused and the page shows the current file. Protected by a per-session token, an Origin check and JSON-only requests; `--read-only` turns moves off. `tasks.md` is the only file the server can write.
+
 ## [2.3.0] - 2026-09-29
 
 ### Added

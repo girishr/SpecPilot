@@ -3,7 +3,9 @@ import { AddressInfo } from 'net';
 import { readFileSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 import * as yaml from 'js-yaml';
+import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
+import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 
@@ -94,6 +96,12 @@ function tasksIntro(text: string): string {
   return lines.slice(start, end === -1 ? lines.length : end).join('\n');
 }
 
+/** sha256 of tasks.md's raw bytes: what a move's If-Match must carry (BL-053). */
+function tasksHash(root: string): string | null {
+  const real = resolveAllowedPath(root, '.specs/planning/tasks.md');
+  return real ? sha256(readFileSync(real)) : null;
+}
+
 /** Everything `GET /api/specs` returns: project metadata, readSpecs() output, the nav tree. */
 export function buildSpecsPayload(root: string, specpilotVersion: string) {
   const scanned = listAllowedFiles(root).files;
@@ -111,7 +119,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       specpilotVersion,
     },
     files,
-    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']) } : null,
+    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root) } : null,
     nav: {
       specs: Object.keys(contents),
       instructions: ALLOWED_FILES.map(path => {
@@ -138,6 +146,16 @@ function send(res: ServerResponse, status: number, type: string, body: string | 
 
 const TEXT = 'text/plain; charset=utf-8';
 
+function sendJson(res: ServerResponse, status: number, body: unknown): void {
+  send(res, status, 'application/json; charset=utf-8', JSON.stringify(body));
+}
+
+/** Largest accepted move request body (BL-053). */
+export const MAX_MOVE_BODY = 16 * 1024;
+
+/** Where index.html receives the per-start CSRF token (nothing with --read-only). */
+const TOKEN_SLOT = '<!-- specpilot-token -->';
+
 /** Most `/api/events` streams open at once; the next one gets 503 (SEC-004.9). */
 export const MAX_EVENT_STREAMS = 8;
 
@@ -150,6 +168,8 @@ export interface SpecServerOptions {
   settleMs?: number;
   /** One-time notices, e.g. the scan cap. */
   log?: (message: string) => void;
+  /** `--read-only`: no write route, no token in the page (BL-053). */
+  readOnly?: boolean;
 }
 
 export interface SpecServer {
@@ -189,15 +209,77 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
     }
   };
 
+  // ---- task moves (BL-053): the only write route, absent with --read-only
+  const token = opts.readOnly ? null : randomBytes(32).toString('hex');
+  let writeLock: Promise<void> = Promise.resolve(); // moves run strictly one after another
+  const payload = () => buildSpecsPayload(root, specpilotVersion);
+
+  const handleMove = (req: IncomingMessage, res: ServerResponse) => {
+    // Host was checked already; the page's own origin is exactly "http://" + that Host.
+    if (req.headers.origin !== `http://${req.headers.host}`) {
+      return sendJson(res, 403, { error: 'This request did not come from the SpecPilot page, so it was refused.' });
+    }
+    const given = Buffer.from(String(req.headers['x-specpilot-token'] ?? ''));
+    const expected = Buffer.from(token!);
+    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+      return sendJson(res, 403, { error: 'This request did not carry the page token, so it was refused. Reload the page and try again.' });
+    }
+    if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) {
+      return sendJson(res, 415, { error: 'Moves must be sent as JSON.' });
+    }
+    if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) return sendJson(res, 413, { error: 'The request is too large.' });
+    const chunks: Buffer[] = [];
+    let size = 0;
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > MAX_MOVE_BODY) {
+        if (!res.headersSent) sendJson(res, 413, { error: 'The request is too large.' });
+      } else chunks.push(c);
+    });
+    req.on('end', () => {
+      if (res.headersSent) return;
+      let body: unknown;
+      try {
+        body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+      } catch {
+        return sendJson(res, 400, { error: 'The request body is not valid JSON.' });
+      }
+      const problem = moveShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
+      if (!ifMatch) return sendJson(res, 428, { error: 'The move needs an If-Match header with the file hash the page last loaded.' });
+      writeLock = writeLock.then(() => {
+        let out;
+        try {
+          out = moveTask(root, body as TaskMove, ifMatch);
+        } catch {
+          return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
+        }
+        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, from: out.from, fromIndex: out.fromIndex, specs: payload() });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload() });
+        return sendJson(res, 422, { error: out.error });
+      });
+    });
+  };
+
   const server = createServer((req, res) => {
     try {
       const { port } = server.address() as AddressInfo;
       if (!isAllowedHost(req.headers.host, port)) return send(res, 403, TEXT, 'Forbidden: unexpected Host header\n');
+      const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      if (url.pathname === '/api/tasks/move') {
+        if (req.method === 'POST' && token) return handleMove(req, res);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
       if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
-      const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      if (url.pathname === '/') {
+        const page = readFileSync(join(UI_DIR, 'index.html'), 'utf-8');
+        return send(res, 200, UI_ROUTES['/'][1], page.replace(TOKEN_SLOT, token ? `<meta name="specpilot-token" content="${token}">` : ''));
+      }
       const ui = UI_ROUTES[url.pathname];
       if (ui) return send(res, 200, ui[1], readFileSync(join(UI_DIR, ui[0])));
       if (url.pathname === '/api/specs') {

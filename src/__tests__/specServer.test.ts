@@ -619,3 +619,188 @@ describe('UI routing (ui/route.js)', () => {
     }
   });
 });
+
+// ─── Task moves (BL-053) ─────────────────────────────────────────────────────
+
+const MOVE_TASKS = [
+  '---', 'fileID: TASKS-001', 'relatedFiles: [roadmap.md, requirements.md, project.yaml]', '---', '', '# Tasks', '',
+  '## Backlog', '', '| ID | Description |', '|---|---|', '| BL-001 | One |', '| BL-002 | Two |', '',
+  '## Current Sprint', '', '| ID | Description |', '|---|---|', '| CS-001 | Sprint |', '',
+  '## Completed', '', '| # | ID | Description |', '|---|---|---|', '| 1 | [CD-001] | Done |', '',
+].join('\n');
+
+/** POST /api/tasks/move with full control over the headers that the security checks read. */
+function post(port: number, body: string, headers: Record<string, string | undefined>) {
+  return new Promise<{ status: number; headers: Record<string, unknown>; json: any }>((resolve, reject) => {
+    const h: Record<string, string> = {};
+    for (const [k, v] of Object.entries(headers)) if (v !== undefined) h[k] = v;
+    const req = request({ host: '127.0.0.1', port, path: '/api/tasks/move', method: 'POST', headers: h }, res => {
+      let text = '';
+      res.setEncoding('utf8');
+      res.on('data', c => (text += c));
+      res.on('end', () => {
+        let json: any = null;
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = text;
+        }
+        resolve({ status: res.statusCode!, headers: res.headers, json });
+      });
+    });
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+describe('task moves over HTTP', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  let file: string;
+  const hash = () => require('crypto').createHash('sha256').update(readFileSync(file)).digest('hex') as string;
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    'If-Match': hash(),
+    ...over,
+  });
+  const body = JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 });
+
+  beforeEach(async () => {
+    p = makeProject();
+    file = join(p.root, '.specs/planning/tasks.md');
+    writeFileSync(file, MOVE_TASKS);
+    spec = await startSpecServer(p.root, 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    const page = (await hit(port, '/')).body;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec(page)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it('puts a 32-byte token in the page and the tasks.md hash in /api/specs', async () => {
+    expect(token).toHaveLength(64);
+    expect(JSON.parse((await hit(port, '/api/specs')).body).tasks.sha256).toBe(hash());
+  });
+
+  it.each([['127.0.0.1'], ['localhost']])('moves a row for a page on %s: one line, new hash, fresh payload', async name => {
+    const res = await post(port, body, good({ Host: `${name}:${port}`, Origin: `http://${name}:${port}` }));
+    expect(res.status).toBe(200);
+    const after = readFileSync(file, 'utf-8');
+    expect(res.json.sha256).toBe(hash());
+    expect(res.json.specs.tasks.sha256).toBe(res.json.sha256);
+    expect(res.json.specs.tasks.currentSprint.map((r: { id: string }) => r.id)).toEqual(['BL-002', 'CS-001']);
+    expect(res.json).toMatchObject({ from: 'backlog', fromIndex: 1 });
+    expect(after.split('\n').filter(l => !MOVE_TASKS.split('\n').includes(l))).toEqual([]); // same lines, one moved
+    expect(after).not.toBe(MOVE_TASKS);
+  });
+
+  it.each<[string, Record<string, string | undefined>, number]>([
+    ['no token', { 'X-SpecPilot-Token': undefined }, 403],
+    ['a wrong token', { 'X-SpecPilot-Token': 'f'.repeat(64) }, 403],
+    ['a short token', { 'X-SpecPilot-Token': 'abc' }, 403],
+    ['a foreign Origin', { Origin: 'http://evil.com' }, 403],
+    ['no Origin', { Origin: undefined }, 403],
+    ['Host localhost with Origin 127.0.0.1', { Host: 'localhost:PORT', Origin: 'http://127.0.0.1:PORT' }, 403],
+    ['a form content type', { 'Content-Type': 'application/x-www-form-urlencoded' }, 415],
+    ['a text/plain content type', { 'Content-Type': 'text/plain' }, 415],
+    ['a foreign Host', { Host: 'evil.com' }, 403],
+  ])('rejects %s and leaves tasks.md untouched', async (_name, over, status) => {
+    const headers = good(over);
+    for (const k of Object.keys(headers)) if (headers[k as keyof typeof headers]) headers[k as keyof typeof headers] = headers[k as keyof typeof headers]!.replace(/PORT/g, String(port));
+    const res = await post(port, body, headers);
+    expect(res.status).toBe(status);
+    expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
+    expect(res.headers['content-security-policy']).toBe("default-src 'self'");
+  });
+
+  it('rejects a body over 16 KB with 413 and leaves tasks.md untouched', async () => {
+    const big = JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0, pad: 'x'.repeat(17 * 1024) });
+    expect((await post(port, big, good())).status).toBe(413);
+    expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('409s on a stale If-Match with the fresh payload, and never merges', async () => {
+    const res = await post(port, body, good({ 'If-Match': 'a'.repeat(64) }));
+    expect(res.status).toBe(409);
+    expect(res.json.error).toBe('planning/tasks.md changed on disk since this page loaded. The move was not made.');
+    expect(res.json.specs.tasks.sha256).toBe(hash());
+    expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('428s without If-Match', async () => {
+    expect((await post(port, body, good({ 'If-Match': undefined }))).status).toBe(428);
+    expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it.each([
+    [{ id: 'BL-999', toSection: 'backlog', toIndex: 0 }, 'No task row in planning/tasks.md has the ID BL-999.'],
+    [{ id: '[CD-001]', toSection: 'backlog', toIndex: 0 }, 'Completed rows cannot be moved.'],
+    [{ id: 'BL-001', toSection: 'completed', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'],
+  ])('422s on %j with a plain-words message and no write', async (move, error) => {
+    const res = await post(port, JSON.stringify(move), good());
+    expect(res.status).toBe(422);
+    expect(res.json.error).toBe(error);
+    expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('422s on an ID that is on two rows, with no write', async () => {
+    const dup = MOVE_TASKS.replace('| CS-001 | Sprint |', '| BL-002 | Sprint |');
+    writeFileSync(file, dup);
+    const res = await post(port, body, good());
+    expect(res.status).toBe(422);
+    expect(res.json.error).toContain('more than one row');
+    expect(readFileSync(file, 'utf-8')).toBe(dup);
+  });
+
+  it('only accepts POST on the move route', async () => {
+    const res = await hit(port, '/api/tasks/move');
+    expect(res.status).toBe(405);
+    expect(res.headers['allow']).toBe('POST');
+  });
+
+  it('serialises two simultaneous moves: one lands, the other sees a stale hash', async () => {
+    const h = hash();
+    const [a, b] = await Promise.all([
+      post(port, JSON.stringify({ id: 'BL-001', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': h })),
+      post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': h })),
+    ]);
+    expect([a.status, b.status].sort()).toEqual([200, 409]);
+    const winner = a.status === 200 ? a : b;
+    expect(hash()).toBe(winner.json.sha256);
+    const moved = readFileSync(file, 'utf-8').split('\n');
+    expect(moved.filter(l => /^\| (BL|CS)-/.test(l))).toHaveLength(3); // nothing lost or duplicated
+  });
+});
+
+describe('--read-only', () => {
+  it('has no write route, no token in the page, and writes nothing', async () => {
+    const p = makeProject();
+    const file = join(p.root, '.specs/planning/tasks.md');
+    writeFileSync(file, MOVE_TASKS);
+    const spec = await startSpecServer(p.root, 0, 'x', { readOnly: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const page = (await hit(port, '/')).body;
+      expect(page).not.toContain('specpilot-token');
+      const res = await post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), {
+        Host: `127.0.0.1:${port}`,
+        Origin: `http://127.0.0.1:${port}`,
+        'Content-Type': 'application/json',
+        'X-SpecPilot-Token': 'f'.repeat(64),
+        'If-Match': 'x',
+      });
+      expect(res.status).toBe(405);
+      expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
+    } finally {
+      await spec.close();
+      p.cleanup();
+    }
+  });
+});

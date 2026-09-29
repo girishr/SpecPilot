@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-28
-version: 2.25
+version: 2.27
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- BL-053 implemented after `yes, proceed` (Origin = `http://` + Host; "moved within" for same-section moves; plain-words 422s; `validate` output unchanged; `prompts.md` archived on main at merge): `taskMover.ts` (`planMove`, `moveTask`), `taskRowLines()` beside unchanged `readSpecs()`, `tasksChecks()` extracted from the validator (old/new output identical on 5 fixtures × normal/verbose), `POST /api/tasks/move` with token/Origin/JSON/16 KB/If-Match/lock, `--read-only`, client drag + Alt+arrows + Undo + 409 redraw + echo dedupe; 52 new tests (350 → 402); browser check on a scratch copy; one real move on this repo gave a 1-insertion/1-deletion diff and was reverted byte-identically (September 29, 2026) [PROMPT-002.0.0.47]
+- BL-053 (`specpilot serve` task moves, first write path) Spec-First gate, specs only, on `feat/serve-p3`: BL-053 moved to Current Sprint; REQ-002.A.10, H.1–H.3 amended, new H.10–H.12; ARCH-003.18 `taskMover.ts`, ARCH-004.33 amended, ARCH-004.36, ARCH-006.6; SEC-002.5 (f) CSRF closed, (h) write integrity, SEC-004.8 amended, SEC-004.10; api.yaml `POST /api/tasks/move` and `--read-only`; tests.md, CTX-003.28, ROADMAP-002.14, README, CHANGELOG `[Unreleased]`; awaiting `yes, proceed` (September 29, 2026) [PROMPT-002.0.0.46]
 - 2.3.0 follow-ups added to Backlog: BL-059 (announce 2.3.0 on the website and LinkedIn) and BL-060 (review `COMPLETED_LINE_LIMIT`); BL-058 already covers refreshing installed command files (September 29, 2026) [PROMPT-002.0.0.45]
 - Release v2.3.0 prepared, not pushed or published: README `specpilot serve` section, version 2.2.4 → 2.3.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.3.0] - 2026-09-29`; roadmap, CTX-002 and CD-girishr-043; commit `chore(release): v2.3.0` and annotated tag `v2.3.0` (September 29, 2026) [PROMPT-002.0.0.44]
 - `feat/serve-p2` fast-forwarded into `main`; BL-052 moved to Completed as CD-girishr-042, archive run if validate warned; no version bump, tag or publish (September 29, 2026) [PROMPT-002.0.0.43]

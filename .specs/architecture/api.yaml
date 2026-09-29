@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
 # lastUpdated: 2026-09-29
-# version: 2.5
+# version: 2.6
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -219,7 +219,7 @@ commands:
       1: Backfill error
 
   serve:
-    description: Serve a read-only local web UI over the current project's .specs/ (BL-051)
+    description: Serve a local web UI over the current project's .specs/, with task moves unless --read-only (BL-051, BL-053)
     usage: specpilot serve [options]
     options:
       --port:
@@ -230,6 +230,9 @@ commands:
         type: number
         default: 1000
         description: Change-detection interval in ms (minimum 250); polling runs only while a page is open
+      --read-only:
+        type: boolean
+        description: No write route (405), no drag handles, no token; the UI only reads
       --open:
         type: boolean
         description: Open the UI in the default browser
@@ -238,12 +241,14 @@ commands:
       "GET /assets/<file>": The UI's stylesheet, scripts and favicon (the SpecPilot logo)
       "GET /api/specs": Project metadata, readSpecs() output and the nav tree (JSON)
       "GET /api/file?p=<path>": One allowlisted file as text/plain
+      "POST /api/tasks/move": "Move one task row between Backlog and Current Sprint, or reorder within one. JSON body {id, toSection: backlog|currentSprint, toIndex}; headers If-Match (sha256 of tasks.md as last loaded), X-SpecPilot-Token (from the page's meta tag), Origin (the page's own), Content-Type application/json; body <= 16 KB. 200 {sha256, specs}; 409 {error, specs} when the file changed; 422 {error} for an unknown, duplicate or Completed id, a section without a table, a bad index, or a move that cannot keep every other byte; 403 token/Origin/Host (Origin must equal http:// + Host); 400 body not JSON; 413 too large; 415 not application/json; 428 no If-Match; 405 with --read-only"
       "GET /api/events": "Server-sent events (text/event-stream). `event: change`, `data: {\"paths\": [...]}` with the changed allowlisted paths only, no content; heartbeat comment every 25 s; at most 8 open streams, 503 beyond"
     behavior:
       - Binds 127.0.0.1 only; rejects any Host header other than 127.0.0.1:<port> or localhost:<port> (403)
-      - Read-only; re-reads files on every request
+      - Writes only .specs/planning/tasks.md, only by moving one existing line (temp file, fsync, rename); --read-only disables it
+      - Re-reads files on every request
       - Live reload polls allowlisted files with stat() every --poll ms while a page is open, and pushes changed paths on /api/events
-      - Non-GET methods return 405; unknown paths return 404
+      - Methods other than the route's own return 405; unknown paths return 404
     exit-codes:
       0: Stopped with Ctrl+C
       1: No .specs/ in the current directory, invalid --port or --poll, or port already in use

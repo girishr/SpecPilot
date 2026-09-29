@@ -243,3 +243,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-29 16:17:21
+
+| # | ID | Description |
+|---|---|---|
+| 121 | [CD-girishr-030] [CS-087] [BL-046] | `specpilot-backfill` slash command — eighth (final) `SLASH_COMMANDS` entry: `{ name: 'backfill', description: 'Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files', allowedTools: ['Bash', 'Read', 'Edit'], body }`; body embeds a bash script checking 4 fingerprints (Critical Mandates, `## Code Philosophy`, `## Code Rules`, `## Re-Anchor`) across 5 candidate files (`copilot-instructions.md`, `CLAUDE.md`, `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md`) and appends missing blocks append-only via `cat <<'BLOCK' >> file` (never overwrites), plus a `team.devPrefix` presence check in `project.yaml`; script redesigned mid-implementation after discovering a real macOS bash 3.2 bug where `$(cat <<'DELIM' ... apostrophe ... DELIM)` command-substitution-wrapped heredocs containing an apostrophe throw a spurious "unexpected EOF" — fixed by using plain `cat <<'BLOCK' >> "$1"` inside functions instead of assigning heredoc output to variables via `$()`; also caught and fixed a JS-template-literal escaping bug (`` \\\` `` tripling instead of `` \` ``) that would have leaked literal backslashes into every generated backtick in this command's output, via a dedicated regression test asserting no `` \\\` `` in the rendered file; extracted script verified byte-identical to the tested version and run end-to-end against synthetic fixtures (never against this repo's real IDE files) confirming correct append + idempotency (no duplicate blocks on a second run); explicitly documents the maintenance cost of the embedded baseline having no shared source-of-truth import from `ideConfigGenerator.ts`; 1 new test (203 → 204 total) |
+
+---
+

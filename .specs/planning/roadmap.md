@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-09-28
-version: 1.15
+version: 1.16
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -23,7 +23,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 - Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
-- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053, in progress, target v2.4.0), multiple projects (BL-054) and guided setup (BL-055) [ROADMAP-002.14]
+- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects (BL-054) and guided setup (BL-055) [ROADMAP-002.14]
 
 ## Timeline [ROADMAP-003]
 
@@ -73,6 +73,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-08-02: v2.2.3 — `specpilot init` success screen gets two "Press Enter" read-pause gates (tree → next steps → onboarding prompt), skipped under `--no-prompts` (CS-091; per CHANGELOG `[2.2.3]`)
 - 2026-09-27: v2.2.4 — Fixed: `specpilot archive` did nothing on a table-shaped `## Completed` section while `specpilot validate` kept telling you to run it (BL-057); The `specpilot-archive` slash command could still sweep sections after `## Completed` into the archive. Changed: Internal: shared section-bounds helper and pure spec reader (per CHANGELOG `[2.2.4]`)
 - 2026-09-29: v2.3.0 — Added: `specpilot serve`: a read-only local web UI over your `.specs/` (BL-051, BL-052). Removed: Unused `fs-extra` dependency (per CHANGELOG `[2.3.0]`)
+- 2026-09-29: v2.4.0 — Added: Move tasks in `specpilot serve` (BL-053). Fixed: `specpilot archive` archived the newest `prompts.md` entries instead of the oldest; In generated `prompts.md` files, `specpilot archive` moved the boilerplate instead of the log; How archiving `prompts.md` works now (BL-061) (per CHANGELOG `[2.4.0]`)
 
 ## Objectives [ROADMAP-004]
 

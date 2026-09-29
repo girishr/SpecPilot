@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-28
-version: 2.31
+version: 2.32
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Release v2.4.0 prepared, not pushed or published: uncommitted web-view Backlog reorder discarded first at the developer's request; version 2.3.0 → 2.4.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.4.0] - 2026-09-29`; roadmap, CTX-002, CD-girishr-046; commit `chore(release): v2.4.0` and annotated tag `v2.4.0` (September 29, 2026) [PROMPT-002.0.0.52]
 - `fix/prompts-archive-order` fast-forwarded into `main`; PROMPT-002.7 moved above PROMPT-002.2 (`docs(prompts): fix entry order`); `specpilot archive` then moved the 25 oldest entries (PROMPT-002.0.0.9 to PROMPT-002.8) byte for byte; BL-061 moved to Completed as CD-girishr-045; no version bump, tag or publish (September 29, 2026) [PROMPT-002.0.0.51]
 - BL-061 implemented after `yes, proceed` (abbreviated months incl. "Sept" with/without a dot; both bugs named in CHANGELOG; "mixed → refuse" kept): `planPromptsArchive()` + `lastDate()` in `specArchiver.ts` shared with `validateLineLimits()`, `ArchiveResult.refused` printed by `specpilot archive`, bash `archive_prompts()` rewritten to match (a macOS awk quirk, `substr(s, 0, 1)` returning the first character, was caught by the table parity test), two `specpilot-archive` command files regenerated; 43 new tests (402 → 445; incl. bash parity for files with no trailing newline), 7 old prompts fixtures changed to dated logs; this repo is refused until PROMPT-002.7 is moved above PROMPT-002.2 (September 29, 2026) [PROMPT-002.0.0.50]
 - BL-061 (prompts archive order) Spec-First gate, specs only, on `fix/prompts-archive-order`: BL-061 added and moved to Current Sprint; REQ-002.F.7 and E.13 amended, ARCH-003.9 amended, ARCH-004.37, api.yaml archive behaviour, tests.md, CTX-003.29, CHANGELOG `[Unreleased]` Fixed; this log has one date inversion (PROMPT-002.2 October 3, 2025 above PROMPT-002.7 2025-10-04), which the new rule refuses; awaiting `yes, proceed` (September 29, 2026) [PROMPT-002.0.0.49]

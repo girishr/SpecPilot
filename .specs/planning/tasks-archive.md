@@ -211,3 +211,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-29 00:51:44
+
+| # | ID | Description |
+|---|---|---|
+| 117 | [CD-girishr-026] [CS-083] [BL-042] | `specpilot-sync` slash command — fourth `SLASH_COMMANDS` entry: `{ name: 'sync', description: 'Compare .specs/ against actual project state and propose fixes for drift', body }`; natural-language, judgment-based (not scriptable): read `architecture/architecture.md`, `project/requirements.md`, `quality/tests.md`, compare against actual `src/` structure and `package.json`, list concrete discrepancies (stale versions, renamed/removed files, undocumented modules, stale command lists), propose per-file edits, wait for confirmation before writing; formalizes the manual drift-fix work done for SpecPilot's own `.specs/` in this session; test updated to assert all four commands present and written by default `generate()` |
+
+---
+

@@ -219,3 +219,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-29 00:54:39
+
+| # | ID | Description |
+|---|---|---|
+| 118 | [CD-girishr-027] [CS-084] [BL-043] | `specpilot-refine <description>` slash command — fifth `SLASH_COMMANDS` entry: `{ name: 'refine', description: 'Refine .specs/ requirements from a new requirement description, with a diff preview before writing', argumentHint: '<description>', body }`; body embeds `$ARGUMENTS`, instructs reading `project/requirements.md`/`development/context.md`/`development/prompts.md`, proposing additions following stable-ID conventions, showing a line-level diff preview, and waiting for confirmation before writing; mirrors CLI `specpilot refine` (REQ-002.A.6) as a standalone agent workflow with no CLI dependency; first command to use `argumentHint` — Claude Code frontmatter renders `argument-hint: <description>`, other IDEs get plain description frontmatter since argument-hint isn't a convention there; test updated to assert all five commands present and that the Claude Code file contains `argument-hint` and `$ARGUMENTS` |
+
+---
+

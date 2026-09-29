@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-09-28
-version: 2.5
+lastUpdated: 2026-09-29
+version: 2.6
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,9 +10,9 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (current version v2.2.4; `specpilot serve` Phase 1 on `main`, BL-052 live reload in progress on `feat/serve-p2`; both ship as v2.3.0)
+- **Phase**: Active Development (current version v2.3.0: `specpilot serve` read-only UI with live reload, BL-051/BL-052; next serve phase BL-053)
 - **Status**: Production-ready with continuous enhancements
-- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4)
+- **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4), `specpilot serve` read-only local UI with live reload (v2.3.0)
 - **Next Steps**: See tasks.md Current Sprint
 
 ## Key Decisions [CTX-003]

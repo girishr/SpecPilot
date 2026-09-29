@@ -7,9 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-29
+
 ### Added
 
-- **`specpilot serve`: a read-only local web UI over your `.specs/`** (BL-051): `specpilot serve [--port <n>] [--open]` serves the current project at `http://127.0.0.1:4321/` with Tasks, Roadmap, Requirements, Explorer, Architecture, Tests, Security, Instructions, Commands and Skills views. Everything shown is the files' own text, verbatim, and open pages update themselves when a file changes (BL-052): the server polls the allowlisted files every second (`--poll <ms>`, minimum 250) and pushes changed paths over server-sent events, while keeping your place on the page. Loopback only, Host-checked, allowlisted to `.specs/` and your generated instruction and command files, and no route writes to disk. No new dependencies.
+- **`specpilot serve`: a read-only local web UI over your `.specs/`** (BL-051): `specpilot serve [--port <n>] [--poll <ms>] [--open]` serves the current project at `http://127.0.0.1:4321/` with Tasks, Roadmap, Requirements, Explorer, Architecture, Tests, Security, Instructions, Commands and Skills views. Everything shown is the files' own text, verbatim, and open pages update themselves when a file changes (BL-052): the server polls the allowlisted files every second (`--poll <ms>`, minimum 250) and pushes changed paths over server-sent events, while keeping your place on the page. Loopback only, Host-checked, allowlisted to `.specs/` and your generated instruction and command files, and no route writes to disk. No new dependencies.
 
 ### Removed
 

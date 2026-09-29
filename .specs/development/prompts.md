@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-09-28
-version: 2.23
+version: 2.24
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Release v2.3.0 prepared, not pushed or published: README `specpilot serve` section, version 2.2.4 → 2.3.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.3.0] - 2026-09-29`; roadmap, CTX-002 and CD-girishr-043; commit `chore(release): v2.3.0` and annotated tag `v2.3.0` (September 29, 2026) [PROMPT-002.0.0.44]
 - `feat/serve-p2` fast-forwarded into `main`; BL-052 moved to Completed as CD-girishr-042, archive run if validate warned; no version bump, tag or publish (September 29, 2026) [PROMPT-002.0.0.43]
 - BL-052 pre-commit follow-ups: test that edits at every allowlisted root (incl. `.claude/commands/`, `.github/prompts/`) fire events; the poller/served comparison found `/api/file` also served hidden and `node_modules` paths below allowlisted folders and paths through symlinked folders, none of them watched, so the guard now applies the scanner's walk rules and a test proves the two sets are equal; a fresh load of a deleted file's URL shows "<path> no longer exists." via new DOM-free `ui/route.js`; 331 → 350 tests (September 29, 2026) [PROMPT-002.0.0.42]
 - BL-052 implemented after `yes, proceed` (additions: compare mtimeMs, size and ino; skip `node_modules` and `.git`, cap the scan at 2000 files and log once; ENOENT between `readdir` and `stat` = delete, EACCES = skip, neither throws; a redraw never moves focus): new `specPaths.ts` (allowlist, guard, `listAllowedFiles`) and `specPoller.ts`, `/api/events` SSE in `specServer.ts` with a `{ server, streams(), close() }` handle, `--poll`, client live reload in `ui/app.js`; 22 new tests (309 → 331), no open handles; browser check on a scratch copy: edit-to-screen 244–1101 ms (median ~0.7 s) at the default 1000 ms poll, route/scroll/inspector/selection/focus kept, deleted open file named, last content kept while the server was down and caught up on reconnect; idle with one tab: server 0.47% of a core, tab renderer 0.02% (September 29, 2026) [PROMPT-002.0.0.41]

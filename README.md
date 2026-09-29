@@ -76,6 +76,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
 | `refine [desc]`         | Refine project specifications                                     |
+| `serve`                 | Serve a read-only local web UI over the current project's `.specs/` |
 
 > **Tip — command aliases:** All commands have a short alias you can use instead of the full name.
 > `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add` &nbsp;·&nbsp; `backfill` → `bf`
@@ -93,6 +94,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`   | `--dry-run` · `--force`                                                             |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
+| `serve`     | `--port` · `--poll` · `--open`                                                      |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 
@@ -111,6 +113,27 @@ specpilot refine "REST API for user management" --update
 # Validate with auto-fix
 specpilot validate --fix
 ```
+
+## specpilot serve
+
+Serve a read-only local web UI over the current project's `.specs/`. Run it from the project root (the folder that contains `.specs/`); press Ctrl+C to stop.
+
+```bash
+specpilot serve                  # http://127.0.0.1:4321
+specpilot serve --port 5000 --open
+```
+
+| Option        | Default | Description                                                                              |
+| ------------- | ------- | ---------------------------------------------------------------------------------------- |
+| `--port <n>`  | `4321`  | Port to listen on (127.0.0.1 only)                                                       |
+| `--poll <ms>` | `1000`  | Change-detection interval in ms (minimum 250); polling runs only while a page is open    |
+| `--open`      |         | Open the UI in the default browser                                                       |
+
+- **Read-only**: re-reads files on every request and writes nothing.
+- **Loopback only**: binds 127.0.0.1 only; rejects any Host header other than `127.0.0.1:<port>` or `localhost:<port>` (403).
+- **Live reload**: polls allowlisted files with `stat()` every `--poll` ms while a page is open, and pushes changed paths on `/api/events`; open pages update in place.
+- **What it shows**: `.specs/`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.claude/commands/`, `.claude/skills/` and `.github/prompts/`, as the files' own text.
+- **Limits**: paths through symlinked folders, hidden files and `node_modules` are not shown.
 
 ## Supported Languages & Frameworks
 

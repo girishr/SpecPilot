@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-09-29 (BL-053 completed as CD-girishr-044)
-version: 5.64
+lastUpdated: 2026-09-29 (BL-061 added and moved to Current Sprint: prompts.md archive order)
+version: 5.65
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -52,6 +52,7 @@ Notes
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
+| BL-061 | `specpilot archive` keeps the oldest `prompts.md` entries and archives the newest when a log runs newest first (as this repo's does): `archivePrompts()` and the bash `archive_prompts()` always move the lines right under `## Latest Entries`. Detect the order from the entries' own dates and keep the newest; refuse when it cannot be told; share the decision with the validator like `planCompletedArchive()`. |
 
 ## Completed
 

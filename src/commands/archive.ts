@@ -56,8 +56,12 @@ export async function archiveCommand(options: ArchiveOptions) {
     const archiver = new SpecArchiver();
     const result = await archiver.archive(projectDir, { dryRun: options.dryRun });
 
+    for (const r of result.refused) {
+      logger.warn(`⚠ ${r.file} was not archived: ${r.reason}`);
+    }
+
     if (result.entries.length === 0) {
-      logger.success('✅ All .specs/ files are within limits. Nothing to archive.');
+      if (!result.refused.length) logger.success('✅ All .specs/ files are within limits. Nothing to archive.');
       return;
     }
 

@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
 lastUpdated: 2026-09-29
-version: 2.7
+version: 2.8
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -45,6 +45,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 - **Serve UI shows file text only (BL-051)**: the approved mockup mixed file content with hand-written analysis — "needs you" badges, "in sync" / "out of date" pills, a "From SpecPilot / Yours" split that no file records (generated command files carry no marker), and a "What Goes In Them" list whose eight bullets are not this repo's `rules.critical`. The served UI keeps the mockup's layout and interactions but only shows what `readSpecs()` and the files say, raw text where parsing fails; board rows clamp with CSS instead of cutting at the first clause. The page carries no inline code and no external fonts, because `default-src 'self'` forbids both [CTX-003.26]
 - **Live reload polls, and stays silent (BL-052)**: polling `stat()` over the allowlisted set instead of `fs.watch`, because recursive watch is unreliable on Linux before Node 20 and polling a few dozen files is cheap; inode joins mtime and size because an atomic save can keep both. The page gains no connection indicator or "updated" marker: those would be states the files do not contain [CTX-003.27]
 - **A task move is a line move (BL-053)**: the server never re-renders the table; it removes one line and inserts the identical line, so the diff is one line and hand formatting survives. Backlog and Current Sprint share `ID | Description`, and the file's own Notes keep the BL ID when a row moves to Current Sprint, so no cell changes. When a move cannot keep every other byte (a section with no table, or a row that is the file's last line without a trailing newline) it is refused, not approximated [CTX-003.28]
+- **Log order is read from dates (BL-061)**: `specpilot archive` moved the 22 newest entries of this repo's newest-first `prompts.md` (caught before commit and undone), and in generated projects, whose log is a `## Prompt History` table with no `## Latest Entries` heading, it would archive the Overview / Archive Policy / Re-Anchor boilerplate. Headings and ID numbers do not reliably say which end is older (this log's own IDs run the other way near the bottom), so the entries' dates decide, and an inversion is refused rather than guessed [CTX-003.29]
 
 ## Established Patterns [CTX-004]
 

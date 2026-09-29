@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
 # lastUpdated: 2026-09-29
-# version: 2.6
+# version: 2.7
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -187,6 +187,7 @@ commands:
     behavior:
       - Warns and prompts before archiving on a non-main/non-master branch
       - Appends archived entries to prompts-archive.md or tasks-archive.md
+      - "prompts.md: moves the oldest whole entries (list items under ## Latest Entries, or rows under ## Prompt History), in whichever order the file runs, told from the entries' dates; refuses with a reason when the order cannot be told"
     exit-codes:
       0: Success
       1: Archive error

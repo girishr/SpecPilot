@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Move tasks in `specpilot serve`** (BL-053): drag a row, or use `Alt+Up/Down` and `Alt+Left/Right`, to reorder tasks or move them between `## Backlog` and `## Current Sprint`. A move changes exactly one line of `.specs/planning/tasks.md` (the row is cut and pasted unchanged) and every other byte stays as it was; Undo is one click. If the file changed on disk since the page loaded, the move is refused and the page shows the current file. Protected by a per-session token, an Origin check and JSON-only requests; `--read-only` turns moves off. `tasks.md` is the only file the server can write.
 
+### Fixed
+
+- **`specpilot archive` archived the newest `prompts.md` entries instead of the oldest** (BL-061): every version from 1.5.1 through 2.3.0 moved the entries at the top of the log, which is right only for a log written oldest first. In a log written newest first under `## Latest Entries`, it kept the oldest entries and moved the most recent ones. Nothing was deleted: the moved entries are in `development/prompts-archive.md` under an `## Archived on <date>` header and can be copied back.
+- **In generated `prompts.md` files, `specpilot archive` moved the boilerplate instead of the log** (BL-061): a generated `prompts.md` keeps its log in a `## Prompt History` table and has no `## Latest Entries` heading, so every version from 1.5.1 through 2.3.0 fell back to the lines just after the front matter. If yours went over 100 lines and you ran `specpilot archive`, the `## Overview`, `## Archive Policy` and `## Re-Anchor Prompt` sections may have been moved to `development/prompts-archive.md`; copy them back from there.
+- **How archiving `prompts.md` works now** (BL-061): the archiver reads each entry's own date (`Month D, YYYY`, abbreviated months such as `Sept. 3, 2025`, or `YYYY-MM-DD`; for a table row, its Date cell) to tell which end is older, moves whole oldest entries only, never moves boilerplate, and refuses with a plain message, changing nothing, when there is no log section or the dates do not run one way. `specpilot validate` reports the same reason. The `/specpilot-archive` slash command has the same fix, but existing projects keep their current copy of that command until they replace it (BL-058 tracks updating installed command files).
+
 ## [2.3.0] - 2026-09-29
 
 ### Added

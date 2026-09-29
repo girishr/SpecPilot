@@ -227,3 +227,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-09-29 03:08:48
+
+| # | ID | Description |
+|---|---|---|
+| 119 | [CD-girishr-028] [CS-085] [BL-044] | `specpilot-validate` slash command — sixth `SLASH_COMMANDS` entry: `{ name: 'validate', description: 'Validate .specs/ structure, front-matter, and cross-references; suggest fixes without auto-applying', allowedTools: ['Bash', 'Read'], body }`; body embeds a runnable bash script (checked by extracting and executing it against this repo before committing) that mirrors `specValidator.ts`'s `requiredFiles` list and front-matter field checks, plus a `relatedFiles` cross-reference resolution check (searches anywhere under `.specs/` rather than assuming same-subfolder placement, since `relatedFiles` entries are bare filenames); prose instructs summarizing results and always suggesting rather than auto-applying fixes; documents the known GitHub Copilot platform limitation (terminal commands only run in "agent mode," otherwise degrades to prose-only with higher error rate); first command to use `allowedTools`; mirrors CLI `specpilot validate --fix --verbose` (REQ-002.A.3); 1 new test (201 → 202 total) |
+
+---
+

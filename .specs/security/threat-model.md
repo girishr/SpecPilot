@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
 lastUpdated: 2026-09-28
-version: 1.4
+version: 1.5
 contributors: [girishr]
 relatedFiles:
   [
@@ -74,11 +74,11 @@ A read-only HTTP server on `127.0.0.1` that shows a project's `.specs/` and a fe
 
 | Field             | Detail |
 | ----------------- | ------ |
-| **Description**   | (a) **DNS rebinding**: a hostile site rebinds its hostname to `127.0.0.1` and reads responses as same-origin. (b) **Path traversal / symlink escape** through `/api/file?p=`, reading files outside the project or outside the allowlist (e.g. `~/.ssh`, `.env`, source). (c) **Cross-origin reads**: another origin reading the JSON or file text. (d) **Stored XSS**: spec text rendered as HTML runs script in the UI's origin. (e) **Exposure beyond the machine** if bound to a non-loopback interface. (f) **CSRF**: not applicable while no route writes. |
+| **Description**   | (a) **DNS rebinding**: a hostile site rebinds its hostname to `127.0.0.1` and reads responses as same-origin. (b) **Path traversal / symlink escape** through `/api/file?p=`, reading files outside the project or outside the allowlist (e.g. `~/.ssh`, `.env`, source). (c) **Cross-origin reads**: another origin reading the JSON or file text. (d) **Stored XSS**: spec text rendered as HTML runs script in the UI's origin. (e) **Exposure beyond the machine** if bound to a non-loopback interface. (f) **CSRF**: not applicable while no route writes. (g) **Resource exhaustion** through live reload (BL-052): many open `/api/events` streams, or a very large allowlisted tree making each poll expensive. |
 | **Impact**        | High for (a)–(c): disclosure of local file contents. Medium for (d): script in the UI's origin can read what the UI can read. |
 | **Likelihood**    | Low — requires the server to be running and the user to visit a hostile page (a–c), or a malicious string committed into the project's spec files (d). |
-| **Entry point**   | HTTP requests to `127.0.0.1:<port>`: the `Host` header, the method, the path and the `p` query parameter; spec file text rendered by the UI. |
-| **Mitigation**    | (1) Listen on `127.0.0.1` only (e). (2) `Host` must equal `127.0.0.1:<port>` or `localhost:<port>`, else 403 (a). (3) `/api/file` path allowlist, `..` / absolute / NUL rejected, `realpath` must stay inside the root and the allowlist, regular files only (b). (4) No CORS headers, so browsers keep cross-origin responses opaque (c). (5) The markdown renderer escapes `&<>"` before adding its own tags; `Content-Security-Policy: default-src 'self'` blocks inline and third-party script; `X-Content-Type-Options: nosniff` stops a served `.md` being run as script (d). (6) **CSRF deferred to Phase 3 (BL-053)**: the first write route must add a CSRF token, an mtime guard and `--read-only` before it ships (f). |
+| **Entry point**   | HTTP requests to `127.0.0.1:<port>`: the `Host` header, the method, the path and the `p` query parameter; long-lived `/api/events` streams; spec file text rendered by the UI. |
+| **Mitigation**    | (1) Listen on `127.0.0.1` only (e). (2) `Host` must equal `127.0.0.1:<port>` or `localhost:<port>`, else 403 (a). (3) `/api/file` path allowlist, `..` / absolute / NUL rejected, no hidden or `node_modules` segment below an allowlisted folder, no symlinked folder on the way, `realpath` must stay inside the root and the allowlist, regular files only (b). (4) No CORS headers, so browsers keep cross-origin responses opaque (c). (5) The markdown renderer escapes `&<>"` before adding its own tags; `Content-Security-Policy: default-src 'self'` blocks inline and third-party script; `X-Content-Type-Options: nosniff` stops a served `.md` being run as script (d). (6) **CSRF deferred to Phase 3 (BL-053)**: the first write route must add a CSRF token, an mtime guard and `--read-only` before it ships (f). (7) `/api/events` is capped at 8 open streams (503 beyond), has the same Host check, sends only changed paths (never content), and the poller `stat()`s only files the path guard would serve, runs only while a stream is open, and stops with the last one; Ctrl+C clears every timer (g). |
 | **Residual risk** | Low. Any local process can already read these files directly; the server adds no capability a local user lacks. The residual browser-side risk is a renderer escaping bug, contained by the CSP. |
 
 ## Attack Surface Summary [SEC-003]
@@ -94,6 +94,8 @@ A read-only HTTP server on `127.0.0.1` that shows a project's `.specs/` and a fe
 | Plugin git history / build generator | Code + templates     | ⚠️ Repo hardening + review     | Committed `plugin/` bundle (SEC-002.4)   |
 | `specpilot serve` HTTP requests      | Host, method, path, `p` | ✅ Host allowlist, 405/404, path allowlist + realpath | Read-only file responses (SEC-002.5) |
 | `specpilot serve --port`             | Integer              | ✅ 1–65535 integer             | `server.listen()` on 127.0.0.1           |
+| `specpilot serve --poll`             | Integer (ms)         | ✅ whole number ≥ 250          | Poller interval (SEC-002.5 g)            |
+| `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g)  |
 
 ## Out of Scope [SEC-004]
 

@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-09-28
-version: 1.12
+version: 1.13
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -23,7 +23,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 - Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
-- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051, target v2.3.0), then live reload (BL-052), task moves (BL-053), multiple projects (BL-054) and guided setup (BL-055) [ROADMAP-002.14]
+- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052), shipping together as v2.3.0, then task moves (BL-053), multiple projects (BL-054) and guided setup (BL-055) [ROADMAP-002.14]
 
 ## Timeline [ROADMAP-003]
 

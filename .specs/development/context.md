@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
 lastUpdated: 2026-09-28
-version: 2.4
+version: 2.5
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,7 +10,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (current version v2.2.4; BL-051 `specpilot serve` Phase 1 read-only UI and BL-056 in progress on `feat/serve-p1`, target v2.3.0)
+- **Phase**: Active Development (current version v2.2.4; `specpilot serve` Phase 1 on `main`, BL-052 live reload in progress on `feat/serve-p2`; both ship as v2.3.0)
 - **Status**: Production-ready with continuous enhancements
 - **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4)
 - **Next Steps**: See tasks.md Current Sprint
@@ -43,6 +43,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 - **Pure Spec Reader (BL-050)**: `specReader.ts` takes file contents, never paths, and imports neither `fs` nor `path`, so it can move into `@specpilot/spec-core` (BL-032) unchanged. Front matter is parsed by hand for the five metadata keys rather than with `js-yaml`: this repo's own `tasks.md` has `lastUpdated: 2026-09-05 (BL-049 cross-ref: …)`, whose bare `: ` makes `js-yaml` throw, and the default schema would turn `2026-07-26` into a `Date` and `version: 5.10` into `5.1`. Table rows are split on the first N−1 pipes only, with the last cell taking the rest of the row, because Completed descriptions contain literal `|` inside backticks (e.g. `'rest' | 'cli'`) [CTX-003.24]
 - **Validator and archiver share one Completed plan (BL-057)**: validate said "run `specpilot archive`" on this repo while archive did nothing, because the table-shaped Completed section had no numbered lines. Fixing the archiver alone would not have closed it: keeping 20 rows leaves 28 section lines (8 non-row lines: heading, 2 blanks, 2 blockquotes, header, separator, and the trailing `""` that `split('\n')` yields), so validate would warn straight after archiving. Rather than two measures that must be kept equal by hand, `validateLineLimits()` calls `planCompletedArchive()` and warns only when it would move something; for tables the keep count is sized so the section lands at ≤ 25 lines. List behaviour is left byte-identical because other projects rely on it [CTX-003.25]
 - **Serve UI shows file text only (BL-051)**: the approved mockup mixed file content with hand-written analysis — "needs you" badges, "in sync" / "out of date" pills, a "From SpecPilot / Yours" split that no file records (generated command files carry no marker), and a "What Goes In Them" list whose eight bullets are not this repo's `rules.critical`. The served UI keeps the mockup's layout and interactions but only shows what `readSpecs()` and the files say, raw text where parsing fails; board rows clamp with CSS instead of cutting at the first clause. The page carries no inline code and no external fonts, because `default-src 'self'` forbids both [CTX-003.26]
+- **Live reload polls, and stays silent (BL-052)**: polling `stat()` over the allowlisted set instead of `fs.watch`, because recursive watch is unreliable on Linux before Node 20 and polling a few dozen files is cheap; inode joins mtime and size because an atomic save can keep both. The page gains no connection indicator or "updated" marker: those would be states the files do not contain [CTX-003.27]
 
 ## Established Patterns [CTX-004]
 

@@ -2,18 +2,20 @@ import chalk from 'chalk';
 import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { Server } from 'http';
-import { startSpecServer } from '../utils/specServer';
+import { SpecServer, startSpecServer } from '../utils/specServer';
 import { Logger } from '../utils/logger';
 
 const packageJson = require('../../package.json');
 
 export interface ServeOptions {
   port?: string;
+  poll?: string;
   open?: boolean;
 }
 
 const DEFAULT_PORT = 4321;
+const DEFAULT_POLL_MS = 1000;
+const MIN_POLL_MS = 250;
 
 /** Open `url` in the default browser. The URL is built here, never taken from input. */
 function openBrowser(url: string, logger: Logger): void {
@@ -42,9 +44,15 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
     return process.exit(1);
   }
 
-  let server: Server;
+  const pollMs = options.poll === undefined ? DEFAULT_POLL_MS : Number(options.poll);
+  if (!Number.isInteger(pollMs) || pollMs < MIN_POLL_MS) {
+    logger.error(`Invalid --poll "${options.poll}". Use a whole number of milliseconds, ${MIN_POLL_MS} or more.`);
+    return process.exit(1);
+  }
+
+  let handle: SpecServer;
   try {
-    server = await startSpecServer(root, port, packageJson.version);
+    handle = await startSpecServer(root, port, packageJson.version, { pollMs, log: m => logger.warn(m) });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -56,11 +64,10 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
 
   const url = `http://127.0.0.1:${port}`;
   console.log(chalk.green(`SpecPilot is serving ${root} read-only at ${url}`));
-  console.log(chalk.gray('Refresh the page to see file changes. Press Ctrl+C to stop.'));
+  console.log(chalk.gray('Open pages update when a spec file changes. Press Ctrl+C to stop.'));
   if (options.open) openBrowser(url, logger);
 
   process.once('SIGINT', () => {
-    server.close();
-    process.exit(0);
+    void handle.close().then(() => process.exit(0));
   });
 }

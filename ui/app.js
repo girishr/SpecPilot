@@ -19,7 +19,7 @@ const fileCache={};
 async function getText(p){
   if(p in fileCache)return fileCache[p];
   const r=await fetch('/api/file?p='+encodeURIComponent(p),{cache:'no-store'});
-  if(!r.ok)throw new Error(p+': HTTP '+r.status);
+  if(!r.ok)throw Object.assign(new Error(p+': HTTP '+r.status),{status:r.status});
   return fileCache[p]=await r.text();
 }
 function showErr(msg){const e=$('#loadErr');e.textContent=msg;e.hidden=false;}
@@ -50,7 +50,7 @@ function syncNav(){
     b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false');});
 }
 function go(v,keep,sub){
-  if(v==='file'){if(!DATA||!(sub in DATA.files))v='board';else curFile=sub;}
+  if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
   else if(!VIEWS[v])v='board';
   curView=v;
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
@@ -73,9 +73,10 @@ function curHash(){if(!urlOk)return memHash;try{return location.hash;}catch(e){r
 function setHash(v,sub){const h='#'+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
   if(!urlOk)return;
   try{history.replaceState(null,'',h);}catch(e){urlOk=false;}}
-function route(){const h=curHash().slice(1),ix=h.indexOf('/'),v=ix<0?h:h.slice(0,ix),sub=ix<0?'':decodeURIComponent(h.slice(ix+1));
-  if(v==='board'&&sub==='board'){mode='board';$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.m==='board'));renderTasks();}
-  go(v||'board',true,sub);
+function route(){
+  const r=resolveRoute(curHash(),DATA?DATA.files:{});
+  if(r.view==='board'&&r.sub==='board'){mode='board';$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.m==='board'));renderTasks();}
+  go(r.view,true,r.sub);
 }
 if(urlOk)window.addEventListener('hashchange',route);
 $$('.src .srow[data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v,false,b.dataset.f));
@@ -157,19 +158,21 @@ function renderTasks(){
     (T?'':'<div class="box"><div class="empty">No <span class="mono" translate="no">planning/tasks.md</span> in <span class="mono" translate="no">.specs/</span>.</div></div>');
   bind();
 }
-function openTask(col,i){
+let inspOpen=null; // {kind:'task',col,i,id} | {kind:'file',path} | null
+function openTask(col,i,quiet){
   const t=DATA.tasks[col][i];if(!t)return;
-  lastFocus=document.activeElement;selected=col+':'+i;
+  if(!quiet)lastFocus=document.activeElement;
+  selected=col+':'+i;inspOpen={kind:'task',col,i,id:t.id};
   $$('.row.sel').forEach(r=>r.classList.remove('sel'));
   $$(`#v-board .row[data-col="${col}"][data-i="${i}"]`).forEach(r=>r.classList.add('sel'));
   insp.innerHTML=`<div class="ih">${col==='completed'?`<span class="id" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span><span class="pill ${col==='completed'?'green':col==='currentSprint'?'orange':'gray'}">${esc(COLS[col])}</span><button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>
   <div class="ib2">
     <div class="gl"><div class="gh">Description <span class="cnt" translate="no">tasks.md · ## ${esc(COLS[col])}</span></div><div class="box"><div class="desc md">${md(t.description)}</div></div></div>
   </div>`;
-  openInsp();
+  openInsp(quiet);
 }
-function openInsp(){insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;setTimeout(()=>$('#inspX').focus(),60);}
-function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
+function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;if(!quiet)setTimeout(()=>$('#inspX').focus(),60);}
+function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
   $$('[data-more]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(b.dataset.more==='completed')showAllDone=true;else showAllBacklog=true;renderTasks();});
@@ -180,14 +183,16 @@ $$('#modeSeg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;$$('#modeSeg bu
 /* ---------------- any .specs/ file, rendered as written ---------------- */
 function metaLine(m){return ['fileID','version','lastUpdated'].filter(k=>m&&m[k]!==undefined).map(k=>`${k}: ${m[k]}`).join(' · ');}
 async function renderFile(path){
-  $('#fmBox').innerHTML='';$('#fileBody').innerHTML='';
-  let src;try{src=await getText('.specs/'+path);}catch(e){$('#fileBody').innerHTML=`<p class="note">${esc(e.message)}</p>`;return;}
+  let src=null;
+  if(path in DATA.files)try{src=await getText('.specs/'+path);}catch(e){if(e.status!==404){if(curView==='file'&&curFile===path){$('#fmBox').innerHTML='';$('#fileBody').innerHTML=`<p class="note">${esc(e.message)}</p>`;}return;}}
   if(curView!=='file'||curFile!==path)return;
+  if(src===null){$('#fmBox').innerHTML='';$('#fileBody').innerHTML=gone('.specs/'+path);return;}
   const isYaml=/\.ya?ml$/.test(path);
   const {fm,body}=isYaml?{fm:'',body:src}:splitFm(src);
   $('#fmBox').innerHTML=fm?`<div class="gh">Front matter <span class="cnt" translate="no">.specs/${esc(path)}</span></div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div>`:'';
   $('#fileBody').innerHTML=isYaml?`<pre translate="no">${esc(src)}</pre>`:md(body);
 }
+const gone=goneHtml; // one definition of the "no longer exists" markup: ui/route.js
 
 /* Explorer: the .specs/ tree, each row carrying that file's own front matter. */
 function renderExplorer(){
@@ -200,10 +205,11 @@ function renderExplorer(){
   $('#exNote').innerHTML=`${DATA.nav.specs.length} files under <span class="mono" translate="no">.specs/</span>. Every ID, version and date is that file’s own front matter.`;
 }
 /* Security: both files in security/, each rendered as written. */
+const secShown=new Set(); // security files this page has shown, so a deletion can be named
 async function renderSecurity(){
-  const paths=['security/threat-model.md','security/security-decisions.md'].filter(p=>p in DATA.files);
-  const parts=await Promise.all(paths.map(p=>getText('.specs/'+p).then(src=>
-    `<div class="gl"><div class="gh" translate="no">${esc(p)} <span class="cnt" translate="no">${esc(metaLine(DATA.files[p]))}</span></div></div><div class="md doc doc-gap">${md(splitFm(src).body)}</div>`,
+  const paths=['security/threat-model.md','security/security-decisions.md'].filter(p=>p in DATA.files||secShown.has(p));
+  const parts=await Promise.all(paths.map(p=>!(p in DATA.files)?Promise.resolve(gone('.specs/'+p)):getText('.specs/'+p).then(src=>(secShown.add(p),
+    `<div class="gl"><div class="gh" translate="no">${esc(p)} <span class="cnt" translate="no">${esc(metaLine(DATA.files[p]))}</span></div></div><div class="md doc doc-gap">${md(splitFm(src).body)}</div>`),
     e=>`<p class="note">${esc(e.message)}</p>`)));
   if(curView==='security')$('#secBody').innerHTML=parts.join('')||'<div class="box"><div class="empty">No files in <span class="mono" translate="no">.specs/security/</span>.</div></div>';
 }
@@ -228,13 +234,18 @@ function renderAgentFiles(){
   $('#sklBox').innerHTML=fileRows(N.skills);$('#sklCnt').textContent=N.skills.length;
 }
 /* Inspector for a generated file: its front matter raw, its body rendered. */
-async function openFile(path){
-  lastFocus=document.activeElement;
-  let src;try{src=await getText(path);}catch(e){toast(e.message);return;}
+/* Is this generated file in the latest /api/specs listing? */
+function listed(path){const N=DATA.nav;return N.instructions.some(f=>f.exists&&f.path===path)||[N.commands,N.prompts,N.skills].some(l=>l.some(f=>f.path===path));}
+async function openFile(path,quiet){
+  if(!quiet)lastFocus=document.activeElement;
+  let src=null;
+  if(listed(path))try{src=await getText(path);}catch(e){if(e.status!==404){if(!quiet)toast(e.message);return;}}
+  inspOpen={kind:'file',path};
+  const head=`<div class="ih"><span class="id" translate="no">${esc(path)}</span><button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>`;
+  if(src===null){insp.innerHTML=head+`<div class="ib2">${gone(path)}</div>`;openInsp(quiet);return;}
   const {fm,body}=splitFm(src);
-  insp.innerHTML=`<div class="ih"><span class="id" translate="no">${esc(path)}</span><button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>
-  <div class="ib2">${fm?`<div class="gl"><div class="gh">Front matter</div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div></div>`:''}<div class="md doc">${md(body)}</div></div>`;
-  openInsp();
+  insp.innerHTML=head+`<div class="ib2">${fm?`<div class="gl"><div class="gh">Front matter</div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div></div>`:''}<div class="md doc">${md(body)}</div></div>`;
+  openInsp(quiet);
 }
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-open]');if(b)openFile(b.dataset.open);});
 
@@ -263,11 +274,67 @@ document.addEventListener('keydown',e=>{
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$((mode==='board'?'#boardMode':'#listMode')+' .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
 });
 
+/* ---------------- live reload (BL-052) ----------------
+   On a change event: re-fetch, redraw in place. Route, scroll, open inspector, selected row
+   and focus stay where they were. If the server is gone, the last content stays on screen. */
+function focusKey(el){
+  if(!el||el===document.body)return null;
+  const row=el.closest&&el.closest('.row[data-col][data-i]');
+  if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i,board:!!row.closest('#boardMode')};}
+  for(const a of ['data-open','data-file','data-more','data-disc'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
+  if(el.id)return {sel:'#'+CSS.escape(el.id)};
+  return null;
+}
+/* Where a row with this ID sits now in that section: the occurrence nearest its old position. */
+function findRow(col,id,oldI){
+  const rows=DATA.tasks?DATA.tasks[col]:[];let best=-1;
+  rows.forEach((t,i)=>{if(t.id===id&&(best<0||Math.abs(i-oldI)<Math.abs(best-oldI)))best=i;});
+  return best;
+}
+function refocus(key){
+  if(!key||document.activeElement&&document.activeElement!==document.body)return;
+  let el=null;
+  if(key.row){const i=findRow(key.row,key.id,key.i);if(i>=0)el=$(`${key.board?'#boardMode':'#listMode'} .row[data-col="${key.row}"][data-i="${i}"]`);}
+  else el=$(key.sel);
+  if(el)el.focus({preventScroll:true});
+}
+let refreshing=Promise.resolve();
+function refresh(paths){refreshing=refreshing.then(()=>redraw(paths)).catch(()=>{});}
+async function redraw(paths){
+  let d;
+  try{const r=await fetch('/api/specs',{cache:'no-store'});if(!r.ok)return;d=await r.json();}catch(e){return;} // server gone: keep what is shown
+  (paths||Object.keys(fileCache)).forEach(p=>{delete fileCache[p];});
+  const key=focusKey(document.activeElement);
+  const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;
+  const was=inspOpen;
+  DATA=d;
+  renderProject();renderTasks();renderIde();renderAgentFiles();
+  if(curView==='file')await renderFile(curFile);
+  if(curView==='explorer')renderExplorer();
+  if(curView==='security')await renderSecurity();
+  if(was&&was.kind==='task'){
+    const i=findRow(was.col,was.id,was.i);
+    if(i>=0){openTask(was.col,i,true);$$(`#v-board .row[data-col="${was.col}"][data-i="${i}"]`).forEach(r=>r.classList.add('sel'));}
+    else{insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;}
+  }
+  if(was&&was.kind==='file'&&(!paths||paths.includes(was.path)))await openFile(was.path,true);
+  $('#content').scrollTop=scroll;
+  const ib=insp.querySelector('.ib2');if(ib)ib.scrollTop=inspScroll;
+  refocus(key);
+}
+function listen(){
+  if(!window.EventSource)return;
+  const es=new EventSource('/api/events');let dropped=false;
+  es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
+  es.onerror=()=>{dropped=true;};          // EventSource retries by itself
+  es.onopen=()=>{if(dropped){dropped=false;refresh(null);}}; // catch up on anything missed
+}
+
 /* boot */
 insp.setAttribute('aria-hidden','true');
 $('#gDone').classList.add('closed');
 fetch('/api/specs',{cache:'no-store'})
   .then(r=>{if(!r.ok)throw new Error('/api/specs: HTTP '+r.status);return r.json();})
-  .then(d=>{DATA=d;renderProject();renderTasks();renderIde();renderAgentFiles();route();})
+  .then(d=>{DATA=d;renderProject();renderTasks();renderIde();renderAgentFiles();route();listen();})
   .catch(e=>showErr('Could not load the project: '+e.message));
 })();

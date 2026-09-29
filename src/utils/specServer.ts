@@ -1,9 +1,11 @@
-import { createServer, Server, ServerResponse } from 'http';
+import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { AddressInfo } from 'net';
-import { readdirSync, readFileSync, realpathSync, statSync } from 'fs';
-import { isAbsolute, join, posix, relative, resolve, sep } from 'path';
+import { readFileSync, statSync } from 'fs';
+import { join, resolve } from 'path';
 import * as yaml from 'js-yaml';
 import { readSpecs } from './specReader';
+import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
+import { createPoller } from './specPoller';
 
 // Read-only local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8).
 // Every request re-reads disk; nothing is cached and nothing is written.
@@ -15,39 +17,10 @@ const UI_ROUTES: Record<string, [file: string, type: string]> = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/assets/app.css': ['app.css', 'text/css; charset=utf-8'],
   '/assets/md.js': ['md.js', 'text/javascript; charset=utf-8'],
+  '/assets/route.js': ['route.js', 'text/javascript; charset=utf-8'],
   '/assets/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/assets/favicon.svg': ['favicon.svg', 'image/svg+xml'],
 };
-
-const ALLOWED_FILES = ['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md'];
-const ALLOWED_DIRS = ['.specs/', '.claude/commands/', '.claude/skills/', '.github/prompts/'];
-
-function isAllowlisted(rel: string): boolean {
-  return ALLOWED_FILES.includes(rel) || ALLOWED_DIRS.some(d => rel.startsWith(d) && rel.length > d.length);
-}
-
-/**
- * Map a requested project-relative path to a real file the server may read, or null.
- * Rejects NUL, backslashes, absolute paths and `..` segments; after resolving symlinks the
- * file must still be inside the project root and still inside the allowlist.
- */
-export function resolveAllowedPath(root: string, requested: string): string | null {
-  if (!requested || requested.includes('\0') || requested.includes('\\')) return null;
-  if (isAbsolute(requested) || posix.isAbsolute(requested)) return null;
-  if (requested.split('/').includes('..')) return null;
-  const rel = posix.normalize(requested);
-  if (!isAllowlisted(rel)) return null;
-  try {
-    const realRoot = realpathSync(root);
-    const real = realpathSync(join(root, rel));
-    const back = relative(realRoot, real);
-    if (!back || back === '..' || back.startsWith('..' + sep) || isAbsolute(back)) return null;
-    if (!isAllowlisted(back.split(sep).join('/'))) return null;
-    return statSync(real).isFile() ? real : null;
-  } catch {
-    return null;
-  }
-}
 
 /** DNS-rebinding guard: only the loopback names this server was reached on. */
 export function isAllowedHost(host: string | undefined, port: number): boolean {
@@ -73,20 +46,6 @@ export function readBranch(root: string): string | null {
   }
 }
 
-/** Regular, non-hidden files under `dir`, as `/`-joined paths relative to it, sorted. */
-function listFiles(dir: string, base = dir): string[] {
-  let entries;
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-  return entries
-    .filter(e => !e.name.startsWith('.'))
-    .flatMap(e => (e.isDirectory() ? listFiles(join(dir, e.name), base) : [relative(base, join(dir, e.name)).split(sep).join('/')]))
-    .sort();
-}
-
 /** `key: value` lines of a leading `---` block, values as written; null when there is none. */
 function frontMatter(text: string): Record<string, string> | null {
   const lines = text.split('\n');
@@ -106,11 +65,10 @@ export interface NavFile {
   frontMatter: Record<string, string> | null;
 }
 
-/** The files a request may read under one allowlisted folder, with their front matter. */
-function listAllowed(root: string, dir: string, keep: (p: string) => boolean): NavFile[] {
-  return listFiles(join(root, dir))
-    .map(p => `${dir}/${p}`)
-    .filter(keep)
+/** The files under one allowlisted folder, with their front matter. */
+function navFiles(root: string, scanned: string[], dir: string, keep: (p: string) => boolean): NavFile[] {
+  return scanned
+    .filter(p => p.startsWith(dir + '/') && keep(p))
     .flatMap(path => {
       const real = resolveAllowedPath(root, path);
       return real ? [{ path, frontMatter: frontMatter(readFileSync(real, 'utf-8')) }] : [];
@@ -138,10 +96,11 @@ function tasksIntro(text: string): string {
 
 /** Everything `GET /api/specs` returns: project metadata, readSpecs() output, the nav tree. */
 export function buildSpecsPayload(root: string, specpilotVersion: string) {
+  const scanned = listAllowedFiles(root).files;
   const contents: Record<string, string> = {};
-  for (const p of listFiles(join(root, '.specs'))) {
-    const real = resolveAllowedPath(root, `.specs/${p}`);
-    if (real) contents[p] = readFileSync(real, 'utf-8');
+  for (const p of scanned.filter(f => f.startsWith('.specs/'))) {
+    const real = resolveAllowedPath(root, p);
+    if (real) contents[p.slice('.specs/'.length)] = readFileSync(real, 'utf-8');
   }
   const { files, tasks } = readSpecs(contents);
   return {
@@ -159,26 +118,77 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
         const real = resolveAllowedPath(root, path);
         return { path, exists: real !== null, bytes: real ? statSync(real).size : 0 };
       }),
-      commands: listAllowed(root, '.claude/commands', p => p.endsWith('.md')),
-      skills: listAllowed(root, '.claude/skills', p => p.endsWith('/SKILL.md')),
-      prompts: listAllowed(root, '.github/prompts', p => p.endsWith('.md')),
+      commands: navFiles(root, scanned, '.claude/commands', p => p.endsWith('.md')),
+      skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')),
+      prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')),
     },
   };
 }
 
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': "default-src 'self'",
+  'X-Content-Type-Options': 'nosniff',
+  'Cache-Control': 'no-store',
+};
+
 function send(res: ServerResponse, status: number, type: string, body: string | Buffer): void {
-  res.writeHead(status, {
-    'Content-Type': type,
-    'Content-Security-Policy': "default-src 'self'",
-    'X-Content-Type-Options': 'nosniff',
-    'Cache-Control': 'no-store',
-  });
+  res.writeHead(status, { 'Content-Type': type, ...SECURITY_HEADERS });
   res.end(body);
 }
 
 const TEXT = 'text/plain; charset=utf-8';
 
-export function createSpecServer(root: string, specpilotVersion: string): Server {
+/** Most `/api/events` streams open at once; the next one gets 503 (SEC-004.9). */
+export const MAX_EVENT_STREAMS = 8;
+
+export interface SpecServerOptions {
+  /** Change-detection interval in ms (`--poll`). */
+  pollMs?: number;
+  /** Heartbeat comment interval for event streams. */
+  heartbeatMs?: number;
+  /** Poller settle interval after a change (tests shorten it). */
+  settleMs?: number;
+  /** One-time notices, e.g. the scan cap. */
+  log?: (message: string) => void;
+}
+
+export interface SpecServer {
+  server: Server;
+  /** Open event streams right now. */
+  streams(): number;
+  /** End every event stream, clear every timer, then close the listener. */
+  close(): Promise<void>;
+}
+
+export function createSpecServer(root: string, specpilotVersion: string, opts: SpecServerOptions = {}): SpecServer {
+  // ---- live reload (BL-052): streams, heartbeat, and a poller that runs only while a stream is open
+  const streams = new Set<ServerResponse>();
+  let heartbeat: NodeJS.Timeout | null = null;
+  const broadcast = (chunk: string) => streams.forEach(res => res.write(chunk));
+  const poller = createPoller(root, {
+    intervalMs: opts.pollMs ?? 1000,
+    settleMs: opts.settleMs,
+    log: opts.log,
+    onChange: paths => broadcast(`event: change\ndata: ${JSON.stringify({ paths })}\n\n`),
+  });
+  const drop = (res: ServerResponse) => {
+    if (!streams.delete(res) || streams.size) return;
+    poller.stop();
+    if (heartbeat) clearInterval(heartbeat);
+    heartbeat = null;
+  };
+  const openStream = (req: IncomingMessage, res: ServerResponse) => {
+    if (streams.size >= MAX_EVENT_STREAMS) return send(res, 503, TEXT, 'Too many open event streams\n');
+    res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', ...SECURITY_HEADERS });
+    res.write('retry: 2000\n\n');
+    streams.add(res);
+    req.on('close', () => drop(res));
+    if (streams.size === 1) {
+      poller.start();
+      heartbeat = setInterval(() => broadcast(': heartbeat\n\n'), opts.heartbeatMs ?? 25000);
+    }
+  };
+
   const server = createServer((req, res) => {
     try {
       const { port } = server.address() as AddressInfo;
@@ -197,22 +207,37 @@ export function createSpecServer(root: string, specpilotVersion: string): Server
         const file = resolveAllowedPath(root, url.searchParams.get('p') ?? '');
         return file ? send(res, 200, TEXT, readFileSync(file)) : send(res, 404, TEXT, 'Not Found\n');
       }
+      if (url.pathname === '/api/events') return openStream(req, res);
       send(res, 404, TEXT, 'Not Found\n');
     } catch {
-      send(res, 500, TEXT, 'Internal Server Error\n');
+      if (!res.headersSent) send(res, 500, TEXT, 'Internal Server Error\n');
     }
   });
-  return server;
+
+  return {
+    server,
+    streams: () => streams.size,
+    close: () =>
+      new Promise<void>(resolveClose => {
+        [...streams].forEach(res => {
+          res.end();
+          drop(res);
+        });
+        poller.stop();
+        server.close(() => resolveClose());
+        server.closeIdleConnections?.();
+      }),
+  };
 }
 
 /** Listen on 127.0.0.1 only. Rejects with the listen error (e.g. EADDRINUSE). */
-export function startSpecServer(root: string, port: number, specpilotVersion: string): Promise<Server> {
-  const server = createSpecServer(root, specpilotVersion);
+export function startSpecServer(root: string, port: number, specpilotVersion: string, opts: SpecServerOptions = {}): Promise<SpecServer> {
+  const handle = createSpecServer(root, specpilotVersion, opts);
   return new Promise((resolvePromise, reject) => {
-    server.once('error', reject);
-    server.listen(port, '127.0.0.1', () => {
-      server.off('error', reject);
-      resolvePromise(server);
+    handle.server.once('error', reject);
+    handle.server.listen(port, '127.0.0.1', () => {
+      handle.server.off('error', reject);
+      resolvePromise(handle);
     });
   });
 }

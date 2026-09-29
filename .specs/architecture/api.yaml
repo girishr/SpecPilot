@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
 # lastUpdated: 2026-09-28
-# version: 2.3
+# version: 2.4
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -226,6 +226,10 @@ commands:
         type: number
         default: 4321
         description: Port to listen on (127.0.0.1 only)
+      --poll:
+        type: number
+        default: 1000
+        description: Change-detection interval in ms (minimum 250); polling runs only while a page is open
       --open:
         type: boolean
         description: Open the UI in the default browser
@@ -234,13 +238,15 @@ commands:
       "GET /assets/<file>": The UI's stylesheet, scripts and favicon (the SpecPilot logo)
       "GET /api/specs": Project metadata, readSpecs() output and the nav tree (JSON)
       "GET /api/file?p=<path>": One allowlisted file as text/plain
+      "GET /api/events": "Server-sent events (text/event-stream). `event: change`, `data: {\"paths\": [...]}` with the changed allowlisted paths only, no content; heartbeat comment every 25 s; at most 8 open streams, 503 beyond"
     behavior:
       - Binds 127.0.0.1 only; rejects any Host header other than 127.0.0.1:<port> or localhost:<port> (403)
-      - Read-only; re-reads files on every request, so a browser refresh shows the current disk state
+      - Read-only; re-reads files on every request
+      - Live reload polls allowlisted files with stat() every --poll ms while a page is open, and pushes changed paths on /api/events
       - Non-GET methods return 405; unknown paths return 404
     exit-codes:
       0: Stopped with Ctrl+C
-      1: No .specs/ in the current directory, invalid --port, or port already in use
+      1: No .specs/ in the current directory, invalid --port or --poll, or port already in use
 
 global-options:
   --version:

@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
 lastUpdated: 2026-09-28
-version: 1.4
+version: 1.5
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -87,13 +87,24 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.8] `specpilot serve` is loopback-only, Host-checked, allowlisted and read-only
 
 - **Date**: 2026-09-28
-- **Decision**: Listen on `127.0.0.1` only; reject any `Host` other than `127.0.0.1:<port>` / `localhost:<port>` with 403; serve files only from a fixed allowlist (`.specs/**`, `CLAUDE.md`, `AGENTS.md`, `.claude/commands/**`, `.claude/skills/**`, `.github/copilot-instructions.md`, `.github/prompts/**`) after rejecting `..`, absolute paths and NUL, and after checking the `realpath` stays inside both the root and the allowlist; send `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff` and `Cache-Control: no-store` on every response and no CORS headers; expose no write route.
+- **Decision**: Listen on `127.0.0.1` only; reject any `Host` other than `127.0.0.1:<port>` / `localhost:<port>` with 403; serve files only from a fixed allowlist (`.specs/**`, `CLAUDE.md`, `AGENTS.md`, `.claude/commands/**`, `.claude/skills/**`, `.github/copilot-instructions.md`, `.github/prompts/**`) after rejecting `..`, absolute paths, NUL, hidden and `node_modules` segments below an allowlisted folder and symlinked folders on the way, and after checking the `realpath` stays inside both the root and the allowlist (BL-052 aligned these rules with the live-reload scanner, so what is served is exactly what is watched); send `Content-Security-Policy: default-src 'self'`, `X-Content-Type-Options: nosniff` and `Cache-Control: no-store` on every response and no CORS headers; expose no write route.
 - **Rationale**: A local server is reachable by every web page the user visits. Loopback binding stops other machines; the Host check stops DNS rebinding; the allowlist plus `realpath` stops traversal and symlink escape; the CSP limits the damage of any rendering bug; no CORS keeps responses opaque to other origins. With no writes there is nothing to forge, so a CSRF token would be dead code until Phase 3.
 - **Alternatives considered**:
   - A per-session token on every request — deferred to Phase 3 (BL-053), where the first write route needs one anyway.
   - Serving the whole project root — rejected: the UI needs only specs and generated instruction files; source and secrets stay unreachable.
   - Loading Google Fonts as the mockup does — rejected: breaks the CSP and the offline guarantee (SEC-004.2).
 - **Reference**: SEC-002.5, REQ-002.H.4, ARCH-004.33
+
+### [SEC-004.9] Live reload is polled, capped and content-free
+
+- **Date**: 2026-09-28
+- **Decision**: Detect changes by `stat()` polling over the files the path guard would serve (mtime, size, inode; never content), only while at least one `/api/events` stream is open; cap open streams at 8 and answer the 9th with 503; send only the changed allowlisted paths; heartbeat every 25 s; end every stream and clear every timer on Ctrl+C.
+- **Rationale**: A local page can open streams in a loop, so an uncapped stream count is an easy way to pin the process. Polling only the allowlisted set keeps each tick small and never touches source or secrets. Content-free events mean the stream reveals nothing `/api/specs` does not already return.
+- **Alternatives considered**:
+  - `fs.watch` with `recursive: true` — rejected: unreliable on Linux before Node 20, and it watches whatever the tree contains rather than the allowlist.
+  - WebSockets — rejected: two-way, and needs a handshake implementation or a dependency; SSE is a plain `GET`.
+  - Pushing file content in events — rejected: widens what the stream exposes and duplicates `/api/file`.
+- **Reference**: SEC-002.5 (g), REQ-002.H.8, ARCH-004.35
 
 ## Open Questions [SEC-005]
 

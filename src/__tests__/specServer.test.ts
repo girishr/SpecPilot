@@ -1,15 +1,11 @@
-import { request, Server } from 'http';
+import { request } from 'http';
 import { AddressInfo } from 'net';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import * as os from 'os';
-import {
-  buildSpecsPayload,
-  isAllowedHost,
-  readBranch,
-  resolveAllowedPath,
-  startSpecServer,
-} from '../utils/specServer';
+import { buildSpecsPayload, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
+import { resolveAllowedPath } from '../utils/specPaths';
+import { watchedFiles } from '../utils/specPoller';
 import { serveCommand } from '../commands/serve';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
@@ -237,21 +233,21 @@ function hit(port: number, path: string, opts: { method?: string; host?: string 
 
 describe('spec server over HTTP (port 0)', () => {
   let p: ReturnType<typeof makeProject>;
-  let server: Server;
+  let spec: SpecServer;
   let port: number;
 
   beforeAll(async () => {
     p = makeProject();
-    server = await startSpecServer(p.root, 0, '0.0.0-test');
-    port = (server.address() as AddressInfo).port;
+    spec = await startSpecServer(p.root, 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
   });
   afterAll(async () => {
-    await new Promise(r => server.close(r));
+    await spec.close();
     p.cleanup();
   });
 
   it('listens on 127.0.0.1 only', () => {
-    expect((server.address() as AddressInfo).address).toBe('127.0.0.1');
+    expect((spec.server.address() as AddressInfo).address).toBe('127.0.0.1');
   });
 
   it.each([
@@ -353,13 +349,18 @@ describe('serveCommand', () => {
 
   it('fails with a clear message suggesting --port when the port is in use', async () => {
     const busy = await startSpecServer(p.root, 0, 'x');
-    const port = (busy.address() as AddressInfo).port;
+    const port = (busy.server.address() as AddressInfo).port;
     try {
       await expect(serveCommand({ port: String(port) })).rejects.toThrow('exit 1');
       expect(errors.join('\n')).toMatch(new RegExp(`Port ${port} is already in use.*--port`));
     } finally {
-      await new Promise(r => busy.close(r));
+      await busy.close();
     }
+  });
+
+  it.each([['100'], ['249'], ['1.5'], ['abc']])('rejects --poll %s (whole number of ms, 250 or more)', async poll => {
+    await expect(serveCommand({ poll })).rejects.toThrow('exit 1');
+    expect(errors.join('\n')).toContain('Invalid --poll');
   });
 
   it('rejects an invalid --port', async () => {
@@ -375,13 +376,246 @@ describe('serveCommand', () => {
 
   it('prints the URL as http://127.0.0.1:<port> and stops on Ctrl+C', async () => {
     const probe = await startSpecServer(p.root, 0, 'x');
-    const port = (probe.address() as AddressInfo).port;
-    await new Promise(r => probe.close(r));
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+
+    let exited: (code: number) => void;
+    const exitCode = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
 
     await serveCommand({ port: String(port) });
     expect(logs.join('\n')).toContain(`http://127.0.0.1:${port}`);
     expect(logs.join('\n')).not.toContain('localhost');
-    expect(() => process.emit('SIGINT')).toThrow('exit 0');
-    expect(exit).toHaveBeenCalledWith(0);
+    process.emit('SIGINT');
+    expect(await exitCode).toBe(0);
+  });
+});
+
+// ─── Live reload (BL-052) ────────────────────────────────────────────────────
+
+/** An open GET /api/events stream that collects what the server sends. */
+function openEvents(port: number, host = `127.0.0.1:${port}`) {
+  return new Promise<{ status: number; headers: Record<string, unknown>; text: () => string; close: () => void; waitFor: (re: RegExp, ms?: number) => Promise<string> }>(
+    (resolve, reject) => {
+      let text = '';
+      const req = request({ host: '127.0.0.1', port, path: '/api/events', headers: { Host: host } }, res => {
+        res.setEncoding('utf8');
+        res.on('data', c => (text += c));
+        const waitFor = async (re: RegExp, ms = 2000) => {
+          const until = Date.now() + ms;
+          while (Date.now() < until) {
+            const m = re.exec(text);
+            if (m) return m[0];
+            await new Promise(r => setTimeout(r, 10));
+          }
+          throw new Error(`timed out waiting for ${re} in ${JSON.stringify(text)}`);
+        };
+        resolve({ status: res.statusCode!, headers: res.headers, text: () => text, close: () => req.destroy(), waitFor });
+      });
+      req.on('error', err => ((err as NodeJS.ErrnoException).code === 'ECONNRESET' ? undefined : reject(err)));
+      req.end();
+    },
+  );
+}
+
+async function until(check: () => boolean, ms = 2000): Promise<void> {
+  const end = Date.now() + ms;
+  while (!check()) {
+    if (Date.now() > end) throw new Error('condition not met in time');
+    await new Promise(r => setTimeout(r, 10));
+  }
+}
+
+/** Active Node timers right now (Node 17+). */
+const timerCount = () => process.getActiveResourcesInfo().filter(r => r === 'Timeout').length;
+
+describe('live reload over /api/events', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+
+  beforeEach(async () => {
+    p = makeProject();
+    spec = await startSpecServer(p.root, 0, '0.0.0-test', { pollMs: 250, heartbeatMs: 60, settleMs: 30 });
+    port = (spec.server.address() as AddressInfo).port;
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it('opens an event stream with the security headers and a retry hint', async () => {
+    const s = await openEvents(port);
+    expect(s.status).toBe(200);
+    expect(s.headers['content-type']).toBe('text/event-stream; charset=utf-8');
+    expect(s.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(s.headers['x-content-type-options']).toBe('nosniff');
+    expect(s.headers['cache-control']).toBe('no-store');
+    expect(Object.keys(s.headers).some(h => h.startsWith('access-control-'))).toBe(false);
+    await s.waitFor(/^retry: 2000\n\n/);
+    s.close();
+  });
+
+  it('applies the Host check to event streams', async () => {
+    const s = await openEvents(port, 'evil.com');
+    expect(s.status).toBe(403);
+    expect(spec.streams()).toBe(0);
+  });
+
+  it(`caps open streams at ${MAX_EVENT_STREAMS} and answers the next with 503`, async () => {
+    const open = await Promise.all(Array.from({ length: MAX_EVENT_STREAMS }, () => openEvents(port)));
+    expect(open.every(s => s.status === 200)).toBe(true);
+    await until(() => spec.streams() === MAX_EVENT_STREAMS);
+    const extra = await openEvents(port);
+    expect(extra.status).toBe(503);
+    expect(extra.headers['content-security-policy']).toBe("default-src 'self'");
+    open.forEach(s => s.close());
+  });
+
+  it('sends a heartbeat comment', async () => {
+    const s = await openEvents(port);
+    await s.waitFor(/: heartbeat\n\n/, 1000);
+    s.close();
+  });
+
+  it('forgets a client on disconnect and stops polling with the last one', async () => {
+    const a = await openEvents(port);
+    const b = await openEvents(port);
+    await until(() => spec.streams() === 2);
+    a.close();
+    await until(() => spec.streams() === 1);
+    b.close();
+    await until(() => spec.streams() === 0);
+    // With no stream open, an edit produces nothing and nobody is polling for it.
+    write(p.root, '.specs/planning/tasks.md', '# changed while nobody listens\n');
+    const late = await openEvents(port);
+    await new Promise(r => setTimeout(r, 600));
+    expect(late.text()).not.toContain('event: change');
+    late.close();
+  });
+
+  it('pushes an edit to a temp .specs file within 2 s, as paths only', async () => {
+    const s = await openEvents(port);
+    await s.waitFor(/retry/);
+    const started = Date.now();
+    write(p.root, '.specs/planning/tasks.md', '# Tasks\n\n- edited by the test\n');
+    const event = await s.waitFor(/event: change\ndata: .*\n\n/, 2000);
+    expect(Date.now() - started).toBeLessThan(2000);
+    expect(JSON.parse(event.split('data: ')[1])).toEqual({ paths: ['.specs/planning/tasks.md'] });
+    expect(s.text()).not.toContain('edited by the test');
+    s.close();
+  });
+
+  it('leaves no timers behind after close()', async () => {
+    const before = timerCount();
+    const s = await openEvents(port);
+    await until(() => spec.streams() === 1);
+    expect(timerCount()).toBeGreaterThan(before); // poller + heartbeat running
+    await spec.close();
+    s.close();
+    await until(() => timerCount() <= before);
+    expect(spec.server.listening).toBe(false);
+  });
+});
+
+describe('the poller watches exactly what /api/file serves', () => {
+  it('agrees with resolveAllowedPath on every file in a tree full of edge cases', () => {
+    const p = makeProject();
+    try {
+      const r = p.root;
+      write(r, '.specs/a.md', 'a');
+      write(r, '.specs/.hidden.md', 'hidden file');
+      write(r, '.specs/.git/HEAD', 'ref');
+      write(r, '.specs/sub/.cache/x.md', 'hidden folder deeper');
+      write(r, '.specs/node_modules/pkg/readme.md', 'nm');
+      write(r, '.claude/commands/cmd.md', 'c');
+      write(r, '.claude/commands/.draft.md', 'hidden command');
+      write(r, '.claude/settings.json', 'not allowlisted');
+      write(r, '.claude/skills/s/SKILL.md', 's');
+      write(r, '.github/prompts/p.prompt.md', 'p');
+      write(r, '.github/workflows/ci.yml', 'not allowlisted');
+      write(r, 'AGENTS.md', 'agents');
+      write(r, 'README.md', 'not allowlisted');
+      symlinkSync(join(r, '.specs', 'a.md'), join(r, '.specs', 'alias.md')); // file symlink inside the allowlist
+      symlinkSync(join(r, 'src', 'secret.ts'), join(r, '.specs', 'leak.md')); // leaves the allowlist
+      symlinkSync(join(p.outside, 'secret.txt'), join(r, '.specs', 'out.md')); // leaves the root
+      mkdirSync(join(r, 'docs'));
+      write(r, 'docs/d.md', 'reached only through a symlinked folder');
+      symlinkSync(join(r, '.specs', 'planning'), join(r, '.specs', 'linkdir')); // symlinked folder, target inside
+      symlinkSync(join(r, 'docs'), join(r, '.claude', 'commands', 'docs')); // symlinked folder, target outside
+
+      // Every path a request could name: all real files plus the paths through the symlinks.
+      const all = (dir: string, rel = ''): string[] =>
+        require('fs').readdirSync(join(r, dir, rel), { withFileTypes: true }).flatMap((e: import('fs').Dirent) => {
+          const p2 = [dir, rel, e.name].filter(Boolean).join('/');
+          return e.isDirectory() ? all(dir, [rel, e.name].filter(Boolean).join('/')) : [p2];
+        });
+      const candidates = [
+        ...all('.specs'), ...all('.claude'), ...all('.github'), ...all('src'),
+        'CLAUDE.md', 'AGENTS.md', 'README.md',
+        '.specs/linkdir/tasks.md', '.claude/commands/docs/d.md',
+      ];
+      const served = candidates.filter(c => resolveAllowedPath(r, c) !== null).sort();
+      const watched = watchedFiles(r);
+      expect(watched).toEqual(served);
+      // And the edge cases landed where they should.
+      expect(served).toEqual(expect.arrayContaining(['.specs/a.md', '.specs/alias.md', '.claude/commands/cmd.md', 'AGENTS.md']));
+      for (const out of ['.specs/.hidden.md', '.specs/.git/HEAD', '.specs/sub/.cache/x.md', '.specs/node_modules/pkg/readme.md', '.claude/commands/.draft.md', '.specs/leak.md', '.specs/out.md', '.specs/linkdir/tasks.md', '.claude/commands/docs/d.md', '.claude/settings.json', 'README.md']) {
+        expect(served).not.toContain(out);
+      }
+    } finally {
+      p.cleanup();
+    }
+  });
+});
+
+describe('UI routing (ui/route.js)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { resolveRoute, goneHtml } = require('../../ui/route.js') as {
+    resolveRoute: (hash: string, files: Record<string, unknown>) => { view: string; sub: string; missing: boolean };
+    goneHtml: (path: string) => string;
+  };
+  const files = { 'quality/tests.md': {}, 'planning/roadmap.md': {} };
+
+  it('opens a listed file', () => {
+    expect(resolveRoute('#file/quality/tests.md', files)).toEqual({ view: 'file', sub: 'quality/tests.md', missing: false });
+  });
+
+  it('keeps a fresh load of a deleted file on the file view, marked missing, instead of routing to Tasks', () => {
+    expect(resolveRoute('#file/security/threat-model.md', files)).toEqual({ view: 'file', sub: 'security/threat-model.md', missing: true });
+    expect(goneHtml('.specs/security/threat-model.md')).toBe(
+      '<p class="note"><span class="mono" translate="no">.specs/security/threat-model.md</span> no longer exists.</p>',
+    );
+  });
+
+  it('escapes whatever path the URL carries', () => {
+    const r = resolveRoute('#file/%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E', files);
+    expect(r.missing).toBe(true);
+    expect(goneHtml(r.sub)).not.toMatch(/<img/);
+    expect(goneHtml(r.sub)).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+
+  it.each([['', 'board'], ['#', 'board'], ['#board/board', 'board'], ['#explorer', 'explorer'], ['#nope', 'board'], ['#file', 'board'], ['#file/', 'board']])(
+    'routes %j to %s',
+    (hash, view) => {
+      expect(resolveRoute(hash, files).view).toBe(view);
+    },
+  );
+
+  it('is served and loaded by the page', async () => {
+    const p = makeProject();
+    const s = await startSpecServer(p.root, 0, 'x');
+    try {
+      const port = (s.server.address() as AddressInfo).port;
+      const js = await hit(port, '/assets/route.js');
+      expect([js.status, js.headers['content-type']]).toEqual([200, 'text/javascript; charset=utf-8']);
+      expect((await hit(port, '/')).body).toContain('<script src="/assets/route.js" defer></script>');
+    } finally {
+      await s.close();
+      p.cleanup();
+    }
   });
 });

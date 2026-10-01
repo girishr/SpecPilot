@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-063 completed, CD-girishr-051)
-version: 5.78
+lastUpdated: 2026-10-01 (CS-078 parked in Backlog; BL-066 added)
+version: 5.79
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -46,12 +46,13 @@ Notes
 | BL-059 | Announce 2.3.0: add `specpilot serve` docs and a 2.3.0 release entry to the website (`SpecPilotWebsite-v2`), then a LinkedIn post with a short screen recording of live reload. |
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
 | BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
+| BL-066 | `specpilot backfill` checks files against mandate wording SpecPilot no longer generates: a fresh 2.5.0 `.github/copilot-instructions.md` (terse list) is checked against the verbose pre-2.2 fingerprints, and a fresh `project.yaml` (no `rules:` by design, "see your AI agent configuration file") against `rules.critical`; a dry run on a fresh project would append all 8 mandates to copilot-instructions.md in other words and 9 rules to project.yaml. Route copilot-instructions.md by the wording it has (terse → `TERSE_MD_MANDATES`), and leave a `project.yaml` without `rules:` alone. Blocks CS-078's backfill step. Must ship before 2.6.0. |
+| CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) (Spec Report on branch feat/cs-078-test-mandate; needs BL-066 first) |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
-| CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
 
 ## Completed
 

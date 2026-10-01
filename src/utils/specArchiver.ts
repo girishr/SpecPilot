@@ -17,8 +17,8 @@ export interface ArchiveResult {
 
 const SPECS_DIR_CANDIDATES = ['.specs', '.project-spec', 'specs', 'specifications'];
 
-/** Trim prompts.md to this many total lines after archiving. */
 export const PROMPTS_LINE_LIMIT = 100;
+/** Trim prompts.md to this many total lines after archiving. */
 export const PROMPTS_KEEP_LINES = 80;
 
 // ---- prompts.md (BL-061): move whole entries, always the oldest, in whichever order the log runs.

@@ -256,10 +256,13 @@ describe('SpecGenerator', () => {
     writeFileSync(copilotPath, original);
 
     const promptSpy = jest.spyOn(inquirer, 'prompt');
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: true });
 
     expect(promptSpy).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('.github/copilot-instructions.md already exists \u2014 skipping (--no-prompts).'));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Manually merge the SpecPilot mandates'));
     const content = readFileSync(copilotPath, 'utf-8');
     expect(content).toBe(original);
   });
@@ -451,10 +454,13 @@ describe('SpecGenerator', () => {
     writeFileSync(join(testDir, 'CLAUDE.md'), original);
 
     const promptSpy = jest.spyOn(inquirer, 'prompt');
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
 
     await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: true });
 
     expect(promptSpy).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('CLAUDE.md already exists \u2014 skipping (--no-prompts).'));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('Manually merge the SpecPilot mandates'));
     const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
     expect(content).toBe(original);
   });

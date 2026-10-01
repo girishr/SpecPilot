@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-065 completed, CD-girishr-050)
-version: 5.76
+lastUpdated: 2026-10-01 (BL-063 widened to test hygiene, in Current Sprint)
+version: 5.77
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -45,7 +45,6 @@ Notes
 | BL-055 | `specpilot serve` Phase 5: guided setup in the browser; decide between the CLI's own question set now and BL-032 spec-core first. |
 | BL-059 | Announce 2.3.0: add `specpilot serve` docs and a 2.3.0 release entry to the website (`SpecPilotWebsite-v2`), then a LinkedIn post with a short screen recording of live reload. |
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
-| BL-063 | Test noise: ideConfigGenerator.ts:112 logs a stack trace during npm test; assert or silence it |
 | BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
 
 ## Current Sprint
@@ -53,6 +52,7 @@ Notes
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
+| BL-063 | Test hygiene: (1) the `--no-prompts` auto-skip tests in `specGenerator.test.ts` print the "already exists — skipping" notice (`ideConfigGenerator.ts:123`, CLAUDE.md, and `:232`, copilot-instructions.md) during npm test, which Jest shows with a stack-like source location; capture `console.log` and assert the notice instead; (2) the generator test's four archive-constant checks use `toContain`, so a constant cut to a prefix of its bash value (8 for 80) passes; end each expected string with "\n"; (3) the doc comment at `specArchiver.ts:20` describes the keep target, not the limit; move it above `PROMPTS_KEEP_LINES`. |
 
 ## Completed
 

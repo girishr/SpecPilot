@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-054 to Current Sprint; BL-067, BL-068 added)
-version: 5.80
+lastUpdated: 2026-10-01 (BL-054 completed; BL-067, BL-068 added)
+version: 5.81
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -54,7 +54,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-054 | `specpilot serve` Phase 4: multiple projects; a project registry outside the repo (a new decision against ARCH-007.4 and ARCH-007.5); one server vs one per folder. (built on branch feat/bl-054-multi-project, not merged: one server, projects named on the command line, no registry; BL-067 holds the registry; 33 new tests, 461 → 494) |
 
 ## Completed
 
@@ -83,3 +82,4 @@ Notes
 | 140 | [CD-girishr-049] [BL-060] | `## Completed` limit 25 → 40 lines, archive keeps 20 rows: a table-shaped section fit only ~17 rows in 25 lines and archive kept exactly as many as fit, so the next completion brought the validate warning back; `COMPLETED_LINE_LIMIT` exported from `specArchiver.ts` as the only copy (validator's `TASKS_COMPLETED_LINE_LIMIT` deleted, `archive --help` reads both limits from the constants); `specpilot-archive` bash copy, command files and `KNOWN_COMMAND_HASHES` regenerated; new test: after an archive, table and list sections take at least 10 completions before the next warning (fails at 25). 2 new tests (459 → 461); commit `2ceacd2` |
 | 141 | [CD-girishr-050] [BL-065] | Single source for the archive limits and keep targets: `specValidator.ts` kept its own `PROMPTS_LINE_LIMIT = 100` and now imports the archiver's (as BL-060 did for the Completed limit); `specArchiver.ts` also exports `PROMPTS_KEEP_LINES` (80) and `COMPLETED_KEEP_ENTRIES` (20); the `specpilot-archive` bash copy keeps literals (`command-hashes.js` transpiles the generator file on its own), so command files and `KNOWN_COMMAND_HASHES` are unchanged, and the generator test builds all four expected bash values from the exported constants (each one changed in turn fails it). No behaviour change; tests unchanged at 461 (one strengthened); commit `d6fcb60` |
 | 142 | [CD-girishr-051] [BL-063] | Test hygiene: the `--no-prompts` auto-skip tests in `specGenerator.test.ts` (CLAUDE.md, copilot-instructions.md) capture `console.log` and assert the "already exists — skipping" notice, so npm test prints no console blocks (the `:112` "stack trace" was Jest's source location for that intended notice); the generator test's four archive-constant checks end in "\n", so a prefix value (8 for 80) fails where it passed before; `specArchiver.ts` doc comment moved above `PROMPTS_KEEP_LINES`. No behaviour change; tests unchanged at 461; commit `68a3742` |
+| 143 | [CD-girishr-052] [BL-054] | `specpilot serve` Phase 4, multiple projects — `specpilot serve [folders...]` serves every named folder from one server on one port (none = the current directory, unchanged); each folder `realpath`-resolved, must contain `.specs/` (exit 1 naming it), duplicates served once; one-project startup line unchanged, more = `<N> projects` plus `  <n>  <root>` lines. `/api/specs`, `/api/file`, `/api/events` and `POST /api/tasks/move` take `?project=<n>` (`^(0|[1-9][0-9]*)$`, one value, in range, else 404; omitted = 0), resolved after Host/method and, on a move, after Origin/token/content-type/size; each project keeps its own path guard, allowlists, `tasks.md` hash and poller (started by its first stream, stopped by its last); one token, one write lock, 8-stream cap across projects; `projects: [{name, root, branch}]` with `~/` roots. UI: one rail tile per project, `#<n>/` routes, one `EventSource` per shown project, file loads guarded against a switch mid-fetch. No registry, no route that accepts a folder (BL-067). 33 new tests (461 → 494); commit `afc3ee6` |

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-069 to Current Sprint)
-version: 5.84
+lastUpdated: 2026-10-01 (BL-069 completed)
+version: 5.85
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -55,7 +55,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-069 | Fresh `tasks.md` and `specpilot backfill` disagree: `init` writes the literal `CD-{devPrefix}-###` and no `## Multi-Dev Notes`, while `backfillTasksMd()` looks for `CD-<handle>-###` and the section, so `backfill` adds both to every fresh project (seen on a fresh 2.5.0 project during BL-066). REQ-002.F.6 and ARCH-004.22 still describe the old template. Decide which side is right, then make them agree. Decided: the template (CS-053 convention line, CS-073 no Multi-Dev Notes); backfill accepts either convention form, inserts the template's line when missing, and no longer adds Multi-Dev Notes (built on branch feat/bl-069-tasks-convention, not merged; 5 tests replaced by 7, 507 → 509) |
 
 ## Completed
 
@@ -86,3 +85,4 @@ Notes
 | 142 | [CD-girishr-051] [BL-063] | Test hygiene: the `--no-prompts` auto-skip tests in `specGenerator.test.ts` (CLAUDE.md, copilot-instructions.md) capture `console.log` and assert the "already exists — skipping" notice, so npm test prints no console blocks (the `:112` "stack trace" was Jest's source location for that intended notice); the generator test's four archive-constant checks end in "\n", so a prefix value (8 for 80) fails where it passed before; `specArchiver.ts` doc comment moved above `PROMPTS_KEEP_LINES`. No behaviour change; tests unchanged at 461; commit `68a3742` |
 | 143 | [CD-girishr-052] [BL-054] | `specpilot serve` Phase 4, multiple projects — `specpilot serve [folders...]` serves every named folder from one server on one port (none = the current directory, unchanged); each folder `realpath`-resolved, must contain `.specs/` (exit 1 naming it), duplicates served once; one-project startup line unchanged, more = `<N> projects` plus `  <n>  <root>` lines. `/api/specs`, `/api/file`, `/api/events` and `POST /api/tasks/move` take `?project=<n>` (`^(0|[1-9][0-9]*)$`, one value, in range, else 404; omitted = 0), resolved after Host/method and, on a move, after Origin/token/content-type/size; each project keeps its own path guard, allowlists, `tasks.md` hash and poller (started by its first stream, stopped by its last); one token, one write lock, 8-stream cap across projects; `projects: [{name, root, branch}]` with `~/` roots. UI: one rail tile per project, `#<n>/` routes, one `EventSource` per shown project, file loads guarded against a switch mid-fetch. No registry, no route that accepts a folder (BL-067). 33 new tests (461 → 494); commit `afc3ee6` |
 | 144 | [CD-girishr-053] [BL-066] | `specpilot backfill` re-added mandates to projects created by 2.0.0 or later, and `specpilot validate` failed them: backfill checked `.github/copilot-instructions.md` for the pre-2.0 verbose mandates (a fresh terse file got all 8 again in other words) and `project.yaml` for `rules:` that CS-067 stopped generating (9 rules added), and validate errored on the missing prompt-tracking mandate, which only those 9 rules cleared. `hasRulesKey()` in `specValidator.ts` is now the one test (js-yaml root mapping, any value counts; commented or nested does not): without it validate skips both rules checks and backfill leaves `project.yaml` unchanged with the reason (unparseable → skipped); copilot-instructions.md is checked as verbose only if it already has a verbose fingerprint, else terse with the terse block. On a fresh `init`, backfill leaves both files alone and validate exits 0 (was 1). Three tests rewritten, 13 net new (494 → 507); commit `1e28710` |
+| 145 | [CD-girishr-054] [BL-069] | `specpilot backfill` added a convention line and `## Multi-Dev Notes` to every fresh `planning/tasks.md`: `init` has written the literal `CD-{devPrefix}-###` since CS-053 and dropped Multi-Dev Notes in CS-073 (2.0.0), while CS-055's backfill looked only for `CD-<handle>-###` and kept adding the section. Either form now counts; a missing line is inserted in the template's wording after `- CS-###:` (else before `Notes`), and with neither anchor it is skipped with a reason, never reported as present; Multi-Dev Notes no longer checked or added (existing sections kept); one item (`total: 1`), output says "All 1 item". A fresh `init` project's backfill reports everything up to date. 5 tests replaced by 7 (507 → 509); commit `7a78615` |

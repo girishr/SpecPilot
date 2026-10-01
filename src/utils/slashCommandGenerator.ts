@@ -172,7 +172,7 @@ After running it:
     name: 'archive',
     description: 'Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard',
     allowedTools: ['Bash', 'Read', 'Edit'],
-    body: `Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 25 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+    body: `Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
 
 Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
 
@@ -181,7 +181,7 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 PROMPTS_LINE_LIMIT=100
 PROMPTS_KEEP_LINES=80
-COMPLETED_LINE_LIMIT=25
+COMPLETED_LINE_LIMIT=40
 COMPLETED_KEEP_ENTRIES=20
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
@@ -515,6 +515,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     'c4ebcf051279e98525351ecb08452f71e28eef173311605908939a0b993fc726',
     '50beaa5de3eaf5a9960ee775e5b9e694998902886d488c30bbdcd252e189214a',
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
+    'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
   ],
   '.agent/workflows/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
@@ -542,6 +543,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '3f3e121a9da5cda256f0fcbf3bbd92590cc211d3e67ee59a834c58d6abb589ef',
     '82fa25d0986ba33c240a8817670d5733b353cdc19c0a102b4b29245c348634e0',
     '4ece400213565ec40fdce7e4767f984ee352ddb08cafac35cdaf4731edffcbe7',
+    'c456c0067f69c7ec4300bdbe7fed3727734d7df8b44f56bda77d6ac4f7eece10',
   ],
   '.claude/commands/specpilot-backfill.md': [
     '16c9c26b3e63b6e77067dab0037cb49d51d344e9bf392a431f09f7918ee3c813',
@@ -569,6 +571,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     'c4ebcf051279e98525351ecb08452f71e28eef173311605908939a0b993fc726',
     '50beaa5de3eaf5a9960ee775e5b9e694998902886d488c30bbdcd252e189214a',
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
+    'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
   ],
   '.codex/prompts/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
@@ -596,6 +599,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     'c4ebcf051279e98525351ecb08452f71e28eef173311605908939a0b993fc726',
     '50beaa5de3eaf5a9960ee775e5b9e694998902886d488c30bbdcd252e189214a',
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
+    'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
   ],
   '.cursor/commands/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
@@ -623,6 +627,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '9e75008c25a6820a7be150732e59ab2fa207594a50e98c5dfcaa8c03dc087094',
     '12345bb6d2367a65bc9f2547b85403e781f3f81af664aa51743e96ca6894bac7',
     '6dc00a9bce104395f819bde397978154aadc8716a8258ad3f5bf23559f94f834',
+    'd04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2',
   ],
   '.github/prompts/specpilot-backfill.prompt.md': [
     'df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc',
@@ -650,6 +655,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     'c4ebcf051279e98525351ecb08452f71e28eef173311605908939a0b993fc726',
     '50beaa5de3eaf5a9960ee775e5b9e694998902886d488c30bbdcd252e189214a',
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
+    'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
   ],
   '.windsurf/workflows/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',

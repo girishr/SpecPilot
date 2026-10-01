@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
-import { planCompletedArchive, planPromptsArchive } from './specArchiver';
+import { COMPLETED_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -23,7 +23,7 @@ function missingCrossRefs(content: string, refs: string[]): string[] {
 }
 
 function tasksCompletedLimitWarning(): string {
-  return `planning/tasks.md ## Completed section exceeds line limit: ${SpecValidator.TASKS_COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`;
+  return `planning/tasks.md ## Completed section exceeds line limit: ${COMPLETED_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to tasks-archive.md.`;
 }
 
 /** Everything `specpilot validate` reports about tasks.md's content, worded as it words it. */
@@ -53,7 +53,6 @@ export interface ValidationResult {
 
 export class SpecValidator {
   private static readonly PROMPTS_LINE_LIMIT = 100;
-  static readonly TASKS_COMPLETED_LINE_LIMIT = 25;
 
   private requiredFiles = [
     'project/project.yaml',

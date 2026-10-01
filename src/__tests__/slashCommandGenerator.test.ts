@@ -54,7 +54,7 @@ describe('SlashCommandGenerator', () => {
     expect(content).toContain('allowed-tools: Bash, Read, Edit');
     expect(content).toContain('```bash');
     expect(content).toContain("git rev-parse --abbrev-ref HEAD");
-    expect(content).toContain('COMPLETED_LINE_LIMIT=25');
+    expect(content).toContain('COMPLETED_LINE_LIMIT=40');
     expect(content).toContain('PROMPTS_LINE_LIMIT=100');
   });
 

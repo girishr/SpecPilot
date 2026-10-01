@@ -10,6 +10,7 @@ import { refineCommand } from './commands/refine';
 import { addSpecsCommand } from './commands/add-specs';
 import { archiveCommand } from './commands/archive';
 import { backfillCommand } from './commands/backfill';
+import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT } from './utils/specArchiver';
 import { serveCommand } from './commands/serve';
 import { Logger } from './utils/logger';
 
@@ -80,7 +81,7 @@ program
 program
   .command('archive')
   .alias('ar')
-  .description('Archive oversized .specs/ files (prompts.md > 100 lines, tasks.md Completed > 25 lines)')
+  .description(`Archive oversized .specs/ files (prompts.md > ${PROMPTS_LINE_LIMIT} lines, tasks.md Completed > ${COMPLETED_LINE_LIMIT} lines)`)
   .option('--dry-run', 'Preview what would be archived without writing any files')
   .option('--force', 'Skip branch warning and archive without confirmation')
   .action(archiveCommand);

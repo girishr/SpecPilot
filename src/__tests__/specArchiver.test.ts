@@ -198,13 +198,13 @@ describe('SpecArchiver', () => {
     expect(blockCount).toBe(2);
   });
 
-  // ─── tasks.md Completed over 25 ────────────────────────────────────────────
+  // ─── tasks.md Completed over 40 ────────────────────────────────────────────
 
-  it('archives tasks.md Completed section when over 25 lines', async () => {
+  it('archives tasks.md Completed section when over 40 lines', async () => {
     const specsDir = createSpecsDir(testDir);
     writeFileSync(
       join(specsDir, 'planning', 'tasks.md'),
-      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30)
+      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(50)
     );
     const archivePath = join(specsDir, 'planning', 'tasks-archive.md');
 
@@ -222,7 +222,7 @@ describe('SpecArchiver', () => {
     // tasks.md was trimmed
     const newContent = readFileSync(join(specsDir, 'planning', 'tasks.md'), 'utf-8');
     const newLineCount = newContent.split('\n').length;
-    expect(newLineCount).toBeLessThan(30);
+    expect(newLineCount).toBeLessThan(50);
     // Earlier entries were archived
     expect(newContent).not.toContain('[CD-001]');
   });
@@ -261,7 +261,7 @@ describe('SpecArchiver', () => {
         '> Older entries archived in tasks-archive.md.',
         '> **Line limit**: 25 lines.',
         '',
-        makeCompletedEntries(30),
+        makeCompletedEntries(50),
       ].join('\n')
     );
 
@@ -306,7 +306,7 @@ describe('SpecArchiver', () => {
 
   it('measures the Completed section to the next heading, not EOF', async () => {
     const specsDir = createSpecsDir(testDir);
-    // 10 entries is well within the 25-line limit; a long trailing section must
+    // 10 entries is well within the 40-line limit; a long trailing section must
     // not inflate the measured size and trigger a needless archive.
     writeFileSync(
       join(specsDir, 'planning', 'tasks.md'),
@@ -335,7 +335,7 @@ describe('SpecArchiver', () => {
     writeFileSync(join(specsDir, 'development', 'prompts.md'), makeLog(120));
     writeFileSync(
       join(specsDir, 'planning', 'tasks.md'),
-      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30)
+      '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(50)
     );
 
     const result = await archiver.archive(testDir, { dryRun: false });
@@ -387,12 +387,12 @@ describe('SpecArchiver', () => {
 // ─── Table-shaped ## Completed (BL-057) ────────────────────────────────────────
 
 /**
- * 43 body rows shaped like the real tasks.md: `#` and ID cells repeat, and descriptions
+ * 46 body rows shaped like the real tasks.md: `#` and ID cells repeat, and descriptions
  * contain `|` inside backticks. Rows 25 and 26 are a duplicate `#`/ID pair that straddles
  * the archive boundary (25 moves, 26 stays); row 25 also ends in trailing spaces.
  */
 function makeTableRows(): string[] {
-  return Array.from({ length: 43 }, (_, i) => {
+  return Array.from({ length: 46 }, (_, i) => {
     if (i === 3 || i === 4) return `| 95 | [CD-girishr-013] [CS-07${i}] | Conditional \`'rest' | 'cli'\` row ${i} |`;
     if (i === 25 || i === 26) return `| 124 | [CD-girishr-033] | Duplicate pair row ${i} |${i === 25 ? '  ' : ''}`;
     return `| ${78 + i} | [CD-${100 + i}] [CS-0${i}] | Task row ${i} |`;
@@ -408,7 +408,7 @@ function makeTableTasks(rows: string[], trailing: string[] = []): string {
     '## Completed',
     '',
     '> CD-001 through CD-039 have been archived to [tasks-archive.md](tasks-archive.md).',
-    '> **Line limit**: The Completed section has a 25-line limit.',
+    '> **Line limit**: The Completed section has a 40-line limit.',
     '',
     ...TABLE_HEADER,
     ...rows,
@@ -496,30 +496,30 @@ describe('SpecArchiver — table-shaped Completed (BL-057)', () => {
   });
 
   it('leaves list-shaped sections exactly as before (golden output)', async () => {
-    const entries = makeCompletedEntries(30).split('\n');
+    const entries = makeCompletedEntries(41).split('\n');
     writeFileSync(tasksPath, ['## Completed', '', '> note', ...entries, '', '## Notes', 'x'].join('\n'));
 
     const result = await new SpecArchiver().archive(testDir, { dryRun: false });
 
-    // 31 entry lines (30 entries + the blank before ## Notes); keep the last 20 → move 11
-    expect(result.entries[0].linesMoved).toBe(11);
+    // 42 entry lines (41 entries + the blank before ## Notes); keep the last 20 → move 22
+    expect(result.entries[0].linesMoved).toBe(22);
     expect(readFileSync(tasksPath, 'utf-8')).toBe(
-      ['## Completed', '', '> note', ...entries.slice(11), '', '## Notes', 'x'].join('\n'),
+      ['## Completed', '', '> note', ...entries.slice(22), '', '## Notes', 'x'].join('\n'),
     );
     expect(stamp(readFileSync(archivePath, 'utf-8'))).toBe(
-      `## Archived on <T>\n\n${entries.slice(0, 11).join('\n')}\n\n---\n\n`,
+      `## Archived on <T>\n\n${entries.slice(0, 22).join('\n')}\n\n---\n\n`,
     );
   });
 
   it.each([
     ['table', () => makeTableTasks(makeTableRows())],
-    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30) + '\n'],
+    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(50) + '\n'],
   ])('round trip (%s): validate warns before archive and not after', async (_shape, make) => {
     writeFileSync(tasksPath, make());
     const validator = new SpecValidator();
     const completedWarning = async () =>
       (await validator.validate(testDir, { fix: false, verbose: false })).warnings.find(
-        w => w.includes('tasks.md') && w.includes('limit: 25'),
+        w => w.includes('tasks.md') && w.includes('limit: 40'),
       );
 
     expect(await completedWarning()).toBeDefined();
@@ -527,16 +527,46 @@ describe('SpecArchiver — table-shaped Completed (BL-057)', () => {
     expect(await completedWarning()).toBeUndefined();
     const lines = readFileSync(tasksPath, 'utf-8').split('\n');
     expect(planCompletedArchive(lines)).toBeNull();
-    // Not just "nothing left to move": the section really is back within the 25-line limit.
+    // Not just "nothing left to move": the section really is back within the 40-line limit.
     const bounds = findSectionBounds(lines, '## Completed')!;
-    expect(bounds.end - bounds.start).toBeLessThanOrEqual(25);
+    expect(bounds.end - bounds.start).toBeLessThanOrEqual(40);
   });
 
   it('validate does not tell you to archive when archive would move nothing', async () => {
-    // Over 25 lines, but only 20 entries: nothing to archive, so no warning.
-    writeFileSync(tasksPath, ['## Completed', ...Array(10).fill('> note'), ...makeCompletedEntries(20).split('\n')].join('\n'));
+    // Over 40 lines, but only 20 entries: nothing to archive, so no warning.
+    writeFileSync(tasksPath, ['## Completed', ...Array(25).fill('> note'), ...makeCompletedEntries(20).split('\n')].join('\n'));
     const { warnings } = await new SpecValidator().validate(testDir, { fix: false, verbose: false });
-    expect(warnings.find(w => w.includes('tasks.md') && w.includes('limit: 25'))).toBeUndefined();
+    expect(warnings.find(w => w.includes('tasks.md') && w.includes('limit: 40'))).toBeUndefined();
+  });
+
+  it.each([
+    ['table', () => makeTableTasks(makeTableRows()), (n: number) => `| ${200 + n} | [CD-${200 + n}] | New row ${n} |`],
+    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(50) + '\n', (n: number) => `${50 + n}. [CD-${200 + n}] New entry ${n}`],
+  ])('after an archive, at least 10 completions fit before the next warning (%s, BL-060)', async (_shape, make, entry) => {
+    writeFileSync(tasksPath, make());
+    await new SpecArchiver().archive(testDir, { dryRun: false });
+    const lines = readFileSync(tasksPath, 'utf-8').split('\n');
+    let added = 0;
+    // Append after the last entry of the section, as a completion would be.
+    const complete = () => {
+      const { start, end } = findSectionBounds(lines, '## Completed')!;
+      let at = end;
+      while (at > start && !lines[at - 1].trim()) at--;
+      lines.splice(at, 0, entry(++added));
+    };
+    const completedWarning = async () => {
+      writeFileSync(tasksPath, lines.join('\n'));
+      const { warnings } = await new SpecValidator().validate(testDir, { fix: false, verbose: false });
+      return warnings.find(w => w.includes('tasks.md') && w.includes('limit: 40'));
+    };
+
+    while (added < 10) complete();
+    expect(await completedWarning()).toBeUndefined();
+
+    while (planCompletedArchive(lines) === null && added < 100) complete();
+    const { start, end } = findSectionBounds(lines, '## Completed')!;
+    expect(end - start).toBeGreaterThan(40);
+    expect(await completedWarning()).toBeDefined();
   });
 
   // ─── The specpilot-archive slash command's bash archive_tasks() ──────────────
@@ -544,7 +574,7 @@ describe('SpecArchiver — table-shaped Completed (BL-057)', () => {
   it.each([
     ['table', () => makeTableTasks(makeTableRows())],
     ['table with a trailing section', () => makeTableTasks(makeTableRows(), ['## Multi-Dev Notes', '', 'keep me', ''])],
-    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(30) + '\n'],
+    ['list', () => '# Tasks\n\n## Completed\n\n' + makeCompletedEntries(50) + '\n'],
     ['list with a trailing section', () => '## Completed\n\n> note\n' + makeCompletedEntries(40) + '\n\n## Notes\nkeep me\n'],
   ])('bash archive_tasks() matches the CLI byte for byte (%s)', async (_shape, make) => {
     const content = make();

@@ -129,7 +129,7 @@ export function planPromptsArchive(lines: string[]): PromptsArchivePlan {
 }
 
 /** Archive tasks.md Completed section when it exceeds this many lines. */
-const COMPLETED_LINE_LIMIT = 25;
+export const COMPLETED_LINE_LIMIT = 40;
 /** How many Completed entries to retain in the active file. */
 const COMPLETED_KEEP_ENTRIES = 20;
 

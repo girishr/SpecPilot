@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
 # lastUpdated: 2026-10-01
-# version: 2.10
+# version: 2.11
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -176,7 +176,7 @@ commands:
     usage: specpilot archive [options]
     thresholds:
       development/prompts.md: "> 100 lines"
-      planning/tasks.md: "Completed section > 25 lines"
+      planning/tasks.md: "Completed section > 40 lines"
     options:
       --dry-run:
         type: boolean

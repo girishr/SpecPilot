@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-10-01
-version: 2.38
+version: 2.39
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- `feat/bl-065-prompts-limit` (commit `d6fcb60`) fast-forwarded into `main` after spec-reviewer PASS on the extended build and the developer's `yes, proceed`; BL-065 moved to Completed as CD-girishr-050; `specpilot archive` run; branch deleted (never on origin); reviewer notes left open: `toContain` is a substring check (a constant cut to a prefix of the literal would pass), and the doc comment at `specArchiver.ts:20` describes the keep target, not the limit (October 1, 2026) [PROMPT-002.0.0.60]
 - BL-065 (prompts.md limit, single source) on `feat/bl-065-prompts-limit`, classed Feature: validator's `PROMPTS_LINE_LIMIT` copy removed, archiver's imported; bash copy already 100, body unchanged, so no command-file or hash regeneration; generator test compares the bash limits with the exported constants; extended before merge to export the keep targets (`PROMPTS_KEEP_LINES` 80, `COMPLETED_KEEP_ENTRIES` 20) and check them the same way (October 1, 2026) [PROMPT-002.0.0.59]
 - `feat/bl-060-completed-limit` (commit `2ceacd2`) fast-forwarded into `main` after `yes, proceed`; spec-reviewer PASS on the Spec Report (after one FIX round) and on the build; BL-060 moved to Completed as CD-girishr-049; BL-065 added (single source for the prompts.md limit); `specpilot archive` run; branch deleted (it was never on origin) (October 1, 2026) [PROMPT-002.0.0.58]
 - BL-060 (Completed limit) on `feat/bl-060-completed-limit`, classed Feature: option A chosen (limit 25 → 40, archive keeps 20 rows); one constant (validator copy deleted); bash copy, command files and known-hash manifest regenerated; test for at least 10 completions of room after an archive, table and list; local spec-reviewer subagent gates the Spec Report and build; BL-063 and BL-064 added and pushed on `main` first (`8d4737f`) (October 1, 2026) [PROMPT-002.0.0.57]

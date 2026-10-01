@@ -46,6 +46,8 @@ Notes
 | BL-059 | Announce 2.3.0: add `specpilot serve` docs and a 2.3.0 release entry to the website (`SpecPilotWebsite-v2`), then a LinkedIn post with a short screen recording of live reload. |
 | BL-060 | Review `COMPLETED_LINE_LIMIT`: a table-shaped `## Completed` fits only ~17 rows in 25 lines, so every completion trips the validate warning. Consider raising it, with a test and a spec update (REQ-002.F.7). |
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
+| BL-063 | Test noise: ideConfigGenerator.ts:112 logs a stack trace during npm test; assert or silence it |
+| BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
 
 ## Current Sprint
 

@@ -112,7 +112,8 @@ program
 // Serve command
 program
   .command('serve')
-  .description('Serve a local web UI over this project\'s .specs/ (127.0.0.1 only; task moves unless --read-only)')
+  .description('Serve a local web UI over the .specs/ of this project, or of each folder named (127.0.0.1 only; task moves unless --read-only)')
+  .argument('[folders...]', 'Project folders to serve, in this order (default: the current directory)')
   .option('-p, --port <number>', 'Port to listen on', '4321')
   .option('--poll <ms>', 'How often to check spec files for changes, in ms (minimum 250)', '1000')
   .option('--read-only', 'Turn off task moves: the page only reads')

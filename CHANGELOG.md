@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`specpilot serve` can serve several projects at once** (BL-054): `specpilot serve ../api ../web` serves every folder you name from one server on one port, each with its own tasks, files and live reload; switch between them in the left rail. Running `specpilot serve` with no folders works exactly as before. The project list is fixed when the server starts: the page cannot add a folder, and nothing is stored outside your projects.
+
 ### Changed
 
 - **`specpilot validate` and `specpilot archive`: the `## Completed` limit in `planning/tasks.md` is now 40 lines (was 25), and archive keeps the newest 20 rows** (BL-060). A table-shaped Completed section used to fit only about 17 rows, and archive kept exactly as many as fit, so the next completion brought the warning back. There is now room for at least 10 completions between archives. **Run `specpilot backfill`** to refresh the `/specpilot-archive` command, which carries its own copy of the limit.

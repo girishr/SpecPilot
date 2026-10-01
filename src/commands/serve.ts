@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { spawn } from 'child_process';
-import { existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync, realpathSync, statSync } from 'fs';
+import { join, resolve } from 'path';
 import { SpecServer, startSpecServer } from '../utils/specServer';
 import { Logger } from '../utils/logger';
 
@@ -29,14 +29,36 @@ function openBrowser(url: string, logger: Logger): void {
   child.unref();
 }
 
-/** Runs until Ctrl+C; exits the process with 1 on any startup error. */
-export async function serveCommand(options: ServeOptions): Promise<void> {
+/** Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current directory (BL-054). */
+export async function serveCommand(folders: string[], options: ServeOptions): Promise<void> {
   const logger = new Logger();
-  const root = process.cwd();
+  const roots: string[] = [];
 
-  if (!existsSync(join(root, '.specs'))) {
-    logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, or `specpilot init` first.');
-    return process.exit(1);
+  if (!folders.length) {
+    const root = process.cwd();
+    if (!existsSync(join(root, '.specs'))) {
+      logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, or `specpilot init` first.');
+      return process.exit(1);
+    }
+    roots.push(root);
+  }
+  for (const folder of folders) {
+    let root: string;
+    try {
+      root = realpathSync(resolve(folder));
+    } catch {
+      logger.error(`Folder not found: ${folder}`);
+      return process.exit(1);
+    }
+    if (!statSync(root).isDirectory()) {
+      logger.error(`Not a folder: ${folder}`);
+      return process.exit(1);
+    }
+    if (!existsSync(join(root, '.specs'))) {
+      logger.error(`No .specs/ folder in ${folder}. Run \`specpilot init\` there first, or leave it out.`);
+      return process.exit(1);
+    }
+    if (!roots.includes(root)) roots.push(root); // the same folder named twice is served once
   }
 
   const port = options.port === undefined ? DEFAULT_PORT : Number(options.port);
@@ -53,7 +75,7 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
 
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(root, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, log: m => logger.warn(m) });
+    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, log: m => logger.warn(m) });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -64,7 +86,11 @@ export async function serveCommand(options: ServeOptions): Promise<void> {
   }
 
   const url = `http://127.0.0.1:${port}`;
-  console.log(chalk.green(`SpecPilot is serving ${root} at ${url}`));
+  if (roots.length === 1) console.log(chalk.green(`SpecPilot is serving ${roots[0]} at ${url}`));
+  else {
+    console.log(chalk.green(`SpecPilot is serving ${roots.length} projects at ${url}`));
+    roots.forEach((root, i) => console.log(`  ${i}  ${root}`));
+  }
   console.log(
     chalk.gray(
       options.readOnly

@@ -1,10 +1,12 @@
+import { createHash } from 'crypto';
 import { request } from 'http';
 import { AddressInfo } from 'net';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import * as os from 'os';
-import { buildSpecsPayload, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
+import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
+import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
 import { serveCommand } from '../commands/serve';
 
@@ -238,7 +240,7 @@ describe('spec server over HTTP (port 0)', () => {
 
   beforeAll(async () => {
     p = makeProject();
-    spec = await startSpecServer(p.root, 0, '0.0.0-test');
+    spec = await startSpecServer([p.root], 0, '0.0.0-test');
     port = (spec.server.address() as AddressInfo).port;
   });
   afterAll(async () => {
@@ -348,10 +350,10 @@ describe('serveCommand', () => {
   });
 
   it('fails with a clear message suggesting --port when the port is in use', async () => {
-    const busy = await startSpecServer(p.root, 0, 'x');
+    const busy = await startSpecServer([p.root], 0, 'x');
     const port = (busy.server.address() as AddressInfo).port;
     try {
-      await expect(serveCommand({ port: String(port) })).rejects.toThrow('exit 1');
+      await expect(serveCommand([], { port: String(port) })).rejects.toThrow('exit 1');
       expect(errors.join('\n')).toMatch(new RegExp(`Port ${port} is already in use.*--port`));
     } finally {
       await busy.close();
@@ -359,23 +361,23 @@ describe('serveCommand', () => {
   });
 
   it.each([['100'], ['249'], ['1.5'], ['abc']])('rejects --poll %s (whole number of ms, 250 or more)', async poll => {
-    await expect(serveCommand({ poll })).rejects.toThrow('exit 1');
+    await expect(serveCommand([], { poll })).rejects.toThrow('exit 1');
     expect(errors.join('\n')).toContain('Invalid --poll');
   });
 
   it('rejects an invalid --port', async () => {
-    await expect(serveCommand({ port: 'abc' })).rejects.toThrow('exit 1');
+    await expect(serveCommand([], { port: 'abc' })).rejects.toThrow('exit 1');
     expect(errors.join('\n')).toContain('Invalid --port');
   });
 
   it('refuses to start without .specs/ in the current directory', async () => {
     process.chdir(os.tmpdir());
-    await expect(serveCommand({})).rejects.toThrow('exit 1');
+    await expect(serveCommand([], {})).rejects.toThrow('exit 1');
     expect(errors.join('\n')).toContain('No .specs/ folder');
   });
 
   it('prints the URL as http://127.0.0.1:<port> and stops on Ctrl+C', async () => {
-    const probe = await startSpecServer(p.root, 0, 'x');
+    const probe = await startSpecServer([p.root], 0, 'x');
     const port = (probe.server.address() as AddressInfo).port;
     await probe.close();
 
@@ -386,7 +388,7 @@ describe('serveCommand', () => {
       throw new Error(`exit ${code}`);
     }) as never);
 
-    await serveCommand({ port: String(port) });
+    await serveCommand([], { port: String(port) });
     expect(logs.join('\n')).toContain(`http://127.0.0.1:${port}`);
     expect(logs.join('\n')).not.toContain('localhost');
     process.emit('SIGINT');
@@ -397,11 +399,11 @@ describe('serveCommand', () => {
 // ─── Live reload (BL-052) ────────────────────────────────────────────────────
 
 /** An open GET /api/events stream that collects what the server sends. */
-function openEvents(port: number, host = `127.0.0.1:${port}`) {
+function openEvents(port: number, host = `127.0.0.1:${port}`, path = '/api/events') {
   return new Promise<{ status: number; headers: Record<string, unknown>; text: () => string; close: () => void; waitFor: (re: RegExp, ms?: number) => Promise<string> }>(
     (resolve, reject) => {
       let text = '';
-      const req = request({ host: '127.0.0.1', port, path: '/api/events', headers: { Host: host } }, res => {
+      const req = request({ host: '127.0.0.1', port, path, headers: { Host: host } }, res => {
         res.setEncoding('utf8');
         res.on('data', c => (text += c));
         const waitFor = async (re: RegExp, ms = 2000) => {
@@ -439,7 +441,7 @@ describe('live reload over /api/events', () => {
 
   beforeEach(async () => {
     p = makeProject();
-    spec = await startSpecServer(p.root, 0, '0.0.0-test', { pollMs: 250, heartbeatMs: 60, settleMs: 30 });
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { pollMs: 250, heartbeatMs: 60, settleMs: 30 });
     port = (spec.server.address() as AddressInfo).port;
   });
   afterEach(async () => {
@@ -575,17 +577,17 @@ describe('the poller watches exactly what /api/file serves', () => {
 describe('UI routing (ui/route.js)', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { resolveRoute, goneHtml } = require('../../ui/route.js') as {
-    resolveRoute: (hash: string, files: Record<string, unknown>) => { view: string; sub: string; missing: boolean };
+    resolveRoute: (hash: string, files: Record<string, unknown>, count?: number) => { project: number; view: string; sub: string; missing: boolean };
     goneHtml: (path: string) => string;
   };
   const files = { 'quality/tests.md': {}, 'planning/roadmap.md': {} };
 
   it('opens a listed file', () => {
-    expect(resolveRoute('#file/quality/tests.md', files)).toEqual({ view: 'file', sub: 'quality/tests.md', missing: false });
+    expect(resolveRoute('#file/quality/tests.md', files)).toEqual({ project: 0, view: 'file', sub: 'quality/tests.md', missing: false });
   });
 
   it('keeps a fresh load of a deleted file on the file view, marked missing, instead of routing to Tasks', () => {
-    expect(resolveRoute('#file/security/threat-model.md', files)).toEqual({ view: 'file', sub: 'security/threat-model.md', missing: true });
+    expect(resolveRoute('#file/security/threat-model.md', files)).toEqual({ project: 0, view: 'file', sub: 'security/threat-model.md', missing: true });
     expect(goneHtml('.specs/security/threat-model.md')).toBe(
       '<p class="note"><span class="mono" translate="no">.specs/security/threat-model.md</span> no longer exists.</p>',
     );
@@ -605,9 +607,20 @@ describe('UI routing (ui/route.js)', () => {
     },
   );
 
+  it('reads the project index of a route (BL-054)', () => {
+    expect(resolveRoute('#1/board', files, 3)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#2/file/quality/tests.md', files, 3)).toEqual({ project: 2, view: 'file', sub: 'quality/tests.md', missing: false });
+    expect(resolveRoute('#0/explorer', files, 3)).toEqual({ project: 0, view: 'explorer', sub: '', missing: false });
+    expect(resolveRoute('#explorer', files, 3)).toEqual({ project: 0, view: 'explorer', sub: '', missing: false });
+  });
+
+  it.each([['#9/explorer'], ['#3/explorer'], ['#01/explorer'], ['#1/explorer']])('sends %j (no such project) to project 0 Tasks', hash => {
+    expect(resolveRoute(hash, files, hash === '#1/explorer' ? 1 : 3)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+  });
+
   it('is served and loaded by the page', async () => {
     const p = makeProject();
-    const s = await startSpecServer(p.root, 0, 'x');
+    const s = await startSpecServer([p.root], 0, 'x');
     try {
       const port = (s.server.address() as AddressInfo).port;
       const js = await hit(port, '/assets/route.js');
@@ -630,11 +643,11 @@ const MOVE_TASKS = [
 ].join('\n');
 
 /** POST /api/tasks/move with full control over the headers that the security checks read. */
-function post(port: number, body: string, headers: Record<string, string | undefined>) {
+function post(port: number, body: string, headers: Record<string, string | undefined>, path = '/api/tasks/move') {
   return new Promise<{ status: number; headers: Record<string, unknown>; json: any }>((resolve, reject) => {
     const h: Record<string, string> = {};
     for (const [k, v] of Object.entries(headers)) if (v !== undefined) h[k] = v;
-    const req = request({ host: '127.0.0.1', port, path: '/api/tasks/move', method: 'POST', headers: h }, res => {
+    const req = request({ host: '127.0.0.1', port, path, method: 'POST', headers: h }, res => {
       let text = '';
       res.setEncoding('utf8');
       res.on('data', c => (text += c));
@@ -674,7 +687,7 @@ describe('task moves over HTTP', () => {
     p = makeProject();
     file = join(p.root, '.specs/planning/tasks.md');
     writeFileSync(file, MOVE_TASKS);
-    spec = await startSpecServer(p.root, 0, '0.0.0-test');
+    spec = await startSpecServer([p.root], 0, '0.0.0-test');
     port = (spec.server.address() as AddressInfo).port;
     const page = (await hit(port, '/')).body;
     token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec(page)![1];
@@ -784,7 +797,7 @@ describe('--read-only', () => {
     const p = makeProject();
     const file = join(p.root, '.specs/planning/tasks.md');
     writeFileSync(file, MOVE_TASKS);
-    const spec = await startSpecServer(p.root, 0, 'x', { readOnly: true });
+    const spec = await startSpecServer([p.root], 0, 'x', { readOnly: true });
     try {
       const port = (spec.server.address() as AddressInfo).port;
       const page = (await hit(port, '/')).body;
@@ -801,6 +814,282 @@ describe('--read-only', () => {
     } finally {
       await spec.close();
       p.cleanup();
+    }
+  });
+});
+
+// ─── Multiple projects (BL-054) ──────────────────────────────────────────────
+
+describe('displayRoot', () => {
+  it.each([
+    ['/home/u', '~'],
+    ['/home/u/dev/api', '~/dev/api'],
+    ['/home/user2/api', '/home/user2/api'],
+    ['/srv/api', '/srv/api'],
+  ])('shows %s as %s', (root, shown) => {
+    expect(displayRoot(root, '/home/u')).toBe(shown);
+  });
+});
+
+describe('several projects on one server', () => {
+  let a: ReturnType<typeof makeProject>;
+  let b: ReturnType<typeof makeProject>;
+  let c: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const tasks = (p: { root: string }) => join(p.root, '.specs/planning/tasks.md');
+  const hashOf = (p: { root: string }) => createHash('sha256').update(readFileSync(tasks(p))).digest('hex');
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    'If-Match': hashOf(b),
+    ...over,
+  });
+  const move = JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 });
+
+  beforeEach(async () => {
+    [a, b, c] = [makeProject(), makeProject(), makeProject()];
+    for (const p of [a, b, c]) writeFileSync(tasks(p), MOVE_TASKS);
+    write(b.root, '.specs/project/project.yaml', 'name: "Project B"\n');
+    write(b.root, '.specs/only-b.md', '# only in B\n');
+    rmSync(join(c.root, '.specs/project/project.yaml'));
+    spec = await startSpecServer([a.root, b.root, c.root], 0, '0.0.0-test', { pollMs: 250, heartbeatMs: 60, settleMs: 30 });
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    [a, b, c].forEach(p => p.cleanup());
+  });
+
+  it('answers /api/specs per project, project 0 when omitted, and lists every project in order', async () => {
+    const at = async (q: string) => JSON.parse((await hit(port, `/api/specs${q}`)).body);
+    expect((await at('')).project.root).toBe(a.root);
+    expect((await at('?project=0')).project.root).toBe(a.root);
+    expect((await at('?project=1')).project).toMatchObject({ name: 'Project B', root: b.root });
+    expect((await at('?project=2')).project.root).toBe(c.root);
+    expect((await at('?project=1')).projects).toEqual([
+      { name: 'Fixture Project', root: displayRoot(a.root), branch: 'main' },
+      { name: 'Project B', root: displayRoot(b.root), branch: 'main' },
+      { name: null, root: displayRoot(c.root), branch: 'main' },
+    ]);
+  });
+
+  it.each([['-1'], ['1.5'], ['abc'], ['01'], ['+1'], ['%201'], ['1e0'], [''], ['3'], ['1&project=0']])(
+    'answers ?project=%s with 404 on every read route',
+    async q => {
+      for (const route of ['/api/specs?', '/api/file?p=.specs/project/project.yaml&', '/api/events?']) {
+        expect((await hit(port, `${route}project=${q}`)).status).toBe(404);
+      }
+      expect(spec.streams()).toBe(0);
+    },
+  );
+
+  it("serves a file only from the named project's root", async () => {
+    expect((await hit(port, '/api/file?p=.specs/only-b.md&project=1')).body).toBe('# only in B\n');
+    expect((await hit(port, '/api/file?p=.specs/only-b.md&project=0')).status).toBe(404);
+    expect((await hit(port, '/api/file?p=.specs/only-b.md')).status).toBe(404);
+  });
+
+  it("moves a row in the named project only, against that project's hash", async () => {
+    const aTasks = MOVE_TASKS + '\n'; // so project 0's hash differs from project 1's
+    writeFileSync(tasks(a), aTasks);
+    const stale = await post(port, move, good({ 'If-Match': hashOf(a) }), '/api/tasks/move?project=1');
+    expect(stale.status).toBe(409);
+    expect(stale.json.specs.project.root).toBe(b.root);
+    const res = await post(port, move, good(), '/api/tasks/move?project=1');
+    expect(res.status).toBe(200);
+    expect(res.json.specs.project.root).toBe(b.root);
+    expect(res.json.specs.tasks.currentSprint.map((r: { id: string }) => r.id)).toEqual(['BL-002', 'CS-001']);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(aTasks);
+    expect(readFileSync(tasks(c), 'utf-8')).toBe(MOVE_TASKS);
+    expect(readFileSync(tasks(b), 'utf-8')).not.toBe(MOVE_TASKS);
+  });
+
+  it('checks the token before the project, and 404s a bad project only after the checks pass', async () => {
+    const forged = await post(port, move, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }), '/api/tasks/move?project=9');
+    expect(forged.status).toBe(403);
+    const foreign = await post(port, move, good({ Origin: 'http://evil.example' }), '/api/tasks/move?project=abc');
+    expect(foreign.status).toBe(403);
+    const bad = await post(port, move, good(), '/api/tasks/move?project=9');
+    expect(bad.status).toBe(404);
+    for (const p of [a, b, c]) expect(readFileSync(tasks(p), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it("sends a project's changes only to that project's streams", async () => {
+    const sa = await openEvents(port, undefined, '/api/events');
+    const sb = await openEvents(port, undefined, '/api/events?project=1');
+    await sa.waitFor(/retry/);
+    await sb.waitFor(/retry/);
+    await new Promise(r => setTimeout(r, 300)); // let each poller take its first snapshot
+    writeFileSync(join(b.root, '.specs/only-b.md'), '# changed\n');
+    await sb.waitFor(/event: change\ndata: \{"paths":\["\.specs\/only-b\.md"\]\}/, 3000);
+    await new Promise(r => setTimeout(r, 400));
+    expect(sa.text()).not.toContain('event: change');
+    sa.close();
+    sb.close();
+    await until(() => spec.streams() === 0);
+  });
+
+  it('counts the 8-stream cap across all projects', async () => {
+    const open = [];
+    for (let i = 0; i < MAX_EVENT_STREAMS; i++) open.push(await openEvents(port, undefined, `/api/events?project=${i % 3}`));
+    await until(() => spec.streams() === MAX_EVENT_STREAMS);
+    expect((await openEvents(port, undefined, '/api/events?project=2')).status).toBe(503);
+    open.forEach(s => s.close());
+    await until(() => spec.streams() === 0);
+  });
+
+  it('leaves no timer behind after close() with streams open in two projects', async () => {
+    const before = timerCount();
+    await openEvents(port, undefined, '/api/events');
+    await openEvents(port, undefined, '/api/events?project=2');
+    await until(() => spec.streams() === 2);
+    await spec.close();
+    expect(timerCount()).toBeLessThanOrEqual(before);
+    spec = await startSpecServer([a.root], 0, 'x'); // afterEach closes it
+  });
+});
+
+describe('one poller per project, running only while that project has a stream', () => {
+  it('starts with the first stream of its project and stops with the last, leaving other projects alone', async () => {
+    const running = new Map<string, boolean>();
+    const real = specPoller.createPoller;
+    const spy = jest.spyOn(specPoller, 'createPoller').mockImplementation((root, opts) => {
+      const poller = real(root, opts);
+      running.set(root, false);
+      return {
+        ...poller,
+        start: () => (running.set(root, true), poller.start()),
+        stop: () => (running.set(root, false), poller.stop()),
+      };
+    });
+    const [a, b] = [makeProject(), makeProject()];
+    const spec = await startSpecServer([a.root, b.root], 0, 'x', { pollMs: 250 });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const state = () => [running.get(a.root), running.get(b.root)];
+      expect(state()).toEqual([false, false]);
+
+      const a1 = await openEvents(port, undefined, '/api/events?project=0');
+      await until(() => spec.streams() === 1);
+      expect(state()).toEqual([true, false]);
+
+      const a2 = await openEvents(port, undefined, '/api/events?project=0');
+      const b1 = await openEvents(port, undefined, '/api/events?project=1');
+      await until(() => spec.streams() === 3);
+      expect(state()).toEqual([true, true]);
+
+      a1.close();
+      await until(() => spec.streams() === 2);
+      expect(state()).toEqual([true, true]); // project 0 still has a2
+
+      a2.close();
+      await until(() => spec.streams() === 1);
+      expect(state()).toEqual([false, true]); // project 0's last stream gone; project 1 untouched
+
+      b1.close();
+      await until(() => spec.streams() === 0);
+      expect(state()).toEqual([false, false]);
+    } finally {
+      await spec.close();
+      spy.mockRestore();
+      a.cleanup();
+      b.cleanup();
+    }
+  });
+});
+
+describe('serveCommand with folders', () => {
+  let a: ReturnType<typeof makeProject>;
+  let b: ReturnType<typeof makeProject>;
+  let exit: jest.SpyInstance;
+  let errors: string[];
+  let logs: string[];
+
+  beforeEach(() => {
+    [a, b] = [makeProject(), makeProject()];
+    errors = [];
+    logs = [];
+    exit = jest.spyOn(process, 'exit').mockImplementation(((code: number) => {
+      throw new Error(`exit ${code}`);
+    }) as never);
+    jest.spyOn(console, 'error').mockImplementation((...x: unknown[]) => void errors.push(x.join(' ')));
+    jest.spyOn(console, 'log').mockImplementation((...x: unknown[]) => void logs.push(x.join(' ')));
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    a.cleanup();
+    b.cleanup();
+  });
+
+  /** Run serve on a free port, return what it printed, then stop it with Ctrl+C. */
+  async function serveAndStop(folders: string[]): Promise<{ port: number; out: string }> {
+    const probe = await startSpecServer([a.root], 0, 'x');
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+    let exited: (code: number) => void;
+    const done = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
+    await serveCommand(folders, { port: String(port) });
+    const out = logs.join('\n');
+    process.emit('SIGINT');
+    expect(await done).toBe(0);
+    return { port, out };
+  }
+
+  it.each([
+    ['a folder that does not exist', () => join(a.root, 'nope'), 'Folder not found: '],
+    ['a file', () => join(a.root, 'CLAUDE.md'), 'Not a folder: '],
+    ['a folder without .specs/', () => join(a.root, 'src'), 'No .specs/ folder in '],
+  ])('stops with exit 1 and names %s', async (_what, folder, message) => {
+    await expect(serveCommand([a.root, folder()], {})).rejects.toThrow('exit 1');
+    expect(errors.join('\n')).toContain(message + folder());
+  });
+
+  it('prints the one-project line unchanged for one folder, and a folder named twice (also via a link) once', async () => {
+    const link = join(a.root, '..', 'link');
+    symlinkSync(a.root, link);
+    const real = realpathSync(a.root);
+    const { port, out } = await serveAndStop([a.root, link]);
+    expect(out.split('\n')[0]).toBe(`SpecPilot is serving ${real} at http://127.0.0.1:${port}`);
+  });
+
+  it('lists every project in command-line order', async () => {
+    const { port, out } = await serveAndStop([b.root, a.root]);
+    expect(out.split('\n').slice(0, 3)).toEqual([
+      `SpecPilot is serving 2 projects at http://127.0.0.1:${port}`,
+      `  0  ${realpathSync(b.root)}`,
+      `  1  ${realpathSync(a.root)}`,
+    ]);
+  });
+});
+
+describe('--read-only with several projects', () => {
+  it('has no write route in any project', async () => {
+    const [a, b] = [makeProject(), makeProject()];
+    writeFileSync(join(b.root, '.specs/planning/tasks.md'), MOVE_TASKS);
+    const spec = await startSpecServer([a.root, b.root], 0, 'x', { readOnly: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const res = await post(
+        port,
+        JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }),
+        { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64), 'If-Match': 'x' },
+        '/api/tasks/move?project=1',
+      );
+      expect(res.status).toBe(405);
+      expect(readFileSync(join(b.root, '.specs/planning/tasks.md'), 'utf-8')).toBe(MOVE_TASKS);
+    } finally {
+      await spec.close();
+      a.cleanup();
+      b.cleanup();
     }
   });
 });

@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-10-01
-version: 2.41
+version: 2.42
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- BL-054 built after `yes, proceed` on `feat/bl-054-multi-project`, with the developer's additions: per-project pollers tested (a mutation that stops pollers only when every stream closes fails the test), `projects[].root` as `~/…` under the home directory (REQ-002.H.13, api.yaml, tests.md updated first), README serve section covers several folders and `?project` numbering; `specServer.ts` serves `roots[]` with `projectIndex()` and `displayRoot()`, `serve.ts` takes `[folders...]`, `ui/route.js` reads `#<n>/`, `ui/app.js` switches projects from the rail; 33 new tests (461 → 494); checked in a browser against this repo plus a scratch copy (deep link, switch, a move written only to the scratch `tasks.md`); build review FIX: a `/api/file` load for one project finishing after a switch could be cached and drawn in the other, so `getText()` caches only for the project it was fetched for and `renderFile`/`renderSecurity`/`openFile` draw only if the project is unchanged, and the shown-security-files set is cleared on a switch (a delayed project-1 load reproduced the bug before the fix and not after); BL-068 widened to the `specValidator.ts:579` lint error; not committed or merged (October 1, 2026) [PROMPT-002.0.0.64]
+- BL-054 (`specpilot serve` Phase 4, multiple projects) Spec-First gate, specs only, on `feat/bl-054-multi-project`, classed Architectural: one server, projects named on the command line (`specpilot serve [folders...]`), chosen by `?project=<n>` index, no registry and no route that accepts a folder (registry and Add-a-project deferred to new BL-067); BL-054 moved to Current Sprint; REQ-002.A.10, H.1–H.3, H.6, H.8, H.11 amended, new H.13/H.14; ARCH-003.14/.15/.18, ARCH-004.34 amended, new ARCH-004.39, ARCH-006.6, ARCH-007.4/.5; SEC-002.5 (i) + SEC-003 rows, SEC-004.11; api.yaml `serve`; tests.md planned tests; CTX-003.33, ROADMAP-002.14, CHANGELOG `[Unreleased]`; awaiting `yes, proceed` (October 1, 2026) [PROMPT-002.0.0.63]
 - `feat/bl-063-test-hygiene` (commit `68a3742`) fast-forwarded into `main` after spec-reviewer PASS on the Spec Report and the build and the developer's "Yes proceed"; BL-063 moved to Completed as CD-girishr-051; `specpilot archive` run; not pushed (October 1, 2026) [PROMPT-002.0.0.62]
 - BL-063 widened to "test hygiene" on `feat/bl-063-test-hygiene`, classed Feature: the "stack trace" at `ideConfigGenerator.ts:112` is Jest's source location for an intended `--no-prompts` notice, not an error, so the auto-skip tests (CLAUDE.md and the same-shaped copilot-instructions.md one) capture and assert it; generator constant checks made exact with a trailing newline; `specArchiver.ts` doc comment moved above `PROMPTS_KEEP_LINES` (October 1, 2026) [PROMPT-002.0.0.61]
 - `feat/bl-065-prompts-limit` (commit `d6fcb60`) fast-forwarded into `main` after spec-reviewer PASS on the extended build and the developer's `yes, proceed`; BL-065 moved to Completed as CD-girishr-050; `specpilot archive` run; branch deleted (never on origin); reviewer notes left open: `toContain` is a substring check (a constant cut to a prefix of the literal would pass), and the doc comment at `specArchiver.ts:20` describes the keep target, not the limit (October 1, 2026) [PROMPT-002.0.0.60]

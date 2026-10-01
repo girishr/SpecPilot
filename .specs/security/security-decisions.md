@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-09-29
-version: 1.6
+lastUpdated: 2026-10-01
+version: 1.7
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -117,6 +117,17 @@ This file records security-related architectural and implementation decisions ma
   - Merging on a hash mismatch — rejected: silent merges of a hand-edited file are how edits get lost; 409 and a redraw are explicit.
 - **Reference**: SEC-002.5 (f, h), REQ-002.H.10, REQ-002.H.11, ARCH-004.36
 
+### [SEC-004.11] Multiple projects: roots fixed at start, chosen by index, no registry
+
+- **Date**: 2026-10-01
+- **Decision**: `specpilot serve a b c` serves the folders named on the command line, each `realpath`-resolved and required to contain `.specs/`. The list never changes while the server runs. `/api/` routes pick a project with `?project=<n>`, an index into that list: one value matching `^(0|[1-9][0-9]*)$` (empty, repeated, signed, padded or out of range → 404). Order: Host, method, then for a move Origin, token, content type and size, then the project, so an unauthenticated request never gets an answer that depends on the project; from there every SEC-004.8–SEC-004.10 control applies unchanged to that one root. One token per server start covers every project. Nothing is written outside the served folders; no route accepts a folder path.
+- **Rationale**: Taking roots only from the command line means a web page can never choose what the server reads; an index (not a path) leaves nothing to traverse. Running the existing per-root guards unchanged keeps one security model to test. A shared origin and token across projects grant nothing new: the same local user named every folder.
+- **Alternatives considered**:
+  - A registry in `~/.specpilot/projects.json` plus an "open folder" route — deferred to BL-067: the first write outside the project (ARCH-007.5), and a route that turns a forged request into "serve this folder".
+  - One server per folder — rejected for this phase: one port and origin per project, so one rail would need cross-origin calls and a token per origin.
+  - Projects addressed by folder name or path in the URL — rejected: names collide and paths invite traversal; an index has neither problem.
+- **Reference**: SEC-002.5 (i), REQ-002.H.13, ARCH-004.39
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
@@ -125,4 +136,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-09-29_
+_Last updated: 2026-10-01_

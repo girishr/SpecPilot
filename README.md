@@ -76,7 +76,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
 | `refine [desc]`         | Refine project specifications                                     |
-| `serve`                 | Serve a local web UI over the current project's `.specs/` (task moves unless `--read-only`) |
+| `serve [folders...]`    | Serve a local web UI over the `.specs/` of this project, or of each folder named (task moves unless `--read-only`) |
 
 > **Tip — command aliases:** All commands have a short alias you can use instead of the full name.
 > `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add` &nbsp;·&nbsp; `backfill` → `bf`
@@ -116,11 +116,12 @@ specpilot validate --fix
 
 ## specpilot serve
 
-Serve a local web UI over the current project's `.specs/`, where you can also move tasks between Backlog and Current Sprint. Run it from the project root (the folder that contains `.specs/`); press Ctrl+C to stop.
+Serve a local web UI over a project's `.specs/`, where you can also move tasks between Backlog and Current Sprint. With no folders it serves the project you run it from (the folder that contains `.specs/`); name one or more folders to serve those instead, all from one server. Press Ctrl+C to stop.
 
 ```bash
-specpilot serve                  # http://127.0.0.1:4321
+specpilot serve                  # this project, at http://127.0.0.1:4321
 specpilot serve --port 5000 --open
+specpilot serve ../api ../web    # two projects on one server; switch in the left rail
 ```
 
 | Option        | Default | Description                                                                              |
@@ -130,8 +131,9 @@ specpilot serve --port 5000 --open
 | `--read-only` |        | No task moves: the UI only reads, with no drag handles and no write route                |
 | `--open`      |         | Open the UI in the default browser                                                       |
 
+- **Several projects**: every folder you name must contain `.specs/`; one that does not stops startup with its name. They are numbered in command-line order from 0 (`../api` is project 0, `../web` is project 1), and that number is the `?project=<n>` on the server's `/api/` routes and the `#1/...` at the start of a page link for any project after the first (no number means project 0). Each project keeps its own tasks, files and live reload; a move changes only that project's `tasks.md`. The list is fixed when the server starts: the page cannot add a folder, and nothing is saved outside your projects.
 - **Task moves**: drag a row, or use `Alt+Up/Down` to reorder and `Alt+Left/Right` to move between Backlog and Current Sprint. A move changes exactly one line of `.specs/planning/tasks.md` and nothing else, and offers Undo; Completed rows do not move. If the file changed on disk since the page loaded, the move is refused and the page redraws. Start with `--read-only` to turn moves off.
-- **Nothing else is written**: `.specs/planning/tasks.md` is the only file the server can change; everything else is read on every request.
+- **Nothing else is written**: each served project's `.specs/planning/tasks.md` is the only file the server can change; everything else is read on every request.
 - **Loopback only**: binds 127.0.0.1 only; rejects any Host header other than `127.0.0.1:<port>` or `localhost:<port>` (403).
 - **Live reload**: polls allowlisted files with `stat()` every `--poll` ms while a page is open, and pushes changed paths on `/api/events`; open pages update in place.
 - **What it shows**: `.specs/`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.claude/commands/`, `.claude/skills/` and `.github/prompts/`, as the files' own text.

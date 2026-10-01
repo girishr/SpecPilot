@@ -1,7 +1,8 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { AddressInfo } from 'net';
 import { readFileSync, statSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, sep } from 'path';
+import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
@@ -133,6 +134,29 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
   };
 }
 
+/** `~` or `~/…` for the home directory and anything under it, else the path as given (BL-054). */
+export function displayRoot(root: string, home = homedir()): string {
+  if (root === home) return '~';
+  return root.startsWith(home + sep) ? '~' + root.slice(home.length) : root;
+}
+
+/** One entry per served project, in command-line order: what the rail shows (BL-054). */
+function projectList(roots: string[]) {
+  return roots.map(root => {
+    const yamlFile = resolveAllowedPath(root, '.specs/project/project.yaml');
+    return { name: projectName(yamlFile ? readFileSync(yamlFile, 'utf-8') : undefined), root: displayRoot(root), branch: readBranch(root) };
+  });
+}
+
+/** `?project=<n>` → index into the served roots: omitted = 0; one canonical whole number in range, else null (404). */
+function projectIndex(url: URL, count: number): number | null {
+  const given = url.searchParams.getAll('project');
+  if (given.length === 0) return 0;
+  if (given.length > 1 || !/^(0|[1-9][0-9]*)$/.test(given[0])) return null;
+  const n = Number(given[0]);
+  return n < count ? n : null;
+}
+
 const SECURITY_HEADERS = {
   'Content-Security-Policy': "default-src 'self'",
   'X-Content-Type-Options': 'nosniff',
@@ -180,41 +204,46 @@ export interface SpecServer {
   close(): Promise<void>;
 }
 
-export function createSpecServer(root: string, specpilotVersion: string, opts: SpecServerOptions = {}): SpecServer {
-  // ---- live reload (BL-052): streams, heartbeat, and a poller that runs only while a stream is open
-  const streams = new Set<ServerResponse>();
-  let heartbeat: NodeJS.Timeout | null = null;
-  const broadcast = (chunk: string) => streams.forEach(res => res.write(chunk));
-  const poller = createPoller(root, {
-    intervalMs: opts.pollMs ?? 1000,
-    settleMs: opts.settleMs,
-    log: opts.log,
-    onChange: paths => broadcast(`event: change\ndata: ${JSON.stringify({ paths })}\n\n`),
+export function createSpecServer(roots: string[], specpilotVersion: string, opts: SpecServerOptions = {}): SpecServer {
+  // ---- live reload (BL-052): streams, heartbeat, and one poller per project (BL-054) that runs
+  // only while that project has a stream open; the heartbeat runs while any stream is open
+  const projects = roots.map(root => {
+    const streams = new Set<ServerResponse>();
+    const poller = createPoller(root, {
+      intervalMs: opts.pollMs ?? 1000,
+      settleMs: opts.settleMs,
+      log: opts.log,
+      onChange: paths => streams.forEach(res => res.write(`event: change\ndata: ${JSON.stringify({ paths })}\n\n`)),
+    });
+    return { streams, poller };
   });
-  const drop = (res: ServerResponse) => {
-    if (!streams.delete(res) || streams.size) return;
-    poller.stop();
-    if (heartbeat) clearInterval(heartbeat);
+  const allStreams = () => projects.flatMap(p => [...p.streams]);
+  let heartbeat: NodeJS.Timeout | null = null;
+  const drop = (i: number, res: ServerResponse) => {
+    const { streams, poller } = projects[i];
+    if (!streams.delete(res)) return;
+    if (!streams.size) poller.stop();
+    if (allStreams().length || !heartbeat) return;
+    clearInterval(heartbeat);
     heartbeat = null;
   };
-  const openStream = (req: IncomingMessage, res: ServerResponse) => {
-    if (streams.size >= MAX_EVENT_STREAMS) return send(res, 503, TEXT, 'Too many open event streams\n');
+  const openStream = (i: number, req: IncomingMessage, res: ServerResponse) => {
+    if (allStreams().length >= MAX_EVENT_STREAMS) return send(res, 503, TEXT, 'Too many open event streams\n');
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', ...SECURITY_HEADERS });
     res.write('retry: 2000\n\n');
+    const { streams, poller } = projects[i];
     streams.add(res);
-    req.on('close', () => drop(res));
-    if (streams.size === 1) {
-      poller.start();
-      heartbeat = setInterval(() => broadcast(': heartbeat\n\n'), opts.heartbeatMs ?? 25000);
-    }
+    req.on('close', () => drop(i, res));
+    if (streams.size === 1) poller.start();
+    if (!heartbeat) heartbeat = setInterval(() => allStreams().forEach(s => s.write(': heartbeat\n\n')), opts.heartbeatMs ?? 25000);
   };
 
   // ---- task moves (BL-053): the only write route, absent with --read-only
   const token = opts.readOnly ? null : randomBytes(32).toString('hex');
-  let writeLock: Promise<void> = Promise.resolve(); // moves run strictly one after another
-  const payload = () => buildSpecsPayload(root, specpilotVersion);
+  let writeLock: Promise<void> = Promise.resolve(); // moves run strictly one after another, in every project
+  const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
 
-  const handleMove = (req: IncomingMessage, res: ServerResponse) => {
+  const handleMove = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     // Host was checked already; the page's own origin is exactly "http://" + that Host.
     if (req.headers.origin !== `http://${req.headers.host}`) {
       return sendJson(res, 403, { error: 'This request did not come from the SpecPilot page, so it was refused.' });
@@ -228,6 +257,9 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
       return sendJson(res, 415, { error: 'Moves must be sent as JSON.' });
     }
     if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) return sendJson(res, 413, { error: 'The request is too large.' });
+    // The project is picked only now, so a request that failed the checks above learns nothing about it (SEC-004.11).
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     const chunks: Buffer[] = [];
     let size = 0;
     req.on('data', (c: Buffer) => {
@@ -251,12 +283,12 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
       writeLock = writeLock.then(() => {
         let out;
         try {
-          out = moveTask(root, body as TaskMove, ifMatch);
+          out = moveTask(roots[i], body as TaskMove, ifMatch);
         } catch {
           return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
         }
-        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, from: out.from, fromIndex: out.fromIndex, specs: payload() });
-        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload() });
+        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, from: out.from, fromIndex: out.fromIndex, specs: payload(i) });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
         return sendJson(res, 422, { error: out.error });
       });
     });
@@ -268,7 +300,7 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
       if (!isAllowedHost(req.headers.host, port)) return send(res, 403, TEXT, 'Forbidden: unexpected Host header\n');
       const url = new URL(req.url ?? '/', 'http://127.0.0.1');
       if (url.pathname === '/api/tasks/move') {
-        if (req.method === 'POST' && token) return handleMove(req, res);
+        if (req.method === 'POST' && token) return handleMove(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
@@ -282,15 +314,15 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
       }
       const ui = UI_ROUTES[url.pathname];
       if (ui) return send(res, 200, ui[1], readFileSync(join(UI_DIR, ui[0])));
-      if (url.pathname === '/api/specs') {
-        return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(buildSpecsPayload(root, specpilotVersion)));
-      }
+      if (url.pathname !== '/api/specs' && url.pathname !== '/api/file' && url.pathname !== '/api/events') return send(res, 404, TEXT, 'Not Found\n');
+      const i = projectIndex(url, roots.length);
+      if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+      if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(payload(i)));
       if (url.pathname === '/api/file') {
-        const file = resolveAllowedPath(root, url.searchParams.get('p') ?? '');
+        const file = resolveAllowedPath(roots[i], url.searchParams.get('p') ?? '');
         return file ? send(res, 200, TEXT, readFileSync(file)) : send(res, 404, TEXT, 'Not Found\n');
       }
-      if (url.pathname === '/api/events') return openStream(req, res);
-      send(res, 404, TEXT, 'Not Found\n');
+      return openStream(i, req, res);
     } catch {
       if (!res.headersSent) send(res, 500, TEXT, 'Internal Server Error\n');
     }
@@ -298,14 +330,16 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
 
   return {
     server,
-    streams: () => streams.size,
+    streams: () => allStreams().length,
     close: () =>
       new Promise<void>(resolveClose => {
-        [...streams].forEach(res => {
-          res.end();
-          drop(res);
-        });
-        poller.stop();
+        projects.forEach((p, i) =>
+          [...p.streams].forEach(res => {
+            res.end();
+            drop(i, res);
+          }),
+        );
+        projects.forEach(p => p.poller.stop());
         server.close(() => resolveClose());
         server.closeIdleConnections?.();
       }),
@@ -313,8 +347,8 @@ export function createSpecServer(root: string, specpilotVersion: string, opts: S
 }
 
 /** Listen on 127.0.0.1 only. Rejects with the listen error (e.g. EADDRINUSE). */
-export function startSpecServer(root: string, port: number, specpilotVersion: string, opts: SpecServerOptions = {}): Promise<SpecServer> {
-  const handle = createSpecServer(root, specpilotVersion, opts);
+export function startSpecServer(roots: string[], port: number, specpilotVersion: string, opts: SpecServerOptions = {}): Promise<SpecServer> {
+  const handle = createSpecServer(roots, specpilotVersion, opts);
   return new Promise((resolvePromise, reject) => {
     handle.server.once('error', reject);
     handle.server.listen(port, '127.0.0.1', () => {

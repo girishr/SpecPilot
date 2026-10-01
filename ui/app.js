@@ -21,23 +21,30 @@ $('#themeBtn').onclick=()=>{const light=document.documentElement.getAttribute('d
 
 /* ---------------- data: fetched, never embedded ---------------- */
 let DATA=null;
+/* The shown project: its index on the serve command line (BL-054); every /api/ call names it. */
+let PROJECT=0;
+const pq=()=>'project='+PROJECT;
 const fileCache={};
 async function getText(p){
   if(p in fileCache)return fileCache[p];
-  const r=await fetch('/api/file?p='+encodeURIComponent(p),{cache:'no-store'});
+  const pj=PROJECT;
+  const r=await fetch('/api/file?project='+pj+'&p='+encodeURIComponent(p),{cache:'no-store'});
   if(!r.ok)throw Object.assign(new Error(p+': HTTP '+r.status),{status:r.status});
-  return fileCache[p]=await r.text();
+  const text=await r.text();
+  if(PROJECT===pj)fileCache[p]=text; // never cache one project's file under another's
+  return text;
 }
 function showErr(msg){const e=$('#loadErr');e.textContent=msg;e.hidden=false;}
 
-/* ---------------- project: only the one being served ---------------- */
+/* ---------------- projects: one rail tile per served project (BL-054) ---------------- */
 function initials(n){const w=String(n).split(/[^A-Za-z0-9]+/).filter(Boolean);
   if(!w.length)return '??';
   if(w.length>1)return (w[0][0]+w[1][0]).toUpperCase();
   return w[0].slice(0,2).toUpperCase();}
 function renderProject(){
   const p=DATA.project, name=p.name!==null?p.name:p.root, where=p.root+(p.branch?' · '+p.branch:'');
-  $('#projList').innerHTML=`<button class="tile blue cur" data-tip="${esc(name)}" data-path="${esc(where)}" aria-label="${esc(name)}" aria-current="true"><span aria-hidden="true">${esc(initials(name))}</span></button>`;
+  $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=q.name!==null?q.name:q.root,cur=i===PROJECT;
+    return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
   $('#subName').textContent=name;$('#subPath').textContent=where;
@@ -76,11 +83,12 @@ let urlOk=true,memHash='';
 try{history.replaceState(null,'',location.href);}catch(e){urlOk=false;}
 try{memHash=location.hash;}catch(e){memHash='';}
 function curHash(){if(!urlOk)return memHash;try{return location.hash;}catch(e){return memHash;}}
-function setHash(v,sub){const h='#'+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
+function setHash(v,sub){const h='#'+(PROJECT?PROJECT+'/':'')+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
   if(!urlOk)return;
   try{history.replaceState(null,'',h);}catch(e){urlOk=false;}}
 function route(){
-  const r=resolveRoute(curHash(),DATA?DATA.files:{});
+  const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1);
+  if(r.project!==PROJECT){switchProject(r.project,true);return;}
   if(r.view==='board'&&r.sub==='board'){mode='board';$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.m==='board'));renderTasks();}
   go(r.view,true,r.sub);
 }
@@ -191,9 +199,9 @@ $$('#modeSeg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;$$('#modeSeg bu
 /* ---------------- any .specs/ file, rendered as written ---------------- */
 function metaLine(m){return ['fileID','version','lastUpdated'].filter(k=>m&&m[k]!==undefined).map(k=>`${k}: ${m[k]}`).join(' · ');}
 async function renderFile(path){
-  let src=null;
-  if(path in DATA.files)try{src=await getText('.specs/'+path);}catch(e){if(e.status!==404){if(curView==='file'&&curFile===path){$('#fmBox').innerHTML='';$('#fileBody').innerHTML=`<p class="note">${esc(e.message)}</p>`;}return;}}
-  if(curView!=='file'||curFile!==path)return;
+  let src=null;const pj=PROJECT; // callers below draw only if the page still shows this project (BL-054)
+  if(path in DATA.files)try{src=await getText('.specs/'+path);}catch(e){if(e.status!==404){if(PROJECT===pj&&curView==='file'&&curFile===path){$('#fmBox').innerHTML='';$('#fileBody').innerHTML=`<p class="note">${esc(e.message)}</p>`;}return;}}
+  if(PROJECT!==pj||curView!=='file'||curFile!==path)return;
   if(src===null){$('#fmBox').innerHTML='';$('#fileBody').innerHTML=gone('.specs/'+path);return;}
   const isYaml=/\.ya?ml$/.test(path);
   const {fm,body}=isYaml?{fm:'',body:src}:splitFm(src);
@@ -215,11 +223,11 @@ function renderExplorer(){
 /* Security: both files in security/, each rendered as written. */
 const secShown=new Set(); // security files this page has shown, so a deletion can be named
 async function renderSecurity(){
-  const paths=['security/threat-model.md','security/security-decisions.md'].filter(p=>p in DATA.files||secShown.has(p));
-  const parts=await Promise.all(paths.map(p=>!(p in DATA.files)?Promise.resolve(gone('.specs/'+p)):getText('.specs/'+p).then(src=>(secShown.add(p),
+  const pj=PROJECT,paths=['security/threat-model.md','security/security-decisions.md'].filter(p=>p in DATA.files||secShown.has(p));
+  const parts=await Promise.all(paths.map(p=>!(p in DATA.files)?Promise.resolve(gone('.specs/'+p)):getText('.specs/'+p).then(src=>(PROJECT===pj&&secShown.add(p),
     `<div class="gl"><div class="gh" translate="no">${esc(p)} <span class="cnt" translate="no">${esc(metaLine(DATA.files[p]))}</span></div></div><div class="md doc doc-gap">${md(splitFm(src).body)}</div>`),
     e=>`<p class="note">${esc(e.message)}</p>`)));
-  if(curView==='security')$('#secBody').innerHTML=parts.join('')||'<div class="box"><div class="empty">No files in <span class="mono" translate="no">.specs/security/</span>.</div></div>';
+  if(PROJECT===pj&&curView==='security')$('#secBody').innerHTML=parts.join('')||'<div class="box"><div class="empty">No files in <span class="mono" translate="no">.specs/security/</span>.</div></div>';
 }
 
 /* ---------------- automation: generated files, read as they are ---------------- */
@@ -246,8 +254,9 @@ function renderAgentFiles(){
 function listed(path){const N=DATA.nav;return N.instructions.some(f=>f.exists&&f.path===path)||[N.commands,N.prompts,N.skills].some(l=>l.some(f=>f.path===path));}
 async function openFile(path,quiet){
   if(!quiet)lastFocus=document.activeElement;
-  let src=null;
-  if(listed(path))try{src=await getText(path);}catch(e){if(e.status!==404){if(!quiet)toast(e.message);return;}}
+  let src=null;const pj=PROJECT;
+  if(listed(path))try{src=await getText(path);}catch(e){if(e.status!==404){if(!quiet&&PROJECT===pj)toast(e.message);return;}}
+  if(PROJECT!==pj)return;
   inspOpen={kind:'file',path};
   const head=`<div class="ih"><span class="id" translate="no">${esc(path)}</span><button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>`;
   if(src===null){insp.innerHTML=head+`<div class="ib2">${gone(path)}</div>`;openInsp(quiet);return;}
@@ -315,14 +324,15 @@ function bindMoves(){
   });
 }
 async function move(col,i,toSection,toIndex,isUndo){
-  const t=DATA.tasks[col][i];if(!t||moving)return;
+  const t=DATA.tasks[col][i],p=PROJECT;if(!t||moving)return;
   moving=true;
   let r,body={};
   try{
-    r=await fetch('/api/tasks/move',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({id:t.id,toSection,toIndex})});
+    r=await fetch('/api/tasks/move?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({id:t.id,toSection,toIndex})});
     body=await r.json().catch(()=>({}));
   }catch(e){moving=false;toast('The server did not answer. Nothing was moved.');return;}
   moving=false;
+  if(p!==PROJECT)return; // the page switched projects while the move was in flight
   if(r.status===200){
     if(toSection==='backlog'&&toIndex>=6)showAllBacklog=true;
     await apply(body.specs,['.specs/planning/tasks.md']);
@@ -363,8 +373,9 @@ function refocus(key){
 let refreshing=Promise.resolve();
 function refresh(paths){refreshing=refreshing.then(()=>redraw(paths)).catch(()=>{});}
 async function redraw(paths){
-  let d;
-  try{const r=await fetch('/api/specs',{cache:'no-store'});if(!r.ok)return;d=await r.json();}catch(e){return;} // server gone: keep what is shown
+  let d;const p=PROJECT;
+  try{const r=await fetch('/api/specs?'+pq(),{cache:'no-store'});if(!r.ok)return;d=await r.json();}catch(e){return;} // server gone: keep what is shown
+  if(p!==PROJECT)return; // switched projects meanwhile
   // The poller's echo of a move this page just made: same tasks.md hash, nothing to redraw.
   if(paths&&paths.length&&paths.every(p=>p==='.specs/planning/tasks.md')&&DATA&&DATA.tasks&&d.tasks&&d.tasks.sha256===DATA.tasks.sha256)return;
   await apply(d,paths);
@@ -390,18 +401,36 @@ async function apply(d,paths){
   const ib=insp.querySelector('.ib2');if(ib)ib.scrollTop=inspScroll;
   refocus(key);
 }
+let es=null;
 function listen(){
   if(!window.EventSource)return;
-  const es=new EventSource('/api/events');let dropped=false;
+  if(es)es.close(); // one stream, for the shown project
+  es=new EventSource('/api/events?'+pq());let dropped=false;
   es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
   es.onerror=()=>{dropped=true;};          // EventSource retries by itself
   es.onopen=()=>{if(dropped){dropped=false;refresh(null);}}; // catch up on anything missed
 }
 
-/* boot */
+/* Show another served project: fresh data, its own event stream, its Tasks view (or the routed view). */
+async function switchProject(n,keepRoute){
+  const was=PROJECT;PROJECT=n;
+  let d;
+  try{const r=await fetch('/api/specs?'+pq(),{cache:'no-store'});if(!r.ok)throw new Error('/api/specs: HTTP '+r.status);d=await r.json();}
+  catch(e){if(PROJECT===n)PROJECT=was;toast('Could not load the project: '+e.message);return;}
+  if(PROJECT!==n)return;
+  Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
+  DATA=d;selected=null;
+  renderProject();renderTasks();renderIde();renderAgentFiles();listen();
+  if(keepRoute)route();else go('board');
+}
+$('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-project]');if(b&&+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);});
+
+/* boot: the project count is unknown until the first load, so an index past the end falls back to project 0 */
 insp.setAttribute('aria-hidden','true');
 $('#gDone').classList.add('closed');
-fetch('/api/specs',{cache:'no-store'})
+PROJECT=resolveRoute(curHash(),{},Infinity).project;
+fetch('/api/specs?'+pq(),{cache:'no-store'})
+  .then(r=>{if(!r.ok&&PROJECT){PROJECT=0;return fetch('/api/specs?'+pq(),{cache:'no-store'});}return r;})
   .then(r=>{if(!r.ok)throw new Error('/api/specs: HTTP '+r.status);return r.json();})
   .then(d=>{DATA=d;renderProject();renderTasks();renderIde();renderAgentFiles();route();listen();})
   .catch(e=>showErr('Could not load the project: '+e.message));

@@ -157,7 +157,7 @@ const FULL_MD_TERSE = `# CLAUDE.md
 7. Read before write. Never reference code you haven't read.
 `;
 
-/** tasks.md already containing both the convention line and Multi-Dev Notes */
+/** tasks.md with the handle-form convention line older backfills wrote, and their Multi-Dev Notes */
 function makeFullTasksMd(devPrefix: string): string {
   return `# Task Tracking
 
@@ -178,7 +178,7 @@ Notes
 `;
 }
 
-/** tasks.md with CS-### line but no devPrefix line and no Multi-Dev Notes */
+/** tasks.md with a CS-### line but no devPrefix convention line */
 function makeBareTasks(): string {
   return `# Task Tracking
 
@@ -516,6 +516,7 @@ rules:
       const result = await backfiller.backfill(testDir, '.specs', true, true);
       expect(result.projectYaml.action).toBe('skipped');
       expect(result.copilotInstructions.action).toBe('skipped');
+      expect(result.tasksMd).toMatchObject({ action: 'skipped', found: 1, total: 1 }); // BL-069
       expect(readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8')).toBe(yamlBefore);
       const v = await new SpecValidator().validate(testDir, { fix: false, verbose: false });
       expect(v.errors.filter((e: string) => e.includes('prompt tracking'))).toEqual([]);
@@ -540,82 +541,61 @@ rules:
     });
   });
 
-  describe('backfillTasksMd — already up to date', () => {
-    it('returns action=skipped when both convention line and Multi-Dev Notes present', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeFullTasksMd('girishr'),
-      });
+  describe('backfillTasksMd — convention line present (BL-069)', () => {
+    const tasksFile = () => join(testDir, '.specs', 'planning', 'tasks.md');
+
+    it.each([
+      ['the handle form older backfills wrote (kept with its Multi-Dev Notes)', makeFullTasksMd('girishr')],
+      ['the template form init writes', makeBareTasks().replace('- CD-###: Completed items', '- CD-{devPrefix}-###: Completed items (e.g. CD-girishr-001)')],
+    ])('is up to date with %s and left byte-identical', async (_what, text) => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: text });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.tasksMd.action).toBe('skipped');
-      expect(result.tasksMd.found).toBe(2);
-      expect(result.tasksMd.total).toBe(2);
+      expect(result.tasksMd).toMatchObject({ action: 'skipped', found: 1, total: 1, added: [] });
+      expect(readFileSync(tasksFile(), 'utf-8')).toBe(text);
+    });
+
+    it('says "All 1 item already present" in the output', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      const out: string[] = [];
+      jest.spyOn(console, 'log').mockImplementation((m?: unknown) => void out.push(String(m)));
+      try {
+        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+      } finally {
+        jest.restoreAllMocks();
+      }
+      expect(out.join('\n')).toContain('All 1 item already present');
+      expect(out.join('\n')).toContain('All 10 items already present');
     });
   });
 
-  describe('backfillTasksMd — convention line and Multi-Dev Notes missing', () => {
-    it('inserts CD-{devPrefix}-### convention line after CS-### line', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeBareTasks(),
-      });
+  describe('backfillTasksMd — convention line missing', () => {
+    const tasksFile = () => join(testDir, '.specs', 'planning', 'tasks.md');
+
+    it("inserts the template's convention line after the CS-### line", async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: makeBareTasks() });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.tasksMd.action).toBe('updated');
-      const written = readFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), 'utf-8');
-      expect(written).toContain('CD-girishr-###');
-      expect(result.tasksMd.added).toContain('CD-girishr-### convention line');
+      expect(result.tasksMd).toMatchObject({ action: 'updated', found: 0, total: 1, added: ['CD-girishr-### convention line'] });
+      expect(readFileSync(tasksFile(), 'utf-8')).toContain(
+        '- CS-###: Current Sprint items\n- CD-{devPrefix}-###: Completed items (e.g. CD-girishr-001)\n',
+      );
     });
 
-    it('inserts ## Multi-Dev Notes section before ## Backlog', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeBareTasks(),
-      });
-      await backfiller.backfill(testDir, '.specs', false, true);
-      const written = readFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), 'utf-8');
-      expect(written).toContain('## Multi-Dev Notes');
-      // Multi-Dev Notes should appear before ## Backlog
-      const multiDevIdx = written.indexOf('## Multi-Dev Notes');
-      const backlogIdx = written.indexOf('## Backlog');
-      expect(multiDevIdx).toBeLessThan(backlogIdx);
+    it('skips with a reason, never "already present", when there is no line to insert after', async () => {
+      const text = '# Tasks\n\n## Completed\n';
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: text });
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.tasksMd).toMatchObject({ action: 'skipped', found: 0, total: 1, added: [] });
+      expect(result.tasksMd.reason).toContain('add it by hand');
+      expect(readFileSync(tasksFile(), 'utf-8')).toBe(text);
     });
 
-    it('Multi-Dev Notes block references the correct devPrefix', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeBareTasks(),
-      });
+    it.each([
+      ['with a ## Backlog', makeBareTasks()],
+      ['without a ## Backlog', ['# Task Tracking', '', '- CS-###: Current Sprint items', '', '## Completed', '', '1. [CD-girishr-001] did a thing'].join('\n')],
+    ])('never adds ## Multi-Dev Notes (%s), which left the template in 2.0.0', async (_what, text) => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: text });
       await backfiller.backfill(testDir, '.specs', false, true);
-      const written = readFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), 'utf-8');
-      expect(written).toContain('CD-girishr-###');
-    });
-
-    it('inserts Multi-Dev Notes before ## Completed when there is no ## Backlog', async () => {
-      // Appending at EOF would put the section after ## Completed, where
-      // `specpilot archive` would sweep it into tasks-archive.md.
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: [
-          '# Task Tracking',
-          '',
-          '- CS-###: Current Sprint items',
-          '',
-          '## Completed',
-          '',
-          '1. [CD-girishr-001] did a thing',
-        ].join('\n'),
-      });
-
-      await backfiller.backfill(testDir, '.specs', false, true);
-
-      const written = readFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), 'utf-8');
-      expect(written).toContain('## Multi-Dev Notes');
-      expect(written.indexOf('## Multi-Dev Notes')).toBeLessThan(written.indexOf('## Completed'));
+      expect(readFileSync(tasksFile(), 'utf-8')).not.toContain('Multi-Dev Notes');
     });
 
     it('dry-run: does NOT write tasks.md', async () => {

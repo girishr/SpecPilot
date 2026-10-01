@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specpilot backfill` no longer re-adds mandates to projects created by SpecPilot 2.0.0 or later** (BL-066). It checked `.github/copilot-instructions.md` for the wording SpecPilot used before 2.0.0 and `project.yaml` for a `rules:` section that 2.0.0 stopped writing, so on a fresh project it would append all 8 mandates again in different words and 9 rules to `project.yaml`. It now checks copilot-instructions.md in the wording the file already uses, and leaves a `project.yaml` without `rules:` alone.
 - **`specpilot validate` no longer fails a fresh project with "Missing MANDATE for prompt tracking in project.yaml rules"** (BL-066). A `project.yaml` without a `rules:` section is how SpecPilot has generated it since 2.0.0; the mandates are in your AI agent file.
+- **`specpilot backfill` no longer adds a convention line and `## Multi-Dev Notes` to a fresh `planning/tasks.md`** (BL-069). It looked for `CD-<your handle>-###` while `init` writes `CD-{devPrefix}-###`, and it still added the Multi-Dev Notes section that 2.0.0 removed from new projects. Either form of the convention line now counts, and Multi-Dev Notes is no longer added; an existing section is left alone.
 
 ### Added
 

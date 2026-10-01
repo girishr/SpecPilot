@@ -773,7 +773,7 @@ export class SpecBackfiller {
       return {
         action: 'missing',
         found: 0,
-        total: 2,
+        total: 1,
         added: [],
         reason: 'file not found — run `specpilot init` or `specpilot add-specs` first',
       };
@@ -784,86 +784,47 @@ export class SpecBackfiller {
       return {
         action: 'skipped',
         found: 0,
-        total: 2,
+        total: 1,
         added: [],
         reason: 'team.devPrefix not found in project.yaml — run `specpilot backfill` after `specpilot init`',
       };
     }
 
     const content = readFileSync(filePath, 'utf-8');
-    const added: string[] = [];
 
-    const conventionFingerprint = `CD-${devPrefix}-###`;
-    const hasConvention = content.includes(conventionFingerprint);
-    const hasMultiDevNotes = content.includes('## Multi-Dev Notes');
-
-    if (hasConvention && hasMultiDevNotes) {
-      return { action: 'skipped', found: 2, total: 2, added: [] };
+    // The template writes the literal `CD-{devPrefix}-###`; older backfills wrote the handle (BL-069).
+    // `## Multi-Dev Notes` left the template in CS-073 (2.0.0), so it is no longer checked or added.
+    if (content.includes('CD-{devPrefix}-###') || content.includes(`CD-${devPrefix}-###`)) {
+      return { action: 'skipped', found: 1, total: 1, added: [] };
     }
 
+    // Insert the template's convention line after the `- CS-###:` line, else before the Notes section
+    const conventionLine = `- CD-{devPrefix}-###: Completed items (e.g. CD-${devPrefix}-001)`;
     let newContent = content;
-
-    // Insert `CD-{devPrefix}-###` convention line after `- CS-###:` line
-    if (!hasConvention) {
-      const csLineMatch = newContent.match(/^- CS-###:.*$/m);
-      if (csLineMatch) {
-        const insertAfter = csLineMatch[0];
-        const insertPos = newContent.indexOf(insertAfter) + insertAfter.length;
-        const conventionLine = `\n- CD-${devPrefix}-###: Completed items (e.g. CD-${devPrefix}-001)`;
-        newContent = newContent.slice(0, insertPos) + conventionLine + newContent.slice(insertPos);
-      } else {
-        // Fallback: append to convention block before Notes section
-        const notesIdx = newContent.search(/^Notes$/m);
-        if (notesIdx !== -1) {
-          newContent =
-            newContent.slice(0, notesIdx) +
-            `- CD-${devPrefix}-###: Completed items (e.g. CD-${devPrefix}-001)\n` +
-            newContent.slice(notesIdx);
-        }
-      }
-      if (newContent !== content) {
-        added.push(`CD-${devPrefix}-### convention line`);
+    const csLineMatch = newContent.match(/^- CS-###:.*$/m);
+    if (csLineMatch) {
+      const insertPos = newContent.indexOf(csLineMatch[0]) + csLineMatch[0].length;
+      newContent = newContent.slice(0, insertPos) + '\n' + conventionLine + newContent.slice(insertPos);
+    } else {
+      const notesIdx = newContent.search(/^Notes$/m);
+      if (notesIdx !== -1) {
+        newContent = newContent.slice(0, notesIdx) + conventionLine + '\n' + newContent.slice(notesIdx);
       }
     }
-
-    // Insert ## Multi-Dev Notes section before ## Backlog, falling back to before
-    // ## Completed — never append at EOF, since `specpilot archive` treats
-    // everything after the ## Completed heading as archivable entries.
-    if (!hasMultiDevNotes) {
-      let backlogIdx = newContent.search(/^## Backlog$/m);
-      if (backlogIdx === -1) backlogIdx = newContent.search(/^## Completed$/m);
-      if (backlogIdx !== -1) {
-        const multiDevSection =
-          `## Multi-Dev Notes\n\n` +
-          `> **ID collisions are the #1 source of merge conflicts in shared spec files.**\n` +
-          `> Follow these rules when more than one person commits to this repo:\n` +
-          `>\n` +
-          `> - Always \`git pull\` before appending to the Completed section.\n` +
-          `> - Use your personal prefix in all Completed IDs: \`CD-${devPrefix}-###\`\n` +
-          `>   so two devs never claim the same number independently.\n` +
-          `> - Only run \`specpilot archive\` on the default branch (main/master) **after** merging,\n` +
-          `>   never on a feature branch — diverged trim points break the archive history.\n\n`;
-        newContent = newContent.slice(0, backlogIdx) + multiDevSection + newContent.slice(backlogIdx);
-      } else {
-        // Fallback: append at end
-        newContent =
-          newContent.trimEnd() +
-          `\n\n## Multi-Dev Notes\n\n` +
-          `> Always \`git pull\` before appending to Completed. Use \`CD-${devPrefix}-###\` prefix. ` +
-          `Only run \`specpilot archive\` on the default branch.\n`;
-      }
-      added.push('## Multi-Dev Notes section');
+    if (newContent === content) {
+      return {
+        action: 'skipped',
+        found: 0,
+        total: 1,
+        added: [],
+        reason: 'no `- CS-###:` or `Notes` line to place the `CD-{devPrefix}-###` convention line after; add it by hand',
+      };
     }
 
-    if (!dryRun && added.length > 0) {
+    if (!dryRun) {
       writeFileSync(filePath, newContent, 'utf-8');
     }
 
-    return {
-      action: added.length > 0 ? 'updated' : 'skipped',
-      found: (hasConvention ? 1 : 0) + (hasMultiDevNotes ? 1 : 0),
-      total: 2,
-      added,
-    };
+    return { action: 'updated', found: 0, total: 1, added: [`CD-${devPrefix}-### convention line`] };
   }
 }

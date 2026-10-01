@@ -49,7 +49,7 @@ function fileResultLines(label: string, r: BackfillFileResult, dryRun: boolean):
     if (r.reason) {
       lines.push(chalk.yellow(`  ⚠️  Skipped — ${r.reason}`));
     } else {
-      lines.push(chalk.green(`  ✅ All ${r.total} items already present — nothing to backfill`));
+      lines.push(chalk.green(`  ✅ All ${r.total} item${r.total === 1 ? '' : 's'} already present — nothing to backfill`));
     }
   } else if (r.action === 'created') {
     const verb = dryRun ? 'Would create' : 'Created';

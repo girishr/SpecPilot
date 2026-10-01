@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
 # lastUpdated: 2026-10-01
-# version: 2.14
+# version: 2.15
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -215,7 +215,7 @@ commands:
     behavior:
       - Non-destructively patches missing mandates in project.yaml and AI context files
       - "Checks each file in the wording SpecPilot generates for it (BL-066): copilot-instructions.md by the wording it has (terse unless it carries the pre-2.0 verbose list); a project.yaml with no top-level rules: key is left unchanged (skipped, with the reason)"
-      - Backfills tasks.md with devPrefix ID conventions and Multi-Dev Notes
+      - "Backfills tasks.md with the devPrefix Completed-ID convention line when neither CD-{devPrefix}-### nor CD-<handle>-### is present (BL-069); ## Multi-Dev Notes is no longer added"
       - Detects existing IDE files and patches only the files present on disk
       - Reports stale Claude Code SKILL.md structure without auto-patching it
       - "Slash commands (BL-058): for each IDE signal present (incl. CODEX_INSTRUCTIONS.md for the in-repo .codex/prompts/ copies) adds missing specpilot-* command files and replaces those whose bytes match a known SpecPilot version (SHA-256); never writes outside the project directory"

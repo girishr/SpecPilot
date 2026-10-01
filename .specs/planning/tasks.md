@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-066 completed)
-version: 5.83
+lastUpdated: 2026-10-01 (BL-069 to Current Sprint)
+version: 5.84
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -48,7 +48,6 @@ Notes
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) (Spec Report on branch feat/cs-078-test-mandate; needs BL-066 first) |
 | BL-067 | `specpilot serve`: remember projects across runs and add one from the page — a registry outside the repo (e.g. `~/.specpilot/projects.json`, the mockup's Recent projects and Open sheet), deferred from BL-054, which takes its projects from the command line only. Needs its own Spec Report: a write path outside the repo (against ARCH-007.5) and a route that accepts a folder path from the browser. |
 | BL-068 | ESLint error in `src/__tests__/specServer.test.ts` `post()` helper (from BL-053, commit `43a2b58`): `let json: any = null;` is overwritten on both paths (`no-useless-assignment`); declare it without the initial value. Also `src/utils/specValidator.ts:579` `no-useless-escape` (from `299f14f`), so `npx eslint src` reports 0 errors. Found during BL-054; not part of it. |
-| BL-069 | Fresh `tasks.md` and `specpilot backfill` disagree: `init` writes the literal `CD-{devPrefix}-###` and no `## Multi-Dev Notes`, while `backfillTasksMd()` looks for `CD-<handle>-###` and the section, so `backfill` adds both to every fresh project (seen on a fresh 2.5.0 project during BL-066). REQ-002.F.6 and ARCH-004.22 still describe the old template. Decide which side is right, then make them agree. |
 | BL-070 | `specpilot validate` on a fresh `init` project prints 7 cross-reference warnings (e.g. `project/requirements.md should reference architecture/architecture.md`): the generated `relatedFiles` lists and the validator's expected references disagree. Make the generator and validator agree so a fresh project validates with no warnings. Found during BL-066. |
 | BL-071 | `insertYamlMandates()` in `specBackfiller.ts`: when `project.yaml` has `rules:` but no `critical:` key, missing critical mandates are appended as a second top-level `rules:` block (duplicate key; js-yaml throws). Insert under the existing `rules:` as the process branch does; also a `rules:` on line 1 is not found by the `\nrules:` search. Also `rules: []` gets `process:` inserted after ` []` on the same line (invalid YAML). Found during BL-066; not reachable from a fresh project; BL-066 tests these shapes in `--dry-run` only. |
 
@@ -56,6 +55,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-069 | Fresh `tasks.md` and `specpilot backfill` disagree: `init` writes the literal `CD-{devPrefix}-###` and no `## Multi-Dev Notes`, while `backfillTasksMd()` looks for `CD-<handle>-###` and the section, so `backfill` adds both to every fresh project (seen on a fresh 2.5.0 project during BL-066). REQ-002.F.6 and ARCH-004.22 still describe the old template. Decide which side is right, then make them agree. Decided: the template (CS-053 convention line, CS-073 no Multi-Dev Notes); backfill accepts either convention form, inserts the template's line when missing, and no longer adds Multi-Dev Notes (built on branch feat/bl-069-tasks-convention, not merged; 5 tests replaced by 7, 507 → 509) |
 
 ## Completed
 

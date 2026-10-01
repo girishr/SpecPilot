@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (Release v2.5.0 as CD-girishr-048)
-version: 5.71
+lastUpdated: 2026-10-01 (v2.5.0 shipped, CD-girishr-048 updated)
+version: 5.72
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -76,4 +76,4 @@ Notes
 | 136 | [CD-girishr-045] [BL-061] | `specpilot archive` archived the newest `prompts.md` entries of a newest-first log, and the boilerplate of every generated `prompts.md` (a `## Prompt History` table with no `## Latest Entries` heading), in every version from 1.5.1 to 2.3.0 — fixed: `planPromptsArchive()` reads each entry's own date (long, abbreviated incl. "Sept" with or without a dot, ISO; a table row's Date cell) with `lastDate()`, moves whole oldest entries until the file is within 80 lines, and refuses with a plain reason (nothing changed) when there is no log section or the dates do not run one way; `validateLineLimits()` shares the plan; `specpilot archive` prints refusals; the bash `archive_prompts()` is byte-identical to the CLI on eleven shapes incl. no trailing newline (a macOS awk `substr(s, 0, 1)` quirk found by the parity test); command files regenerated. This repo's log had one date inversion, fixed in its own commit (`88683dc`), after which the archive moved the 25 oldest entries byte for byte. 43 new tests (402 → 445); commit `a0d3ff1` |
 | 137 | [CD-girishr-046] | v2.4.0 shipped: pushed, npm latest, GitHub release |
 | 138 | [CD-girishr-047] [BL-058] | `specpilot backfill` refreshes installed `specpilot-*` command files: a file whose raw bytes hash (SHA-256) to a version a released SpecPilot generated for that target path (`KNOWN_COMMAND_HASHES`, v2.2.0 to v2.4.0, 48 targets, 66 hashes; no earlier tag wrote command files) is replaced via temp file + fsync + rename; anything else is kept and listed, exit code 0: `kept: modified` ("delete it and re-run specpilot backfill to get the latest version"), `kept: CRLF line endings`, symbolic links and non-regular files; `refreshCommands()` replaces `backfillMissing()`; Codex in-repo `.codex/prompts/` copies via the `CODEX_INSTRUCTIONS.md` signal, nothing outside the project; `scripts/command-hashes.js` (not shipped) regenerates the list and checks per tag that content does not depend on the project; a test fails when a command body changes without a list update; BL-062 added for Codex skills. 14 new tests (445 → 459); commit `776106a` |
-| 139 | [CD-girishr-048] | Release v2.5.0 — version bump, CHANGELOG, tag v2.5.0 |
+| 139 | [CD-girishr-048] | v2.5.0 shipped: pushed, npm latest, GitHub release |

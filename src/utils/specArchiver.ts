@@ -19,7 +19,7 @@ const SPECS_DIR_CANDIDATES = ['.specs', '.project-spec', 'specs', 'specification
 
 /** Trim prompts.md to this many total lines after archiving. */
 export const PROMPTS_LINE_LIMIT = 100;
-const PROMPTS_KEEP_LINES = 80;
+export const PROMPTS_KEEP_LINES = 80;
 
 // ---- prompts.md (BL-061): move whole entries, always the oldest, in whichever order the log runs.
 
@@ -131,7 +131,7 @@ export function planPromptsArchive(lines: string[]): PromptsArchivePlan {
 /** Archive tasks.md Completed section when it exceeds this many lines. */
 export const COMPLETED_LINE_LIMIT = 40;
 /** How many Completed entries to retain in the active file. */
-const COMPLETED_KEEP_ENTRIES = 20;
+export const COMPLETED_KEEP_ENTRIES = 20;
 
 export interface CompletedArchivePlan {
   /** Line indices [start, end) moved out of tasks.md. */

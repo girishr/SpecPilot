@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
-import { COMPLETED_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
+import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -52,8 +52,6 @@ export interface ValidationResult {
 }
 
 export class SpecValidator {
-  private static readonly PROMPTS_LINE_LIMIT = 100;
-
   private requiredFiles = [
     'project/project.yaml',
     'architecture/architecture.md',
@@ -709,11 +707,11 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
       const plan = planPromptsArchive(readFileSync(promptsPath, 'utf-8').split('\n'));
       if (plan && 'refuse' in plan) {
         result.warnings.push(
-          `development/prompts.md exceeds line limit: ${SpecValidator.PROMPTS_LINE_LIMIT}, but \`specpilot archive\` will not move anything: ${plan.refuse}`
+          `development/prompts.md exceeds line limit: ${PROMPTS_LINE_LIMIT}, but \`specpilot archive\` will not move anything: ${plan.refuse}`
         );
       } else if (plan) {
         result.warnings.push(
-          `development/prompts.md exceeds line limit: ${SpecValidator.PROMPTS_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to prompts-archive.md.`
+          `development/prompts.md exceeds line limit: ${PROMPTS_LINE_LIMIT}. Run \`specpilot archive\` to move older entries to prompts-archive.md.`
         );
       }
     }

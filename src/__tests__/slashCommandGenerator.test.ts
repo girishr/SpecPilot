@@ -3,6 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { SlashCommandGenerator, SlashCommand, SLASH_COMMANDS, KNOWN_COMMAND_HASHES } from '../utils/slashCommandGenerator';
+import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, PROMPTS_KEEP_LINES, PROMPTS_LINE_LIMIT } from '../utils/specArchiver';
 
 describe('SlashCommandGenerator', () => {
   let projectDir: string;
@@ -54,8 +55,10 @@ describe('SlashCommandGenerator', () => {
     expect(content).toContain('allowed-tools: Bash, Read, Edit');
     expect(content).toContain('```bash');
     expect(content).toContain("git rev-parse --abbrev-ref HEAD");
-    expect(content).toContain('COMPLETED_LINE_LIMIT=40');
-    expect(content).toContain('PROMPTS_LINE_LIMIT=100');
+    expect(content).toContain(`COMPLETED_LINE_LIMIT=${COMPLETED_LINE_LIMIT}`);
+    expect(content).toContain(`PROMPTS_LINE_LIMIT=${PROMPTS_LINE_LIMIT}`);
+    expect(content).toContain(`COMPLETED_KEEP_ENTRIES=${COMPLETED_KEEP_ENTRIES}`);
+    expect(content).toContain(`PROMPTS_KEEP_LINES=${PROMPTS_KEEP_LINES}`);
   });
 
   it('includes allowed-tools in the specpilot-backfill Claude Code frontmatter and embeds all four fingerprint blocks cleanly (no stray backslashes)', () => {

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-060 completed, CD-girishr-049; BL-065 added)
-version: 5.74
+lastUpdated: 2026-10-01 (BL-065 in Current Sprint)
+version: 5.75
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -47,13 +47,13 @@ Notes
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
 | BL-063 | Test noise: ideConfigGenerator.ts:112 logs a stack trace during npm test; assert or silence it |
 | BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
-| BL-065 | Single source for the prompts.md 100-line limit: remove the copy in specValidator.ts and import the archiver's, same as BL-060. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
+| BL-065 | Single source for the prompts.md 100-line limit: remove the copy in specValidator.ts and import the archiver's, same as BL-060. |
 
 ## Completed
 

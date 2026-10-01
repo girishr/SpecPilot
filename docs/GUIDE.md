@@ -310,7 +310,7 @@ specpilot archive --dry-run
 
 #### `specpilot backfill [options]`
 
-Backfill missing SpecPilot mandates and slash commands into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates and commands added in later releases. Operates on `.specs/project/project.yaml`, IDE/agent instruction files (e.g. `.github/copilot-instructions.md`, `CLAUDE.md`), and generates any missing `specpilot-*` slash command files for IDEs already configured in the project — never overwrites or deletes existing user-authored content.
+Backfill missing SpecPilot mandates and slash commands into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates and commands added in later releases. Operates on `.specs/project/project.yaml`, IDE/agent instruction files (e.g. `.github/copilot-instructions.md`, `CLAUDE.md`), generates any missing `specpilot-*` slash command files for IDEs already configured in the project, and updates command files that are byte for byte a version an earlier SpecPilot generated. Never overwrites or deletes user-authored content: an edited command file is kept and listed.
 
 ```bash
 # Backfill in current project directory
@@ -365,7 +365,13 @@ Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-
 | Codex | `.codex/prompts/` | `specpilot-<name>.md` (copy manually to `~/.codex/prompts/` — Codex only auto-discovers from the home directory) |
 | GitHub Copilot / VS Code / unknown | `.github/prompts/` | `specpilot-<name>.prompt.md` |
 
-Running `specpilot backfill` on an existing project detects which command files are missing for your already-configured IDE(s) and generates only those — existing command files are never overwritten.
+Running `specpilot backfill` on an existing project generates the command files missing for your already-configured IDE(s), and replaces a command file only when its bytes match a version an earlier SpecPilot generated (SHA-256, every version since 2.2.0). Anything else is kept and listed, and the command still exits 0:
+
+- `kept: modified`: you changed it. Delete it and re-run `specpilot backfill` to get the latest version.
+- `kept: CRLF line endings`: a known version saved with Windows line endings.
+- `kept: symbolic link`: links are never written through.
+
+For Codex, the in-repo copies in `.codex/prompts/` are handled the same way when `CODEX_INSTRUCTIONS.md` exists; copy them to `~/.codex/prompts/` yourself.
 
 ### Debug Mode
 

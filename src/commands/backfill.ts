@@ -92,12 +92,26 @@ function ideFileResultLines(r: IdeFileBackfillResult, dryRun: boolean): string[]
 
 function slashCommandResultLines(r: SlashCommandBackfillResult, dryRun: boolean): string[] {
   const lines: string[] = [chalk.cyan(`📄 ${r.ide} slash commands`)];
-  if (r.added.length === 0) {
-    lines.push(chalk.green('  ✅ All commands already present — nothing to backfill'));
-  } else {
-    const verb = dryRun ? 'Would add' : 'Added';
-    lines.push(chalk.white(`  ➕ ${verb} ${r.added.length} missing command(s):`));
+  if (r.added.length === 0 && r.updated.length === 0 && r.kept.length === 0) {
+    lines.push(chalk.green('  ✅ All commands up to date — nothing to backfill'));
+  }
+  if (r.added.length > 0) {
+    lines.push(chalk.white(`  ➕ ${dryRun ? 'Would add' : 'Added'} ${r.added.length} missing command(s):`));
     r.added.forEach((name) => lines.push(chalk.white(`     • specpilot-${name}`)));
+  }
+  if (r.updated.length > 0) {
+    lines.push(chalk.white(`  🔄 ${dryRun ? 'Would update' : 'Updated'} ${r.updated.length} command(s) to the current version:`));
+    r.updated.forEach((name) => lines.push(chalk.white(`     • specpilot-${name}`)));
+  }
+  for (const k of r.kept) {
+    lines.push(chalk.yellow(`  ⚠️  kept: ${k.reason}  ${k.path}`));
+    if (k.reason === 'modified') {
+      lines.push(chalk.yellow('      delete it and re-run specpilot backfill to get the latest version'));
+    }
+  }
+  if (r.ide === 'codex' && (r.added.length > 0 || r.updated.length > 0)) {
+    lines.push(chalk.white('  ℹ️  Codex only reads ~/.codex/prompts/; copy them there manually:'));
+    lines.push(chalk.white('     cp .codex/prompts/specpilot-*.md ~/.codex/prompts/'));
   }
   return lines;
 }
@@ -136,10 +150,10 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
 
   const updatedCount =
     allResults.filter((r) => r.action === 'updated' || r.action === 'created').length +
-    result.slashCommands.filter((r) => r.added.length > 0).length;
+    result.slashCommands.filter((r) => r.added.length > 0 || r.updated.length > 0).length;
   const skippedCount =
     allResults.filter((r) => r.action === 'skipped').length +
-    result.slashCommands.filter((r) => r.added.length === 0).length;
+    result.slashCommands.filter((r) => r.added.length === 0 && r.updated.length === 0).length;
   const staleCount = allResults.filter((r) => r.action === 'stale').length;
 
   if (updatedCount === 0 && staleCount === 0) {

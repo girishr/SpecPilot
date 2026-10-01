@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-09-28
-version: 2.32
+lastUpdated: 2026-10-01
+version: 2.33
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- BL-058 implemented after `yes, proceed` (refresh by default, no flag; CRLF-only difference kept as "kept: CRLF line endings"; `kept: modified` adds "delete it and re-run specpilot backfill to get the latest version"; kept files exit 0; nothing outside the project, `--codex-home` dropped; BL-062 added for Codex skills): repo unshallowed and tags fetched in the cloud session; no tag before v2.2.0 writes command files; `scripts/command-hashes.js` (not shipped) seeds `KNOWN_COMMAND_HASHES` from v2.2.0 to v2.4.0 and the working tree, failing if content depends on the directory (48 targets, 66 hashes, all independent); `refreshCommands()` replaces `backfillMissing()` (lstat, `wx` adds, temp file + fsync + rename, re-check before rename); `CODEX_INSTRUCTIONS.md` signal; 14 new tests (445 to 459); end-to-end on a project with v2.2.0 command files: `archive` updated in 3 IDEs, edited and symlinked files kept, real CRLF conversion reported as CRLF; not merged, committed or pushed (October 1, 2026) [PROMPT-002.0.0.54]
+- BL-058 (refresh installed command files) Spec Report, then scope changes: `resolveTarget()` takes only the IDE and the command; Codex docs (blocked in the container) unconfirmed for `CODEX_HOME`, and Codex custom prompts are deprecated in favour of skills, so `~/.codex` dropped from scope; Option B (known-hash manifest) chosen over a marker or lock file (October 1, 2026) [PROMPT-002.0.0.53]
 - Release v2.4.0 prepared, not pushed or published: uncommitted web-view Backlog reorder discarded first at the developer's request; version 2.3.0 → 2.4.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.4.0] - 2026-09-29`; roadmap, CTX-002, CD-girishr-046; commit `chore(release): v2.4.0` and annotated tag `v2.4.0` (September 29, 2026) [PROMPT-002.0.0.52]
 - `fix/prompts-archive-order` fast-forwarded into `main`; PROMPT-002.7 moved above PROMPT-002.2 (`docs(prompts): fix entry order`); `specpilot archive` then moved the 25 oldest entries (PROMPT-002.0.0.9 to PROMPT-002.8) byte for byte; BL-061 moved to Completed as CD-girishr-045; no version bump, tag or publish (September 29, 2026) [PROMPT-002.0.0.51]
 - BL-061 implemented after `yes, proceed` (abbreviated months incl. "Sept" with/without a dot; both bugs named in CHANGELOG; "mixed → refuse" kept): `planPromptsArchive()` + `lastDate()` in `specArchiver.ts` shared with `validateLineLimits()`, `ArchiveResult.refused` printed by `specpilot archive`, bash `archive_prompts()` rewritten to match (a macOS awk quirk, `substr(s, 0, 1)` returning the first character, was caught by the table parity test), two `specpilot-archive` command files regenerated; 43 new tests (402 → 445; incl. bash parity for files with no trailing newline), 7 old prompts fixtures changed to dated logs; this repo is refused until PROMPT-002.7 is moved above PROMPT-002.2 (September 29, 2026) [PROMPT-002.0.0.50]

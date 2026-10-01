@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-09-29
-version: 2.9
+lastUpdated: 2026-10-01
+version: 2.10
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -46,6 +46,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 - **Live reload polls, and stays silent (BL-052)**: polling `stat()` over the allowlisted set instead of `fs.watch`, because recursive watch is unreliable on Linux before Node 20 and polling a few dozen files is cheap; inode joins mtime and size because an atomic save can keep both. The page gains no connection indicator or "updated" marker: those would be states the files do not contain [CTX-003.27]
 - **A task move is a line move (BL-053)**: the server never re-renders the table; it removes one line and inserts the identical line, so the diff is one line and hand formatting survives. Backlog and Current Sprint share `ID | Description`, and the file's own Notes keep the BL ID when a row moves to Current Sprint, so no cell changes. When a move cannot keep every other byte (a section with no table, or a row that is the file's last line without a trailing newline) it is refused, not approximated [CTX-003.28]
 - **Log order is read from dates (BL-061)**: `specpilot archive` moved the 22 newest entries of this repo's newest-first `prompts.md` (caught before commit and undone), and in generated projects, whose log is a `## Prompt History` table with no `## Latest Entries` heading, it would archive the Overview / Archive Policy / Re-Anchor boilerplate. Headings and ID numbers do not reliably say which end is older (this log's own IDs run the other way near the bottom), so the entries' dates decide, and an inversion is refused rather than guessed [CTX-003.29]
+- **Command files refresh by known hash (BL-058)**: `specpilot backfill` never replaced an existing `specpilot-*` command file, so command fixes (BL-057, BL-061) never reached existing projects. Generated files carry no marker of SpecPilot authorship, so a marker or a lock file written from now on could not help files already installed, and a front-matter marker would change the bytes IDEs parse; chosen instead: a manifest of the SHA-256 of every file a release generated, per target path, and replace only on an exact match. Checked before seeding: `slashCommandGenerator.ts` first appears in v2.2.0; no tag before v2.2.0 (v1.1.1 to v2.1.0) has any code path that writes `specpilot-*` command files (searched `src/`, `cli.js`, `bin/` and `templates/` at every tag for the command file names and their six target directories, and the whole tree outside `.specs/` and Markdown files at v1.8.0 to v2.1.0 for the eight command names; the only matches are temp-directory names in tests), so the manifest starts at v2.2.0. `scripts/command-hashes.js` confirmed at every tag from v2.2.0 to v2.4.0 and at the working tree that the content depends only on the IDE (same `generate(projectDir, ide)` signature, generated twice into different directories, identical): 48 targets, 66 hashes; only `archive` changed between releases (2.2.1, 2.2.4, 2.4.0). CRLF is reported, not normalised: a CRLF copy of a known version is kept ("kept: CRLF line endings"), because writes are byte-exact. Kept files exit 0: they are the user's, not an error. Scope stays inside the project: `~/.codex/prompts` is never read or written (Codex custom prompts are deprecated in favour of skills, BL-062); the in-repo `.codex/prompts/` copies follow the same rules, signalled by `CODEX_INSTRUCTIONS.md` [CTX-003.30]
 
 ## Established Patterns [CTX-004]
 

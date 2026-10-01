@@ -1,6 +1,7 @@
 import { SpecBackfiller } from '../utils/specBackfiller';
+import { backfillCommand } from '../commands/backfill';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'fs';
 import * as os from 'os';
 
 // ---------------------------------------------------------------------------
@@ -1078,7 +1079,7 @@ rules:
       }
     });
 
-    it('never overwrites an already-existing command file', async () => {
+    it('keeps an edited command file and reports it as modified', async () => {
       scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
       writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
       mkdirSync(join(testDir, '.claude', 'commands'), { recursive: true });
@@ -1088,6 +1089,9 @@ rules:
 
       const claudeResult = result.slashCommands.find((r) => r.ide === 'claude-code')!;
       expect(claudeResult.added).not.toContain('status');
+      expect(claudeResult.kept).toEqual([
+        { name: 'status', path: '.claude/commands/specpilot-status.md', reason: 'modified' },
+      ]);
       expect(readFileSync(join(testDir, '.claude', 'commands', 'specpilot-status.md'), 'utf-8')).toBe(
         'custom content'
       );
@@ -1101,6 +1105,54 @@ rules:
       const result = await backfiller.backfill(testDir, '.specs', true, true);
 
       expect(result.slashCommands.map((r) => r.ide).sort()).toEqual(['claude-code', 'windsurf']);
+    });
+
+    it('refreshes the in-repo Codex copies when CODEX_INSTRUCTIONS.md exists, and never touches the home directory', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CODEX_INSTRUCTIONS.md'), '# Codex\n', 'utf-8');
+      const home = makeTmpDir();
+      const saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, CODEX_HOME: process.env.CODEX_HOME };
+      process.env.HOME = home;
+      process.env.USERPROFILE = home;
+      process.env.CODEX_HOME = join(home, '.codex');
+      try {
+        const result = await backfiller.backfill(testDir, '.specs', false, true);
+        const codex = result.slashCommands.find((r) => r.ide === 'codex')!;
+        expect(codex.signalFile).toBe('CODEX_INSTRUCTIONS.md');
+        expect(codex.added).toHaveLength(8);
+        expect(existsSync(join(testDir, '.codex', 'prompts', 'specpilot-archive.md'))).toBe(true);
+        expect(readdirSync(home)).toEqual([]);
+      } finally {
+        for (const [k, v] of Object.entries(saved)) {
+          if (v === undefined) delete process.env[k];
+          else process.env[k] = v;
+        }
+        rmSync(home, { recursive: true, force: true });
+      }
+    });
+
+    it('`specpilot backfill` lists kept files with their reason and does not fail (exit code 0)', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+      mkdirSync(join(testDir, '.claude', 'commands'), { recursive: true });
+      writeFileSync(join(testDir, '.claude', 'commands', 'specpilot-status.md'), 'custom content', 'utf-8');
+      const out: string[] = [];
+      const log = jest.spyOn(console, 'log').mockImplementation((m?: unknown) => {
+        out.push(String(m));
+      });
+      const exit = jest.spyOn(process, 'exit').mockImplementation((() => {
+        throw new Error('process.exit called');
+      }) as never);
+      try {
+        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+      } finally {
+        log.mockRestore();
+        exit.mockRestore();
+      }
+      expect(exit).not.toHaveBeenCalled();
+      const text = out.join('\n');
+      expect(text).toContain('kept: modified  .claude/commands/specpilot-status.md');
+      expect(text).toContain('delete it and re-run specpilot backfill to get the latest version');
     });
   });
 });

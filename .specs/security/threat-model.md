@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-09-29
-version: 1.7
+lastUpdated: 2026-10-01
+version: 1.8
 contributors: [girishr]
 relatedFiles:
   [
@@ -81,6 +81,19 @@ An HTTP server on `127.0.0.1` that shows a project's `.specs/` and a few generat
 | **Mitigation**    | (1) Listen on `127.0.0.1` only (e). (2) `Host` must equal `127.0.0.1:<port>` or `localhost:<port>`, else 403 (a). (3) `/api/file` path allowlist, `..` / absolute / NUL rejected, no hidden or `node_modules` segment below an allowlisted folder, no symlinked folder on the way, `realpath` must stay inside the root and the allowlist, regular files only (b). (4) No CORS headers, so browsers keep cross-origin responses opaque (c). (5) The markdown renderer escapes `&<>"` before adding its own tags; `Content-Security-Policy: default-src 'self'` blocks inline and third-party script; `X-Content-Type-Options: nosniff` stops a served `.md` being run as script (d). (6) **CSRF (closed in BL-053, was deferred to Phase 3)**: per-start random 32-byte token in a meta tag, required as `X-SpecPilot-Token` and compared with `crypto.timingSafeEqual`; `Origin` must equal the page's own origin; only `application/json` (no form posts); bodies ≤ 16 KB; the Host check; `--read-only` removes the route (f). (7) `/api/events` is capped at 8 open streams (503 beyond), has the same Host check, sends only changed paths (never content), and the poller `stat()`s only files the path guard would serve, runs only while a stream is open, and stops with the last one; Ctrl+C clears every timer (g). (8) Writes: a write allowlist holding only `.specs/planning/tasks.md`; `If-Match` sha256 (409, never merge); an in-process lock; temp file + `fsync` + `rename` keeping the file mode; a symlinked `tasks.md` is refused; a move only relocates one existing line, so no request can inject text; the file hash is re-checked immediately before the `rename`, so an editor save that lands mid-move gets 409 instead of being overwritten; moves that cannot keep every other byte are refused (422), not approximated: a target section with no table yet, a move involving the file's last line when it has no trailing newline, and a `tasks.md` that is not valid UTF-8 (h). |
 | **Residual risk** | Low. Any local process can already read these files directly; the server adds no capability a local user lacks. The residual browser-side risk is a renderer escaping bug, contained by the CSP. For (h): an external editor save landing in the instant between the pre-rename hash re-check and the `rename` itself would be overwritten; closing that window needs OS-level file locking, which Node does not offer portably. `tasks.md` is under git, so such a loss is recoverable. |
 
+### Command File Refresh: `specpilot backfill` [SEC-002.6]
+
+`specpilot backfill` replaces existing `specpilot-*` command files in the project when their bytes match a version SpecPilot generated (BL-058).
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Lost user edits**: a file the user changed is replaced. (b) **Write through a link**: a command file path that is a symbolic link, so the write lands outside the project (e.g. `~/.bashrc`). (c) **Torn write**: a crash, or an editor saving at the same moment, leaves a truncated or mixed file. (d) **Writes outside the project**: e.g. the user's `~/.codex/prompts/`. |
+| **Impact**        | Medium for (a) and (c): lost or corrupted local work. High for (b): overwrite of an arbitrary user-writable file. |
+| **Likelihood**    | Low: (b) needs a planted link in a project the user then runs `specpilot backfill` on. |
+| **Entry point**   | Files under `.claude/commands/`, `.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/`, `.github/prompts/`, `.codex/prompts/` in the project. |
+| **Mitigation**    | (1) Replace only when the raw bytes hash (SHA-256) to an entry in `KNOWN_COMMAND_HASHES` for that exact target path; anything else is kept and reported (a). (2) `lstat` first: a symbolic link or other non-regular file is kept, never followed; new files are created with `wx` so an existing path or link is never written through (b). (3) Temp file in the same folder, fsync, keep mode, re-check the hash just before `rename` (c). (4) Targets are fixed relative paths under the project directory; `~/.codex` and every other path outside it are never read or written (d). |
+| **Residual risk** | Low. A file edited back to exactly a released version's bytes is indistinguishable from an unedited one and is replaced; its content was SpecPilot's own text. |
+
 ## Attack Surface Summary [SEC-003]
 
 | Entry Point                          | Data Type            | Validated?                     | Used In                                  |
@@ -97,6 +110,7 @@ An HTTP server on `127.0.0.1` that shows a project's `.specs/` and a few generat
 | `specpilot serve --poll`             | Integer (ms)         | ✅ whole number ≥ 250          | Poller interval (SEC-002.5 g)            |
 | `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g)  |
 | `POST /api/tasks/move`               | JSON `{id, toSection, toIndex}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, If-Match, row lookup | One line moved in `tasks.md` (SEC-002.5 f, h) |
+| Existing `specpilot-*` command files (`backfill`) | Disk read (bytes, `lstat`) | ✅ Exact SHA-256 match per target path, regular files only | Replaced or kept (SEC-002.6) |
 
 ## Out of Scope [SEC-004]
 

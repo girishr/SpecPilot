@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-09-29
-# version: 2.8
+# lastUpdated: 2026-10-01
+# version: 2.9
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -215,6 +215,8 @@ commands:
       - Backfills tasks.md with devPrefix ID conventions and Multi-Dev Notes
       - Detects existing IDE files and patches only the files present on disk
       - Reports stale Claude Code SKILL.md structure without auto-patching it
+      - "Slash commands (BL-058): for each IDE signal present (incl. CODEX_INSTRUCTIONS.md for the in-repo .codex/prompts/ copies) adds missing specpilot-* command files and replaces those whose bytes match a known SpecPilot version (SHA-256); never writes outside the project directory"
+      - "Keeps, never writes: edited files (kept: modified, delete it and re-run specpilot backfill to get the latest version), files that match only after CRLF to LF (kept: CRLF line endings), symbolic links and other non-regular files; kept files do not change the exit code"
     exit-codes:
       0: Success
       1: Backfill error

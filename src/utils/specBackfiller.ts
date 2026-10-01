@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
 import { TemplateContext } from './templateEngine';
-import { SlashCommandGenerator } from './slashCommandGenerator';
+import { CommandRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 
 /**
  * Fingerprint + YAML line for each critical mandate.
@@ -218,10 +218,9 @@ export interface IdeFileBackfillResult {
   reason?: string;
 }
 
-export interface SlashCommandBackfillResult {
+export interface SlashCommandBackfillResult extends CommandRefresh {
   ide: string;
   signalFile: string;
-  added: string[];
 }
 
 export interface BackfillResult {
@@ -261,8 +260,8 @@ export class SpecBackfiller {
   }
 
   /**
-   * Backfills missing `specpilot-*` slash command files for IDEs already in use —
-   * detected by the same signal file `backfillIdeFiles` checks for each IDE.
+   * Adds missing and refreshes unmodified `specpilot-*` slash command files for IDEs already in use —
+   * detected by the signal file `backfillIdeFiles` checks for each IDE, plus `CODEX_INSTRUCTIONS.md` for Codex.
    * Reuses `SlashCommandGenerator`'s per-IDE routing so CLI-side backfill and
    * web-app-side generation (`slashCommandGenerator.ts`) never drift apart.
    */
@@ -273,6 +272,7 @@ export class SpecBackfiller {
       { ide: 'windsurf', signalFile: '.windsurfrules' },
       { ide: 'antigravity', signalFile: '.antigravity/rules.md' },
       { ide: 'vscode', signalFile: '.github/copilot-instructions.md' },
+      { ide: 'codex', signalFile: 'CODEX_INSTRUCTIONS.md' },
     ];
 
     const generator = new SlashCommandGenerator();
@@ -280,8 +280,7 @@ export class SpecBackfiller {
 
     for (const { ide, signalFile } of IDE_SIGNALS) {
       if (!existsSync(join(projectDir, ...signalFile.split('/')))) continue;
-      const added = generator.backfillMissing(projectDir, ide, dryRun);
-      results.push({ ide, signalFile, added });
+      results.push({ ide, signalFile, ...generator.refreshCommands(projectDir, ide, dryRun) });
     }
 
     return results;

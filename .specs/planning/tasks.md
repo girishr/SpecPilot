@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-09-30 (v2.4.0 shipped, CD-girishr-046 updated)
-version: 5.68
+lastUpdated: 2026-10-01 (BL-058 in Current Sprint, BL-062 added)
+version: 5.69
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -43,15 +43,16 @@ Notes
 | BL-032 | **[DEFERRED — distant future, do not schedule without explicit developer direction]** Extract a pure, browser-safe `@specpilot/spec-core` package from the generation stack, so the `SpecPilot.Init` web app (`init.specpilot.dev`) can generate byte-identical CLI output in the browser. Scope for this repo when picked up: (1) split `specGenerator.ts`/`templateEngine.ts`/`specFileGenerator.ts`/`ideConfigGenerator.ts` into a pure `render(context) → { path, content }[]` core (no `fs`/`path`/Node APIs — hard rule; CLI keeps a thin Node write wrapper; no behavior change, existing tests keep passing) and (2) extend `TemplateContext` + templates with *optional* fields (auth strategy, compliance, security concerns, integrations, SLAs, …) rendered only when present — the CLI's own prompt flow is byte-identical before/after; the web app's 27-question depth stays web-only, mapped in via its own `ChatAnswers → TemplateContext` adapter. Packaging: separate minimal-deps package (only Handlebars, or zero-dep if templates are precompiled at build time — precompilation is required anyway, since the web app can't allow CSP `unsafe-eval` for runtime `Handlebars.compile`), published to npm; `file:`-linked during dev. Security invariants: user input is Handlebars *context* only, never compiled as a template; nothing in core may contain secrets (it ships in a public browser bundle); YAML-escaping for interpolated values. Deferred 2026-07-17 by explicit developer decision (separate CLI/web roadmaps). Cross-repo mirror: `SpecPilot.Init/.specs/` REQ-051 + BL-028 hold the full design record incl. the web-side phases; architectural when picked up — ADR + Spec Report + `yes, proceed` required in both repos (priority: deferred) |
 | BL-054 | `specpilot serve` Phase 4: multiple projects; a project registry outside the repo (a new decision against ARCH-007.4 and ARCH-007.5); one server vs one per folder. |
 | BL-055 | `specpilot serve` Phase 5: guided setup in the browser; decide between the CLI's own question set now and BL-032 spec-core first. |
-| BL-058 | Generated `specpilot-*` command files cannot be updated in existing projects: `specpilot backfill` never overwrites an existing command file (CS-088), so a fix to a command body, such as BL-057's bash `archive_tasks()` fix, never reaches projects that already have the file. Needs a way to tell a SpecPilot-generated, unmodified file from a user-edited one before offering to replace it. Codex copies are also unreachable: backfill skips Codex, and the user's working copy lives in ~/.codex/prompts/, outside the repo. |
 | BL-059 | Announce 2.3.0: add `specpilot serve` docs and a 2.3.0 release entry to the website (`SpecPilotWebsite-v2`), then a LinkedIn post with a short screen recording of live reload. |
 | BL-060 | Review `COMPLETED_LINE_LIMIT`: a table-shaped `## Completed` fits only ~17 rows in 25 lines, so every completion trips the validate warning. Consider raising it, with a test and a spec update (REQ-002.F.7). |
+| BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
+| BL-058 | Generated `specpilot-*` command files cannot be updated in existing projects: `specpilot backfill` never overwrites an existing command file (CS-088), so a fix to a command body, such as BL-057's bash `archive_tasks()` fix, never reaches projects that already have the file. Needs a way to tell a SpecPilot-generated, unmodified file from a user-edited one before offering to replace it. Codex copies are also unreachable: backfill skips Codex, and the user's working copy lives in ~/.codex/prompts/, outside the repo. |
 
 ## Completed
 

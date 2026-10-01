@@ -1,7 +1,8 @@
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { SlashCommandGenerator, SlashCommand, SLASH_COMMANDS } from '../utils/slashCommandGenerator';
+import { SlashCommandGenerator, SlashCommand, SLASH_COMMANDS, KNOWN_COMMAND_HASHES } from '../utils/slashCommandGenerator';
 
 describe('SlashCommandGenerator', () => {
   let projectDir: string;
@@ -117,5 +118,134 @@ describe('SlashCommandGenerator', () => {
     expect(logSpy).toHaveBeenCalledTimes(1);
     expect(logSpy.mock.calls[0][0]).toContain('~/.codex/prompts/');
     logSpy.mockRestore();
+  });
+});
+
+describe('SlashCommandGenerator.refreshCommands (BL-058)', () => {
+  const sha = (b: Buffer | string) => createHash('sha256').update(b).digest('hex');
+  const command: SlashCommand = { name: 'status', description: 'Show sprint status', body: 'Current body.\n' };
+  const current = '---\ndescription: Show sprint status\n---\n\nCurrent body.\n';
+  const old = '---\ndescription: Show sprint status\n---\n\nOld body.\nSecond line.\n';
+  const path = '.claude/commands/specpilot-status.md';
+  const known = { [path]: [sha(old), sha(current)] };
+  let projectDir: string;
+  let outside: string;
+  let file: string;
+  const refresh = (dryRun = false) => new SlashCommandGenerator().refreshCommands(projectDir, 'claude-code', dryRun, [command], known);
+  const put = (content: string | Buffer) => {
+    mkdirSync(join(projectDir, '.claude', 'commands'), { recursive: true });
+    writeFileSync(file, content);
+  };
+
+  beforeEach(() => {
+    projectDir = mkdtempSync(join(tmpdir(), 'specpilot-refresh-'));
+    outside = mkdtempSync(join(tmpdir(), 'specpilot-outside-'));
+    file = join(projectDir, '.claude', 'commands', 'specpilot-status.md');
+  });
+
+  afterEach(() => {
+    rmSync(projectDir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
+
+  it('lists the hash of every command file the current source generates, for every IDE', () => {
+    const missing: string[] = [];
+    for (const ide of ['claude-code', 'cursor', 'windsurf', 'antigravity', 'codex', 'vscode']) {
+      const dir = mkdtempSync(join(tmpdir(), 'specpilot-manifest-'));
+      const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+      try {
+        new SlashCommandGenerator().generate(dir, ide);
+        for (const sub of ['.claude/commands', '.cursor/commands', '.windsurf/workflows', '.agent/workflows', '.codex/prompts', '.github/prompts']) {
+          if (!existsSync(join(dir, sub))) continue;
+          for (const f of readdirSync(join(dir, sub))) {
+            const rel = `${sub}/${f}`;
+            if (!(KNOWN_COMMAND_HASHES[rel] ?? []).includes(sha(readFileSync(join(dir, sub, f))))) missing.push(rel);
+          }
+        }
+      } finally {
+        log.mockRestore();
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+    // A command body changed: run `node scripts/command-hashes.js` and paste its output.
+    expect(missing).toEqual([]);
+    expect(Object.keys(KNOWN_COMMAND_HASHES)).toHaveLength(SLASH_COMMANDS.length * 6);
+  });
+
+  it('adds a missing file', () => {
+    expect(refresh()).toEqual({ added: ['status'], updated: [], kept: [] });
+    expect(readFileSync(file, 'utf8')).toBe(current);
+  });
+
+  it('reports nothing and writes nothing when the file is already current', () => {
+    put(current);
+    const before = statSync(file).mtimeMs;
+    expect(refresh()).toEqual({ added: [], updated: [], kept: [] });
+    expect(statSync(file).mtimeMs).toBe(before);
+  });
+
+  it('replaces a known older version with the current content, keeping its mode and leaving no temp file', () => {
+    put(old);
+    if (process.platform !== 'win32') chmodSync(file, 0o640);
+    expect(refresh()).toEqual({ added: [], updated: ['status'], kept: [] });
+    expect(readFileSync(file, 'utf8')).toBe(current);
+    if (process.platform !== 'win32') expect(statSync(file).mode & 0o777).toBe(0o640);
+    expect(readdirSync(join(projectDir, '.claude', 'commands'))).toEqual(['specpilot-status.md']);
+  });
+
+  it('dry-run reports the update and leaves the file as it was', () => {
+    put(old);
+    expect(refresh(true)).toEqual({ added: [], updated: ['status'], kept: [] });
+    expect(readFileSync(file, 'utf8')).toBe(old);
+  });
+
+  it('keeps a known version with CRLF line endings and reports it', () => {
+    const crlf = old.replace(/\n/g, '\r\n');
+    put(crlf);
+    expect(refresh()).toEqual({ added: [], updated: [], kept: [{ name: 'status', path, reason: 'CRLF line endings' }] });
+    expect(readFileSync(file, 'utf8')).toBe(crlf);
+  });
+
+  it('keeps an edited file byte for byte and reports it as modified', () => {
+    const edited = old.replace('Old body.', 'My own body.');
+    put(edited);
+    expect(refresh()).toEqual({ added: [], updated: [], kept: [{ name: 'status', path, reason: 'modified' }] });
+    expect(readFileSync(file, 'utf8')).toBe(edited);
+  });
+
+  it('keeps an edited file with CRLF line endings as modified, not CRLF', () => {
+    put(old.replace('Old body.', 'Mine.').replace(/\n/g, '\r\n'));
+    expect(refresh().kept).toEqual([{ name: 'status', path, reason: 'modified' }]);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('never writes through a symbolic link, even to a known version', () => {
+    const target = join(outside, 'target.md');
+    writeFileSync(target, old);
+    mkdirSync(join(projectDir, '.claude', 'commands'), { recursive: true });
+    symlinkSync(target, file);
+    expect(refresh()).toEqual({ added: [], updated: [], kept: [{ name: 'status', path, reason: 'symbolic link' }] });
+    expect(readFileSync(target, 'utf8')).toBe(old);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('never creates a file through a dangling symbolic link', () => {
+    const target = join(outside, 'missing.md');
+    mkdirSync(join(projectDir, '.claude', 'commands'), { recursive: true });
+    symlinkSync(target, file);
+    expect(refresh().kept).toEqual([{ name: 'status', path, reason: 'symbolic link' }]);
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it('keeps a directory at the target path', () => {
+    mkdirSync(file, { recursive: true });
+    expect(refresh().kept).toEqual([{ name: 'status', path, reason: 'not a regular file' }]);
+  });
+
+  it('only accepts a hash listed for that exact target path', () => {
+    put(old);
+    const other = { '.cursor/commands/specpilot-status.md': [sha(old)] };
+    expect(new SlashCommandGenerator().refreshCommands(projectDir, 'claude-code', false, [command], other).kept).toEqual([
+      { name: 'status', path, reason: 'modified' },
+    ]);
+    expect(readFileSync(file, 'utf8')).toBe(old);
   });
 });

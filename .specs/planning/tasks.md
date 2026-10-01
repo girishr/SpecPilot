@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-063 widened to test hygiene, in Current Sprint)
-version: 5.77
+lastUpdated: 2026-10-01 (BL-063 completed, CD-girishr-051)
+version: 5.78
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -52,7 +52,6 @@ Notes
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
-| BL-063 | Test hygiene: (1) the `--no-prompts` auto-skip tests in `specGenerator.test.ts` print the "already exists — skipping" notice (`ideConfigGenerator.ts:123`, CLAUDE.md, and `:232`, copilot-instructions.md) during npm test, which Jest shows with a stack-like source location; capture `console.log` and assert the notice instead; (2) the generator test's four archive-constant checks use `toContain`, so a constant cut to a prefix of its bash value (8 for 80) passes; end each expected string with "\n"; (3) the doc comment at `specArchiver.ts:20` describes the keep target, not the limit; move it above `PROMPTS_KEEP_LINES`. |
 
 ## Completed
 
@@ -80,3 +79,4 @@ Notes
 | 139 | [CD-girishr-048] | v2.5.0 shipped: pushed, npm latest, GitHub release |
 | 140 | [CD-girishr-049] [BL-060] | `## Completed` limit 25 → 40 lines, archive keeps 20 rows: a table-shaped section fit only ~17 rows in 25 lines and archive kept exactly as many as fit, so the next completion brought the validate warning back; `COMPLETED_LINE_LIMIT` exported from `specArchiver.ts` as the only copy (validator's `TASKS_COMPLETED_LINE_LIMIT` deleted, `archive --help` reads both limits from the constants); `specpilot-archive` bash copy, command files and `KNOWN_COMMAND_HASHES` regenerated; new test: after an archive, table and list sections take at least 10 completions before the next warning (fails at 25). 2 new tests (459 → 461); commit `2ceacd2` |
 | 141 | [CD-girishr-050] [BL-065] | Single source for the archive limits and keep targets: `specValidator.ts` kept its own `PROMPTS_LINE_LIMIT = 100` and now imports the archiver's (as BL-060 did for the Completed limit); `specArchiver.ts` also exports `PROMPTS_KEEP_LINES` (80) and `COMPLETED_KEEP_ENTRIES` (20); the `specpilot-archive` bash copy keeps literals (`command-hashes.js` transpiles the generator file on its own), so command files and `KNOWN_COMMAND_HASHES` are unchanged, and the generator test builds all four expected bash values from the exported constants (each one changed in turn fails it). No behaviour change; tests unchanged at 461 (one strengthened); commit `d6fcb60` |
+| 142 | [CD-girishr-051] [BL-063] | Test hygiene: the `--no-prompts` auto-skip tests in `specGenerator.test.ts` (CLAUDE.md, copilot-instructions.md) capture `console.log` and assert the "already exists — skipping" notice, so npm test prints no console blocks (the `:112` "stack trace" was Jest's source location for that intended notice); the generator test's four archive-constant checks end in "\n", so a prefix value (8 for 80) fails where it passed before; `specArchiver.ts` doc comment moved above `PROMPTS_KEEP_LINES`. No behaviour change; tests unchanged at 461; commit `68a3742` |

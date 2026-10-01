@@ -208,16 +208,34 @@ describe('SpecValidator', () => {
     expect(fieldErrors.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('warns when project.yaml has no rules section', async () => {
+  it.each([
+    ['no rules key (generated since 2.0.0)', ''],
+    ['a commented # rules:', '# rules:\n'],
+    ['a nested rules:', 'build:\n  rules: []\n'],
+  ])('neither warns nor fails on the rules checks for %s (BL-066)', async (_what, extra) => {
     createValidSpecsDir(testDir);
     writeFileSync(join(testDir, '.specs', 'project', 'project.yaml'),
-      'name: x\nversion: "1.0.0"\nlanguage: typescript\n'
+      'name: x\nversion: "1.0.0"\nlanguage: typescript\n' + extra
     );
 
     const result = await validator.validate(testDir, { fix: false, verbose: false });
-    const ruleWarn = result.warnings.find(w => w.includes('rules section'));
-    expect(ruleWarn).toBeDefined();
+    expect(result.warnings.find(w => w.includes('rules section'))).toBeUndefined();
+    expect(result.errors.find(e => e.includes('prompt tracking'))).toBeUndefined();
   });
+
+  it.each([['a null rules:', 'rules:\n'], ['rules: []', 'rules: []\n']])(
+    'warns and fails as before for %s, which counts as present (BL-066)',
+    async (_what, extra) => {
+      createValidSpecsDir(testDir);
+      writeFileSync(join(testDir, '.specs', 'project', 'project.yaml'),
+        'name: x\nversion: "1.0.0"\nlanguage: typescript\n' + extra
+      );
+
+      const result = await validator.validate(testDir, { fix: false, verbose: false });
+      expect(result.warnings.find(w => w.includes('rules section'))).toBeDefined();
+      expect(result.errors).toContain('Missing MANDATE for prompt tracking in project.yaml rules');
+    },
+  );
 
   it('fails when project.yaml rules lack the prompt mandate', async () => {
     createValidSpecsDir(testDir);

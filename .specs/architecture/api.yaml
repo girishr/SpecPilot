@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
 # lastUpdated: 2026-10-01
-# version: 2.12
+# version: 2.14
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -100,6 +100,8 @@ commands:
       --verbose:
         type: boolean
         description: Show detailed validation results
+    behavior:
+      - "project.yaml with no rules key on its parsed root mapping (generated since 2.0.0): no rules warning and no prompt-tracking mandate error, so a fresh project passes this check; with a rules key (any value) both checks apply as before (BL-066)"
     exit-codes:
       0: Valid (may have warnings)
       1: Validation errors found
@@ -212,6 +214,7 @@ commands:
         description: Accept suggested devPrefix silently when team.devPrefix is missing
     behavior:
       - Non-destructively patches missing mandates in project.yaml and AI context files
+      - "Checks each file in the wording SpecPilot generates for it (BL-066): copilot-instructions.md by the wording it has (terse unless it carries the pre-2.0 verbose list); a project.yaml with no top-level rules: key is left unchanged (skipped, with the reason)"
       - Backfills tasks.md with devPrefix ID conventions and Multi-Dev Notes
       - Detects existing IDE files and patches only the files present on disk
       - Reports stale Claude Code SKILL.md structure without auto-patching it

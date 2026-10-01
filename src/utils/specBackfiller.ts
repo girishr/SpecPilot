@@ -1,10 +1,12 @@
 import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import * as yaml from 'js-yaml';
 import * as os from 'os';
 import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
 import { TemplateContext } from './templateEngine';
 import { CommandRefresh, SlashCommandGenerator } from './slashCommandGenerator';
+import { hasRulesKey } from './specValidator';
 
 /**
  * Fingerprint + YAML line for each critical mandate.
@@ -61,7 +63,7 @@ const YAML_MANDATES: { fingerprint: string; yamlText: string; label: string }[] 
 ];
 
 /**
- * `rules.process` mandate(s) — checked by specValidator's prompt-tracking rule.
+ * `rules.process` mandate(s) — checked by specValidator's prompt-tracking rule when project.yaml has `rules:`.
  * Kept separate from YAML_MANDATES since they belong under a different rules
  * sub-key (`process` vs `critical`).
  */
@@ -304,6 +306,22 @@ export class SpecBackfiller {
     }
 
     const content = readFileSync(filePath, 'utf-8');
+    // Same test as `specpilot validate`: no `rules:` is the post-2.0 design, not missing mandates (BL-066).
+    let doc: unknown;
+    try {
+      doc = yaml.load(content);
+    } catch {
+      return { action: 'skipped', found: 0, total: 0, added: [], reason: 'could not parse project.yaml, left unchanged' };
+    }
+    if (!hasRulesKey(doc)) {
+      return {
+        action: 'skipped',
+        found: 0,
+        total: 0,
+        added: [],
+        reason: 'no `rules:` section (since 2.0.0 the mandates live in your AI agent file), left unchanged',
+      };
+    }
     const missingCritical = YAML_MANDATES.filter((m) => !content.includes(m.fingerprint));
     const missingProcess = YAML_PROCESS_MANDATES.filter((m) => !content.includes(m.fingerprint));
     const totalMandates = YAML_MANDATES.length + YAML_PROCESS_MANDATES.length;
@@ -417,10 +435,13 @@ export class SpecBackfiller {
     }
 
     const content = readFileSync(filePath, 'utf-8');
-    const missingMandates = MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
+    // Check in the wording the file already uses: pre-2.0 verbose, else the terse list `init` writes now (BL-066).
+    const verbose = MD_MANDATES.some((m) => content.includes(m.fingerprint));
+    const mandates = verbose ? MD_MANDATES : TERSE_MD_MANDATES;
+    const missingMandates = mandates.filter((m) => !content.includes(m.fingerprint));
     const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
-    const total = MD_MANDATES.length + CODE_SECTIONS.length;
-    const found = (MD_MANDATES.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
+    const total = mandates.length + CODE_SECTIONS.length;
+    const found = (mandates.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
 
     if (missingMandates.length === 0 && missingSections.length === 0) {
       return { action: 'skipped', found: total, total, added: [] };
@@ -429,7 +450,8 @@ export class SpecBackfiller {
     if (!dryRun) {
       let toAppend = '';
       if (missingMandates.length > 0) {
-        toAppend += '\n\n' + this.buildMdBackfillBlock(missingMandates.map((m) => m.mdText));
+        const lines = missingMandates.map((m) => m.mdText);
+        toAppend += '\n\n' + (verbose ? this.buildMdBackfillBlock(lines) : this.buildTerseMdBackfillBlock(lines));
       }
       if (missingSections.length > 0) {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-054 completed; BL-067, BL-068 added)
-version: 5.81
+lastUpdated: 2026-10-01 (BL-066 to Current Sprint; BL-069, BL-070, BL-071 added)
+version: 5.82
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -45,15 +45,18 @@ Notes
 | BL-059 | Announce 2.3.0: add `specpilot serve` docs and a 2.3.0 release entry to the website (`SpecPilotWebsite-v2`), then a LinkedIn post with a short screen recording of live reload. |
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
 | BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
-| BL-066 | `specpilot backfill` checks files against mandate wording SpecPilot no longer generates: a fresh 2.5.0 `.github/copilot-instructions.md` (terse list) is checked against the verbose pre-2.2 fingerprints, and a fresh `project.yaml` (no `rules:` by design, "see your AI agent configuration file") against `rules.critical`; a dry run on a fresh project would append all 8 mandates to copilot-instructions.md in other words and 9 rules to project.yaml. Route copilot-instructions.md by the wording it has (terse → `TERSE_MD_MANDATES`), and leave a `project.yaml` without `rules:` alone. Blocks CS-078's backfill step. Must ship before 2.6.0. |
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) (Spec Report on branch feat/cs-078-test-mandate; needs BL-066 first) |
 | BL-067 | `specpilot serve`: remember projects across runs and add one from the page — a registry outside the repo (e.g. `~/.specpilot/projects.json`, the mockup's Recent projects and Open sheet), deferred from BL-054, which takes its projects from the command line only. Needs its own Spec Report: a write path outside the repo (against ARCH-007.5) and a route that accepts a folder path from the browser. |
 | BL-068 | ESLint error in `src/__tests__/specServer.test.ts` `post()` helper (from BL-053, commit `43a2b58`): `let json: any = null;` is overwritten on both paths (`no-useless-assignment`); declare it without the initial value. Also `src/utils/specValidator.ts:579` `no-useless-escape` (from `299f14f`), so `npx eslint src` reports 0 errors. Found during BL-054; not part of it. |
+| BL-069 | Fresh `tasks.md` and `specpilot backfill` disagree: `init` writes the literal `CD-{devPrefix}-###` and no `## Multi-Dev Notes`, while `backfillTasksMd()` looks for `CD-<handle>-###` and the section, so `backfill` adds both to every fresh project (seen on a fresh 2.5.0 project during BL-066). REQ-002.F.6 and ARCH-004.22 still describe the old template. Decide which side is right, then make them agree. |
+| BL-070 | `specpilot validate` on a fresh `init` project prints 7 cross-reference warnings (e.g. `project/requirements.md should reference architecture/architecture.md`): the generated `relatedFiles` lists and the validator's expected references disagree. Make the generator and validator agree so a fresh project validates with no warnings. Found during BL-066. |
+| BL-071 | `insertYamlMandates()` in `specBackfiller.ts`: when `project.yaml` has `rules:` but no `critical:` key, missing critical mandates are appended as a second top-level `rules:` block (duplicate key; js-yaml throws). Insert under the existing `rules:` as the process branch does; also a `rules:` on line 1 is not found by the `\nrules:` search. Also `rules: []` gets `process:` inserted after ` []` on the same line (invalid YAML). Found during BL-066; not reachable from a fresh project; BL-066 tests these shapes in `--dry-run` only. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
+| BL-066 | `specpilot backfill` checks files against mandate wording SpecPilot no longer generates: a fresh 2.5.0 `.github/copilot-instructions.md` (terse list) is checked against the verbose pre-2.0 fingerprints, and a fresh `project.yaml` (no `rules:` by design, "see your AI agent configuration file") against `rules.critical`; a dry run on a fresh project would append all 8 mandates to copilot-instructions.md in other words and 9 rules to project.yaml. Route copilot-instructions.md by the wording it has (terse → `TERSE_MD_MANDATES`), and leave a `project.yaml` without `rules:` alone. Blocks CS-078's backfill step. Must ship before 2.6.0. Also: `specpilot validate` fails a fresh project ("Missing MANDATE for prompt tracking in project.yaml rules") for the same reason, and `backfill` adding the 9 rules was the only way to clear it, so the validator's rules checks follow the same `rules:`-key rule (built on branch feat/bl-066-backfill-wording, not merged; 13 net new tests, 494 → 507, three rewritten) |
 
 ## Completed
 

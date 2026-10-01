@@ -194,7 +194,7 @@ SpecPilot generates a `.specs/` folder with organized subdirectories:
 │   ├── roadmap.md            # Release milestones and objectives
 │   └── tasks.md              # Sprint tracker (backlog / current / completed)
 ├── project/
-│   ├── project.yaml          # Project config, rules, and AI context (MANDATED)
+│   ├── project.yaml          # Project config and AI context (MANDATED)
 │   └── requirements.md       # Functional & non-functional requirements
 ├── quality/
 │   └── tests.md              # Test strategy, coverage targets, acceptance criteria

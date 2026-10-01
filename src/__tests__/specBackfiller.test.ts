@@ -314,26 +314,16 @@ rules:
       expect(written).toContain('Never commit code to git');
     });
 
-    it('appends complete rules: block with critical and process keys when neither exists (strategy 3)', async () => {
+    it('leaves a project.yaml without rules: unchanged, as generated since 2.0.0 (BL-066)', async () => {
       scaffoldSpecs(testDir, {
         projectYaml: BARE_YAML,
         copilotMd: FULL_MD,
         tasksMd: makeFullTasksMd('girishr'),
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.projectYaml.action).toBe('updated');
-      const written = readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8');
-      expect(written).toContain('critical:');
-      expect(written).toContain('Never commit code to git');
-      expect(written).toContain('process:');
-      expect(written).toContain('Track ALL AI interactions');
-
-      const yaml = require('js-yaml');
-      const parsed = yaml.load(written) as any;
-      expect(Array.isArray(parsed.rules.critical)).toBe(true);
-      expect(Array.isArray(parsed.rules.process)).toBe(true);
-      expect(parsed.rules.process.some((r: string) => r.includes('Track ALL AI interactions'))).toBe(true);
-      expect(parsed.dependencies?.critical).toBeUndefined();
+      expect(result.projectYaml).toMatchObject({ action: 'skipped', added: [] });
+      expect(result.projectYaml.reason).toContain('no `rules:` section');
+      expect(readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8')).toBe(BARE_YAML);
     });
 
     it('adds missing process mandate under existing rules.critical without touching it', async () => {
@@ -363,7 +353,7 @@ rules:
 
     it('dry-run: does NOT write project.yaml', async () => {
       scaffoldSpecs(testDir, {
-        projectYaml: BARE_YAML,
+        projectYaml: BARE_YAML + 'rules:\n  critical:\n',
         copilotMd: FULL_MD,
         tasksMd: makeFullTasksMd('girishr'),
       });
@@ -435,6 +425,102 @@ rules:
       await backfiller.backfill(testDir, '.specs', true /* dryRun */, true);
       const after = readFileSync(join(testDir, '.github', 'copilot-instructions.md'), 'utf-8');
       expect(after).toBe(before);
+    });
+  });
+
+  // ===========================================================================
+  // BL-066: check each file in the wording SpecPilot generates for it
+  // ===========================================================================
+
+  describe('project.yaml rules key (same test as validate, BL-066)', () => {
+    const yamlFile = () => join(testDir, '.specs', 'project', 'project.yaml');
+
+    it.each([
+      ['a null rules:', BARE_YAML + 'rules:\n'],
+      ['rules: []', BARE_YAML + 'rules: []\n'],
+    ])('counts %s as present: dry run reports all 9 and writes nothing', async (_what, text) => {
+      scaffoldSpecs(testDir, { projectYaml: text, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+      expect(result.projectYaml.action).toBe('updated');
+      expect(result.projectYaml.added).toHaveLength(9);
+      expect(readFileSync(yamlFile(), 'utf-8')).toBe(text);
+    });
+
+    it.each([
+      ['a commented # rules:', BARE_YAML + '# rules:\n#   critical: []\n'],
+      ['a nested rules:', BARE_YAML + 'build:\n  rules:\n    - lint\n'],
+    ])('does not count %s: left unchanged', async (_what, text) => {
+      scaffoldSpecs(testDir, { projectYaml: text, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.projectYaml.action).toBe('skipped');
+      expect(readFileSync(yamlFile(), 'utf-8')).toBe(text);
+    });
+
+    it('leaves a project.yaml that does not parse unchanged', async () => {
+      const text = 'name: x\nteam:\n  devPrefix: "girishr"\nrules: [\n';
+      scaffoldSpecs(testDir, { projectYaml: text, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.projectYaml).toMatchObject({ action: 'skipped', reason: 'could not parse project.yaml, left unchanged' });
+      expect(readFileSync(yamlFile(), 'utf-8')).toBe(text);
+    });
+  });
+
+  describe('copilot-instructions.md in the wording it already uses (BL-066)', () => {
+    const mdFile = () => join(testDir, '.github', 'copilot-instructions.md');
+
+    it('reports a file written by init today as up to date', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { IdeConfigGenerator } = require('../utils/ideConfigGenerator');
+      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr') });
+      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' }, true);
+      const before = readFileSync(mdFile(), 'utf-8');
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 10, total: 10 });
+      expect(readFileSync(mdFile(), 'utf-8')).toBe(before);
+    });
+
+    it('adds a missing mandate to a terse file in terse wording', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { IdeConfigGenerator } = require('../utils/ideConfigGenerator');
+      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr') });
+      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' }, true);
+      writeFileSync(mdFile(), readFileSync(mdFile(), 'utf-8').replace('2. No push unless asked.\n', ''));
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.copilotInstructions.added).toEqual(['Never push']);
+      const written = readFileSync(mdFile(), 'utf-8');
+      expect(written).toContain('## 🔴 Critical Mandates — Never violate, no exceptions\n\n2. No push unless asked.\n');
+      expect(written).not.toContain('NEVER');
+    });
+
+    it('adds the terse block to a file with neither wording', async () => {
+      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, copilotMd: '# My instructions\n', tasksMd: makeFullTasksMd('girishr') });
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.copilotInstructions.added).toHaveLength(10);
+      const written = readFileSync(mdFile(), 'utf-8');
+      expect(written).toContain('1. No commit unless asked.');
+      expect(written).not.toContain('NEVER');
+    });
+  });
+
+  describe('a project fresh from init (BL-066)', () => {
+    it('has nothing to add to project.yaml or copilot-instructions.md, and validates without the rules error', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { SpecGenerator } = require('../utils/specGenerator');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { TemplateEngine } = require('../utils/templateEngine');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { SpecValidator } = require('../utils/specValidator');
+      jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      await new SpecGenerator(new TemplateEngine()).generateSpecs({ projectName: 'demo', language: 'typescript', targetDir: testDir, specsName: '.specs', ide: 'vscode', author: 'girishr', noPrompts: true });
+      const yamlBefore = readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8');
+      const result = await backfiller.backfill(testDir, '.specs', true, true);
+      expect(result.projectYaml.action).toBe('skipped');
+      expect(result.copilotInstructions.action).toBe('skipped');
+      expect(readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8')).toBe(yamlBefore);
+      const v = await new SpecValidator().validate(testDir, { fix: false, verbose: false });
+      expect(v.errors.filter((e: string) => e.includes('prompt tracking'))).toEqual([]);
+      expect(v.warnings.filter((w: string) => w.includes('rules section'))).toEqual([]);
+      jest.restoreAllMocks();
     });
   });
 

@@ -9,6 +9,15 @@ import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPro
 const TASKS_STATUS_WARNING = 'tasks.md should track task status (In Progress, Completed, etc.)';
 const TASKS_CROSS_REFS = ['planning/roadmap.md', 'project/requirements.md', 'project/project.yaml'];
 
+/**
+ * Does a parsed project.yaml carry a `rules` key on its root mapping (any value, even null)?
+ * Since 2.0.0 the generated file has none and points to the AI agent file, so `validate` and
+ * `backfill` both leave the rules checks out when this is false (BL-066).
+ */
+export function hasRulesKey(doc: unknown): boolean {
+  return !!doc && typeof doc === 'object' && !Array.isArray(doc) && Object.prototype.hasOwnProperty.call(doc, 'rules');
+}
+
 function tasksStatusTracked(content: string): boolean {
   return content.includes('In Progress') || content.includes('in-progress') || content.includes('Completed') || content.includes('completed');
 }
@@ -213,6 +222,9 @@ export class SpecValidator {
           result.isValid = false;
         }
       }
+
+      // No rules key at all is the post-2.0 design: the mandates live in the AI agent file (BL-066)
+      if (!hasRulesKey(projectData)) return;
 
       // Check for rules section
       const flatRules = this.flattenRules(projectData.rules);

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`specpilot backfill` no longer re-adds mandates to projects created by SpecPilot 2.0.0 or later** (BL-066). It checked `.github/copilot-instructions.md` for the wording SpecPilot used before 2.0.0 and `project.yaml` for a `rules:` section that 2.0.0 stopped writing, so on a fresh project it would append all 8 mandates again in different words and 9 rules to `project.yaml`. It now checks copilot-instructions.md in the wording the file already uses, and leaves a `project.yaml` without `rules:` alone.
+- **`specpilot validate` no longer fails a fresh project with "Missing MANDATE for prompt tracking in project.yaml rules"** (BL-066). A `project.yaml` without a `rules:` section is how SpecPilot has generated it since 2.0.0; the mandates are in your AI agent file.
+
 ### Added
 
 - **`specpilot serve` can serve several projects at once** (BL-054): `specpilot serve ../api ../web` serves every folder you name from one server on one port, each with its own tasks, files and live reload; switch between them in the left rail. Running `specpilot serve` with no folders works exactly as before. The project list is fixed when the server starts: the page cannot add a folder, and nothing is stored outside your projects.

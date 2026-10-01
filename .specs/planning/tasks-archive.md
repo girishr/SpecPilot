@@ -251,3 +251,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-10-01 08:21:43
+
+| # | ID | Description |
+|---|---|---|
+| 122 | [CD-girishr-031] [CS-088] [BL-047] | Extend CLI-side `specBackfiller.ts` to backfill missing slash command files — `SlashCommandGenerator` refactored (`resolveTarget()` extracted from `writeCommand()`, shared by both `generate()` and new `backfillMissing(projectDir, ide, dryRun, commands)`, which only writes files absent on disk, never overwrites); new `SpecBackfiller.backfillSlashCommands()` calls it once per IDE whose signal file already exists (same 5 signals `backfillIdeFiles` checks: `CLAUDE.md`, `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md`, `.github/copilot-instructions.md`; Codex excluded, no signal convention); `BackfillResult` extended with `slashCommands: SlashCommandBackfillResult[]`; `backfill.ts` CLI display gets a new "Slash commands" section, folded into the updated/skipped counts; verified end-to-end via a real `backfillCommand()` dry-run against a scratch fixture (rendered all 8 pending `specpilot-*` commands correctly) in addition to unit tests; 5 new tests (204 → 209 total); closes BL-047, completing the full CS-079–088 slash command generator arc |
+
+---
+

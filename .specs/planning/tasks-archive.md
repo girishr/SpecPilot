@@ -259,3 +259,11 @@ IDs are stable — do not reassign.
 
 ---
 
+## Archived on 2026-10-01 08:37:58
+
+| # | ID | Description |
+|---|---|---|
+| 123 | [CD-girishr-032] [CS-089] | Fix `archivePrompts()` archiving boilerplate instead of log content — `src/utils/specArchiver.ts`: removed `extractFrontMatter()` (only knew the front-matter/body boundary); `archivePrompts()` now anchors on the `## Latest Entries` heading (falls back to front-matter close, then line 0, if absent) so the `## Re-Anchor Prompt` section and any other boilerplate before the real log content is never swept into `prompts-archive.md`; mirrors how `archiveTasks()` already anchors on `## Completed`; new regression test reproducing the real file shape (front matter → Re-Anchor Prompt → `## Latest Entries` bullets) asserts boilerplate survives archiving and never lands in the archive file; 15 tests passing (14 → 15), full suite 210/210, `tsc --noEmit` and `npm run build` clean |
+
+---
+

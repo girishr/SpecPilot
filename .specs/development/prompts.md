@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-10-01
-version: 2.34
+version: 2.35
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Release v2.5.0 prepared, not pushed or published: version 2.4.0 → 2.5.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.5.0] - 2026-10-01` with the bold "Run `specpilot backfill`" line kept; README backfill text now names updated / `kept: modified` / `kept: CRLF line endings` / `kept: symbolic link`; roadmap, CTX-002, release row; commit `chore(release): v2.5.0` and annotated tag `v2.5.0` (October 1, 2026) [PROMPT-002.0.0.56]
 - `feat/bl-058-refresh-commands` (commit `776106a`, pushed from a cloud session) fast-forwarded into `main` after `npm test` and `specpilot validate` passed; BL-058 moved to Completed as CD-girishr-047; `specpilot archive` run; branch deleted locally and on origin; no tag or publish (October 1, 2026) [PROMPT-002.0.0.55]
 - BL-058 implemented after `yes, proceed` (refresh by default, no flag; CRLF-only difference kept as "kept: CRLF line endings"; `kept: modified` adds "delete it and re-run specpilot backfill to get the latest version"; kept files exit 0; nothing outside the project, `--codex-home` dropped; BL-062 added for Codex skills): repo unshallowed and tags fetched in the cloud session; no tag before v2.2.0 writes command files; `scripts/command-hashes.js` (not shipped) seeds `KNOWN_COMMAND_HASHES` from v2.2.0 to v2.4.0 and the working tree, failing if content depends on the directory (48 targets, 66 hashes, all independent); `refreshCommands()` replaces `backfillMissing()` (lstat, `wx` adds, temp file + fsync + rename, re-check before rename); `CODEX_INSTRUCTIONS.md` signal; 14 new tests (445 to 459); end-to-end on a project with v2.2.0 command files: `archive` updated in 3 IDEs, edited and symlinked files kept, real CRLF conversion reported as CRLF; not merged, committed or pushed (October 1, 2026) [PROMPT-002.0.0.54]
 - BL-058 (refresh installed command files) Spec Report, then scope changes: `resolveTarget()` takes only the IDE and the command; Codex docs (blocked in the container) unconfirmed for `CODEX_HOME`, and Codex custom prompts are deprecated in favour of skills, so `~/.codex` dropped from scope; Option B (known-hash manifest) chosen over a marker or lock file (October 1, 2026) [PROMPT-002.0.0.53]

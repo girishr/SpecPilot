@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-09-28
-version: 1.16
+version: 1.17
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -74,6 +74,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-09-27: v2.2.4 — Fixed: `specpilot archive` did nothing on a table-shaped `## Completed` section while `specpilot validate` kept telling you to run it (BL-057); The `specpilot-archive` slash command could still sweep sections after `## Completed` into the archive. Changed: Internal: shared section-bounds helper and pure spec reader (per CHANGELOG `[2.2.4]`)
 - 2026-09-29: v2.3.0 — Added: `specpilot serve`: a read-only local web UI over your `.specs/` (BL-051, BL-052). Removed: Unused `fs-extra` dependency (per CHANGELOG `[2.3.0]`)
 - 2026-09-29: v2.4.0 — Added: Move tasks in `specpilot serve` (BL-053). Fixed: `specpilot archive` archived the newest `prompts.md` entries instead of the oldest; In generated `prompts.md` files, `specpilot archive` moved the boilerplate instead of the log; How archiving `prompts.md` works now (BL-061) (per CHANGELOG `[2.4.0]`)
+- 2026-10-01: v2.5.0 — Fixed: `specpilot backfill` now updates installed `specpilot-*` command files (BL-058) (per CHANGELOG `[2.5.0]`)
 
 ## Objectives [ROADMAP-004]
 

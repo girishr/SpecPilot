@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-01
+
 ### Fixed
 
 - **`specpilot backfill` now updates installed `specpilot-*` command files** (BL-058): until now it only added missing command files, so fixes to a command never reached projects that already had it. A command file is now replaced when it is byte for byte a version an earlier SpecPilot generated (checked by SHA-256 against every version since 2.2.0); a file you changed is never written. **Run `specpilot backfill` to pick up the `/specpilot-archive` fixes from 2.2.4 (BL-057, table-shaped `## Completed` sections) and 2.4.0 (BL-061, archiving the oldest `prompts.md` entries).** Use `--dry-run` to preview.

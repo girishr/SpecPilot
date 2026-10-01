@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-01 (BL-060 in Current Sprint)
-version: 5.73
+lastUpdated: 2026-10-01 (BL-060 completed, CD-girishr-049; BL-065 added)
+version: 5.74
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -47,13 +47,13 @@ Notes
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
 | BL-063 | Test noise: ideConfigGenerator.ts:112 logs a stack trace during npm test; assert or silence it |
 | BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
+| BL-065 | Single source for the prompts.md 100-line limit: remove the copy in specValidator.ts and import the archiver's, same as BL-060. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) |
-| BL-060 | Review `COMPLETED_LINE_LIMIT`: a table-shaped `## Completed` fits only ~17 rows in 25 lines, so every completion trips the validate warning. Consider raising it, with a test and a spec update (REQ-002.F.7). |
 
 ## Completed
 
@@ -79,3 +79,4 @@ Notes
 | 137 | [CD-girishr-046] | v2.4.0 shipped: pushed, npm latest, GitHub release |
 | 138 | [CD-girishr-047] [BL-058] | `specpilot backfill` refreshes installed `specpilot-*` command files: a file whose raw bytes hash (SHA-256) to a version a released SpecPilot generated for that target path (`KNOWN_COMMAND_HASHES`, v2.2.0 to v2.4.0, 48 targets, 66 hashes; no earlier tag wrote command files) is replaced via temp file + fsync + rename; anything else is kept and listed, exit code 0: `kept: modified` ("delete it and re-run specpilot backfill to get the latest version"), `kept: CRLF line endings`, symbolic links and non-regular files; `refreshCommands()` replaces `backfillMissing()`; Codex in-repo `.codex/prompts/` copies via the `CODEX_INSTRUCTIONS.md` signal, nothing outside the project; `scripts/command-hashes.js` (not shipped) regenerates the list and checks per tag that content does not depend on the project; a test fails when a command body changes without a list update; BL-062 added for Codex skills. 14 new tests (445 → 459); commit `776106a` |
 | 139 | [CD-girishr-048] | v2.5.0 shipped: pushed, npm latest, GitHub release |
+| 140 | [CD-girishr-049] [BL-060] | `## Completed` limit 25 → 40 lines, archive keeps 20 rows: a table-shaped section fit only ~17 rows in 25 lines and archive kept exactly as many as fit, so the next completion brought the validate warning back; `COMPLETED_LINE_LIMIT` exported from `specArchiver.ts` as the only copy (validator's `TASKS_COMPLETED_LINE_LIMIT` deleted, `archive --help` reads both limits from the constants); `specpilot-archive` bash copy, command files and `KNOWN_COMMAND_HASHES` regenerated; new test: after an archive, table and list sections take at least 10 completions before the next warning (fails at 25). 2 new tests (459 → 461); commit `2ceacd2` |

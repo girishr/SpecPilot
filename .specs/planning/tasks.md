@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-02 (BL-072 to Current Sprint)
-version: 5.88
+lastUpdated: 2026-10-02 (BL-072 completed)
+version: 5.89
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -55,7 +55,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-072 | Test bug: two `serveCommand` tests in `specServer.test.ts` (BL-054: one-project line, project list in order) compare whole output lines exactly and fail in a colour terminal, because chalk adds ANSI codes there. Strip them with Node's `util.stripVTControlCharacters` in the shared `serveAndStop()` helper; the suite must pass with `FORCE_COLOR=1` and `FORCE_COLOR=0`. Test-only, no release (fixed on branch fix/serve-tests-colour, not merged) |
 
 ## Completed
 
@@ -88,3 +87,4 @@ Notes
 | 144 | [CD-girishr-053] [BL-066] | `specpilot backfill` re-added mandates to projects created by 2.0.0 or later, and `specpilot validate` failed them: backfill checked `.github/copilot-instructions.md` for the pre-2.0 verbose mandates (a fresh terse file got all 8 again in other words) and `project.yaml` for `rules:` that CS-067 stopped generating (9 rules added), and validate errored on the missing prompt-tracking mandate, which only those 9 rules cleared. `hasRulesKey()` in `specValidator.ts` is now the one test (js-yaml root mapping, any value counts; commented or nested does not): without it validate skips both rules checks and backfill leaves `project.yaml` unchanged with the reason (unparseable → skipped); copilot-instructions.md is checked as verbose only if it already has a verbose fingerprint, else terse with the terse block. On a fresh `init`, backfill leaves both files alone and validate exits 0 (was 1). Three tests rewritten, 13 net new (494 → 507); commit `1e28710` |
 | 145 | [CD-girishr-054] [BL-069] | `specpilot backfill` added a convention line and `## Multi-Dev Notes` to every fresh `planning/tasks.md`: `init` has written the literal `CD-{devPrefix}-###` since CS-053 and dropped Multi-Dev Notes in CS-073 (2.0.0), while CS-055's backfill looked only for `CD-<handle>-###` and kept adding the section. Either form now counts; a missing line is inserted in the template's wording after `- CS-###:` (else before `Notes`), and with neither anchor it is skipped with a reason, never reported as present; Multi-Dev Notes no longer checked or added (existing sections kept); one item (`total: 1`), output says "All 1 item". A fresh `init` project's backfill reports everything up to date. 5 tests replaced by 7 (507 → 509); commit `7a78615` |
 | 146 | [CD-girishr-055] | v2.6.0 shipped: pushed, npm `specpilot@2.6.0` latest, GitHub release live (2026-10-02) |
+| 147 | [CD-girishr-056] [BL-072] | Test-only: two `serveCommand` tests in `specServer.test.ts` (BL-054) compared whole lines of chalk-coloured `serve` output and failed in a colour terminal; `serveAndStop()` strips ANSI codes with `util.stripVTControlCharacters` before comparing, assertions still exact; full suite 509/509 with `FORCE_COLOR=1` and `FORCE_COLOR=0`; no release; commit `524a20c` |

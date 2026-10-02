@@ -3,6 +3,7 @@ import { request } from 'http';
 import { AddressInfo } from 'net';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
+import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
@@ -1038,7 +1039,7 @@ describe('serveCommand with folders', () => {
       throw new Error(`exit ${code}`);
     }) as never);
     await serveCommand(folders, { port: String(port) });
-    const out = logs.join('\n');
+    const out = stripVTControlCharacters(logs.join('\n')); // chalk colours the lines in a colour terminal
     process.emit('SIGINT');
     expect(await done).toBe(0);
     return { port, out };

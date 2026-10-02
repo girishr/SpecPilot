@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-02 (v2.6.0 shipped, CD-girishr-055)
-version: 5.87
+lastUpdated: 2026-10-02 (BL-072 to Current Sprint)
+version: 5.88
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -55,6 +55,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-072 | Test bug: two `serveCommand` tests in `specServer.test.ts` (BL-054: one-project line, project list in order) compare whole output lines exactly and fail in a colour terminal, because chalk adds ANSI codes there. Strip them with Node's `util.stripVTControlCharacters` in the shared `serveAndStop()` helper; the suite must pass with `FORCE_COLOR=1` and `FORCE_COLOR=0`. Test-only, no release (fixed on branch fix/serve-tests-colour, not merged) |
 
 ## Completed
 

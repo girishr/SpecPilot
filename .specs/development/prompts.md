@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-10-01
-version: 2.44
+version: 2.45
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Release v2.6.0 prepared after the developer's "yes proceed" (steps chosen: push `main`, prepare locally, tag; npm publish not chosen): `main` pushed (`3036689..d4b35a2`); version 2.5.0 → 2.6.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.6.0] - 2026-10-02`; roadmap, CTX-002, release row CD-girishr-055; commit `chore(release): v2.6.0` and annotated tag `v2.6.0`; not published (October 2, 2026) [PROMPT-002.0.0.72]
 - `feat/bl-069-tasks-convention` (commit `7a78615`) fast-forwarded into `main` after spec-reviewer PASS on the build and the developer's "yes proceed"; BL-069 moved to Completed as CD-girishr-054; not pushed (October 1, 2026) [PROMPT-002.0.0.71]
 - BL-069 built after spec-reviewer PASS (one FIX round: the 1-item count and the output wording; its claim that the insertion already matched the template was wrong and withdrawn): `backfillTasksMd()` accepts `CD-{devPrefix}-###` or `CD-<handle>-###`, inserts the template's literal-`{devPrefix}` line when neither is present, no longer checks or adds `## Multi-Dev Notes` (whole block deleted), `total: 1`; `backfill.ts` says "item" for a total of 1; build review FIX: a `tasks.md` with no `- CS-###:` or `Notes` line was reported "All 1 item already present", now skipped with a reason; 5 tests of removed behaviour replaced by 7 (507 → 509); dropping the template-form check fails 2 tests; with the built CLI a fresh `init --no-prompts` project's `backfill --dry-run` says "Everything is up to date", and this repo's is unchanged; not committed (October 1, 2026) [PROMPT-002.0.0.70]
 - BL-069 (fresh tasks.md gets 2 items from backfill) Spec-First gate, specs only, on `feat/bl-069-tasks-convention`, classed Feature: `init` has written `CD-{devPrefix}-###` since CS-053 and dropped `## Multi-Dev Notes` in CS-073 (2.0.0, on purpose), while CS-055's backfill looked for `CD-<handle>-###` and kept adding the section; decided the template is right: either convention form counts, a missing one is inserted in the template's wording, Multi-Dev Notes no longer checked or added; REQ-002.A.7, F.6, ARCH-003.11, ARCH-004.22, api.yaml, tests.md planned, CTX-003.35, CHANGELOG `[Unreleased]` Fixed (October 1, 2026) [PROMPT-002.0.0.69]

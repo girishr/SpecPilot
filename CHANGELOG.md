@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-10-02
+
 ### Fixed
 
 - **`specpilot backfill` no longer re-adds mandates to projects created by SpecPilot 2.0.0 or later** (BL-066). It checked `.github/copilot-instructions.md` for the wording SpecPilot used before 2.0.0 and `project.yaml` for a `rules:` section that 2.0.0 stopped writing, so on a fresh project it would append all 8 mandates again in different words and 9 rules to `project.yaml`. It now checks copilot-instructions.md in the wording the file already uses, and leaves a `project.yaml` without `rules:` alone.

@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-10-03
-version: 2.50
+version: 2.51
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- v2.7.0 recorded as shipped after the developer pushed, published and released it and gave a typed go-ahead; checked: `origin/main` = `b8cde3d`, `refs/tags/v2.7.0` on origin = the local annotated tag `7c6de7a`, `npm view specpilot` version and `latest` 2.7.0, `gh release view v2.7.0` published 2026-10-03T09:25:37Z (not draft or prerelease); tag untouched (October 3, 2026) [PROMPT-002.0.0.81]
 - Release v2.7.0 prepared after the developer's typed go-ahead (push, tag push and publish not asked): version 2.6.0 → 2.7.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.7.0] - 2026-10-03` with a new empty `[Unreleased]`; roadmap, CTX-002, release row CD-girishr-058; both `FORCE_COLOR` test runs, `validate` and `npm pack --dry-run` checked; commit `chore(release): v2.7.0` and annotated tag `v2.7.0` (`--cleanup=verbatim`, message equal to the CHANGELOG section); spec-reviewer section D; not pushed, not published (October 3, 2026) [PROMPT-002.0.0.80]
 - `feat/bl-055-guided-setup` committed as `42947b4` and fast-forwarded into `main` after spec-reviewer's build pass (one FIX round: tasks row wording, the network fallback strings in REQ-002.H.17, a misleading 500 text) and the developer's "yes, proceed"; BL-055 moved to Completed as CD-girishr-057; `specpilot archive` run; not pushed (October 3, 2026) [PROMPT-002.0.0.79]
 - BL-055 built on `feat/bl-055-guided-setup` after the developer's "yes proceed" (decision 1 kept as specced, the atomic-`.specs/`-rename suggestion not adopted): new `addSpecsQuestions.ts` (lists + `addSpecsOptions()`, used by `add-specs.ts`) and `specSetup.ts` (`setupQuestions`, `answersShapeError`, `setupProject`, `removeStaleStaging`); the generators got one path table each behind `targets()` and `SpecGenerator.targetsOutsideSpecs()`; `CODEX_PROMPTS_NOTICE` exported, printed by `init`/`add-specs`, returned by the server; `specServer.ts` shares the write checks between the move and setup routes; `serve.ts` serves named folders without `.specs/`, prints the setup lines and removes marked stale staging folders; UI setup view in `index.html`/`app.js`/`app.css`; README; 95 new tests (509 → 604), `tsc`, build and the two pre-existing lint errors (BL-068) unchanged; checked by hand in a browser on the built CLI (form, kept line, create, onboarding note, no console errors); not committed (October 3, 2026) [PROMPT-002.0.0.78]

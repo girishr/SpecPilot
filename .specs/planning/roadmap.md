@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-03
-version: 1.23
+lastUpdated: 2026-10-03 (BL-067 done)
+version: 1.24
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -23,7 +23,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 - Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
-- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list is BL-067) and guided setup of a named folder without `.specs/` (BL-055) ✅ in v2.7.0 [ROADMAP-002.14]
+- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list and opening a folder from the page, BL-067 ✅, unreleased) and guided setup of a named folder without `.specs/` (BL-055) ✅ in v2.7.0 [ROADMAP-002.14]
 - SpecPilot Local complete: every screen and action in the approved mockup that the content rule allows, then one full release, the website update and the announcement (BL-059) [ROADMAP-002.15]
 
 ## Timeline [ROADMAP-003]
@@ -85,7 +85,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 Priority: the complete UI and its features first. Order, one BL per branch and Spec Report:
 
 1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
-2. Projects: remembered projects and the Open a Project sheet (BL-067, Current Sprint), then the Home screen (BL-PM-001)
+2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ on `main`, unreleased; then the Home screen (BL-PM-001)
 3. New projects: start a new project in an empty folder (BL-PM-003), clone a repository (BL-PM-002), the 8-step chat setup with live preview and drafts (BL-PM-004)
 4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
 5. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)

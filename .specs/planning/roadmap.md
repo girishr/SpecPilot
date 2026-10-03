@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-10-03
-version: 1.20
+version: 1.21
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -23,7 +23,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 - Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
-- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list is BL-067) and guided setup of a named folder without `.specs/` (BL-055) ✅ (unreleased) [ROADMAP-002.14]
+- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list is BL-067) and guided setup of a named folder without `.specs/` (BL-055) ✅ in v2.7.0 [ROADMAP-002.14]
 
 ## Timeline [ROADMAP-003]
 
@@ -76,6 +76,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-09-29: v2.4.0 — Added: Move tasks in `specpilot serve` (BL-053). Fixed: `specpilot archive` archived the newest `prompts.md` entries instead of the oldest; In generated `prompts.md` files, `specpilot archive` moved the boilerplate instead of the log; How archiving `prompts.md` works now (BL-061) (per CHANGELOG `[2.4.0]`)
 - 2026-10-01: v2.5.0 — Fixed: `specpilot backfill` now updates installed `specpilot-*` command files (BL-058) (per CHANGELOG `[2.5.0]`)
 - 2026-10-02: v2.6.0 — Added: `specpilot serve` serves several projects from one server (BL-054); Fixed: `backfill` and `validate` follow what `init` writes since 2.0.0 (BL-066, BL-069); Changed: `## Completed` limit 40 lines (BL-060) (per CHANGELOG `[2.6.0]`)
+- 2026-10-03: v2.7.0 — Added: `specpilot serve` can set up `.specs/` in a named folder that has none, running what `add-specs` runs and keeping every existing file (BL-055) (per CHANGELOG `[2.7.0]`)
 
 ## Objectives [ROADMAP-004]
 

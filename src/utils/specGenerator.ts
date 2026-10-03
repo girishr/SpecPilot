@@ -2,7 +2,7 @@ import { join } from 'path';
 import { mkdirSync } from 'fs';
 import { TemplateEngine, TemplateContext } from './templateEngine';
 import { SpecFileGenerator } from './specFileGenerator';
-import { IdeConfigGenerator } from './ideConfigGenerator';
+import { GITATTRIBUTES_FILE, IdeConfigGenerator } from './ideConfigGenerator';
 import { AgentConfigGenerator } from './agentConfigGenerator';
 import { SlashCommandGenerator } from './slashCommandGenerator';
 
@@ -103,5 +103,20 @@ export class SpecGenerator {
     // Generate .gitattributes with merge=union for append-heavy spec files
     this.ideConfigGenerator.generateGitAttributes(options.targetDir);
     return { onboardingPrompt };
+  }
+
+  /**
+   * The project-relative files `generateSpecs()` writes outside `.specs/` for an IDE choice, in the
+   * order it writes them (BL-055): read from the same tables the writes use, and pinned to the real
+   * output by a test, so `specpilot serve` can say which existing files it will keep before it runs.
+   */
+  targetsOutsideSpecs(ide = 'vscode'): string[] {
+    const key = ide.toLowerCase();
+    return [
+      ...(AGENT_IDES.has(key) ? this.agentConfigGenerator.targets(key) : this.ideConfigGenerator.settingsTargets(key)),
+      this.ideConfigGenerator.aiContextTarget(key),
+      ...this.slashCommandGenerator.targets(key),
+      GITATTRIBUTES_FILE,
+    ];
   }
 }

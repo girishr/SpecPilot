@@ -53,7 +53,7 @@ function renderProject(){
 }
 
 /* ---------------- views ---------------- */
-const VIEWS={board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills'};
+const VIEWS={board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills',setup:''};
 const TITLES={'planning/roadmap.md':'Roadmap','project/requirements.md':'Requirements','architecture/architecture.md':'Architecture','quality/tests.md':'Tests'};
 const NAV=[['board'],['file','planning/roadmap.md'],['file','project/requirements.md'],['explorer'],['file','architecture/architecture.md'],['file','quality/tests.md'],['security'],['instructions'],['commands'],['skills']];
 let curView='board',curFile='';
@@ -64,13 +64,16 @@ function syncNav(){
 }
 function go(v,keep,sub){
   if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
-  else if(!VIEWS[v])v='board';
+  else if(!VIEWS[v]||v==='setup')v='board';
+  if(DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route shows the setup view (BL-055)
   curView=v;
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   syncNav();
-  $('#title').textContent=v==='file'?(TITLES[sub]||sub):VIEWS[v];
+  $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?'No .specs/ folder in '+DATA.projects[PROJECT].root:VIEWS[v];
   $('#modeSeg').hidden=v!=='board';
   setNav(false);closeInsp();
+  if(v!=='file'||sub!==fileNoteFor)clearFileNote();
+  if(v==='setup')renderSetup();
   if(v==='file')renderFile(sub);
   if(v==='explorer')renderExplorer();
   if(v==='security')renderSecurity();
@@ -346,6 +349,67 @@ async function move(col,i,toSection,toIndex,isUndo){
   }else toast(body.error||`The move was not made (HTTP ${r.status}).`);
 }
 
+/* ---------------- guided setup (BL-055) ----------------
+   A named folder with no .specs/ yet. The questions, their choices and the detected line come from
+   GET /api/setup, which serves the CLI's own text; the page adds only the strings REQ-002.H.17 lists. */
+let setupQ=null,setupBusy=false,fileNoteFor=null;
+function clearFileNote(){const n=$('#fileNote');n.hidden=true;n.innerHTML='';fileNoteFor=null;}
+function setFileNote(path,lines){const n=$('#fileNote');n.innerHTML=lines.map(l=>`<p class="note" translate="no">${esc(l)}</p>`).join('');n.hidden=false;fileNoteFor=path;}
+async function renderSetup(){
+  const pj=PROJECT,intro=$('#setupIntro'),det=$('#setupDetected'),form=$('#setupForm'),note=$('#setupNote');
+  intro.hidden=det.hidden=form.hidden=note.hidden=true;form.innerHTML='';
+  if(!TOKEN){note.textContent='Started with --read-only, so nothing can be set up here.';note.hidden=false;return;}
+  let r,q=null;
+  try{r=await fetch('/api/setup?'+pq(),{cache:'no-store'});if(r.ok)q=await r.json();else if(r.status!==404)q={error:(await r.json().catch(()=>({}))).error||'HTTP '+r.status};}
+  catch(e){q={error:'The server did not answer.'};}
+  if(PROJECT!==pj||curView!=='setup')return;
+  if(!q)return; // 404: not a folder named on the command line, so no form
+  if(q.error){note.textContent=q.error;note.hidden=false;return;}
+  setupQ=q;intro.hidden=false;
+  if(q.detected){det.textContent=q.detected.line;det.hidden=false;}
+  form.innerHTML=q.questions.map(qu=>{
+    const body=qu.key==='handle'
+      ?`<input type="text" name="handle" aria-label="handle" maxlength="39">`
+      :qu.choices?qu.choices.map((c,i)=>`<label><input type="radio" name="${esc(qu.key)}" value="${esc(c.value)}"${i===0?' checked':''}>${esc(c.name)}</label>`).join('')
+      :'';
+    return `<fieldset data-key="${esc(qu.key)}"><legend>${esc(qu.message)}</legend><div class="opts">${body}</div>${qu.key==='ide'?'<div class="keep" id="setupKeep" hidden translate="no"></div>':''}</fieldset>`;
+  }).join('')+'<button type="submit" class="go">Create .specs/</button>';
+  form.hidden=false;
+  const sync=()=>{
+    const lang=form.language?form.language.value:null,fw=form.querySelector('fieldset[data-key="framework"]');
+    if(fw&&q.frameworks){const list=lang&&q.frameworks[lang]||[];fw.hidden=!list.length;
+      fw.querySelector('.opts').innerHTML=list.map((v,i)=>`<label><input type="radio" name="framework" value="${esc(v)}"${i===0?' checked':''}>${esc(v)}</label>`).join('');}
+    const ide=form.ide.value,keep=(q.keep&&q.keep[ide])||[],k=$('#setupKeep');
+    k.hidden=!keep.length;k.textContent=keep.length?'Already here, will be kept: '+keep.join(', '):'';
+  };
+  form.onchange=sync;sync();
+  form.onsubmit=e=>{e.preventDefault();submitSetup(form);};
+}
+async function submitSetup(form){
+  if(setupBusy)return;setupBusy=true;
+  const p=PROJECT,root=DATA.projects[PROJECT].root,btn=form.querySelector('button.go');btn.disabled=true;
+  const body={};$$('fieldset[data-key]',form).forEach(f=>{if(f.hidden)return;const k=f.dataset.key;const el=form[k];if(el)body[k]=el.value;});
+  let r,res={};
+  try{
+    r=await fetch('/api/setup?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});
+    res=await r.json().catch(()=>({}));
+  }catch(e){setupBusy=false;btn.disabled=false;toast('The server did not answer. Nothing was set up.');return;}
+  setupBusy=false;btn.disabled=false;
+  if(p!==PROJECT)return;
+  if(r.status===200){
+    await apply(res.specs,null);
+    toast('.specs/ created in '+root);
+    go('file',false,'development/onboarding.md');
+    const lines=[];
+    if(res.kept&&res.kept.length)lines.push('Kept as they were: '+res.kept.join(', ')+'. Run specpilot backfill there to add missing SpecPilot sections to the instruction and command files.');
+    if(res.notice)lines.push(res.notice);
+    if(lines.length)setFileNote('development/onboarding.md',lines);
+  }else{
+    if(r.status===409&&res.specs)await apply(res.specs,null);
+    toast(res.error||`Nothing was set up (HTTP ${r.status}).`);
+  }
+}
+
 /* ---------------- live reload (BL-052) ----------------
    On a change event: re-fetch, redraw in place. Route, scroll, open inspector, selected row
    and focus stay where they were. If the server is gone, the last content stays on screen. */
@@ -386,8 +450,11 @@ async function apply(d,paths){
   const key=focusKey(document.activeElement);
   const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;
   const was=inspOpen;
+  const hadSpecs=DATA&&DATA.project.specs!==false;
   DATA=d;
   renderProject();renderTasks();renderIde();renderAgentFiles();
+  if(d.project.specs===false&&curView!=='setup'){go('setup');return;} // .specs/ gone: offer setup
+  if(hadSpecs===false&&d.project.specs!==false&&curView==='setup'){go('board');return;} // .specs/ appeared another way
   if(curView==='file')await renderFile(curFile);
   if(curView==='explorer')renderExplorer();
   if(curView==='security')await renderSecurity();

@@ -9,6 +9,11 @@ import { CodeAnalyzer } from '../utils/codeAnalyzer';
 import { TemplateEngine } from '../utils/templateEngine';
 import { SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
+import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
+import {
+  addSpecsOptions, API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, detectedLine, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE,
+  PROJECT_TYPE_CHOICES, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
+} from '../utils/addSpecsQuestions';
 
 export interface AddSpecsOptions {
   lang?: string;
@@ -49,10 +54,9 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     let framework = options.framework || projectInfo?.framework;
     
     // Validate language
-    const supportedLanguages = ['typescript', 'javascript', 'python', 'kotlin', 'swift'];
-    if (!supportedLanguages.includes(language)) {
+    if (!SUPPORTED_LANGUAGES.includes(language)) {
       logger.error(`❌ Language "${language}" is not supported`);
-      logger.info(`💡 Supported languages: ${supportedLanguages.join(', ')}`);
+      logger.info(`💡 Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
       process.exit(1);
     }
     
@@ -62,11 +66,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       const typeResponse = await inquirer.prompt([{
         type: 'list',
         name: 'projectType',
-        message: 'Is this a greenfield or brownfield project?',
-        choices: [
-          { name: 'Brownfield — existing codebase, initializing specs retroactively', value: 'brownfield' },
-          { name: 'Greenfield — new project, writing code from scratch', value: 'greenfield' },
-        ],
+        message: PROJECT_TYPE_MESSAGE,
+        choices: PROJECT_TYPE_CHOICES,
       }]);
       projectType = typeResponse.projectType;
     }
@@ -78,7 +79,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
         const response = await inquirer.prompt([{
           type: 'list',
           name: 'framework',
-          message: 'Choose a framework:',
+          message: FRAMEWORK_MESSAGE,
           choices: ['none', ...frameworks]
         }]);
         framework = response.framework === 'none' ? undefined : response.framework;
@@ -91,13 +92,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       const paradigmResponse = await inquirer.prompt([{
         type: 'list',
         name: 'apiParadigm',
-        message: 'What API paradigm does this project use?',
-        choices: [
-          { name: 'REST / OpenAPI — HTTP endpoints, JSON responses', value: 'rest' },
-          { name: 'CLI — command-line tool with commands and flags', value: 'cli' },
-          { name: 'GraphQL — schema-first query/mutation API', value: 'graphql' },
-          { name: 'None — skip api.yaml (UI library, mobile app, etc.)', value: 'none' },
-        ],
+        message: API_PARADIGM_MESSAGE,
+        choices: API_PARADIGM_CHOICES,
       }]);
       apiParadigm = paradigmResponse.apiParadigm;
     }
@@ -111,7 +107,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
         const nameResponse = await inquirer.prompt([{
           type: 'input',
           name: 'developerName',
-          message: `Your short handle is used as a prefix in task IDs (e.g. CD-jsmith-001) and prompt IDs\n  (e.g. PROMPT-jsmith-001) to avoid collisions when multiple devs share the same spec files.\n  Use your GitHub, GitLab, or Bitbucket username, or any short tag of your choice [${osUsername}]:`,
+          message: handleMessage(osUsername),
         }]);
         handle = nameResponse.developerName.trim();
         if (!handle) handle = osUsername;
@@ -125,15 +121,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       const ideResponse = await inquirer.prompt([{
         type: 'list',
         name: 'ide',
-        message: 'Select your AI IDE/Agent for SpecPilot context:',
-        choices: [
-          { name: 'GitHub Copilot', value: 'vscode' },
-          { name: 'Cursor', value: 'Cursor' },
-          { name: 'Windsurf', value: 'Windsurf' },
-          { name: 'Antigravity', value: 'Antigravity' },
-          { name: 'Claude Code', value: 'claude-code' },
-          { name: 'Codex', value: 'Codex' },
-        ]
+        message: IDE_MESSAGE,
+        choices: IDE_CHOICES,
       }]);
       ide = ideResponse.ide;
     }
@@ -147,7 +136,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       
       // Show analysis summary
       if (projectInfo) {
-        logger.info(chalk.green(`✅ Detected ${projectInfo.language}${projectInfo.framework ? `/${projectInfo.framework}` : ''} project`));
+        logger.info(chalk.green(detectedLine(projectInfo)));
       }
       
       if (analysis.todos.length > 0) {
@@ -167,26 +156,11 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     const templateEngine = new TemplateEngine();
     const specGenerator = new SpecGenerator(templateEngine);
     
-    // Generate .specs directory structure
-    const projectName = projectInfo?.name || 'my-project';
-    const description = projectInfo?.description || 
-      `A ${language} project${framework ? ` using ${framework}` : ''}`;
-    
-    const { onboardingPrompt } = await specGenerator.generateSpecs({
-      projectName,
-      language,
-      framework,
-      targetDir: projectDir,
-      specsName: '.specs',
-      author: developerName,
-      description,
-      ide,
-      analysis: (!options.noAnalysis && analysis) ? analysis : undefined,
-      mode: 'existing',
-      projectType,
-      apiParadigm,
-      noPrompts: !options.prompts,
-    });
+    // Generate .specs directory structure (the options builder is shared with `specpilot serve`, BL-055)
+    const { onboardingPrompt } = await specGenerator.generateSpecs(
+      addSpecsOptions(projectDir, projectInfo, { language, framework, projectType, apiParadigm, handle: developerName, ide }, analysis, !options.prompts),
+    );
+    if (ide.toLowerCase() === 'codex') console.log(CODEX_PROMPTS_NOTICE);
 
     logger.success('✅ .specs folder created successfully!');
     logger.info(`📁 Location: ${specsDir}`);

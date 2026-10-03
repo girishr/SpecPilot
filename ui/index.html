@@ -137,8 +137,17 @@
       <div id="secBody"></div>
     </section>
 
+    <!-- SETUP (BL-055): a named folder with no .specs/ yet; the questions are the CLI's own -->
+    <section class="view" id="v-setup">
+      <p class="note" id="setupIntro" hidden>Runs what specpilot add-specs runs in this folder. Existing files are never changed.</p>
+      <p class="note" id="setupDetected" hidden translate="no"></p>
+      <form class="setup" id="setupForm" hidden autocomplete="off"></form>
+      <p class="note" id="setupNote" hidden></p>
+    </section>
+
     <!-- FILE: any .specs/ file, rendered as written -->
     <section class="view" id="v-file">
+      <div class="gl" id="fileNote" hidden></div>
       <div class="gl" id="fmBox"></div>
       <div class="md doc" id="fileBody"></div>
     </section>

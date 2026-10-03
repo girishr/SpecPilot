@@ -76,7 +76,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
 | `refine [desc]`         | Refine project specifications                                     |
-| `serve [folders...]`    | Serve a local web UI over the `.specs/` of this project, or of each folder named (task moves unless `--read-only`) |
+| `serve [folders...]`    | Serve a local web UI over the `.specs/` of this project, or of each folder named (task moves, and guided setup of a named folder without `.specs/`, unless `--read-only`) |
 
 > **Tip — command aliases:** All commands have a short alias you can use instead of the full name.
 > `init` → `i` &nbsp;·&nbsp; `validate` → `v` &nbsp;·&nbsp; `migrate` → `m` &nbsp;·&nbsp; `list` → `ls` &nbsp;·&nbsp; `refine` → `ref` &nbsp;·&nbsp; `archive` → `ar` &nbsp;·&nbsp; `add-specs` → `add` &nbsp;·&nbsp; `backfill` → `bf`
@@ -116,24 +116,26 @@ specpilot validate --fix
 
 ## specpilot serve
 
-Serve a local web UI over a project's `.specs/`, where you can also move tasks between Backlog and Current Sprint. With no folders it serves the project you run it from (the folder that contains `.specs/`); name one or more folders to serve those instead, all from one server. Press Ctrl+C to stop.
+Serve a local web UI over a project's `.specs/`, where you can also move tasks between Backlog and Current Sprint, and set up `.specs/` in a folder that has none yet. With no folders it serves the project you run it from (the folder that contains `.specs/`); name one or more folders to serve those instead, all from one server. Press Ctrl+C to stop.
 
 ```bash
 specpilot serve                  # this project, at http://127.0.0.1:4321
 specpilot serve --port 5000 --open
 specpilot serve ../api ../web    # two projects on one server; switch in the left rail
+specpilot serve ../new-project   # no .specs/ there yet: the page sets it up (or `specpilot serve .`)
 ```
 
 | Option        | Default | Description                                                                              |
 | ------------- | ------- | ---------------------------------------------------------------------------------------- |
 | `--port <n>`  | `4321`  | Port to listen on (127.0.0.1 only)                                                       |
 | `--poll <ms>` | `1000`  | Change-detection interval in ms (minimum 250); polling runs only while a page is open    |
-| `--read-only` |        | No task moves: the UI only reads, with no drag handles and no write route                |
+| `--read-only` |        | No task moves and no guided setup: the UI only reads, with no drag handles and no write routes |
 | `--open`      |         | Open the UI in the default browser                                                       |
 
-- **Several projects**: every folder you name must contain `.specs/`; one that does not stops startup with its name. They are numbered in command-line order from 0 (`../api` is project 0, `../web` is project 1), and that number is the `?project=<n>` on the server's `/api/` routes and the `#1/...` at the start of a page link for any project after the first (no number means project 0). Each project keeps its own tasks, files and live reload; a move changes only that project's `tasks.md`. The list is fixed when the server starts: the page cannot add a folder, and nothing is saved outside your projects.
+- **Several projects**: name any folders; one without `.specs/` is served too and offers guided setup (below). They are numbered in command-line order from 0 (`../api` is project 0, `../web` is project 1), and that number is the `?project=<n>` on the server's `/api/` routes and the `#1/...` at the start of a page link for any project after the first (no number means project 0). Each project keeps its own tasks, files and live reload; a move changes only that project's `tasks.md`. The list is fixed when the server starts: the page cannot add a folder, and nothing is saved outside your projects.
 - **Task moves**: drag a row, or use `Alt+Up/Down` to reorder and `Alt+Left/Right` to move between Backlog and Current Sprint. A move changes exactly one line of `.specs/planning/tasks.md` and nothing else, and offers Undo; Completed rows do not move. If the file changed on disk since the page loaded, the move is refused and the page redraws. Start with `--read-only` to turn moves off.
-- **Nothing else is written**: each served project's `.specs/planning/tasks.md` is the only file the server can change; everything else is read on every request.
+- **Guided setup**: a folder you name that has no `.specs/` shows, instead of the views, the questions `specpilot add-specs` asks (project type, language and framework when they are not detected, API paradigm, handle, IDE), and one button. It then creates exactly what `add-specs` creates for those answers. Files outside `.specs/` that already exist (your own `.gitattributes`, `CLAUDE.md`, `.vscode/settings.json`, a command file) are never changed: the page lists them before you submit and after, and `specpilot backfill` adds missing SpecPilot sections to kept instruction and command files (a kept `.gitattributes` does not get the `merge=union` lines). Setup is offered only for folders named on the command line, not for the current-directory default, which still needs `.specs/` (`specpilot serve .` names it). The request is protected like a task move. While it runs, the files are generated into a `.specpilot-setup-<id>/` folder inside the project, which is removed when done; if a run is interrupted, the next `specpilot serve` removes that folder (and only that folder, recognised by its marker file).
+- **Nothing else is written**: in a project with `.specs/`, its `.specs/planning/tasks.md` is the only file the server can change; in a named folder without `.specs/`, setup creates new files and changes none; everything else is read on every request.
 - **Loopback only**: binds 127.0.0.1 only; rejects any Host header other than `127.0.0.1:<port>` or `localhost:<port>` (403).
 - **Live reload**: polls allowlisted files with `stat()` every `--poll` ms while a page is open, and pushes changed paths on `/api/events`; open pages update in place.
 - **What it shows**: `.specs/`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.claude/commands/`, `.claude/skills/` and `.github/prompts/`, as the files' own text.

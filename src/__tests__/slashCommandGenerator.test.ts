@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { SlashCommandGenerator, SlashCommand, SLASH_COMMANDS, KNOWN_COMMAND_HASHES } from '../utils/slashCommandGenerator';
+import { CODEX_PROMPTS_NOTICE, SlashCommandGenerator, SlashCommand, SLASH_COMMANDS, KNOWN_COMMAND_HASHES } from '../utils/slashCommandGenerator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, PROMPTS_KEEP_LINES, PROMPTS_LINE_LIMIT } from '../utils/specArchiver';
 
 describe('SlashCommandGenerator', () => {
@@ -114,13 +114,21 @@ describe('SlashCommandGenerator', () => {
     expect(readFileSync(filePath, 'utf8')).toContain('mode: agent');
   });
 
-  it('writes a Codex reference copy to .codex/prompts and prints a one-time manual-copy notice', () => {
+  it('writes a Codex reference copy to .codex/prompts and prints nothing; the manual-copy notice is a constant the commands print (BL-055)', () => {
     const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     generator.generate(projectDir, 'codex', fixture);
     expect(existsSync(join(projectDir, '.codex', 'prompts', 'specpilot-status.md'))).toBe(true);
-    expect(logSpy).toHaveBeenCalledTimes(1);
-    expect(logSpy.mock.calls[0][0]).toContain('~/.codex/prompts/');
+    expect(logSpy).not.toHaveBeenCalled();
+    expect(CODEX_PROMPTS_NOTICE).toContain('cp .codex/prompts/specpilot-*.md ~/.codex/prompts/');
     logSpy.mockRestore();
+  });
+
+  it.each(['claude-code', 'cursor', 'windsurf', 'antigravity', 'codex', 'vscode'])('targets(%s) lists exactly the files generate() writes, in order', ide => {
+    generator.generate(projectDir, ide);
+    const targets = generator.targets(ide);
+    expect(targets).toHaveLength(SLASH_COMMANDS.length);
+    for (const rel of targets) expect(existsSync(join(projectDir, ...rel.split('/')))).toBe(true);
+    expect(targets[0]).toMatch(/specpilot-status(\.prompt)?\.md$/);
   });
 });
 

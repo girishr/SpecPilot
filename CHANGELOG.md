@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`specpilot serve` can set up `.specs/` in a folder that has none** (BL-055): name the folder on the command line (`specpilot serve ../new-project`, or `specpilot serve .`) and its page asks the questions `specpilot add-specs` asks, then creates the same files that command creates. It only creates files that are missing: one that already exists (for example your own `.gitattributes`, `CLAUDE.md` or `.vscode/settings.json`) is left exactly as it is, and the page lists it before and after; run `specpilot backfill` to add SpecPilot sections to kept instruction files. An interrupted setup leaves a marked `.specpilot-setup-*` folder, which the next `specpilot serve` removes. The page cannot choose a folder, the request is protected like task moves (per-session token, Origin check, JSON only), and `--read-only` turns setup off. Until now `serve` stopped with an error when a named folder had no `.specs/`; running `specpilot serve` with no folder in a directory without `.specs/` still does.
+
 ## [2.6.0] - 2026-10-02
 
 ### Fixed

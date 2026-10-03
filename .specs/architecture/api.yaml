@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-10-02
-# version: 2.16
+# lastUpdated: 2026-10-03
+# version: 2.17
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -225,13 +225,13 @@ commands:
       1: Backfill error
 
   serve:
-    description: Serve a local web UI over the .specs/ of the current project or of each folder named, with task moves unless --read-only (BL-051, BL-053, BL-054)
+    description: Serve a local web UI over the .specs/ of the current project or of each folder named, with task moves and guided setup of a named folder without .specs/ unless --read-only (BL-051, BL-053, BL-054, BL-055)
     usage: specpilot serve [folders...] [options]
     arguments:
       folders:
         type: string[]
         default: the current directory
-        description: Project folders to serve, each containing .specs/; fixed for the life of the server, in this order (project 0, 1, ...); the same folder named twice is served once
+        description: Project folders to serve; fixed for the life of the server, in this order (project 0, 1, ...); the same folder named twice is served once; a named folder without .specs/ is served and offers guided setup (BL-055)
     options:
       --port:
         type: number
@@ -243,29 +243,33 @@ commands:
         description: Change-detection interval in ms (minimum 250); polling runs only while a page is open
       --read-only:
         type: boolean
-        description: No write route (405), no drag handles, no token; the UI only reads
+        description: No write routes (405), no drag handles, no setup form, no token; the UI only reads
       --open:
         type: boolean
         description: Open the UI in the default browser
     routes:
       "GET /": The UI page
       "GET /assets/<file>": The UI's stylesheet, scripts and favicon (the SpecPilot logo)
-      "GET /api/specs": "Project metadata, readSpecs() output, the nav tree and projects: [{name, root, branch}] for every served project, root as ~/... under the home directory (JSON)"
+      "GET /api/specs": "Project metadata (incl. project.specs: whether .specs exists, BL-055), readSpecs() output, the nav tree and projects: [{name, root, branch}] for every served project, root as ~/... under the home directory (JSON)"
       "GET /api/file?p=<path>": One allowlisted file of the named project as text/plain
       "POST /api/tasks/move": "Move one task row between Backlog and Current Sprint, or reorder within one. JSON body {id, toSection: backlog|currentSprint, toIndex}; headers If-Match (sha256 of tasks.md as last loaded), X-SpecPilot-Token (from the page's meta tag), Origin (the page's own), Content-Type application/json; body <= 16 KB. 200 {sha256, specs}; 409 {error, specs} when the file changed; 422 {error} for an unknown, duplicate or Completed id, a section without a table, a bad index, or a move that cannot keep every other byte; 403 token/Origin/Host (Origin must equal http:// + Host); 400 body not JSON; 413 too large; 415 not application/json; 428 no If-Match; 405 with --read-only"
+      "GET /api/setup": "BL-055. For a folder named on the command line with no .specs: the questions add-specs would ask there (project type; language only when none is detected; framework only when none is detected and the language has some; API paradigm; handle with the OS username as default; IDE/Agent), each with the CLI's message and choices, (JSON {questions: [{key, message, choices?}], frameworks?: {<language>: [...]} when language is asked, detected: {language, framework, line} or null, keep: {<ide>: [paths outside .specs/ that add-specs would write for that choice and that already exist]}}); writes nothing. 404 when the project has .specs or was not named on the command line; 422 {error} when the detector cannot read the folder (e.g. invalid package.json); 405 with --read-only"
+      "POST /api/setup": "BL-055. Create what specpilot add-specs creates in that folder; .specs must not exist; files outside .specs/ that already exist are kept untouched. JSON body {projectType, language?, framework?, apiParadigm, handle, ide}; headers X-SpecPilot-Token, Origin (the page's own), Content-Type application/json; body <= 16 KB. 200 {specs, kept: [paths left as they were], notice: the Codex copy-them-yourself text or null}; 404 when the project was not named on the command line; 409 {error, specs} when .specs exists now or appeared during the creates (rolled back); 409 {error} naming it when a parent folder of a generated file is a link or not a folder (nothing written); 422 {error} naming the field for a value that was not offered, an extra or missing key, a non-string value, a handle outside ^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$ (empty = the OS username) or a folder the detector cannot read; 403 token/Origin/Host; 400 body not JSON; 413 too large; 415 not application/json; 500 after removing what it created when a write fails; 405 with --read-only"
       "GET /api/events": "Server-sent events (text/event-stream). `event: change`, `data: {\"paths\": [...]}` with the changed allowlisted paths only, no content; heartbeat comment every 25 s; at most 8 open streams across all projects, 503 beyond"
     behavior:
       - Binds 127.0.0.1 only; rejects any Host header other than 127.0.0.1:<port> or localhost:<port> (403)
-      - Writes only .specs/planning/tasks.md of the project the request names, only by moving one existing line (temp file, fsync, rename); --read-only disables it
+      - In a project with .specs/, writes only its .specs/planning/tasks.md, only by moving one existing line (temp file, fsync, rename); --read-only disables it
+      - "Guided setup (BL-055): in a named folder without .specs, generates with the same SpecGenerator call as add-specs into a marked staging folder inside it (.specpilot-setup-<12 hex>/ with the file .specpilot-setup), then creates each file with an exclusive create and fsync; never overwrites, appends to or merges an existing file (kept and listed instead); the staging folder is removed in every outcome; --read-only disables it"
+      - "Startup (not --read-only): removes each .specpilot-setup-<12 hex> entry of a served folder that is a real folder holding the marker file, printing 'Removed <root>/.specpilot-setup-<id>/, left by an interrupted setup.'; nothing else is ever removed"
       - No route adds, removes or accepts a folder; nothing is written outside the served folders (no registry)
-      - "/api/specs, /api/file, /api/events and POST /api/tasks/move take ?project=<n>: the project's index on the command line, from 0; omitted = 0; otherwise one value matching ^(0|[1-9][0-9]*)$ naming a served project, else 404 (empty, repeated, 01, +1, out of range); on POST /api/tasks/move resolved after the Origin, token, content-type and size checks"
-      - "Startup output: one project = unchanged; more = 'SpecPilot is serving <N> projects at <url>' then one line per project, '  <n>  <root>'"
+      - "/api/specs, /api/file, /api/events, /api/setup and POST /api/tasks/move take ?project=<n>: the project's index on the command line, from 0; omitted = 0; otherwise one value matching ^(0|[1-9][0-9]*)$ naming a served project, else 404 (empty, repeated, 01, +1, out of range); on the two POST routes resolved after the Origin, token, content-type and size checks"
+      - "Startup output: one project = unchanged; more = 'SpecPilot is serving <N> projects at <url>' then one line per project, '  <n>  <root>'; each folder without .specs/ adds 'No .specs/ in <root> yet. Open the page to set it up.' ('No .specs/ in <root>.' with --read-only)"
       - Re-reads files on every request
       - Live reload polls allowlisted files with stat() every --poll ms while a page is open, and pushes changed paths on /api/events
       - Methods other than the route's own return 405; unknown paths return 404
     exit-codes:
       0: Stopped with Ctrl+C
-      1: A served folder that does not exist, is not a directory or has no .specs/ (named in the message), invalid --port or --poll, or port already in use
+      1: A named folder that does not exist or is not a directory (named in the message), no folder named and no .specs/ in the current directory, invalid --port or --poll, or port already in use
 
 global-options:
   --version:

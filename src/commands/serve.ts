@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import { existsSync, realpathSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 import { SpecServer, startSpecServer } from '../utils/specServer';
+import { removeStaleStaging, specsMissing } from '../utils/specSetup';
 import { Logger } from '../utils/logger';
 
 const packageJson = require('../../package.json');
@@ -29,7 +30,11 @@ function openBrowser(url: string, logger: Logger): void {
   child.unref();
 }
 
-/** Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current directory (BL-054). */
+/**
+ * Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current
+ * directory (BL-054), which must contain `.specs/`; a named folder without one is served for guided
+ * setup (BL-055).
+ */
 export async function serveCommand(folders: string[], options: ServeOptions): Promise<void> {
   const logger = new Logger();
   const roots: string[] = [];
@@ -37,7 +42,7 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
   if (!folders.length) {
     const root = process.cwd();
     if (!existsSync(join(root, '.specs'))) {
-      logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, or `specpilot init` first.');
+      logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, `specpilot init` first, or `specpilot serve .` to set one up in the browser.');
       return process.exit(1);
     }
     roots.push(root);
@@ -54,12 +59,9 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
       logger.error(`Not a folder: ${folder}`);
       return process.exit(1);
     }
-    if (!existsSync(join(root, '.specs'))) {
-      logger.error(`No .specs/ folder in ${folder}. Run \`specpilot init\` there first, or leave it out.`);
-      return process.exit(1);
-    }
     if (!roots.includes(root)) roots.push(root); // the same folder named twice is served once
   }
+  const named = roots.map(() => folders.length > 0);
 
   const port = options.port === undefined ? DEFAULT_PORT : Number(options.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -73,9 +75,14 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
     return process.exit(1);
   }
 
+  // What an interrupted setup left behind (marked staging folders only); a delete, so never with --read-only.
+  if (!options.readOnly) {
+    for (const root of roots) for (const dir of removeStaleStaging(root)) console.log(`Removed ${dir}/, left by an interrupted setup.`);
+  }
+
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, log: m => logger.warn(m) });
+    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, log: m => logger.warn(m) });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -91,11 +98,15 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
     console.log(chalk.green(`SpecPilot is serving ${roots.length} projects at ${url}`));
     roots.forEach((root, i) => console.log(`  ${i}  ${root}`));
   }
+  const empty = roots.filter(root => specsMissing(root));
+  for (const root of empty) console.log(options.readOnly ? `No .specs/ in ${root}.` : `No .specs/ in ${root} yet. Open the page to set it up.`);
   console.log(
     chalk.gray(
       options.readOnly
         ? 'Read-only: nothing will be written. Open pages update when a spec file changes. Press Ctrl+C to stop.'
-        : 'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+        : empty.length
+          ? 'Tasks can be moved in the page (only .specs/planning/tasks.md is written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.'
+          : 'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ),
   );
   if (options.open) openBrowser(url, logger);

@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { mkdirSync, writeFileSync, existsSync, appendFileSync, readFileSync } from 'fs';
 import inquirer from 'inquirer';
 import { TemplateContext } from './templateEngine';
@@ -37,6 +37,20 @@ const IDE_DIRS: Record<string, string> = {
   antigravity: '.antigravity',
 };
 
+/** The IDE-native AI context file per IDE; anything else gets copilot-instructions.md (ARCH-004.11). */
+const AI_CONTEXT_FILES: Record<string, string> = {
+  cursor: '.cursor/rules/specpilot.mdc',
+  windsurf: '.windsurfrules',
+  antigravity: '.antigravity/rules.md',
+  'claude-code': 'CLAUDE.md',
+};
+const COPILOT_INSTRUCTIONS = '.github/copilot-instructions.md';
+
+export const GITATTRIBUTES_FILE = '.gitattributes';
+
+/** Project-relative path of a project file, joined for this platform. */
+const at = (projectDir: string, rel: string) => join(projectDir, ...rel.split('/'));
+
 /**
  * Generates IDE workspace settings (.vscode, .cursor, .windsurf, .antigravity).
  * Each IDE gets a settings.json and extensions.json with a shared base config
@@ -46,6 +60,17 @@ export class IdeConfigGenerator {
   /** Entry point — routes to the correct IDE settings generator. */
   async generate(projectDir: string, context: TemplateContext, ide: string): Promise<void> {
     await this.generateIDESettings(projectDir, context, ide);
+  }
+
+  /** The files `generate()` writes, project-relative (BL-055); read from the same table as the writes. */
+  settingsTargets(ide: string): string[] {
+    const dir = IDE_DIRS[ide.toLowerCase()] ?? '.vscode';
+    return [`${dir}/settings.json`, `${dir}/extensions.json`];
+  }
+
+  /** The file `generateAiContextFile()` writes, project-relative (BL-055). */
+  aiContextTarget(ide: string): string {
+    return AI_CONTEXT_FILES[ide.toLowerCase()] ?? COPILOT_INSTRUCTIONS;
   }
 
   /**
@@ -71,47 +96,28 @@ export class IdeConfigGenerator {
     noPrompts = false,
   ): Promise<void> {
     const key = ide.toLowerCase();
+    const filePath = at(projectDir, this.aiContextTarget(key));
+    mkdirSync(dirname(filePath), { recursive: true });
     if (key === 'cursor') {
-      await this.generateCursorRules(projectDir, context);
-    } else if (key === 'windsurf') {
-      await this.generateWindsurfRules(projectDir, context);
-    } else if (key === 'antigravity') {
-      await this.generateAntigravityRules(projectDir, context);
+      const content =
+        `---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n` +
+        this.buildCopilotInstructions(context);
+      writeFileSync(filePath, content);
+    } else if (key === 'windsurf' || key === 'antigravity') {
+      writeFileSync(filePath, this.buildCopilotInstructions(context));
     } else if (key === 'claude-code') {
-      await this.generateClaudeMd(projectDir, context, noPrompts);
+      await this.generateClaudeMd(filePath, context, noPrompts);
     } else {
       // vscode, codex, and unknown IDEs → copilot-instructions.md
       await this.generateCopilotInstructions(projectDir, context, noPrompts);
     }
   }
 
-  private generateCursorRules(projectDir: string, context: TemplateContext): void {
-    const rulesDir = join(projectDir, '.cursor', 'rules');
-    mkdirSync(rulesDir, { recursive: true });
-    const filePath = join(rulesDir, 'specpilot.mdc');
-    const content =
-      `---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n` +
-      this.buildCopilotInstructions(context);
-    writeFileSync(filePath, content);
-  }
-
-  private generateWindsurfRules(projectDir: string, context: TemplateContext): void {
-    const filePath = join(projectDir, '.windsurfrules');
-    writeFileSync(filePath, this.buildCopilotInstructions(context));
-  }
-
-  private generateAntigravityRules(projectDir: string, context: TemplateContext): void {
-    const rulesDir = join(projectDir, '.antigravity');
-    mkdirSync(rulesDir, { recursive: true });
-    writeFileSync(join(rulesDir, 'rules.md'), this.buildCopilotInstructions(context));
-  }
-
   private async generateClaudeMd(
-    projectDir: string,
+    filePath: string,
     context: TemplateContext,
     noPrompts = false,
   ): Promise<void> {
-    const filePath = join(projectDir, 'CLAUDE.md');
 
     if (!existsSync(filePath)) {
       writeFileSync(filePath, this.buildClaudeMd(context));
@@ -218,9 +224,8 @@ ${this.buildCodePhilosophyMarkdown()}
     context: TemplateContext,
     noPrompts = false,
   ): Promise<void> {
-    const githubDir = join(projectDir, '.github');
-    mkdirSync(githubDir, { recursive: true });
-    const filePath = join(githubDir, 'copilot-instructions.md');
+    const filePath = at(projectDir, COPILOT_INSTRUCTIONS);
+    mkdirSync(dirname(filePath), { recursive: true });
 
     if (!existsSync(filePath)) {
       writeFileSync(filePath, this.buildCopilotInstructions(context));
@@ -387,13 +392,12 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
 
   private async generateIDESettings(projectDir: string, context: TemplateContext, ide: string): Promise<void> {
     const key = ide.toLowerCase();
-    const ideDir = IDE_DIRS[key] ?? '.vscode';
     const overrides = IDE_OVERRIDES[key] ?? {};
-    const fullDir = join(projectDir, ideDir);
-    mkdirSync(fullDir, { recursive: true });
+    const [settingsFile, extensionsFile] = this.settingsTargets(key).map(rel => at(projectDir, rel));
+    mkdirSync(dirname(settingsFile), { recursive: true });
 
     const settingsWithComment = this.buildSettingsJson(ide, context, overrides);
-    writeFileSync(join(fullDir, 'settings.json'), settingsWithComment);
+    writeFileSync(settingsFile, settingsWithComment);
 
     const extensions = {
       recommendations: [
@@ -404,7 +408,7 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
       ],
       unwantedRecommendations: [],
     };
-    writeFileSync(join(fullDir, 'extensions.json'), JSON.stringify(extensions, null, 2));
+    writeFileSync(extensionsFile, JSON.stringify(extensions, null, 2));
   }
 
   private buildSettingsJson(
@@ -479,7 +483,7 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
       'CHANGELOG.md merge=union',
     ];
 
-    const filePath = join(projectDir, '.gitattributes');
+    const filePath = join(projectDir, GITATTRIBUTES_FILE);
 
     if (!existsSync(filePath)) {
       writeFileSync(filePath, GITATTRIBUTES_LINES.join('\n') + '\n');

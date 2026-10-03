@@ -1,6 +1,12 @@
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { mkdirSync, writeFileSync } from 'fs';
 import { TemplateEngine, TemplateContext } from './templateEngine';
+
+/** The one file each agent gets, project-relative; `generate()` and `targets()` both read it (BL-055). */
+const AGENT_FILES: Record<string, string> = {
+  'claude-code': '.claude/skills/specpilot-project/SKILL.md',
+  codex: 'CODEX_INSTRUCTIONS.md',
+};
 
 /**
  * Generates AI agent configuration files:
@@ -12,19 +18,21 @@ export class AgentConfigGenerator {
 
   /** Entry point — routes to the correct agent config generator. */
   async generate(projectDir: string, context: TemplateContext, agent: string): Promise<void> {
-    switch (agent.toLowerCase()) {
-      case 'claude-code':
-        await this.generateClaudeCodeSkills(projectDir, context);
-        break;
-      case 'codex':
-        await this.generateCodexInstructions(projectDir, context);
-        break;
-    }
+    const key = agent.toLowerCase();
+    if (!AGENT_FILES[key]) return;
+    const filePath = join(projectDir, ...AGENT_FILES[key].split('/'));
+    mkdirSync(dirname(filePath), { recursive: true });
+    if (key === 'claude-code') await this.generateClaudeCodeSkills(filePath, context);
+    else await this.generateCodexInstructions(filePath, context);
   }
 
-  private async generateClaudeCodeSkills(projectDir: string, context: TemplateContext): Promise<void> {
-    const skillsDir = join(projectDir, '.claude', 'skills', 'specpilot-project');
-    mkdirSync(skillsDir, { recursive: true });
+  /** The files `generate()` writes for this agent, project-relative (BL-055). */
+  targets(agent: string): string[] {
+    const file = AGENT_FILES[agent.toLowerCase()];
+    return file ? [file] : [];
+  }
+
+  private async generateClaudeCodeSkills(filePath: string, context: TemplateContext): Promise<void> {
 
     const skillContent = `---
 name: specpilot-project
@@ -115,7 +123,7 @@ All spec files link to each other for easy navigation. Follow the links in relat
 `;
 
     writeFileSync(
-      join(skillsDir, 'SKILL.md'),
+      filePath,
       skillContent
         .replace(/\{\{projectName\}\}/g, context.projectName)
         .replace(/\{\{language\}\}/g, context.language)
@@ -124,7 +132,7 @@ All spec files link to each other for easy navigation. Follow the links in relat
     );
   }
 
-  private async generateCodexInstructions(projectDir: string, context: TemplateContext): Promise<void> {
+  private async generateCodexInstructions(filePath: string, context: TemplateContext): Promise<void> {
     const codexInstructions = `# OpenAI Codex Instructions for {{projectName}}
 
 This file provides context and guidelines for OpenAI Codex when working on {{projectName}}.
@@ -273,6 +281,6 @@ Run \`specpilot validate\` to check:
 `;
 
     const rendered = this.templateEngine.renderFromString(codexInstructions, context);
-    writeFileSync(join(projectDir, 'CODEX_INSTRUCTIONS.md'), rendered);
+    writeFileSync(filePath, rendered);
   }
 }

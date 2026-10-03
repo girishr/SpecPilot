@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-01
-version: 1.7
+lastUpdated: 2026-10-03
+version: 1.8
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -109,7 +109,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.10] Task moves: CSRF token + Origin + JSON-only, one write-allowlisted file, atomic replace
 
 - **Date**: 2026-09-29
-- **Decision**: `POST /api/tasks/move` is the only write route. It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3.
+- **Decision**: `POST /api/tasks/move` is the only write route (until BL-055; see SEC-004.12). It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3.
 - **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable.
 - **Alternatives considered**:
   - SameSite cookies — rejected: localhost cookies are shared across ports and the page has no login; a header token is simpler and not sent automatically.
@@ -120,7 +120,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.11] Multiple projects: roots fixed at start, chosen by index, no registry
 
 - **Date**: 2026-10-01
-- **Decision**: `specpilot serve a b c` serves the folders named on the command line, each `realpath`-resolved and required to contain `.specs/`. The list never changes while the server runs. `/api/` routes pick a project with `?project=<n>`, an index into that list: one value matching `^(0|[1-9][0-9]*)$` (empty, repeated, signed, padded or out of range → 404). Order: Host, method, then for a move Origin, token, content type and size, then the project, so an unauthenticated request never gets an answer that depends on the project; from there every SEC-004.8–SEC-004.10 control applies unchanged to that one root. One token per server start covers every project. Nothing is written outside the served folders; no route accepts a folder path.
+- **Decision**: `specpilot serve a b c` serves the folders named on the command line, each `realpath`-resolved and required to contain `.specs/` (until BL-055: a named folder without it is served for setup, SEC-004.12). The list never changes while the server runs. `/api/` routes pick a project with `?project=<n>`, an index into that list: one value matching `^(0|[1-9][0-9]*)$` (empty, repeated, signed, padded or out of range → 404). Order: Host, method, then for a move Origin, token, content type and size, then the project, so an unauthenticated request never gets an answer that depends on the project; from there every SEC-004.8–SEC-004.10 control applies unchanged to that one root. One token per server start covers every project. Nothing is written outside the served folders; no route accepts a folder path.
 - **Rationale**: Taking roots only from the command line means a web page can never choose what the server reads; an index (not a path) leaves nothing to traverse. Running the existing per-root guards unchanged keeps one security model to test. A shared origin and token across projects grant nothing new: the same local user named every folder.
 - **Alternatives considered**:
   - A registry in `~/.specpilot/projects.json` plus an "open folder" route — deferred to BL-067: the first write outside the project (ARCH-007.5), and a route that turns a forged request into "serve this folder".
@@ -128,12 +128,27 @@ This file records security-related architectural and implementation decisions ma
   - Projects addressed by folder name or path in the URL — rejected: names collide and paths invite traversal; an index has neither problem.
 - **Reference**: SEC-002.5 (i), REQ-002.H.13, ARCH-004.39
 
+### [SEC-004.12] Guided setup: named folders only, the CLI's generator, new files only, existing files kept
+
+- **Date**: 2026-10-02
+- **Decision**: `POST /api/setup` (BL-055) is the second write route. It exists only for a folder named on the command line in which `.specs` does not exist, and takes the folder by index, never by path. It has the same layers as a task move: Host, exact `Origin`, the per-start token, `application/json`, ≤ 16 KB; `--read-only` removes it. The body is a fixed set of keys; every value is a choice from a fixed list except the handle, which must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$` or be empty (the OS username is then used, as in the CLI; it is not request text). The server calls the unchanged `SpecGenerator.generateSpecs()` with prompts off and `targetDir` set to a staging folder inside the served folder, then creates each staged file in place with an exclusive create (`wx`) and `fsync`. `.specs` must not exist; a file outside `.specs/` that exists as anything is kept untouched and reported (before submit, from a derived target list pinned to the generator by a test; after, from what the creates actually did); a parent on the way that is a symbolic link or not a folder refuses the setup. A failed create removes only what the request created; the staging folder, which carries a marker file, is always removed, and at startup (not `--read-only`) `serve` removes stale folders that have that exact name pattern and marker, nothing else. The standing write allowlist still holds only `tasks.md`.
+- **Rationale**: Reusing the generator keeps one set of templates and makes the output the CLI's, but the generator replaces or appends to some existing files, so it must never run against the project folder from a request; staging plus exclusive creates turns "never change an existing file" into something the file system enforces (`O_EXCL`) rather than a list to keep in step; keeping, not refusing, means a project that already has a `.gitattributes` or an editor settings file still gets its `.specs/`, and `specpilot backfill` stays the one tool that adds SpecPilot sections to an existing instruction file. Fixed choices and a handle allowlist keep the property task moves had, that a request cannot put free text into a file. Folders by index keep the BL-054 rule that a page can never choose what the server touches.
+- **Alternatives considered**:
+  - Running the generator directly in the project folder after a pre-check: rejected, a file that appears between the check and the write would be replaced, and the pre-check needs its own copy of the generator's path list.
+  - A staging folder under the OS temp directory: rejected, a write outside the project (ARCH-007.5).
+  - Letting the page answer the CLI's overwrite / append / skip questions: rejected, a request could then change an existing file.
+  - Refusing the whole setup when any target exists (first draft): rejected, it turned away most real projects for files setup can simply leave alone.
+  - Listing the files to be created by generating on `GET`: rejected, a `GET` must not write; the kept list before submit comes from the derived target list instead.
+  - Cleaning staging folders by name alone: rejected, a user folder could share the name; the marker file makes the folder SpecPilot's.
+  - Free-text handle as in the CLI: rejected over HTTP; the CLI's own prompt is unchanged.
+- **Reference**: SEC-002.5 (j), SEC-002.2, REQ-002.H.15, REQ-002.H.16, ARCH-004.40
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
-- Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user?
+- Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged.)
 - Should the `build:plugin` generator's own dependency chain be pinned/audited separately, given it now sits in the plugin's trusted computing base (SEC-002.4)?
 
 ---
 
-_Last updated: 2026-10-01_
+_Last updated: 2026-10-03_

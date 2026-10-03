@@ -681,6 +681,15 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
 };
 
 /**
+ * What `init` and `add-specs` print after generating for Codex (BL-055 moved it out of `generate()`,
+ * so `specpilot serve` can return the same text to the page instead of printing it in its terminal).
+ */
+export const CODEX_PROMPTS_NOTICE =
+  '⚠️  SpecPilot slash commands were written to .codex/prompts/ for reference.\n' +
+  '   Codex only auto-discovers prompts from ~/.codex/prompts/ — copy them there manually:\n' +
+  '   cp .codex/prompts/specpilot-*.md ~/.codex/prompts/';
+
+/**
  * Generates per-IDE slash/workflow command files from SLASH_COMMANDS.
  * Parallel to IdeConfigGenerator — each IDE gets its own directory, file
  * naming, and frontmatter format for the same shared command definitions.
@@ -695,13 +704,15 @@ export class SlashCommandGenerator {
       this.write(projectDir, target.dir, target.fileName, target.content);
     }
 
-    if (key === 'codex') {
-      console.log(
-        '⚠️  SpecPilot slash commands were written to .codex/prompts/ for reference.\n' +
-        '   Codex only auto-discovers prompts from ~/.codex/prompts/ — copy them there manually:\n' +
-        '   cp .codex/prompts/specpilot-*.md ~/.codex/prompts/',
-      );
-    }
+  }
+
+  /** The files `generate()` writes for this IDE, project-relative, in order (BL-055). */
+  targets(ide: string, commands: SlashCommand[] = SLASH_COMMANDS): string[] {
+    const key = ide.toLowerCase();
+    return commands.map(command => {
+      const target = this.resolveTarget(key, command);
+      return `${target.dir}/${target.fileName}`;
+    });
   }
 
   /**

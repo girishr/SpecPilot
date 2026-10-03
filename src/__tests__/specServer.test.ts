@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { request } from 'http';
 import { AddressInfo } from 'net';
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
@@ -10,6 +10,8 @@ import { resolveAllowedPath } from '../utils/specPaths';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
 import { serveCommand } from '../commands/serve';
+import * as specSetup from '../utils/specSetup';
+import { STAGING_MARKER } from '../utils/specSetup';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -371,10 +373,10 @@ describe('serveCommand', () => {
     expect(errors.join('\n')).toContain('Invalid --port');
   });
 
-  it('refuses to start without .specs/ in the current directory', async () => {
+  it('refuses to start without .specs/ in the current directory, and names `specpilot serve .` (BL-055)', async () => {
     process.chdir(os.tmpdir());
     await expect(serveCommand([], {})).rejects.toThrow('exit 1');
-    expect(errors.join('\n')).toContain('No .specs/ folder');
+    expect(errors.join('\n')).toContain('No .specs/ folder in this directory. Run `specpilot serve` from a project root, `specpilot init` first, or `specpilot serve .` to set one up in the browser.');
   });
 
   it('prints the URL as http://127.0.0.1:<port> and stops on Ctrl+C', async () => {
@@ -1048,7 +1050,6 @@ describe('serveCommand with folders', () => {
   it.each([
     ['a folder that does not exist', () => join(a.root, 'nope'), 'Folder not found: '],
     ['a file', () => join(a.root, 'CLAUDE.md'), 'Not a folder: '],
-    ['a folder without .specs/', () => join(a.root, 'src'), 'No .specs/ folder in '],
   ])('stops with exit 1 and names %s', async (_what, folder, message) => {
     await expect(serveCommand([a.root, folder()], {})).rejects.toThrow('exit 1');
     expect(errors.join('\n')).toContain(message + folder());
@@ -1091,6 +1092,367 @@ describe('--read-only with several projects', () => {
       await spec.close();
       a.cleanup();
       b.cleanup();
+    }
+  });
+});
+
+// ─── Guided setup (BL-055) ───────────────────────────────────────────────────
+
+
+/** A folder named on the command line that has no .specs/ yet: a small TypeScript project. */
+function makeEmpty(): { root: string; base: string; cleanup: () => void } {
+  const base = mkdtempSync(join(os.tmpdir(), 'specpilot-setup-'));
+  const root = join(base, 'proj');
+  write(root, 'package.json', JSON.stringify({ name: 'new-app', devDependencies: { typescript: '5.0.0' }, dependencies: { react: '18.0.0' } }));
+  write(root, 'src/app.ts', 'export const a = 1;\n');
+  return { root, base, cleanup: () => rmSync(base, { recursive: true, force: true }) };
+}
+
+/** Every regular file under root → bytes, so "nothing changed" is one deep equality. */
+function snapshot(root: string, rel = ''): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const e of readdirSync(join(root, rel), { withFileTypes: true })) {
+    const p = rel ? `${rel}/${e.name}` : e.name;
+    if (e.isDirectory()) Object.assign(out, snapshot(root, p));
+    else if (e.isFile()) out[p] = readFileSync(join(root, p), 'utf-8');
+  }
+  return out;
+}
+
+const ANSWERS = JSON.stringify({ projectType: 'brownfield', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode' });
+
+describe('guided setup over HTTP', () => {
+  let e: ReturnType<typeof makeEmpty>;
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    ...over,
+  });
+
+  beforeEach(async () => {
+    e = makeEmpty();
+    p = makeProject();
+    spec = await startSpecServer([e.root, p.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    e.cleanup();
+    p.cleanup();
+    jest.restoreAllMocks();
+  });
+
+  it('reports project.specs, and GET /api/setup answers only for the project without .specs/, writing nothing', async () => {
+    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).project.specs).toBe(false);
+    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).project.specs).toBe(true);
+    const before = snapshot(e.root);
+    const res = await hit(port, '/api/setup?project=0');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-security-policy']).toBe("default-src 'self'");
+    const q = JSON.parse(res.body);
+    expect(q.questions.map((x: { key: string }) => x.key)).toEqual(['projectType', 'apiParadigm', 'handle', 'ide']);
+    expect(q.detected.line).toBe('✅ Detected typescript/react project');
+    expect(q.keep.vscode).toEqual([]);
+    expect(snapshot(e.root)).toEqual(before);
+    expect((await hit(port, '/api/setup?project=1')).status).toBe(404);
+    expect((await hit(port, '/api/setup?project=2')).status).toBe(404);
+    expect((await hit(port, '/api/setup?project=0', { host: 'evil.example:80' })).status).toBe(403);
+    expect((await hit(port, '/api/setup?project=0', { method: 'PUT' })).status).toBe(405);
+    expect((await hit(port, '/api/setup?project=0', { method: 'DELETE' })).status).toBe(405);
+  });
+
+  it('GET answers 422 with the reason when the folder cannot be read', async () => {
+    writeFileSync(join(e.root, 'package.json'), '{not json');
+    const res = await hit(port, '/api/setup?project=0');
+    expect(res.status).toBe(422);
+    expect(JSON.parse(res.body).error).toContain('This folder could not be read');
+  });
+
+  it('creates what add-specs creates, answers with the fresh payload, and the event stream reports the new paths', async () => {
+    const events = await openEvents(port, undefined, '/api/events?project=0');
+    const res = await post(port, ANSWERS, good(), '/api/setup?project=0');
+    expect(res.status).toBe(200);
+    expect(res.json.kept).toEqual([]);
+    expect(res.json.notice).toBeNull();
+    expect(res.json.specs.project.specs).toBe(true);
+    expect(res.json.specs.tasks).not.toBeNull();
+    expect(readFileSync(join(e.root, '.specs/project/project.yaml'), 'utf-8')).toContain('devPrefix: "jsmith"');
+    expect(readFileSync(join(e.root, '.github/copilot-instructions.md'), 'utf-8')).toContain('No commit unless asked.');
+    expect(readFileSync(join(e.root, '.gitattributes'), 'utf-8')).toContain('merge=union');
+    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).project.specs).toBe(true);
+    expect((await hit(port, '/api/setup?project=0')).status).toBe(404);
+    await events.waitFor(/event: change\ndata: .*\.specs\/planning\/tasks\.md/, 4000);
+    events.close();
+  });
+
+  it('returns the Codex notice for that choice and prints nothing itself', async () => {
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const res = await post(port, JSON.stringify({ ...JSON.parse(ANSWERS), ide: 'Codex' }), good(), '/api/setup?project=0');
+    expect(res.status).toBe(200);
+    expect(res.json.notice).toContain('~/.codex/prompts/');
+    expect(log).not.toHaveBeenCalled();
+    expect(readFileSync(join(e.root, 'CODEX_INSTRUCTIONS.md'), 'utf-8')).toContain('new-app');
+  });
+
+  it('keeps existing files and lists them before (GET) and after (POST)', async () => {
+    write(e.root, '.gitattributes', '* text=auto\n');
+    write(e.root, '.vscode/settings.json', '{"mine": true}\n');
+    const q = JSON.parse((await hit(port, '/api/setup?project=0')).body);
+    expect(q.keep.vscode).toEqual(['.vscode/settings.json', '.gitattributes']);
+    expect(q.keep.Cursor).toEqual(['.gitattributes']);
+    write(e.root, '.github/copilot-instructions.md', 'appeared after GET\n'); // between GET and POST
+    const res = await post(port, ANSWERS, good(), '/api/setup?project=0');
+    expect(res.status).toBe(200);
+    expect(res.json.kept).toEqual(['.vscode/settings.json', '.github/copilot-instructions.md', '.gitattributes']);
+    expect(readFileSync(join(e.root, '.gitattributes'), 'utf-8')).toBe('* text=auto\n');
+    expect(readFileSync(join(e.root, '.vscode/settings.json'), 'utf-8')).toBe('{"mine": true}\n');
+    expect(readFileSync(join(e.root, '.github/copilot-instructions.md'), 'utf-8')).toBe('appeared after GET\n');
+    expect(readFileSync(join(e.root, '.vscode/extensions.json'), 'utf-8')).toContain('recommendations');
+  });
+
+  it.each([
+    ['a missing token', () => good({ 'X-SpecPilot-Token': undefined }), 403],
+    ['a wrong token', () => good({ 'X-SpecPilot-Token': 'f'.repeat(64) }), 403],
+    ['a short token', () => good({ 'X-SpecPilot-Token': 'abc' }), 403],
+    ['a foreign Origin', () => good({ Origin: 'http://evil.example' }), 403],
+    ['no Origin', () => good({ Origin: undefined }), 403],
+    ['Host localhost with Origin 127.0.0.1', () => good({ Host: `localhost:${port}` }), 403],
+    ['a foreign Host', () => good({ Host: 'evil.example:80', Origin: 'http://evil.example:80' }), 403],
+    ['a form content type', () => good({ 'Content-Type': 'application/x-www-form-urlencoded' }), 415],
+    ['a text content type', () => good({ 'Content-Type': 'text/plain' }), 415],
+  ])('refuses a POST with %s and writes nothing', async (_what, headers, status) => {
+    const before = snapshot(e.root);
+    expect((await post(port, ANSWERS, headers(), '/api/setup?project=0')).status).toBe(status);
+    expect(snapshot(e.root)).toEqual(before);
+  });
+
+  it('refuses a 17 KB body (413), a bad project with a bad token (403, not 404), a bad project (404), and a project with .specs/ (409)', async () => {
+    const before = snapshot(e.root);
+    expect((await post(port, JSON.stringify({ projectType: 'x'.repeat(17 * 1024) }), good(), '/api/setup?project=0')).status).toBe(413);
+    expect((await post(port, ANSWERS, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }), '/api/setup?project=9')).status).toBe(403);
+    expect((await post(port, ANSWERS, good(), '/api/setup?project=9')).status).toBe(404);
+    expect((await post(port, ANSWERS, good(), '/api/setup?project=01')).status).toBe(404);
+    const taken = await post(port, ANSWERS, good(), '/api/setup?project=1');
+    expect(taken.status).toBe(409);
+    expect(taken.json.specs.project.name).toBe('Fixture Project');
+    expect(snapshot(e.root)).toEqual(before);
+    expect(readFileSync(join(p.root, '.specs/project/project.yaml'), 'utf-8')).toContain('Fixture Project');
+  });
+
+  it.each([
+    ['not JSON', '{', 400, 'not valid JSON'],
+    ['an array', '[]', 422, 'JSON object'],
+    ['null', 'null', 422, 'JSON object'],
+    ['a string', '"x"', 422, 'JSON object'],
+    ['a missing key', JSON.stringify({ projectType: 'brownfield', apiParadigm: 'rest', ide: 'vscode' }), 422, '"handle" is missing'],
+    ['a non-string value', JSON.stringify({ ...JSON.parse(ANSWERS), ide: 1 }), 422, '"ide" must be a string'],
+    ['an extra key', JSON.stringify({ ...JSON.parse(ANSWERS), path: '/etc' }), 422, 'Unexpected field "path"'],
+    ['a choice not offered', JSON.stringify({ ...JSON.parse(ANSWERS), ide: 'vim' }), 422, '"ide" must be one of'],
+    ['a language when detected', JSON.stringify({ ...JSON.parse(ANSWERS), language: 'python' }), 422, '"language" must not be sent'],
+    ['a handle with a space', JSON.stringify({ ...JSON.parse(ANSWERS), handle: 'j smith' }), 422, 'The handle must be'],
+  ])('refuses a body that is %s and writes nothing', async (_what, body, status, message) => {
+    const before = snapshot(e.root);
+    const res = await post(port, body, good(), '/api/setup?project=0');
+    expect(res.status).toBe(status);
+    expect(res.json.error).toContain(message);
+    expect(snapshot(e.root)).toEqual(before);
+    expect(readdirSync(e.root).some((n: string) => n.startsWith('.specpilot-setup-'))).toBe(false);
+  });
+
+  it('two simultaneous setups: one 200, one 409; and the lock chain survives a 500', async () => {
+    const [x, y] = await Promise.all([post(port, ANSWERS, good(), '/api/setup?project=0'), post(port, ANSWERS, good(), '/api/setup?project=0')]);
+    expect([x.status, y.status].sort()).toEqual([200, 409]);
+    expect(readdirSync(e.root).some((n: string) => n.startsWith('.specpilot-setup-'))).toBe(false);
+
+    const f = makeEmpty();
+    const other = await startSpecServer([f.root, p.root], 0, 'x');
+    try {
+      const port2 = (other.server.address() as AddressInfo).port;
+      const token2 = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port2, '/')).body)![1];
+      const h = (over: Record<string, string> = {}) => ({ Host: `127.0.0.1:${port2}`, Origin: `http://127.0.0.1:${port2}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token2, ...over });
+      jest.spyOn(specSetup, 'setupProject').mockRejectedValueOnce(new Error('boom'));
+      const broken = await post(port2, ANSWERS, h(), '/api/setup?project=0');
+      expect(broken.status).toBe(500);
+      writeFileSync(join(p.root, '.specs/planning/tasks.md'), MOVE_TASKS);
+      const hashOf = createHash('sha256').update(readFileSync(join(p.root, '.specs/planning/tasks.md'))).digest('hex');
+      const move = await post(port2, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), h({ 'If-Match': hashOf }), '/api/tasks/move?project=1');
+      expect(move.status).toBe(200);
+    } finally {
+      await other.close();
+      f.cleanup();
+    }
+  });
+
+  it('a setup and a task move in another project both succeed, one after the other', async () => {
+    writeFileSync(join(p.root, '.specs/planning/tasks.md'), MOVE_TASKS);
+    const h = createHash('sha256').update(readFileSync(join(p.root, '.specs/planning/tasks.md'))).digest('hex');
+    const [setup, move] = await Promise.all([
+      post(port, ANSWERS, good(), '/api/setup?project=0'),
+      post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': h }), '/api/tasks/move?project=1'),
+    ]);
+    expect([setup.status, move.status]).toEqual([200, 200]);
+    expect(readFileSync(join(p.root, '.specs/planning/tasks.md'), 'utf-8')).not.toBe(MOVE_TASKS);
+    expect(existsSync(join(e.root, '.specs/planning/tasks.md'))).toBe(true);
+  });
+
+  it('answers 404 for a root that was not named on the command line (the current-directory default)', async () => {
+    const d = makeEmpty();
+    const unnamed = await startSpecServer([d.root], 0, 'x', { named: [false] });
+    try {
+      const port2 = (unnamed.server.address() as AddressInfo).port;
+      const token2 = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port2, '/')).body)![1];
+      expect((await hit(port2, '/api/setup?project=0')).status).toBe(404);
+      const res = await post(port2, ANSWERS, { Host: `127.0.0.1:${port2}`, Origin: `http://127.0.0.1:${port2}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token2 }, '/api/setup?project=0');
+      expect(res.status).toBe(404);
+      expect(specSetup.specsMissing(d.root)).toBe(true);
+    } finally {
+      await unnamed.close();
+      d.cleanup();
+    }
+  });
+
+  it('a .specs/ created outside the server flips project.specs', async () => {
+    write(e.root, '.specs/project/project.yaml', 'name: "By hand"\n');
+    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).project.specs).toBe(true);
+    expect((await hit(port, '/api/setup?project=0')).status).toBe(404);
+  });
+});
+
+describe('guided setup with --read-only', () => {
+  it('has no setup routes, reports project.specs false and no token', async () => {
+    const e = makeEmpty();
+    const spec = await startSpecServer([e.root], 0, 'x', { readOnly: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      expect((await hit(port, '/')).body).not.toContain('specpilot-token" content=');
+      expect(JSON.parse((await hit(port, '/api/specs')).body).project.specs).toBe(false);
+      expect((await hit(port, '/api/setup?project=0')).status).toBe(405);
+      const res = await post(port, ANSWERS, { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64) }, '/api/setup?project=0');
+      expect(res.status).toBe(405);
+      expect(specSetup.specsMissing(e.root)).toBe(true);
+    } finally {
+      await spec.close();
+      e.cleanup();
+    }
+  });
+});
+
+describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
+  let a: ReturnType<typeof makeProject>;
+  let e: ReturnType<typeof makeEmpty>;
+  let exit: jest.SpyInstance;
+  let logs: string[];
+
+  beforeEach(() => {
+    a = makeProject();
+    e = makeEmpty();
+    logs = [];
+    exit = jest.spyOn(process, 'exit').mockImplementation(((code: number) => {
+      throw new Error(`exit ${code}`);
+    }) as never);
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation((...x: unknown[]) => void logs.push(x.join(' ')));
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    a.cleanup();
+    e.cleanup();
+  });
+
+  async function serveAndStop(folders: string[], options: { readOnly?: boolean } = {}): Promise<{ port: number; out: string[] }> {
+    const probe = await startSpecServer([a.root], 0, 'x');
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+    let exited: (code: number) => void;
+    const done = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
+    await serveCommand(folders, { port: String(port), ...options });
+    const out = stripVTControlCharacters(logs.join('\n')).split('\n');
+    process.emit('SIGINT');
+    expect(await done).toBe(0);
+    return { port, out };
+  }
+
+  it('starts, names the folder, and offers setup there and not in the project that has .specs/', async () => {
+    const real = realpathSync(e.root);
+    const { port, out } = await serveAndStop([a.root, e.root]);
+    expect(out.slice(0, 5)).toEqual([
+      `SpecPilot is serving 2 projects at http://127.0.0.1:${port}`,
+      `  0  ${realpathSync(a.root)}`,
+      `  1  ${real}`,
+      `No .specs/ in ${real} yet. Open the page to set it up.`,
+      'Tasks can be moved in the page (only .specs/planning/tasks.md is written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+    ]);
+  });
+
+  it('with --read-only says only that the folder has no .specs/', async () => {
+    const real = realpathSync(e.root);
+    const { port, out } = await serveAndStop([e.root], { readOnly: true });
+    expect(out.slice(0, 3)).toEqual([
+      `SpecPilot is serving ${real} at http://127.0.0.1:${port}`,
+      `No .specs/ in ${real}.`,
+      'Read-only: nothing will be written. Open pages update when a spec file changes. Press Ctrl+C to stop.',
+    ]);
+  });
+
+  it('prints the 2.6.0 lines unchanged when every folder has .specs/', async () => {
+    const { port, out } = await serveAndStop([a.root]);
+    expect(out.slice(0, 2)).toEqual([
+      `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
+      'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+    ]);
+  });
+
+  it('removes only marked stale staging folders at startup, and none with --read-only', async () => {
+    const marked = (root: string, name: string) => {
+      mkdirSync(join(root, name));
+      writeFileSync(join(root, name, STAGING_MARKER), 'm\n');
+      writeFileSync(join(root, name, 'CLAUDE.md'), 'staged\n');
+    };
+    marked(e.root, '.specpilot-setup-0123456789ab');
+    marked(a.root, '.specpilot-setup-fedcba987654'); // in a project that has .specs/: removed too
+    mkdirSync(join(e.root, '.specpilot-setup-ffffffffffff')); // unmarked
+    writeFileSync(join(e.root, '.specpilot-setup-eeeeeeeeeeee'), 'a file\n');
+    const { out } = await serveAndStop([a.root, e.root]);
+    const re = realpathSync(e.root);
+    const ra = realpathSync(a.root);
+    expect(out.filter(l => l.startsWith('Removed '))).toEqual([
+      `Removed ${ra}/.specpilot-setup-fedcba987654/, left by an interrupted setup.`,
+      `Removed ${re}/.specpilot-setup-0123456789ab/, left by an interrupted setup.`,
+    ]);
+    expect(existsSync(join(e.root, '.specpilot-setup-0123456789ab'))).toBe(false);
+    expect(existsSync(join(e.root, '.specpilot-setup-ffffffffffff'))).toBe(true);
+    expect(existsSync(join(e.root, '.specpilot-setup-eeeeeeeeeeee'))).toBe(true);
+
+    marked(e.root, '.specpilot-setup-0123456789ab');
+    logs.length = 0;
+    const { out: ro } = await serveAndStop([e.root], { readOnly: true });
+    expect(ro.some(l => l.startsWith('Removed '))).toBe(false);
+    expect(existsSync(join(e.root, '.specpilot-setup-0123456789ab'))).toBe(true);
+  });
+
+  it('skips a stale staging folder it cannot remove, prints nothing for it, and starts', async () => {
+    if (process.getuid && process.getuid() === 0) return; // root ignores folder permissions
+    mkdirSync(join(e.root, '.specpilot-setup-0123456789ab'));
+    writeFileSync(join(e.root, '.specpilot-setup-0123456789ab', STAGING_MARKER), 'm\n');
+    chmodSync(join(e.root, '.specpilot-setup-0123456789ab'), 0o500); // its contents cannot be unlinked
+    try {
+      const { out } = await serveAndStop([e.root]);
+      expect(out.some(l => l.startsWith('Removed '))).toBe(false);
+      expect(out[0]).toContain('SpecPilot is serving');
+      expect(existsSync(join(e.root, '.specpilot-setup-0123456789ab', STAGING_MARKER))).toBe(true);
+    } finally {
+      chmodSync(join(e.root, '.specpilot-setup-0123456789ab'), 0o700);
     }
   });
 });

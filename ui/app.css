@@ -304,3 +304,13 @@ input.txt{width:100%}
 .gl.drop .box{border-color:var(--focus);box-shadow:inset 0 0 0 1px var(--focus)}
 .toast.has-action.show{pointer-events:auto}
 .toast .tact{margin-left:12px;color:var(--ground);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+
+/* guided setup form (BL-055) */
+.setup fieldset{border:1px solid var(--sep-2);border-radius:var(--r);background:var(--group);padding:10px 14px 12px;margin:0 0 14px}
+.setup legend{font-weight:600;font-size:13.5px;padding:0 4px;white-space:pre-line}
+.setup label{display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:13.5px;cursor:pointer}
+.setup input[type=radio]{margin-top:3px}
+.setup input[type=text]{width:100%;max-width:420px;padding:6px 8px;border:1px solid var(--sep-2);border-radius:var(--rs);background:var(--ground);color:inherit}
+.setup .keep{color:var(--label-3);font-size:13px;line-height:1.5;padding:6px 0 0}
+.setup button.go{display:inline-block;padding:8px 14px;border-radius:var(--rs);background:var(--accent-fill);color:var(--on-accent);font-weight:600}
+.setup button.go:disabled{opacity:.6;cursor:default}

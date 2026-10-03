@@ -8,6 +8,7 @@ import { getFrameworksForLanguage } from '../utils/frameworks';
 import { TemplateEngine } from '../utils/templateEngine';
 import { SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
+import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 
 export interface InitOptions {
   lang: string;
@@ -326,6 +327,7 @@ export async function initCommand(name: string, options: InitOptions) {
       apiParadigm,
       projectContext,
     });
+    if (ide.toLowerCase() === 'codex') console.log(CODEX_PROMPTS_NOTICE);
 
     // Show success with logo (includes initialization message and generated file tree)
     logger.displayInitTree(projectName, targetDir, join(targetDir, options.specsName));

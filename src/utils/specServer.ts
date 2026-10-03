@@ -9,9 +9,11 @@ import { readSpecs } from './specReader';
 import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
+import { answersShapeError, setupProject, setupQuestions, specsMissing } from './specSetup';
 
-// Read-only local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8).
-// Every request re-reads disk; nothing is cached and nothing is written.
+// Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
+// nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053)
+// and guided setup through specSetup.ts (BL-055).
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
@@ -118,6 +120,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       root,
       branch: readBranch(root),
       specpilotVersion,
+      specs: !specsMissing(root), // false → the page offers guided setup (BL-055)
     },
     files,
     tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root) } : null,
@@ -174,7 +177,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   send(res, status, 'application/json; charset=utf-8', JSON.stringify(body));
 }
 
-/** Largest accepted move request body (BL-053). */
+/** Largest accepted request body for a move (BL-053) or a setup (BL-055). */
 export const MAX_MOVE_BODY = 16 * 1024;
 
 /** Where index.html receives the per-start CSRF token (nothing with --read-only). */
@@ -192,8 +195,10 @@ export interface SpecServerOptions {
   settleMs?: number;
   /** One-time notices, e.g. the scan cap. */
   log?: (message: string) => void;
-  /** `--read-only`: no write route, no token in the page (BL-053). */
+  /** `--read-only`: no write routes, no token in the page (BL-053). */
   readOnly?: boolean;
+  /** Per root, whether it was named on the command line: guided setup is offered only for those (BL-055). Default: all. */
+  named?: boolean[];
 }
 
 export interface SpecServer {
@@ -243,23 +248,32 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
   let writeLock: Promise<void> = Promise.resolve(); // moves run strictly one after another, in every project
   const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
 
-  const handleMove = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+  /** The checks every write shares (SEC-004.10): Origin, token, content type, size. False = already answered. */
+  const writeAllowed = (req: IncomingMessage, res: ServerResponse): boolean => {
     // Host was checked already; the page's own origin is exactly "http://" + that Host.
     if (req.headers.origin !== `http://${req.headers.host}`) {
-      return sendJson(res, 403, { error: 'This request did not come from the SpecPilot page, so it was refused.' });
+      sendJson(res, 403, { error: 'This request did not come from the SpecPilot page, so it was refused.' });
+      return false;
     }
     const given = Buffer.from(String(req.headers['x-specpilot-token'] ?? ''));
     const expected = Buffer.from(token!);
     if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
-      return sendJson(res, 403, { error: 'This request did not carry the page token, so it was refused. Reload the page and try again.' });
+      sendJson(res, 403, { error: 'This request did not carry the page token, so it was refused. Reload the page and try again.' });
+      return false;
     }
     if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) {
-      return sendJson(res, 415, { error: 'Moves must be sent as JSON.' });
+      sendJson(res, 415, { error: 'Requests that change files must be sent as JSON.' });
+      return false;
     }
-    if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) return sendJson(res, 413, { error: 'The request is too large.' });
-    // The project is picked only now, so a request that failed the checks above learns nothing about it (SEC-004.11).
-    const i = projectIndex(url, roots.length);
-    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) {
+      sendJson(res, 413, { error: 'The request is too large.' });
+      return false;
+    }
+    return true;
+  };
+
+  /** Read a JSON body of at most MAX_MOVE_BODY bytes; answers 413 or 400 itself and then does not call back. */
+  const readJson = (req: IncomingMessage, res: ServerResponse, then: (body: unknown) => void) => {
     const chunks: Buffer[] = [];
     let size = 0;
     req.on('data', (c: Buffer) => {
@@ -276,6 +290,16 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
       } catch {
         return sendJson(res, 400, { error: 'The request body is not valid JSON.' });
       }
+      then(body);
+    });
+  };
+
+  const handleMove = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    // The project is picked only now, so a request that failed the checks above learns nothing about it (SEC-004.11).
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
       const problem = moveShapeError(body);
       if (problem) return sendJson(res, 422, { error: problem });
       const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
@@ -294,6 +318,42 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
     });
   };
 
+  // ---- guided setup (BL-055): only for a root named on the command line that has no .specs/
+  const named = (i: number) => opts.named?.[i] ?? true;
+  const setupIndex = (url: URL): number | null => {
+    const i = projectIndex(url, roots.length);
+    return i !== null && named(i) && specsMissing(roots[i]) ? i : null;
+  };
+
+  const handleSetupGet = (res: ServerResponse, url: URL) => {
+    const i = setupIndex(url);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    setupQuestions(roots[i]).then(
+      q => sendJson(res, 200, q),
+      err => sendJson(res, 422, { error: `This folder could not be read: ${(err as Error).message}` }),
+    );
+  };
+
+  const handleSetupPost = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length);
+    if (i === null || !named(i)) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      const problem = answersShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      writeLock = writeLock
+        .then(() => setupProject(roots[i], body as Record<string, string>))
+        .then(out => {
+          if (out.status === 200) return sendJson(res, 200, { specs: payload(i), kept: out.kept, notice: out.notice });
+          if (out.status === 409 && out.specsExists) return sendJson(res, 409, { error: out.error, specs: payload(i) });
+          return sendJson(res, out.status, { error: out.error });
+        })
+        .catch(() => {
+          if (!res.headersSent) sendJson(res, 500, { error: 'Setup could not finish.' });
+        });
+    });
+  };
+
   const server = createServer((req, res) => {
     try {
       const { port } = server.address() as AddressInfo;
@@ -302,6 +362,12 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
       if (url.pathname === '/api/tasks/move') {
         if (req.method === 'POST' && token) return handleMove(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/setup') {
+        if (token && req.method === 'GET') return handleSetupGet(res, url);
+        if (token && req.method === 'POST') return handleSetupPost(req, res, url);
+        res.setHeader('Allow', token ? 'GET, POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
       if (req.method !== 'GET') {

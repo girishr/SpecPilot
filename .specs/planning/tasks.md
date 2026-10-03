@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-03 (v2.7.1 shipped)
-version: 5.97
+lastUpdated: 2026-10-03 (BL-067 built)
+version: 5.99
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -66,7 +66,7 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-067 | `specpilot serve`: remember projects across runs and add one from the page — a registry outside the repo (e.g. `~/.specpilot/projects.json`, the mockup's Recent projects and Open sheet), deferred from BL-054, which takes its projects from the command line only. Needs its own Spec Report: a write path outside the repo (against ARCH-007.5) and a route that accepts a folder path from the browser. |
+| BL-067 | `specpilot serve`: remember projects across runs and add one from the page — a registry outside the repo (`~/.specpilot/projects.json`: path, last-opened time, pinned flag; ≤ 50 entries; folder 0700, file 0600, temp file + fsync + rename; never repaired), the mockup's Open a Project sheet (Folder tab only: path input, Recent projects list, Remove from list) behind a `+` rail tile, `POST /api/projects` with the move route's Host, Origin, token, JSON and 16 KB checks and one path rule (`~`, absolute, `realpath`, directory, not home, not a root, not already served), `GET /api/projects`, `POST /api/projects/remove`; a folder opened at runtime gets the next index and existing indices never change; a folder without `.specs/` goes to BL-055's guided setup; `--read-only` turns it all off; tests use a temp `HOME`. Deferred from BL-054. Architectural: the first write outside the repo (ARCH-007.5) and the first route that accepts a folder path (REQ-002.H.18 to H.21, ARCH-003.21, ARCH-004.42, SEC-002.5 k, SEC-004.13). Built on `feat/bl-067-project-registry` after "yes, proceed" (defaults kept: command-line folders recorded only when the file exists, plain `serve` shows the current directory, pinning stored but not settable; plus the developer's two additions: a cap of 20 served projects, and the per-process lock accepted). New `projectRegistry.ts`; one shared `underLock()` guard for every write route (a throw → 500, lock kept; found by spec-reviewer); 93 new tests (608 → 701); checked by hand in a browser; not committed. |
 
 ## Completed
 

@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { request } from 'http';
 import { AddressInfo } from 'net';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
@@ -12,12 +12,30 @@ import { watchedFiles } from '../utils/specPoller';
 import { serveCommand } from '../commands/serve';
 import * as specSetup from '../utils/specSetup';
 import { STAGING_MARKER } from '../utils/specSetup';
+import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { md } = require('../../ui/md.js') as { md: (src: string) => string };
 
 const REPO = join(__dirname, '..', '..');
+
+// Every test runs under a temp HOME (BL-067): nothing here may read or write the real ~/.specpilot.
+const REAL_HOME = os.homedir();
+let HOME: string;
+beforeEach(() => {
+  HOME = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-home-')));
+  process.env.HOME = HOME;
+  process.env.USERPROFILE = HOME;
+  if (registryPath().startsWith(REAL_HOME + '/')) throw new Error('the registry path would be the real one');
+});
+afterEach(() => {
+  process.env.HOME = REAL_HOME;
+  process.env.USERPROFILE = REAL_HOME;
+  rmSync(HOME, { recursive: true, force: true });
+});
+/** The temp home's registry file, as the command would compute it. */
+const regFile = () => registryPath(HOME);
 
 function write(root: string, rel: string, content: string): void {
   mkdirSync(join(root, rel, '..'), { recursive: true });
@@ -1453,6 +1471,458 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
       expect(existsSync(join(e.root, '.specpilot-setup-0123456789ab', STAGING_MARKER))).toBe(true);
     } finally {
       chmodSync(join(e.root, '.specpilot-setup-0123456789ab'), 0o700);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Project registry and opening a folder from the page (BL-067). Every test runs under the temp HOME.
+
+describe('project registry over HTTP', () => {
+  let p: ReturnType<typeof makeProject>;
+  let q: ReturnType<typeof makeProject>;
+  let e: ReturnType<typeof makeEmpty>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    ...over,
+  });
+  const open = (path: unknown, headers = good()) => post(port, JSON.stringify({ path }), headers, '/api/projects');
+  const remove = (path: unknown) => post(port, JSON.stringify({ path }), good(), '/api/projects/remove');
+  const list = async () => JSON.parse((await hit(port, '/api/projects')).body);
+  const start = async (opts: { readOnly?: boolean; named?: boolean[] } = {}) => {
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { registry: regFile(), ...opts });
+    port = (spec.server.address() as AddressInfo).port;
+    const page = (await hit(port, '/')).body;
+    token = (/<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec(page) || [])[1];
+  };
+  const seed = (entries: RegistryEntry[]) => writeRegistry(regFile(), entries);
+  const fileSha = () => createHash('sha256').update(readFileSync(regFile())).digest('hex');
+  const tmpFiles = () => (existsSync(join(HOME, '.specpilot')) ? readdirSync(join(HOME, '.specpilot')).filter(n => n.endsWith('.tmp')) : []);
+
+  beforeEach(async () => {
+    p = makeProject();
+    q = makeProject();
+    e = makeEmpty();
+    await start();
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+    q.cleanup();
+    e.cleanup();
+  });
+
+  it('GET /api/projects with no file lists nothing and creates nothing', async () => {
+    expect(await list()).toEqual({ path: '~/.specpilot/projects.json', entries: [], error: null });
+    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    expect((await hit(port, '/api/projects?project=5')).status).toBe(200); // the parameter is ignored
+  });
+
+  it('opens a folder with .specs/ as the next index, serves it fully, records it, and leaves project 0 untouched', async () => {
+    const before = JSON.parse((await hit(port, '/api/specs')).body);
+    delete before.projects; // `projects` grows by one; the rest must not change
+    const t0 = Date.now();
+    const r = await open(q.root);
+    expect(r.status).toBe(200);
+    expect(r.json.project).toBe(1);
+    expect(r.json.specs.project.root).toBe(realpathSync(q.root));
+    expect(r.json.specs.projects).toHaveLength(2);
+    expect(r.json.registry.error).toBeNull();
+    expect(r.json.registry.entries).toHaveLength(1);
+    const { projects: after, ...rest } = JSON.parse((await hit(port, '/api/specs')).body);
+    expect(rest).toEqual(before);
+    expect(after).toHaveLength(2);
+    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).project.root).toBe(realpathSync(q.root));
+    expect((await hit(port, '/api/file?project=1&p=CLAUDE.md')).status).toBe(200);
+    const es = await openEvents(port, undefined, '/api/events?project=1');
+    writeFileSync(join(q.root, '.specs/planning/tasks.md'), '---\nfileID: TASKS-001\n---\n\n# Tasks\n\n## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | Changed |\n');
+    expect(await es.waitFor(/event: change\ndata: (.*)\n/)).toContain('.specs/planning/tasks.md');
+    es.close();
+    // the registry file: 0600 in a 0700 folder, one entry, pinned false, lastOpened in this test's window
+    expect(statSync(join(HOME, '.specpilot')).mode & 0o777).toBe(0o700);
+    expect(statSync(regFile()).mode & 0o777).toBe(0o600);
+    const reg = readRegistry(regFile());
+    expect(reg.entries).toHaveLength(1);
+    expect(reg.entries![0]).toMatchObject({ path: realpathSync(q.root), pinned: false });
+    expect(Date.parse(reg.entries![0].lastOpened)).toBeGreaterThanOrEqual(t0 - 1000);
+    expect(tmpFiles()).toEqual([]);
+    // a move in project 1 against its own hash
+    const hash = JSON.parse((await hit(port, '/api/specs?project=1')).body).tasks.sha256;
+    const mv = await post(port, JSON.stringify({ id: 'BL-001', toSection: 'currentSprint', toIndex: 0 }), { ...good(), 'If-Match': hash }, '/api/tasks/move?project=1');
+    expect(mv.status).toBe(422); // no Current Sprint table in the fixture: refused, which proves the route reached project 1
+    expect(mv.json.error).toContain('Current Sprint');
+  });
+
+  it('opens a folder without .specs/ and offers guided setup there (it counts as named)', async () => {
+    const r = await open(e.root);
+    expect(r.status).toBe(200);
+    expect(r.json.specs.project.specs).toBe(false);
+    const qs = await hit(port, '/api/setup?project=1');
+    expect(qs.status).toBe(200);
+    expect(JSON.parse(qs.body).questions.some((x: { key: string }) => x.key === 'ide')).toBe(true);
+    const setup = await post(port, ANSWERS, good(), '/api/setup?project=1');
+    expect(setup.status).toBe(200);
+    expect(existsSync(join(e.root, '.specs/project/project.yaml'))).toBe(true);
+  });
+
+  it('expands ~/ against the temp home', async () => {
+    mkdirSync(join(HOME, 'x', '.specs'), { recursive: true });
+    const r = await open('~/x');
+    expect(r.status).toBe(200);
+    expect(r.json.specs.project.root).toBe(join(HOME, 'x'));
+    expect((await list()).entries[0].root).toBe('~/x');
+  });
+
+  it('lists entries in display order with the served index, ~/ roots and exists', async () => {
+    mkdirSync(join(HOME, 'gone'));
+    seed([{ path: join(HOME, 'gone'), lastOpened: '2026-10-01T10:00:00.000Z', pinned: false }, { path: '/pinned-elsewhere', lastOpened: '2026-09-01T10:00:00.000Z', pinned: true }]);
+    await open(q.root);
+    rmSync(join(HOME, 'gone'), { recursive: true });
+    const l = await list();
+    expect(l.entries.map((x: { path: string }) => x.path)).toEqual(['/pinned-elsewhere', realpathSync(q.root), join(HOME, 'gone')]);
+    expect(l.entries[1]).toMatchObject({ project: 1, exists: true });
+    expect(l.entries[2]).toMatchObject({ root: '~/gone', project: null, exists: false });
+    expect(l.entries[0]).toMatchObject({ pinned: true, project: null, exists: false });
+  });
+
+  it.each([
+    ['the same folder again', () => realpathSync(q.root), 1],
+    ['its symbolic link', () => join(q.root, '..', 'qlink'), 1],
+    ["project 0's folder", () => p.root, 0],
+  ])('refuses %s with 409 and the index, registry unchanged', async (_what, path, index) => {
+    await open(q.root);
+    try { symlinkSync(q.root, join(q.root, '..', 'qlink')); } catch { /* exists */ }
+    const before = fileSha();
+    const r = await open(path());
+    expect(r.status).toBe(409);
+    expect(r.json).toEqual({ error: expect.stringContaining(`is already open as project ${index}.`), project: index });
+    expect(fileSha()).toBe(before);
+    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(2);
+  });
+
+  it('refuses the current-directory default (served from its realpath) as already open', async () => {
+    // a server whose root 0 came in without realpath, as the cwd default did until BL-067: the command now resolves it
+    const r = await open(realpathSync(p.root));
+    expect(r.status).toBe(409);
+    expect(r.json.project).toBe(0);
+  });
+
+  it.each([
+    ['the home folder', () => HOME],
+    ['~', () => '~'],
+    ['/', () => '/'],
+    ['a regular file', () => join(p.root, 'CLAUDE.md')],
+    ['a missing folder', () => join(p.root, 'nope')],
+    ['a relative path', () => 'relative/path'],
+    ['an empty string', () => ''],
+    ['a path with NUL', () => '/tmp/a\0b'],
+    ['4097 characters', () => '/' + 'a'.repeat(4096)],
+    ['a non-string', () => 5],
+  ])('refuses %s with 422 and creates no registry file', async (_what, path) => {
+    const r = await open(path());
+    expect(r.status).toBe(422);
+    expect(typeof r.json.error).toBe('string');
+    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
+  });
+
+  it.each([
+    ['an array body', '[]'],
+    ['a missing key', '{}'],
+    ['an extra key', JSON.stringify({ path: '/tmp', x: 1 })],
+  ])('refuses %s with 422', async (_what, body) => {
+    const r = await post(port, body, good(), '/api/projects');
+    expect(r.status).toBe(422);
+    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+  });
+
+  it('refuses a body that is not JSON with 400', async () => {
+    expect((await post(port, '{nope', good(), '/api/projects')).status).toBe(400);
+  });
+
+  it.each([
+    ['no token', { 'X-SpecPilot-Token': undefined }, 403],
+    ['a wrong token', { 'X-SpecPilot-Token': 'f'.repeat(64) }, 403],
+    ['a short token', { 'X-SpecPilot-Token': 'abc' }, 403],
+    ['a foreign Origin', { Origin: 'http://evil.example' }, 403],
+    ['no Origin', { Origin: undefined }, 403],
+    ['Host localhost with Origin 127.0.0.1', { Host: 'localhost:PORT' }, 403],
+    ['a foreign Host', { Host: 'evil.example:PORT', Origin: 'http://evil.example:PORT' }, 403],
+    ['a form content type', { 'Content-Type': 'application/x-www-form-urlencoded' }, 415],
+    ['a text content type', { 'Content-Type': 'text/plain' }, 415],
+  ])('refuses %s on open and remove with no registry file created', async (_what, over, status) => {
+    const h = Object.fromEntries(Object.entries(over).map(([k, v]) => [k, typeof v === 'string' ? v.replace('PORT', String(port)) : v]));
+    expect((await open(q.root, good(h))).status).toBe(status);
+    expect((await post(port, JSON.stringify({ path: q.root }), good(h), '/api/projects/remove')).status).toBe(status);
+    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
+  });
+
+  it('refuses a 17 KB body with 413', async () => {
+    const body = JSON.stringify({ path: '/' + 'a'.repeat(17 * 1024) });
+    expect((await post(port, body, good({ 'Content-Length': String(Buffer.byteLength(body)) }), '/api/projects')).status).toBe(413);
+    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+  });
+
+  it('two simultaneous opens get indices 1 and 2 and both are recorded and served', async () => {
+    const [a, b] = await Promise.all([open(q.root), open(e.root)]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect([a.json.project, b.json.project].sort()).toEqual([1, 2]);
+    expect(readRegistry(regFile()).entries!.map(x => x.path).sort()).toEqual([realpathSync(e.root), realpathSync(q.root)].sort());
+    expect(JSON.parse((await hit(port, '/api/specs?project=2')).body).projects).toHaveLength(3);
+    expect((await list()).entries).toHaveLength(2);
+  });
+
+  it(`refuses the open past ${MAX_PROJECTS} served projects with 409 and no registry change`, async () => {
+    const base = mkdtempSync(join(os.tmpdir(), 'specpilot-many-'));
+    try {
+      for (let i = 1; i < MAX_PROJECTS; i++) {
+        mkdirSync(join(base, `p${i}`, '.specs'), { recursive: true });
+        expect((await open(join(base, `p${i}`))).status).toBe(200);
+      }
+      expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(MAX_PROJECTS);
+      const before = fileSha();
+      const r = await open(q.root);
+      expect(r.status).toBe(409);
+      expect(r.json).toEqual({ error: `This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.` });
+      expect(fileSha()).toBe(before);
+      expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(MAX_PROJECTS);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  });
+
+  it('the 51st entry drops the oldest unpinned one and keeps a seeded pinned one', async () => {
+    const entries: RegistryEntry[] = [];
+    for (let i = 0; i < 50; i++) entries.push({ path: `/seed/p${i}`, lastOpened: new Date(Date.UTC(2026, 0, 1 + i)).toISOString(), pinned: i === 0 });
+    seed(entries);
+    expect((await open(q.root)).status).toBe(200);
+    const paths = readRegistry(regFile()).entries!.map(x => x.path);
+    expect(paths).toHaveLength(50);
+    expect(paths).toContain('/seed/p0');
+    expect(paths).not.toContain('/seed/p1');
+    expect(paths).toContain(realpathSync(q.root));
+  });
+
+  it('removes an entry without touching the folder, and the served project stays served', async () => {
+    await open(q.root);
+    const tree = snapshot(q.root);
+    const r = await remove(realpathSync(q.root));
+    expect(r.status).toBe(200);
+    expect(r.json.entries).toEqual([]);
+    expect(snapshot(q.root)).toEqual(tree);
+    expect(readRegistry(regFile()).entries).toEqual([]);
+    expect((await hit(port, '/api/specs?project=1')).status).toBe(200);
+    expect(tmpFiles()).toEqual([]);
+  });
+
+  it.each([
+    ['a path not in the list', () => '/not/in/list'],
+    ['a ~/ form of a stored path', () => '~/' + 'x'],
+    ['a relative path', () => 'x'],
+  ])('remove of %s → 422, list unchanged', async (_what, path) => {
+    mkdirSync(join(HOME, 'x', '.specs'), { recursive: true });
+    await open(join(HOME, 'x'));
+    const before = fileSha();
+    const r = await remove(path());
+    expect(r.status).toBe(422);
+    expect(r.json.error).toBe('That folder is not in the list.');
+    expect(fileSha()).toBe(before);
+  });
+
+  it('with a corrupt file: GET says why, an open still serves the folder, remove is refused, the file is byte-identical', async () => {
+    mkdirSync(join(HOME, '.specpilot'));
+    writeFileSync(regFile(), '{broken');
+    const before = fileSha();
+    const l = await list();
+    expect(l.entries).toEqual([]);
+    expect(l.error).toMatch(/not valid JSON/);
+    const r = await open(q.root);
+    expect(r.status).toBe(200);
+    expect(r.json.project).toBe(1);
+    expect(r.json.registry.error).toMatch(/not valid JSON/);
+    expect((await hit(port, '/api/specs?project=1')).status).toBe(200);
+    const rm = await remove(q.root);
+    expect(rm.status).toBe(422);
+    expect(rm.json.error).toMatch(/not valid JSON/);
+    expect(fileSha()).toBe(before);
+    expect(tmpFiles()).toEqual([]);
+  });
+
+  it('with a symlinked projects.json: refused, never followed', async () => {
+    const target = join(HOME, 'elsewhere.json');
+    writeFileSync(target, JSON.stringify({ version: 1, projects: [] }));
+    mkdirSync(join(HOME, '.specpilot'));
+    symlinkSync(target, regFile());
+    const r = await open(q.root);
+    expect(r.status).toBe(200);
+    expect(r.json.registry.error).toMatch(/symbolic link/);
+    expect(readFileSync(target, 'utf-8')).toBe(JSON.stringify({ version: 1, projects: [] }));
+  });
+
+  it('refuses a folder whose allowlisted file cannot be read (422, nothing served or recorded), and the lock survives', async () => {
+    if (process.getuid && process.getuid() === 0) return; // root reads anything
+    chmodSync(join(q.root, '.specs/planning/tasks.md'), 0o000);
+    try {
+      const r = await open(q.root);
+      expect(r.status).toBe(422);
+      expect(r.json.error).toMatch(/^This folder could not be read: /);
+      expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
+      expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    } finally {
+      chmodSync(join(q.root, '.specs/planning/tasks.md'), 0o644);
+    }
+    expect((await open(e.root)).status).toBe(200); // the next write under the lock is answered
+  });
+
+  it('answers 500 and keeps the lock usable when a write under the lock throws', async () => {
+    const spy = jest.spyOn(specPoller, 'createPoller').mockImplementationOnce(() => { throw new Error('boom'); });
+    try {
+      const r = await open(q.root);
+      expect(r.status).toBe(500);
+      expect(r.json).toEqual({ error: 'The server could not finish this request.' });
+      expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1); // nothing half-opened
+    } finally {
+      spy.mockRestore();
+    }
+    const next = await open(e.root);
+    expect(next.status).toBe(200);
+    expect(next.json.project).toBe(1);
+  });
+
+  it('leaves no timer after close() with an opened project that had a stream', async () => {
+    await open(q.root);
+    const es = await openEvents(port, undefined, '/api/events?project=1');
+    await until(() => spec.streams() === 1);
+    const before = timerCount();
+    es.close();
+    await spec.close();
+    expect(timerCount()).toBeLessThanOrEqual(before);
+    spec = await startSpecServer([p.root], 0, 'x', { registry: regFile() }); // so afterEach can close something
+  });
+});
+
+describe('project registry with --read-only', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  beforeEach(async () => {
+    p = makeProject();
+    mkdirSync(join(HOME, '.specpilot'));
+    writeFileSync(regFile(), '{broken'); // never read: nothing may complain
+    spec = await startSpecServer([p.root], 0, 'x', { readOnly: true, registry: regFile() });
+    port = (spec.server.address() as AddressInfo).port;
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it('answers 405 with an empty Allow on all three routes and puts no token in the page', async () => {
+    for (const [path, method] of [['/api/projects', 'GET'], ['/api/projects', 'POST'], ['/api/projects/remove', 'POST']] as const) {
+      const r = await hit(port, path, { method });
+      expect(r.status).toBe(405);
+      expect(r.headers.allow).toBe('');
+    }
+    expect((await hit(port, '/')).body).not.toContain('specpilot-token" content=');
+    expect(readFileSync(regFile(), 'utf-8')).toBe('{broken');
+  });
+});
+
+describe('serveCommand and the registry (BL-067)', () => {
+  let a: ReturnType<typeof makeProject>;
+  let b: ReturnType<typeof makeProject>;
+  let exit: jest.SpyInstance;
+  let logs: string[];
+
+  beforeEach(() => {
+    a = makeProject();
+    b = makeProject();
+    logs = [];
+    exit = jest.spyOn(process, 'exit').mockImplementation(((code: number) => {
+      throw new Error(`exit ${code}`);
+    }) as never);
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation((...x: unknown[]) => void logs.push(x.join(' ')));
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    a.cleanup();
+    b.cleanup();
+  });
+
+  async function serveAndStop(folders: string[], options: { readOnly?: boolean } = {}): Promise<{ port: number; out: string[] }> {
+    const probe = await startSpecServer([a.root], 0, 'x');
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+    let exited: (code: number) => void;
+    const done = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
+    await serveCommand(folders, { port: String(port), ...options });
+    const out = stripVTControlCharacters(logs.join('\n')).split('\n');
+    process.emit('SIGINT');
+    expect(await done).toBe(0);
+    return { port, out };
+  }
+
+  it('creates no registry file when there is none, and prints the registry line after the hint', async () => {
+    const { port, out } = await serveAndStop([a.root]);
+    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    expect(out.slice(0, 3)).toEqual([
+      `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
+      'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Folders opened in the page are remembered in ~/.specpilot/projects.json.',
+    ]);
+  });
+
+  it('records the named folders when the file already exists, keeping other entries', async () => {
+    writeRegistry(regFile(), [{ path: '/other', lastOpened: '2026-01-01T00:00:00.000Z', pinned: false }]);
+    const t0 = Date.now();
+    await serveAndStop([a.root, b.root]);
+    const reg = readRegistry(regFile());
+    expect(reg.entries!.map(x => x.path)).toEqual(['/other', realpathSync(a.root), realpathSync(b.root)]);
+    for (const x of reg.entries!.slice(1)) expect(Date.parse(x.lastOpened)).toBeGreaterThanOrEqual(t0 - 1000);
+    expect(reg.entries![0].lastOpened).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('with --read-only leaves an existing file byte-identical and prints no registry line', async () => {
+    writeRegistry(regFile(), [{ path: '/other', lastOpened: '2026-01-01T00:00:00.000Z', pinned: false }]);
+    const before = createHash('sha256').update(readFileSync(regFile())).digest('hex');
+    const { out } = await serveAndStop([a.root], { readOnly: true });
+    expect(createHash('sha256').update(readFileSync(regFile())).digest('hex')).toBe(before);
+    expect(out.some(l => l.includes('projects.json'))).toBe(false);
+  });
+
+  it('prints the refusal line once for a corrupt file and starts', async () => {
+    mkdirSync(join(HOME, '.specpilot'));
+    writeFileSync(regFile(), '{broken');
+    const { out } = await serveAndStop([a.root]);
+    const lines = out.filter(l => l.includes('could not be read'));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatch(/^~\/\.specpilot\/projects\.json could not be read \(.*not valid JSON\)\. It was left as it is; projects opened in this run are not remembered\.$/);
+    expect(out[0]).toContain('SpecPilot is serving');
+    expect(readFileSync(regFile(), 'utf-8')).toBe('{broken');
+  });
+
+  it('serves the current-directory default from its realpath', async () => {
+    const link = join(a.root, '..', 'cwdlink');
+    symlinkSync(a.root, link);
+    const cwd = process.cwd();
+    process.chdir(link);
+    try {
+      const { port, out } = await serveAndStop([]);
+      expect(out[0]).toBe(`SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`);
+    } finally {
+      process.chdir(cwd);
     }
   });
 });

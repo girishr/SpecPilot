@@ -314,3 +314,23 @@ input.txt{width:100%}
 .setup .keep{color:var(--label-3);font-size:13px;line-height:1.5;padding:6px 0 0}
 .setup button.go{display:inline-block;padding:8px 14px;border-radius:var(--rs);background:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .setup button.go:disabled{opacity:.6;cursor:default}
+
+/* Open a Project sheet (BL-067): the mockup's sheet and + tile, Folder tab only */
+.tile.act{background:transparent;border:1px dashed var(--sep-2);color:var(--label-3)}
+.tile.act:hover{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.tile.act svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
+.sheet{width:min(620px,100%);max-height:84vh;display:flex;flex-direction:column;background:var(--ground);border:1px solid var(--sep-2);border-radius:6px;overflow:hidden;animation:rise .25s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sheet .sh{display:flex;align-items:center;gap:10px;padding:16px 18px 6px}
+.sheet .sh h2{margin:0;font-size:18px;font-weight:600;text-wrap:balance}
+.sheet .sh p{margin:2px 0 0;color:var(--label-3);font-size:13px}
+.sheet .sb{padding:12px 18px;display:flex;flex-direction:column;gap:14px;overflow:auto;overscroll-behavior:contain;min-height:0;margin:0}
+.sheet .sf{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px;border-top:1px solid var(--sep)}
+.field{display:flex;gap:8px;align-items:center;padding:6px 14px}
+.field .ico{color:var(--label-3);flex:none}
+.field input{flex:1;background:transparent;border:0;outline:0;font-family:var(--mono);font-size:13px;color:var(--label);min-width:0;padding:6px 0}
+.field input::placeholder{color:var(--label-3)}
+.recent .row{padding-right:8px}
+.recent .row .body{cursor:pointer}
+.recent .btn{flex:none}
+.sheet .note{padding:10px 14px}

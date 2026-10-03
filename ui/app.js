@@ -124,7 +124,7 @@ document.addEventListener('focusout',e=>{if(e.target.closest&&e.target.closest('
 window.addEventListener('scroll',hideTip,true);window.addEventListener('resize',hideTip);
 $('#rail').addEventListener('keydown',e=>{
   if(e.key!=='ArrowDown'&&e.key!=='ArrowUp'&&e.key!=='Home'&&e.key!=='End')return;
-  const tiles=$$('#rail .tile');const i=tiles.indexOf(document.activeElement);if(i<0)return;
+  const tiles=$$('#rail .tile').filter(t=>!t.hidden);const i=tiles.indexOf(document.activeElement);if(i<0)return;
   e.preventDefault();
   const n=e.key==='Home'?0:e.key==='End'?tiles.length-1:(i+(e.key==='ArrowDown'?1:-1)+tiles.length)%tiles.length;
   tiles[n].focus();
@@ -288,7 +288,7 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
-  if(e.key==='Escape'){hideTip();closeInsp();closePal();setNav(false);return}
+  if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();setNav(false);return}
   if(inField||mod||e.altKey)return;
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$((mode==='board'?'#boardMode':'#listMode')+' .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
@@ -485,12 +485,78 @@ async function switchProject(n,keepRoute){
   try{const r=await fetch('/api/specs?'+pq(),{cache:'no-store'});if(!r.ok)throw new Error('/api/specs: HTTP '+r.status);d=await r.json();}
   catch(e){if(PROJECT===n)PROJECT=was;toast('Could not load the project: '+e.message);return;}
   if(PROJECT!==n)return;
+  showProject(d,keepRoute);
+}
+/* Draw project PROJECT from payload d: the tail of a switch, also used with the payload an open returns (BL-067). */
+function showProject(d,keepRoute){
   Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
   DATA=d;selected=null;
   renderProject();renderTasks();renderIde();renderAgentFiles();listen();
   if(keepRoute)route();else go('board');
 }
 $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-project]');if(b&&+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);});
+
+/* ---------------- open a project (BL-067) ----------------
+   The + tile opens the mockup's sheet (Folder tab only). The list is GET /api/projects; opening is
+   POST /api/projects, which serves one more folder and remembers it; Remove from list edits the
+   registry only. Nothing here is file content; the strings are the ones REQ-002.H.21 lists. */
+const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
+let openBusy=false;
+if(TOKEN)addBtn.hidden=false;
+function openSheet(){hideTip();openVeil.classList.add('open');pathIn.value='';loadRecent();setTimeout(()=>pathIn.focus(),50);}
+function closeSheet(){if(!openVeil.classList.contains('open'))return;openVeil.classList.remove('open');addBtn.focus();}
+function drawRecent(reg){
+  $('#recentPath').textContent=reg.path||'';
+  const box=$('#recentBox');
+  if(reg.error){box.innerHTML=`<p class="note">${esc(reg.error)}</p>`;return;}
+  if(!reg.entries.length){box.innerHTML='<div class="empty">No projects remembered yet.</div>';return;}
+  box.innerHTML=reg.entries.map(e=>{
+    const when=new Date(e.lastOpened),det=[isNaN(when)?e.lastOpened:when.toLocaleString()];
+    if(e.project!==null)det.push('open as project '+e.project);
+    if(!e.exists)det.push('folder not found');
+    return `<div class="row recent"><div class="body" data-path="${esc(e.path)}" role="button" tabindex="0"><div class="ttl" translate="no">${esc(e.root)}</div><div class="det">${esc(det.join(' · '))}</div></div><button type="button" class="btn sm" data-remove="${esc(e.path)}">Remove from list</button></div>`;
+  }).join('');
+}
+async function loadRecent(){
+  let reg;
+  try{const r=await fetch('/api/projects',{cache:'no-store'});reg=r.ok?await r.json():{error:'HTTP '+r.status,entries:[]};}
+  catch(e){reg={error:'The server did not answer.',entries:[]};}
+  if(openVeil.classList.contains('open'))drawRecent(reg);
+}
+async function postPath(path,url){
+  const r=await fetch(url,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify({path})});
+  return {r,res:await r.json().catch(()=>({}))};
+}
+async function submitOpen(){
+  const path=pathIn.value.trim();if(!path||openBusy)return;
+  openBusy=true;$('#openGo').disabled=true;
+  let out;
+  try{out=await postPath(path,'/api/projects');}
+  catch(e){openBusy=false;$('#openGo').disabled=false;toast('The server did not answer.');return;}
+  openBusy=false;$('#openGo').disabled=false;
+  const {r,res}=out;
+  if(r.status===200){
+    closeSheet();PROJECT=res.project;showProject(res.specs,false);
+    const root=res.specs.projects[res.project].root;
+    toast(`${root} opened as project ${res.project}`+(res.registry&&res.registry.error?'. '+res.registry.error:''));
+  }else if(r.status===409&&typeof res.project==='number'){
+    closeSheet();toast(res.error||`Already open as project ${res.project}`);if(res.project!==PROJECT)switchProject(res.project);
+  }else toast(res.error||`Nothing was opened (HTTP ${r.status}).`);
+}
+async function removeRecent(path){
+  let out;
+  try{out=await postPath(path,'/api/projects/remove');}catch(e){toast('The server did not answer.');return;}
+  if(out.r.status===200)drawRecent(out.res);else toast(out.res.error||`Nothing was removed (HTTP ${out.r.status}).`);
+}
+addBtn.onclick=openSheet;
+$('#openCancel').onclick=closeSheet;
+openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
+$('#openForm').onsubmit=e=>{e.preventDefault();submitOpen();};
+$('#recentBox').addEventListener('click',e=>{
+  const rm=e.target.closest('[data-remove]');if(rm){removeRecent(rm.dataset.remove);return;}
+  const row=e.target.closest('[data-path]');if(row){pathIn.value=row.dataset.path;pathIn.focus();}
+});
+$('#recentBox').addEventListener('keydown',e=>{const row=e.target.closest&&e.target.closest('[data-path]');if(row&&(e.key==='Enter'||e.key===' ')){e.preventDefault();pathIn.value=row.dataset.path;pathIn.focus();}});
 
 /* boot: the project count is unknown until the first load, so an index past the end falls back to project 0 */
 insp.setAttribute('aria-hidden','true');

@@ -71,6 +71,7 @@
   <svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
   <div class="rsep" aria-hidden="true"></div>
   <div class="rlist" id="projList" role="group" aria-label="Open projects"></div>
+  <button class="tile act" id="addBtn" aria-label="Add a project" data-tip="Add a project" hidden><svg aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
   <div class="rfoot">
     <button class="tile ghost" id="themeBtn" aria-label="Switch between light and dark" data-tip="Light / dark"><svg aria-hidden="true" focusable="false"><use href="#i-sun"/></svg></button>
   </div>
@@ -173,6 +174,16 @@
   <aside class="insp" id="insp" aria-label="Details"></aside>
 </main>
 </div>
+
+<!-- OPEN A PROJECT (BL-067): the mockup's sheet, Folder tab only; the list is GET /api/projects -->
+<div class="veil" id="openVeil"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="openTitle" tabindex="-1">
+  <div class="sh"><div><h2 id="openTitle">Open a Project</h2><p>SpecPilot reads the folder on this machine. Nothing is uploaded.</p></div></div>
+  <form class="sb" id="openForm" autocomplete="off">
+    <div class="gl"><div class="box"><div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="pathIn" name="folder-path" type="text" spellcheck="false" aria-label="Folder path" placeholder="/path/to/project or ~/project"></div></div></div>
+    <div class="gl"><div class="gh">Recent projects <span class="cnt" id="recentPath" translate="no"></span></div><div class="box" id="recentBox"></div></div>
+  </form>
+  <div class="sf"><button type="button" class="btn" id="openCancel">Cancel</button><button type="submit" class="btn pri" id="openGo" form="openForm">Open</button></div>
+</div></div>
 
 <!-- PALETTE -->
 <div class="veil pal-veil" id="palVeil"><div class="pal"><input id="palIn" type="search" name="q" aria-label="Search views, spec files and tasks" placeholder="Jump to a view, spec file or task…" autocomplete="off" spellcheck="false"><ul id="palList"></ul></div></div>

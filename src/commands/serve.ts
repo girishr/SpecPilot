@@ -2,8 +2,9 @@ import chalk from 'chalk';
 import { spawn } from 'child_process';
 import { existsSync, realpathSync, statSync } from 'fs';
 import { join, resolve } from 'path';
-import { SpecServer, startSpecServer } from '../utils/specServer';
+import { displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
 import { removeStaleStaging, specsMissing } from '../utils/specSetup';
+import { homeDir, readRegistry, registryPath, upsertEntry, writeRegistry } from '../utils/projectRegistry';
 import { Logger } from '../utils/logger';
 
 const packageJson = require('../../package.json');
@@ -33,14 +34,14 @@ function openBrowser(url: string, logger: Logger): void {
 /**
  * Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current
  * directory (BL-054), which must contain `.specs/`; a named folder without one is served for guided
- * setup (BL-055).
+ * setup (BL-055). More folders can be opened from the page and are remembered in the registry (BL-067).
  */
 export async function serveCommand(folders: string[], options: ServeOptions): Promise<void> {
   const logger = new Logger();
   const roots: string[] = [];
 
   if (!folders.length) {
-    const root = process.cwd();
+    const root = realpathSync(process.cwd()); // like a named folder, so "already served" compares like for like (BL-067)
     if (!existsSync(join(root, '.specs'))) {
       logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, `specpilot init` first, or `specpilot serve .` to set one up in the browser.');
       return process.exit(1);
@@ -80,9 +81,26 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
     for (const root of roots) for (const dir of removeStaleStaging(root)) console.log(`Removed ${dir}/, left by an interrupted setup.`);
   }
 
+  // The registry (BL-067): the folders named here are recorded only when the file already exists, so
+  // plain `specpilot serve` never creates one; a file that cannot be used is said so and left alone.
+  const home = homeDir();
+  const registry = options.readOnly ? undefined : registryPath(home);
+  let registryNote: string | null = null;
+  if (registry) {
+    const read = readRegistry(registry);
+    if (read.error !== null) registryNote = `${displayRoot(registry, home)} could not be read (${read.error}). It was left as it is; projects opened in this run are not remembered.`;
+    else if (read.exists) {
+      try {
+        writeRegistry(registry, roots.reduce((entries, root) => upsertEntry(entries, root, new Date()), read.entries));
+      } catch (err) {
+        registryNote = `${displayRoot(registry, home)} could not be written (${(err as Error).message}). It was left as it is; projects opened in this run are not remembered.`;
+      }
+    }
+  }
+
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, log: m => logger.warn(m) });
+    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, log: m => logger.warn(m) });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -109,6 +127,8 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
           : 'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ),
   );
+  if (registry) console.log(chalk.gray(`Folders opened in the page are remembered in ${displayRoot(registry, home)}.`));
+  if (registryNote) console.log(registryNote);
   if (options.open) openBrowser(url, logger);
 
   process.once('SIGINT', () => {

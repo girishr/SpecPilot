@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-03
-version: 1.8
+lastUpdated: 2026-10-03 (BL-067 Spec Report)
+version: 1.9
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -120,7 +120,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.11] Multiple projects: roots fixed at start, chosen by index, no registry
 
 - **Date**: 2026-10-01
-- **Decision**: `specpilot serve a b c` serves the folders named on the command line, each `realpath`-resolved and required to contain `.specs/` (until BL-055: a named folder without it is served for setup, SEC-004.12). The list never changes while the server runs. `/api/` routes pick a project with `?project=<n>`, an index into that list: one value matching `^(0|[1-9][0-9]*)$` (empty, repeated, signed, padded or out of range → 404). Order: Host, method, then for a move Origin, token, content type and size, then the project, so an unauthenticated request never gets an answer that depends on the project; from there every SEC-004.8–SEC-004.10 control applies unchanged to that one root. One token per server start covers every project. Nothing is written outside the served folders; no route accepts a folder path.
+- **Decision**: `specpilot serve a b c` serves the folders named on the command line, each `realpath`-resolved and required to contain `.specs/` (until BL-055: a named folder without it is served for setup, SEC-004.12). The list never changes while the server runs (until BL-067, SEC-004.13). `/api/` routes pick a project with `?project=<n>`, an index into that list: one value matching `^(0|[1-9][0-9]*)$` (empty, repeated, signed, padded or out of range → 404). Order: Host, method, then for a move Origin, token, content type and size, then the project, so an unauthenticated request never gets an answer that depends on the project; from there every SEC-004.8–SEC-004.10 control applies unchanged to that one root. One token per server start covers every project. Nothing is written outside the served folders; no route accepts a folder path (both changed by BL-067, SEC-004.13: the list may grow by one route, and the registry is written outside the project; the index rule and the per-root guards are unchanged).
 - **Rationale**: Taking roots only from the command line means a web page can never choose what the server reads; an index (not a path) leaves nothing to traverse. Running the existing per-root guards unchanged keeps one security model to test. A shared origin and token across projects grant nothing new: the same local user named every folder.
 - **Alternatives considered**:
   - A registry in `~/.specpilot/projects.json` plus an "open folder" route — deferred to BL-067: the first write outside the project (ARCH-007.5), and a route that turns a forged request into "serve this folder".
@@ -142,6 +142,21 @@ This file records security-related architectural and implementation decisions ma
   - Cleaning staging folders by name alone: rejected, a user folder could share the name; the marker file makes the folder SpecPilot's.
   - Free-text handle as in the CLI: rejected over HTTP; the CLI's own prompt is unchanged.
 - **Reference**: SEC-002.5 (j), SEC-002.2, REQ-002.H.15, REQ-002.H.16, ARCH-004.40
+
+### [SEC-004.13] Opening a folder from the page: one path rule, append-only roots, a paths-only registry that is never repaired
+
+- **Date**: 2026-10-03
+- **Decision**: `POST /api/projects` (BL-067) is the third write route and the first that takes a path from the browser. It has every layer of SEC-004.10 (Host, exact `Origin`, per-start token, `application/json`, ≤ 16 KB) and is absent with `--read-only`. The path is checked by one function: a leading `~` is expanded against the home directory (`homeDir()`: `HOME`, else `USERPROFILE`, else `os.homedir()`) and nothing else; it must then be absolute (a relative path is refused, never resolved against the server's cwd), is `realpath`-resolved before every comparison, must be a directory, and must not be the home folder, a file-system root or a folder already served (409 naming the index). The folder is not read before it is served; afterwards it is one more indexed root under the unchanged SEC-004.8 to SEC-004.12 controls (read allowlist, `tasks.md` move rules, guided setup rules). The served list is append-only for the run: an index never changes and no root is dropped; one server serves at most 20 projects (409 past that). The registry `~/.specpilot/projects.json` is the one file SpecPilot writes outside a project: it holds paths, a last-opened time and a pinned flag, at most 50 entries; `~/.specpilot` must be a real folder and the file a regular file (`lstat`; a link is refused, never followed), both created by SpecPilot with modes 0700 and 0600 and only when the first entry is written; writes go to a temp file in the same folder, `fsync`, `rename`, after re-reading under the write lock; a file that cannot be read or parsed is refused with its reason for the run and never written. The lock is per process: two servers writing at once can drop one entry, never corrupt the file (accepted for a recents list). Reading the registry never adds a served root; removing an entry edits the list and makes no call on the folder.
+- **Rationale**: The two things SEC-004.11 kept out were kept out because of what they cost, not because they are wrong: a registry is a write outside the project, and an open route turns a forged request into "serve this folder". Both are taken on with the smallest surface that gives the feature. The CSRF layers already stop any page that cannot read ours, so the route's own job is to be unambiguous about the path (one rule, `realpath` first, no relative paths, no cwd) and to grant nothing new once the folder is served (same guards, same two writes). Home and `/` are refused because serving them means the page lists `~/.specs` style paths nobody has and a poller walks allowlisted folders under the whole home; a served-twice folder is refused because two indices for one folder would let two pollers and two hashes disagree. The registry stores paths only because a name or branch copied into it would be shown as fact when stale; it is never repaired because the file is the only copy of the user's list and a bad parse is more likely an edit than an attack; `lstat` and the 0700 / 0600 modes keep a planted link from redirecting the write and keep the list to the user. Append-only roots keep the index rule of SEC-004.11 exactly, so no existing test or guard changes meaning.
+- **Alternatives considered**:
+  - A native folder picker opened by the server (the mockup's `Browse Folders…`): rejected, a browser request would open an OS dialog from a background process; the typed path and the Recent list cover it.
+  - Serving the registry's folders at startup: rejected, a hand-edited or planted entry would then choose what the server reads without a request; the registry is a list to click, not a configuration.
+  - A `DELETE` method or a query parameter for removal: rejected, a JSON `POST` keeps the single `writeAllowed()` path with its content-type check and leaves nothing in URLs or logs.
+  - Repairing or truncating a corrupt registry: rejected, the only copy of the user's list; refuse and say so.
+  - Recording every command-line folder unconditionally: rejected, `specpilot serve` alone would write outside the project on first use; folders are recorded only when the file already exists (open question for the developer).
+  - Letting a request remove a served project from the running server: rejected, it would renumber or orphan indices other pages hold; the list is append-only for the run and the registry entry alone is removable.
+  - Storing the project name and branch in the registry: rejected, stale copies shown as fact; they are read live once the folder is served.
+- **Reference**: SEC-002.5 (k), REQ-002.H.18, REQ-002.H.19, REQ-002.H.20, ARCH-004.42
 
 ## Open Questions [SEC-005]
 

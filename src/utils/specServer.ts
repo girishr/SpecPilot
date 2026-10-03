@@ -10,10 +10,11 @@ import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
-// nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053)
-// and guided setup through specSetup.ts (BL-055).
+// nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
+// guided setup through specSetup.ts (BL-055) and the project registry through projectRegistry.ts (BL-067).
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
@@ -143,7 +144,7 @@ export function displayRoot(root: string, home = homedir()): string {
   return root.startsWith(home + sep) ? '~' + root.slice(home.length) : root;
 }
 
-/** One entry per served project, in command-line order: what the rail shows (BL-054). */
+/** One entry per served project, in index order: what the rail shows (BL-054). */
 function projectList(roots: string[]) {
   return roots.map(root => {
     const yamlFile = resolveAllowedPath(root, '.specs/project/project.yaml');
@@ -199,6 +200,8 @@ export interface SpecServerOptions {
   readOnly?: boolean;
   /** Per root, whether it was named on the command line: guided setup is offered only for those (BL-055). Default: all. */
   named?: boolean[];
+  /** The registry file (`~/.specpilot/projects.json`); the registry routes exist only when set and not read-only (BL-067). */
+  registry?: string;
 }
 
 export interface SpecServer {
@@ -209,10 +212,15 @@ export interface SpecServer {
   close(): Promise<void>;
 }
 
-export function createSpecServer(roots: string[], specpilotVersion: string, opts: SpecServerOptions = {}): SpecServer {
+export function createSpecServer(initialRoots: string[], specpilotVersion: string, opts: SpecServerOptions = {}): SpecServer {
+  // The served roots: the command line's, then those opened from the page (BL-067). Append-only for the
+  // life of the server, so an index never changes and nothing is dropped.
+  const roots = [...initialRoots];
+  const namedFlags = roots.map((_, i) => opts.named?.[i] ?? true);
+
   // ---- live reload (BL-052): streams, heartbeat, and one poller per project (BL-054) that runs
   // only while that project has a stream open; the heartbeat runs while any stream is open
-  const projects = roots.map(root => {
+  const projectFor = (root: string) => {
     const streams = new Set<ServerResponse>();
     const poller = createPoller(root, {
       intervalMs: opts.pollMs ?? 1000,
@@ -221,7 +229,8 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
       onChange: paths => streams.forEach(res => res.write(`event: change\ndata: ${JSON.stringify({ paths })}\n\n`)),
     });
     return { streams, poller };
-  });
+  };
+  const projects = roots.map(projectFor);
   const allStreams = () => projects.flatMap(p => [...p.streams]);
   let heartbeat: NodeJS.Timeout | null = null;
   const drop = (i: number, res: ServerResponse) => {
@@ -245,8 +254,14 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
 
   // ---- task moves (BL-053): the only write route, absent with --read-only
   const token = opts.readOnly ? null : randomBytes(32).toString('hex');
-  let writeLock: Promise<void> = Promise.resolve(); // moves run strictly one after another, in every project
+  let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
   const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
+  /** Run `fn` under the write lock; a throw answers 500 (when nothing was sent) and never breaks the chain for later writes. */
+  const underLock = (res: ServerResponse, fn: () => void) => {
+    writeLock = writeLock.then(fn).catch(() => {
+      if (!res.headersSent) sendJson(res, 500, { error: 'The server could not finish this request.' });
+    });
+  };
 
   /** The checks every write shares (SEC-004.10): Origin, token, content type, size. False = already answered. */
   const writeAllowed = (req: IncomingMessage, res: ServerResponse): boolean => {
@@ -304,7 +319,7 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
       if (problem) return sendJson(res, 422, { error: problem });
       const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
       if (!ifMatch) return sendJson(res, 428, { error: 'The move needs an If-Match header with the file hash the page last loaded.' });
-      writeLock = writeLock.then(() => {
+      underLock(res, () => {
         let out;
         try {
           out = moveTask(roots[i], body as TaskMove, ifMatch);
@@ -318,8 +333,8 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
     });
   };
 
-  // ---- guided setup (BL-055): only for a root named on the command line that has no .specs/
-  const named = (i: number) => opts.named?.[i] ?? true;
+  // ---- guided setup (BL-055): only for a named root (command line, or opened from the page) that has no .specs/
+  const named = (i: number) => namedFlags[i];
   const setupIndex = (url: URL): number | null => {
     const i = projectIndex(url, roots.length);
     return i !== null && named(i) && specsMissing(roots[i]) ? i : null;
@@ -354,11 +369,99 @@ export function createSpecServer(roots: string[], specpilotVersion: string, opts
     });
   };
 
+  // ---- project registry (BL-067): list, open a folder, forget an entry; all absent with --read-only
+  const registry = token && opts.registry ? opts.registry : null;
+  const home = homeDir();
+  const isDir = (p: string) => {
+    try {
+      return statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  };
+  /** The `GET /api/projects` body: the registry in display order, or its refusal reason. */
+  const registryBody = () => {
+    const read = readRegistry(registry!);
+    const entries = read.error !== null ? [] : sortEntries(read.entries);
+    return {
+      path: displayRoot(registry!, home),
+      entries: entries.map(e => {
+        const i = roots.indexOf(e.path);
+        return { path: e.path, root: displayRoot(e.path, home), lastOpened: e.lastOpened, pinned: e.pinned, project: i >= 0 ? i : null, exists: isDir(e.path) };
+      }),
+      error: read.error,
+    };
+  };
+  /** Re-read, change, write; the refusal reason when the registry cannot be used. */
+  const changeRegistry = (change: (entries: RegistryEntry[]) => RegistryEntry[] | null): string | null => {
+    const read = readRegistry(registry!);
+    if (read.error !== null) return read.error;
+    const next = change(read.entries);
+    if (next === null) return 'That folder is not in the list.';
+    try {
+      writeRegistry(registry!, next);
+    } catch (err) {
+      return `${displayRoot(registry!, home)} could not be written (${(err as Error).message}).`;
+    }
+    return null;
+  };
+
+  const handleProjectAdd = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
+    readJson(req, res, body => {
+      const problem = pathShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      underLock(res, () => {
+        const check = checkOpenPath((body as { path: string }).path, roots, home);
+        if ('status' in check) return sendJson(res, check.status, check.project === undefined ? { error: check.error } : { error: check.error, project: check.project });
+        if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: `This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.` });
+        // Read the folder's payload before serving it: a folder whose allowlisted files cannot be read is refused, not half-opened.
+        let specs;
+        try {
+          specs = buildSpecsPayload(check.root, specpilotVersion);
+        } catch (err) {
+          return sendJson(res, 422, { error: `This folder could not be read: ${(err as Error).message}` });
+        }
+        const project = projectFor(check.root); // built before anything is pushed, so the three lists never disagree
+        const n = roots.length;
+        roots.push(check.root);
+        namedFlags.push(true);
+        projects.push(project);
+        const error = changeRegistry(entries => upsertEntry(entries, check.root, new Date()));
+        sendJson(res, 200, { project: n, specs: { ...specs, projects: projectList(roots) }, registry: { ...registryBody(), ...(error ? { error } : {}) } });
+      });
+    });
+  };
+
+  const handleProjectRemove = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
+    readJson(req, res, body => {
+      const problem = pathShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      underLock(res, () => {
+        const error = changeRegistry(entries => removeEntry(entries, (body as { path: string }).path));
+        if (error) return sendJson(res, 422, { error });
+        sendJson(res, 200, registryBody());
+      });
+    });
+  };
+
   const server = createServer((req, res) => {
     try {
       const { port } = server.address() as AddressInfo;
       if (!isAllowedHost(req.headers.host, port)) return send(res, 403, TEXT, 'Forbidden: unexpected Host header\n');
       const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      if (url.pathname === '/api/projects') {
+        if (registry && req.method === 'GET') return sendJson(res, 200, registryBody());
+        if (registry && req.method === 'POST') return handleProjectAdd(req, res);
+        res.setHeader('Allow', registry ? 'GET, POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/projects/remove') {
+        if (registry && req.method === 'POST') return handleProjectRemove(req, res);
+        res.setHeader('Allow', registry ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
       if (url.pathname === '/api/tasks/move') {
         if (req.method === 'POST' && token) return handleMove(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');

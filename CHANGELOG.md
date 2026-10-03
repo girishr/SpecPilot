@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-10-03
+
 ### Fixed
 
 - **`specpilot add-specs`, `specpilot init` and `specpilot refine --update` no longer replace files you already have** (BL-073). Run in a project with its own `.vscode/settings.json`, `.cursor/rules/specpilot.mdc`, `SKILL.md`, a `specpilot-*` command file or similar, they used to overwrite it. Now any file outside `.specs/` that already exists is left exactly as it is and listed at the end as kept, the same keep rule `specpilot serve` guided setup follows. The overwrite / append / skip question for an existing `CLAUDE.md` or `.github/copilot-instructions.md` is gone: those files are kept too, so `--no-prompts` is no longer needed to avoid the existing-file question; it still skips the setup questions. Run `specpilot backfill` afterwards to merge the missing SpecPilot sections into kept files. `.gitattributes` still gets its missing `merge=union` lines, and the command now says how many it appended.

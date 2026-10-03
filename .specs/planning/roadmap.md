@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-10-03
-version: 1.22
+version: 1.23
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -78,12 +78,13 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-10-01: v2.5.0 — Fixed: `specpilot backfill` now updates installed `specpilot-*` command files (BL-058) (per CHANGELOG `[2.5.0]`)
 - 2026-10-02: v2.6.0 — Added: `specpilot serve` serves several projects from one server (BL-054); Fixed: `backfill` and `validate` follow what `init` writes since 2.0.0 (BL-066, BL-069); Changed: `## Completed` limit 40 lines (BL-060) (per CHANGELOG `[2.6.0]`)
 - 2026-10-03: v2.7.0 — Added: `specpilot serve` can set up `.specs/` in a named folder that has none, running what `add-specs` runs and keeping every existing file (BL-055) (per CHANGELOG `[2.7.0]`)
+- 2026-10-03: v2.7.1 — Fixed: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` instead of replacing them, and the overwrite / append / skip question is gone (BL-073) (per CHANGELOG `[2.7.1]`)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 
 Priority: the complete UI and its features first. Order, one BL per branch and Spec Report:
 
-1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073, on main, unreleased)
+1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
 2. Projects: remembered projects and the Open a Project sheet (BL-067, Current Sprint), then the Home screen (BL-PM-001)
 3. New projects: start a new project in an empty folder (BL-PM-003), clone a repository (BL-PM-002), the 8-step chat setup with live preview and drafts (BL-PM-004)
 4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)

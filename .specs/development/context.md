@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
 lastUpdated: 2026-10-03
-version: 2.18
+version: 2.19
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,7 +10,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (current version v2.6.0: `specpilot serve` multiple projects (BL-054); `backfill` and `validate` follow what `init` writes (BL-066, BL-069); next serve phase BL-055)
+- **Phase**: Active Development (current version v2.6.0: `specpilot serve` multiple projects (BL-054); `backfill` and `validate` follow what `init` writes (BL-066, BL-069); unreleased on `main`: `serve` guided setup (BL-055))
 - **Status**: Production-ready with continuous enhancements
 - **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4), `specpilot serve` read-only local UI with live reload (v2.3.0), task moves in `specpilot serve` and a `prompts.md` archive that keeps the newest entries (v2.4.0)
 - **Next Steps**: See tasks.md Current Sprint

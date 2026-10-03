@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-03 (v2.7.0 shipped)
-version: 5.94
+lastUpdated: 2026-10-03 (BL-PM items added, BL-067 to Current Sprint)
+version: 5.95
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -12,6 +12,7 @@ Task ID conventions
 
 - BL-###: Backlog items
 - CS-###: Current Sprint items
+- BL-PM-###: Backlog items for SpecPilot Local (`specpilot serve`) from the approved mockup (`~/Documents/dev/SpecPilot PM tool/specpilot-local.html`) that no BL covered yet
 - CD-girishr-###: Completed items (e.g. CD-girishr-001)
 - CD-###: Completed items
 
@@ -45,7 +46,6 @@ Notes
 | BL-062 | Codex: migrate from custom prompts to skills (custom prompts are deprecated). |
 | BL-064 | specpilot-reviewer: generated reviewer that checks Spec Reports, builds, merges and releases against the project's own .specs (rules.critical, requirements, architecture, security, tests). Claude Code subagent + /specpilot-review slash command for other IDEs. Advisory only; strict gate stays default. Covered by the BL-058 hash manifest. |
 | CS-078 | Force AI to write tests for every feature — two-part enforcement, not text-only: Mandate: add a new critical mandate line (e.g. "Every feature ships with tests. No exceptions.") to `buildCriticalMandatesMarkdown()` in `ideConfigGenerator.ts` — single shared source, so it propagates to every generated AI instruction file (`CLAUDE.md`, `.github/copilot-instructions.md`, Cursor `.mdc`, `.windsurfrules`, `.antigravity/rules.md`, Cowork). Backstop: new generator (parallel to `generateIDESettings`) that scaffolds a git hook or GitHub Actions workflow into initialized projects to run `npm test`/coverage automatically, so the mandate has a mechanical gate behind it. `specBackfiller.ts`: extend fingerprint checks so existing projects get the new mandate line + hook/CI file via `specpilot backfill`. Spec sync required once implemented: `project/requirements.md` (new mandate/feature), `architecture/architecture.md` (new generator + hook/CI scaffolding), `quality/tests.md` (new tests for the added generator logic) (Spec Report on branch feat/cs-078-test-mandate; needs BL-066 first) |
-| BL-067 | `specpilot serve`: remember projects across runs and add one from the page — a registry outside the repo (e.g. `~/.specpilot/projects.json`, the mockup's Recent projects and Open sheet), deferred from BL-054, which takes its projects from the command line only. Needs its own Spec Report: a write path outside the repo (against ARCH-007.5) and a route that accepts a folder path from the browser. |
 | BL-068 | ESLint error in `src/__tests__/specServer.test.ts` `post()` helper (from BL-053, commit `43a2b58`): `let json: any = null;` is overwritten on both paths (`no-useless-assignment`); declare it without the initial value. Also `src/utils/specValidator.ts:579` `no-useless-escape` (from `299f14f`), so `npx eslint src` reports 0 errors. Found during BL-054; not part of it. |
 | BL-070 | `specpilot validate` on a fresh `init` project prints 7 cross-reference warnings (e.g. `project/requirements.md should reference architecture/architecture.md`): the generated `relatedFiles` lists and the validator's expected references disagree. Make the generator and validator agree so a fresh project validates with no warnings. Found during BL-066. |
 | BL-071 | `insertYamlMandates()` in `specBackfiller.ts`: when `project.yaml` has `rules:` but no `critical:` key, missing critical mandates are appended as a second top-level `rules:` block (duplicate key; js-yaml throws). Insert under the existing `rules:` as the process branch does; also a `rules:` on line 1 is not found by the `\nrules:` search. Also `rules: []` gets `process:` inserted after ` []` on the same line (invalid YAML). Found during BL-066; not reachable from a fresh project; BL-066 tests these shapes in `--dry-run` only. |
@@ -53,11 +53,20 @@ Notes
 | BL-075 | After BL-055: `init.ts` still holds its own copies of the API-paradigm and IDE choice lists, the handle message and the supported-language list that `add-specs` and guided setup then share from `addSpecsQuestions.ts` (ARCH-003.19); switch `init` to the shared exports, terminal output unchanged. Found during BL-055; left out to keep its diff small. |
 | BL-077 | `init`, `add-specs` and `refine --update` create IDE files inside existing folders with `mkdirSync({ recursive: true })`, so a `.vscode/`, `.github/`, `.claude/commands/` (etc.) that is a symbolic link to a folder outside the project gets new files written outside it. Guided setup refuses this (REQ-002.H.16 step 5, 409, nothing written). Apply the same check in the CLI: refuse before writing anything when a folder on the way is a symbolic link or not a folder. Found by spec-reviewer during BL-073; not part of it (BL-073 guards only the file's own path). |
 | BL-076 | `specpilot backfill` does not add the three `merge=union` lines to an existing `.gitattributes` (`specBackfiller.ts` never touches the file), so a project whose `.gitattributes` BL-055's guided setup keeps, or that was initialised before the lines existed, never gets them from backfill. Add a `.gitattributes` check to backfill, append-only as `IdeConfigGenerator.generateGitAttributes()` does. Found during BL-055's review; not part of it. |
+| BL-PM-001 | Home screen: what the page shows before a project is open, as in the mockup ("Your specs, as a board.", Open a project folder, Start a new project, Clone a repository) plus the remembered projects from BL-067. Needs BL-067 first. |
+| BL-PM-002 | Clone a repository: a Clone tab in the Open a Project sheet that takes a git URL and a target folder, clones it, then opens it (or runs guided setup when it has no `.specs/`). Architectural: runs git from a browser request, uses the network and writes outside the served folders. Needs BL-067. |
+| BL-PM-003 | Start a new project: set up `.specs/` in an empty or new folder from the page (what `specpilot init` does), not only in an existing named folder (BL-055 runs `add-specs`). Architectural: may create the folder. Needs BL-067. |
+| BL-PM-004 | Guided setup as the 8-step chat from init.specpilot.dev (questions from `SpecPilot.Init/src/components/chat/flow.ts`), with a step rail, a live `.specs/` preview, a recap and save and resume (`~/.specpilot/drafts`). Output must stay byte-identical to the CLI; relates to BL-032 (shared spec core). Architectural: drafts are written outside the repo. |
+| BL-PM-005 | New Task button: add a row to `## Backlog` in `tasks.md` from the page with the next free BL ID; the only change is one appended line, behind the move route's Origin, token, JSON, size and If-Match checks. New write path. |
+| BL-PM-006 | Commands and Skills split into "From SpecPilot" and "Yours" using `KNOWN_COMMAND_HASHES` (BL-058), plus Regenerate All, which refreshes only byte-exact known versions as `specpilot backfill` does and keeps the rest. New write path. |
+| BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. |
+| BL-PM-008 | Open in VS Code button for the shown project. Architectural: starts a local process from a browser request. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
+| BL-067 | `specpilot serve`: remember projects across runs and add one from the page — a registry outside the repo (e.g. `~/.specpilot/projects.json`, the mockup's Recent projects and Open sheet), deferred from BL-054, which takes its projects from the command line only. Needs its own Spec Report: a write path outside the repo (against ARCH-007.5) and a route that accepts a folder path from the browser. |
 
 ## Completed
 

@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
 lastUpdated: 2026-10-03
-version: 1.21
+version: 1.22
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -24,6 +24,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 - Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
 - `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list is BL-067) and guided setup of a named folder without `.specs/` (BL-055) ✅ in v2.7.0 [ROADMAP-002.14]
+- SpecPilot Local complete: every screen and action in the approved mockup that the content rule allows, then one full release, the website update and the announcement (BL-059) [ROADMAP-002.15]
 
 ## Timeline [ROADMAP-003]
 
@@ -77,6 +78,20 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-10-01: v2.5.0 — Fixed: `specpilot backfill` now updates installed `specpilot-*` command files (BL-058) (per CHANGELOG `[2.5.0]`)
 - 2026-10-02: v2.6.0 — Added: `specpilot serve` serves several projects from one server (BL-054); Fixed: `backfill` and `validate` follow what `init` writes since 2.0.0 (BL-066, BL-069); Changed: `## Completed` limit 40 lines (BL-060) (per CHANGELOG `[2.6.0]`)
 - 2026-10-03: v2.7.0 — Added: `specpilot serve` can set up `.specs/` in a named folder that has none, running what `add-specs` runs and keeping every existing file (BL-055) (per CHANGELOG `[2.7.0]`)
+
+### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
+
+Priority: the complete UI and its features first. Order, one BL per branch and Spec Report:
+
+1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073, on main, unreleased)
+2. Projects: remembered projects and the Open a Project sheet (BL-067, Current Sprint), then the Home screen (BL-PM-001)
+3. New projects: start a new project in an empty folder (BL-PM-003), clone a repository (BL-PM-002), the 8-step chat setup with live preview and drafts (BL-PM-004)
+4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
+5. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)
+6. Full release of SpecPilot Local
+7. Website update with the `specpilot serve` docs, then the announcement and LinkedIn post (BL-059)
+
+Releases between steps are decided per step. Not planned now: the mockup's Needs you list, out-of-date instruction files, the in-sync chip, the conflict banner and the agent runner (left out under the content rule; to be revisited).
 
 ## Objectives [ROADMAP-004]
 

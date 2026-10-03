@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 import { basename, dirname, join } from 'path';
 import { chmodSync, closeSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'fs';
+import { writeNew } from './ideConfigGenerator';
 
 /** A single slash/workflow command, defined once and rendered per IDE. */
 export interface SlashCommand {
@@ -695,15 +696,15 @@ export const CODEX_PROMPTS_NOTICE =
  * naming, and frontmatter format for the same shared command definitions.
  */
 export class SlashCommandGenerator {
-  generate(projectDir: string, ide: string, commands: SlashCommand[] = SLASH_COMMANDS): void {
-    if (commands.length === 0) return;
-
+  /** Creates the missing command files; an existing one is kept (BL-073) and returned, project-relative. */
+  generate(projectDir: string, ide: string, commands: SlashCommand[] = SLASH_COMMANDS): string[] {
     const key = ide.toLowerCase();
+    const kept: string[] = [];
     for (const command of commands) {
       const target = this.resolveTarget(key, command);
-      this.write(projectDir, target.dir, target.fileName, target.content);
+      if (!this.write(projectDir, target.dir, target.fileName, target.content)) kept.push(`${target.dir}/${target.fileName}`);
     }
-
+    return kept;
   }
 
   /** The files `generate()` writes for this IDE, project-relative, in order (BL-055). */
@@ -816,10 +817,10 @@ export class SlashCommandGenerator {
     }
   }
 
-  private write(projectDir: string, dir: string, fileName: string, content: string): void {
+  private write(projectDir: string, dir: string, fileName: string, content: string): boolean {
     const fullDir = join(projectDir, ...dir.split('/'));
     mkdirSync(fullDir, { recursive: true });
-    writeFileSync(join(fullDir, fileName), content);
+    return writeNew(join(fullDir, fileName), content);
   }
 
   private claudeFrontmatter(command: SlashCommand): string {

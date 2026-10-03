@@ -1,6 +1,7 @@
 import { dirname, join } from 'path';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync } from 'fs';
 import { TemplateEngine, TemplateContext } from './templateEngine';
+import { writeNew } from './ideConfigGenerator';
 
 /** The one file each agent gets, project-relative; `generate()` and `targets()` both read it (BL-055). */
 const AGENT_FILES: Record<string, string> = {
@@ -16,14 +17,14 @@ const AGENT_FILES: Record<string, string> = {
 export class AgentConfigGenerator {
   constructor(private templateEngine: TemplateEngine) {}
 
-  /** Entry point — routes to the correct agent config generator. */
-  async generate(projectDir: string, context: TemplateContext, agent: string): Promise<void> {
+  /** Entry point — routes to the correct agent config generator. Returns the kept (existing) file, else []. */
+  async generate(projectDir: string, context: TemplateContext, agent: string): Promise<string[]> {
     const key = agent.toLowerCase();
-    if (!AGENT_FILES[key]) return;
+    if (!AGENT_FILES[key]) return [];
     const filePath = join(projectDir, ...AGENT_FILES[key].split('/'));
     mkdirSync(dirname(filePath), { recursive: true });
-    if (key === 'claude-code') await this.generateClaudeCodeSkills(filePath, context);
-    else await this.generateCodexInstructions(filePath, context);
+    const created = key === 'claude-code' ? await this.generateClaudeCodeSkills(filePath, context) : await this.generateCodexInstructions(filePath, context);
+    return created ? [] : [AGENT_FILES[key]];
   }
 
   /** The files `generate()` writes for this agent, project-relative (BL-055). */
@@ -32,7 +33,7 @@ export class AgentConfigGenerator {
     return file ? [file] : [];
   }
 
-  private async generateClaudeCodeSkills(filePath: string, context: TemplateContext): Promise<void> {
+  private async generateClaudeCodeSkills(filePath: string, context: TemplateContext): Promise<boolean> {
 
     const skillContent = `---
 name: specpilot-project
@@ -122,7 +123,7 @@ All spec files link to each other for easy navigation. Follow the links in relat
 - ../planning/tasks.md
 `;
 
-    writeFileSync(
+    return writeNew(
       filePath,
       skillContent
         .replace(/\{\{projectName\}\}/g, context.projectName)
@@ -132,7 +133,7 @@ All spec files link to each other for easy navigation. Follow the links in relat
     );
   }
 
-  private async generateCodexInstructions(filePath: string, context: TemplateContext): Promise<void> {
+  private async generateCodexInstructions(filePath: string, context: TemplateContext): Promise<boolean> {
     const codexInstructions = `# OpenAI Codex Instructions for {{projectName}}
 
 This file provides context and guidelines for OpenAI Codex when working on {{projectName}}.
@@ -281,6 +282,6 @@ Run \`specpilot validate\` to check:
 `;
 
     const rendered = this.templateEngine.renderFromString(codexInstructions, context);
-    writeFileSync(filePath, rendered);
+    return writeNew(filePath, rendered);
   }
 }

@@ -198,6 +198,8 @@ specpilot add-specs --deep-analysis
 - `--framework, -f <framework>`: Framework (react, express, fastapi, django, android, ktor, ios, vapor, etc.)
 - `--no-analysis`: Skip automatic codebase analysis
 - `--deep-analysis`: Perform comprehensive code analysis
+
+Files outside `.specs/` that already exist (IDE settings, `CLAUDE.md`, `.github/copilot-instructions.md`, rules files, `specpilot-*` command files) are never changed: they are kept and listed at the end (the same applies to `init` and `refine --update`). Run `specpilot backfill` to add missing SpecPilot sections to them. `.gitattributes` is the one file that is added to: its missing `merge=union` lines are appended, and the command says how many. `--no-prompts` is no longer needed to avoid the existing-file question; it still skips the setup questions.
 - `--no-prompts`: Skip all interactive prompts
 
 #### `specpilot validate [options]`

@@ -6,7 +6,7 @@ import inquirer from 'inquirer';
 import * as yaml from 'js-yaml';
 import { getFrameworksForLanguage } from '../utils/frameworks';
 import { TemplateEngine } from '../utils/templateEngine';
-import { SpecGenerator } from '../utils/specGenerator';
+import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 
@@ -314,7 +314,7 @@ export async function initCommand(name: string, options: InitOptions) {
     const specGenerator = new SpecGenerator(templateEngine);
     
     // Generate .specs directory structure
-    const { onboardingPrompt } = await specGenerator.generateSpecs({
+    const result = await specGenerator.generateSpecs({
       projectName,
       language: options.lang,
       framework,
@@ -327,10 +327,12 @@ export async function initCommand(name: string, options: InitOptions) {
       apiParadigm,
       projectContext,
     });
+    const { onboardingPrompt } = result;
     if (ide.toLowerCase() === 'codex') console.log(CODEX_PROMPTS_NOTICE);
 
     // Show success with logo (includes initialization message and generated file tree)
     logger.displayInitTree(projectName, targetDir, join(targetDir, options.specsName));
+    keepReport(result).forEach(line => logger.info(line));
 
     // Pause so the file tree isn't scrolled away instantly by the next-steps text
     if (options.prompts) {

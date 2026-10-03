@@ -1,7 +1,10 @@
-import { SpecGenerator } from '../utils/specGenerator';
+import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { TemplateEngine } from '../utils/templateEngine';
+import { writeNew } from '../utils/ideConfigGenerator';
+import { refineCommand } from '../commands/refine';
 import { join } from 'path';
-import { existsSync, readFileSync, rmSync, mkdirSync, writeFileSync } from 'fs';
+import { stripVTControlCharacters } from 'util';
+import { existsSync, lstatSync, readFileSync, rmSync, mkdirSync, symlinkSync, writeFileSync } from 'fs';
 import inquirer from 'inquirer';
 
 describe('SpecGenerator', () => {
@@ -201,70 +204,108 @@ describe('SpecGenerator', () => {
     expect(content).toContain('test-project');
   });
 
-  test('copilot-instructions.md present, prompt=overwrite → overwrites file', async () => {
-    const githubDir = join(testDir, '.github');
-    mkdirSync(githubDir, { recursive: true });
-    const copilotPath = join(githubDir, 'copilot-instructions.md');
-    writeFileSync(copilotPath, '# Existing instructions\n\nSome existing content');
+  // BL-073: an existing file outside .specs/ is kept, never overwritten, and reported
 
-    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 'o' });
-
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
-
-    const content = readFileSync(copilotPath, 'utf-8');
-    expect(content).toContain('No commit unless asked');
-    expect(content).not.toContain('Some existing content');
-  });
-
-  test('copilot-instructions.md present, prompt=append → appends SpecPilot section', async () => {
-    const githubDir = join(testDir, '.github');
-    mkdirSync(githubDir, { recursive: true });
-    const copilotPath = join(githubDir, 'copilot-instructions.md');
-    writeFileSync(copilotPath, '# Existing instructions\n\nSome existing content');
-
-    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 'a' });
-
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
-
-    const content = readFileSync(copilotPath, 'utf-8');
-    expect(content).toContain('Some existing content');
-    expect(content).toContain('SpecPilot Mandates');
-    expect(content).toContain('No commit unless asked');
-    expect(content).toContain('Spec Report');
-  });
-
-  test('copilot-instructions.md present, prompt=skip → leaves file unchanged', async () => {
+  test('copilot-instructions.md present → kept byte for byte, no question asked, listed in kept', async () => {
     const githubDir = join(testDir, '.github');
     mkdirSync(githubDir, { recursive: true });
     const copilotPath = join(githubDir, 'copilot-instructions.md');
     const original = '# Existing instructions\n\nSome existing content';
     writeFileSync(copilotPath, original);
-
-    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 's' });
-
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: false });
-
-    const content = readFileSync(copilotPath, 'utf-8');
-    expect(content).toBe(original);
-  });
-
-  test('copilot-instructions.md present, noPrompts=true → auto-skips, file unchanged', async () => {
-    const githubDir = join(testDir, '.github');
-    mkdirSync(githubDir, { recursive: true });
-    const copilotPath = join(githubDir, 'copilot-instructions.md');
-    const original = '# Existing instructions\n\nSome existing content';
-    writeFileSync(copilotPath, original);
-
     const promptSpy = jest.spyOn(inquirer, 'prompt');
     const log = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, noPrompts: true });
+    const { kept } = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
 
     expect(promptSpy).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('.github/copilot-instructions.md already exists \u2014 skipping (--no-prompts).'));
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Manually merge the SpecPilot mandates'));
-    const content = readFileSync(copilotPath, 'utf-8');
-    expect(content).toBe(original);
+    expect(log).not.toHaveBeenCalled();
+    expect(readFileSync(copilotPath, 'utf-8')).toBe(original);
+    expect(kept).toEqual(['.github/copilot-instructions.md']);
+  });
+
+  test('fresh folder → kept is empty and .gitattributes is created, not appended', async () => {
+    const { kept, appended } = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+    expect(kept).toEqual([]);
+    expect(appended).toBe(0);
+    expect(keepReport({ kept, appended })).toEqual([]);
+  });
+
+  test('existing .vscode/settings.json → kept untouched, extensions.json still created', async () => {
+    mkdirSync(join(testDir, '.vscode'), { recursive: true });
+    const settings = join(testDir, '.vscode', 'settings.json');
+    writeFileSync(settings, '{ "mine": true }\n');
+
+    const { kept } = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    expect(readFileSync(settings, 'utf-8')).toBe('{ "mine": true }\n');
+    expect(existsSync(join(testDir, '.vscode', 'extensions.json'))).toBe(true);
+    expect(kept).toEqual(['.vscode/settings.json']);
+  });
+
+  test('existing specpilot-* command file → kept untouched and listed', async () => {
+    const dir = join(testDir, '.claude', 'commands');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, 'specpilot-status.md'), 'my edited command\n');
+
+    const { kept } = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code' });
+
+    expect(readFileSync(join(dir, 'specpilot-status.md'), 'utf-8')).toBe('my edited command\n');
+    expect(kept).toEqual(['.claude/commands/specpilot-status.md']);
+  });
+
+  test('dangling symbolic link at a target → not written through, listed as kept', async () => {
+    mkdirSync(join(testDir, '.vscode'), { recursive: true });
+    const target = join(testDir, 'outside-target.json');
+    symlinkSync(target, join(testDir, '.vscode', 'settings.json'));
+
+    const { kept } = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    expect(existsSync(target)).toBe(false);
+    expect(lstatSync(join(testDir, '.vscode', 'settings.json')).isSymbolicLink()).toBe(true);
+    expect(kept).toEqual(['.vscode/settings.json']);
+  });
+
+  test('existing .gitattributes → missing merge=union lines appended and counted, not kept', async () => {
+    mkdirSync(testDir, { recursive: true });
+    writeFileSync(join(testDir, '.gitattributes'), '*.png binary\n.specs/planning/tasks.md merge=union\n');
+
+    const result = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+
+    expect(result.appended).toBe(2);
+    expect(result.kept).not.toContain('.gitattributes');
+    expect(readFileSync(join(testDir, '.gitattributes'), 'utf-8')).toBe(
+      '*.png binary\n.specs/planning/tasks.md merge=union\n.specs/development/prompts*.md merge=union\nCHANGELOG.md merge=union\n',
+    );
+    expect(keepReport(result)).toEqual(['Appended 2 lines to .gitattributes']);
+  });
+
+  test('keepReport → kept line names the paths in order; one appended line is singular', () => {
+    expect(keepReport({ kept: ['CLAUDE.md', '.claude/commands/specpilot-status.md'], appended: 1 })).toEqual([
+      'Kept as they were: CLAUDE.md, .claude/commands/specpilot-status.md. Run specpilot backfill to add missing SpecPilot sections to the instruction and command files.',
+      'Appended 1 line to .gitattributes',
+    ]);
+  });
+
+  test('writeNew → creates a missing file, keeps an existing one (EEXIST), rethrows any other error', () => {
+    mkdirSync(testDir, { recursive: true });
+    const file = join(testDir, 'f.txt');
+    expect(writeNew(file, 'one')).toBe(true);
+    expect(writeNew(file, 'two')).toBe(false);
+    expect(readFileSync(file, 'utf-8')).toBe('one');
+    expect(() => writeNew(join(testDir, 'missing-dir', 'f.txt'), 'x')).toThrow(/ENOENT/);
+  });
+
+  test('refine --update keeps an existing .vscode/settings.json and prints the kept line', async () => {
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+    const settings = join(testDir, '.vscode', 'settings.json');
+    writeFileSync(settings, '{ "mine": true }\n');
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+    await refineCommand('A new description', { dir: testDir, specsName: '.specs', prompts: false, update: true });
+
+    expect(readFileSync(settings, 'utf-8')).toBe('{ "mine": true }\n');
+    const out = log.mock.calls.map(c => stripVTControlCharacters(String(c[0])));
+    expect(out.some(l => l.startsWith('Kept as they were: .vscode/settings.json, .vscode/extensions.json, .github/copilot-instructions.md, '))).toBe(true);
   });
 
   // CS-068: onboarding.md + greenfield/brownfield prompt selection
@@ -434,7 +475,7 @@ describe('SpecGenerator', () => {
   // CS-059: CLAUDE.md generation for Claude Code
 
   test('CLAUDE.md absent, claude-code → writes full router file', async () => {
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: true });
+    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code' });
 
     const claudePath = join(testDir, 'CLAUDE.md');
     expect(existsSync(claudePath)).toBe(true);
@@ -448,33 +489,16 @@ describe('SpecGenerator', () => {
     expect(content).toContain('Re-Anchor');
   });
 
-  test('CLAUDE.md present, noPrompts=true → auto-skips, file unchanged', async () => {
+  test('CLAUDE.md present → kept byte for byte, no question asked, listed in kept', async () => {
     mkdirSync(testDir, { recursive: true });
     const original = '# My existing CLAUDE.md\n\nExisting content';
     writeFileSync(join(testDir, 'CLAUDE.md'), original);
-
     const promptSpy = jest.spyOn(inquirer, 'prompt');
-    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
 
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: true });
+    const { kept } = await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code' });
 
     expect(promptSpy).not.toHaveBeenCalled();
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('CLAUDE.md already exists \u2014 skipping (--no-prompts).'));
-    expect(log).toHaveBeenCalledWith(expect.stringContaining('Manually merge the SpecPilot mandates'));
-    const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
-    expect(content).toBe(original);
-  });
-
-  test('CLAUDE.md present, prompt=skip → leaves file unchanged', async () => {
-    mkdirSync(testDir, { recursive: true });
-    const original = '# My existing CLAUDE.md\n\nExisting content';
-    writeFileSync(join(testDir, 'CLAUDE.md'), original);
-
-    jest.spyOn(inquirer, 'prompt').mockResolvedValueOnce({ action: 's' });
-
-    await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'claude-code', noPrompts: false });
-
-    const content = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
-    expect(content).toBe(original);
+    expect(readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8')).toBe(original);
+    expect(kept).toEqual(['CLAUDE.md']);
   });
 });

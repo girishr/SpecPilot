@@ -424,7 +424,7 @@ export class SpecBackfiller {
         const context: TemplateContext = { projectName, language, framework };
         mkdirSync(join(projectDir, '.github'), { recursive: true });
         const ideGen = new IdeConfigGenerator();
-        await ideGen.generateCopilotInstructions(projectDir, context, /* noPrompts */ true);
+        ideGen.generateCopilotInstructions(projectDir, context);
       }
       return {
         action: 'created',

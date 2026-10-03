@@ -54,7 +54,6 @@ export function addSpecsOptions(
   projectInfo: ProjectInfo | null,
   answers: AddSpecsAnswers,
   analysis: SpecGeneratorOptions['analysis'] | null,
-  noPrompts: boolean,
 ): SpecGeneratorOptions {
   const { language, framework } = answers;
   return {
@@ -70,6 +69,5 @@ export function addSpecsOptions(
     mode: 'existing',
     projectType: answers.projectType,
     apiParadigm: answers.apiParadigm,
-    noPrompts,
   };
 }

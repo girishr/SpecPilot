@@ -18,7 +18,6 @@ export interface SpecGeneratorOptions {
   mode?: 'new' | 'existing';
   projectType?: 'greenfield' | 'brownfield';
   apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
-  noPrompts?: boolean;
   projectContext?: {
     whatItDoes: string;
     targetUsers: string;
@@ -69,7 +68,11 @@ export class SpecGenerator {
     this.slashCommandGenerator = new SlashCommandGenerator();
   }
 
-  async generateSpecs(options: SpecGeneratorOptions): Promise<{ onboardingPrompt: string }> {
+  /**
+   * Writes `.specs/` and the IDE files. Outside `.specs/` a file that already exists is never changed
+   * (BL-073): `kept` lists those paths in generator order; `appended` counts lines added to `.gitattributes`.
+   */
+  async generateSpecs(options: SpecGeneratorOptions): Promise<{ onboardingPrompt: string; kept: string[]; appended: number }> {
     const specsDir = join(options.targetDir, options.specsName);
     mkdirSync(specsDir, { recursive: true });
     const subfolders = ['project', 'architecture', 'planning', 'quality', 'development', 'security'];
@@ -91,18 +94,16 @@ export class SpecGenerator {
     };
     const { onboardingPrompt } = await this.specFileGenerator.generateAll(specsDir, context);
     const ide = (options.ide || 'vscode').toLowerCase();
-    if (AGENT_IDES.has(ide)) {
-      await this.agentConfigGenerator.generate(options.targetDir, context, ide);
-    } else {
-      await this.ideConfigGenerator.generate(options.targetDir, context, ide);
-    }
+    const kept = AGENT_IDES.has(ide)
+      ? await this.agentConfigGenerator.generate(options.targetDir, context, ide)
+      : await this.ideConfigGenerator.generate(options.targetDir, context, ide);
     // Generate the IDE-native AI context file (routed per IDE choice)
-    await this.ideConfigGenerator.generateAiContextFile(options.targetDir, context, ide, options.noPrompts ?? false);
+    kept.push(...this.ideConfigGenerator.generateAiContextFile(options.targetDir, context, ide));
     // Generate per-IDE slash/workflow command files
-    this.slashCommandGenerator.generate(options.targetDir, ide);
+    kept.push(...this.slashCommandGenerator.generate(options.targetDir, ide));
     // Generate .gitattributes with merge=union for append-heavy spec files
-    this.ideConfigGenerator.generateGitAttributes(options.targetDir);
-    return { onboardingPrompt };
+    const appended = this.ideConfigGenerator.generateGitAttributes(options.targetDir);
+    return { onboardingPrompt, kept, appended };
   }
 
   /**
@@ -119,4 +120,12 @@ export class SpecGenerator {
       GITATTRIBUTES_FILE,
     ];
   }
+}
+
+/** What `init`, `add-specs` and `refine --update` print about existing files outside `.specs/` (BL-073). */
+export function keepReport({ kept, appended }: { kept: string[]; appended: number }): string[] {
+  const lines: string[] = [];
+  if (kept.length) lines.push(`Kept as they were: ${kept.join(', ')}. Run specpilot backfill to add missing SpecPilot sections to the instruction and command files.`);
+  if (appended) lines.push(`Appended ${appended} line${appended === 1 ? '' : 's'} to ${GITATTRIBUTES_FILE}`);
+  return lines;
 }

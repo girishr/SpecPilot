@@ -53,7 +53,7 @@ async function cliOutput(root: string, answers: Record<string, string>): Promise
   const language = info ? info.language : answers.language;
   const framework = info?.framework ?? (answers.framework && answers.framework !== 'none' ? answers.framework : undefined);
   await new SpecGenerator(new TemplateEngine()).generateSpecs(
-    addSpecsOptions(root, info, { language, framework, projectType: answers.projectType as 'brownfield', apiParadigm: answers.apiParadigm as 'rest', handle: answers.handle, ide: answers.ide }, analysis, true),
+    addSpecsOptions(root, info, { language, framework, projectType: answers.projectType as 'brownfield', apiParadigm: answers.apiParadigm as 'rest', handle: answers.handle, ide: answers.ide }, analysis),
   );
   return tree(root);
 }
@@ -73,7 +73,7 @@ describe('targetsOutsideSpecs() is what generateSpecs() writes outside .specs/',
   it.each(IDES)('for %s', async ide => {
     const root = folder();
     const generator = new SpecGenerator(new TemplateEngine());
-    await generator.generateSpecs({ projectName: 'p', language: 'typescript', targetDir: root, specsName: '.specs', ide, noPrompts: true });
+    await generator.generateSpecs({ projectName: 'p', language: 'typescript', targetDir: root, specsName: '.specs', ide });
     const written = Object.keys(tree(root)).filter(p => !p.startsWith('.specs/'));
     const listed = generator.targetsOutsideSpecs(ide);
     expect([...listed].sort()).toEqual([...written].sort());
@@ -310,7 +310,8 @@ describe('setupProject() preconditions and refusals', () => {
     const real = realFs.openSync;
     let opens = 0;
     jest.spyOn(realFs, 'openSync').mockImplementation(((path: import('fs').PathLike, flags: import('fs').OpenMode, mode?: import('fs').Mode) => {
-      if (flags === 'wx' && ++opens === 3) {
+      // Placement opens only: the generator's own writes into the staging folder are `wx` too (BL-073).
+      if (flags === 'wx' && !String(path).includes('.specpilot-setup-') && ++opens === 3) {
         writeFileSync(join(root, '.github', 'foreign.txt'), 'someone else\n'); // lands in a folder setup just created
         throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
       }

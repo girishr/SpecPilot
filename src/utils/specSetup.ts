@@ -174,7 +174,6 @@ export async function setupProject(root: string, answers: Record<string, string>
     info,
     { language, framework, projectType: answers.projectType as AddSpecsAnswers['projectType'], apiParadigm: answers.apiParadigm as AddSpecsAnswers['apiParadigm'], handle, ide: answers.ide },
     analysis,
-    true,
   );
 
   const staging = join(root, `.specpilot-setup-${randomBytes(6).toString('hex')}`);

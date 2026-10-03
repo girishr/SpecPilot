@@ -472,7 +472,7 @@ rules:
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { IdeConfigGenerator } = require('../utils/ideConfigGenerator');
       scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr') });
-      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' }, true);
+      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' });
       const before = readFileSync(mdFile(), 'utf-8');
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 10, total: 10 });
@@ -483,7 +483,7 @@ rules:
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { IdeConfigGenerator } = require('../utils/ideConfigGenerator');
       scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr') });
-      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' }, true);
+      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' });
       writeFileSync(mdFile(), readFileSync(mdFile(), 'utf-8').replace('2. No push unless asked.\n', ''));
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.copilotInstructions.added).toEqual(['Never push']);

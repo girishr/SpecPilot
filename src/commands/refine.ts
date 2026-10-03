@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { TemplateEngine } from '../utils/templateEngine';
-import { SpecGenerator } from '../utils/specGenerator';
+import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 
 export interface RefineOptions {
@@ -139,7 +139,7 @@ export async function refineCommand(description: string | undefined, options: Re
       const templateEngine = new TemplateEngine();
       const specGenerator = new SpecGenerator(templateEngine);
 
-      await specGenerator.generateSpecs({
+      const result = await specGenerator.generateSpecs({
         projectName: projectName || 'updated-project',
         language: language || 'typescript',
         framework: framework,
@@ -149,6 +149,7 @@ export async function refineCommand(description: string | undefined, options: Re
       });
 
       logger.success('✅ Regenerated specifications with new description');
+      keepReport(result).forEach(line => logger.info(line));
     }
 
     logger.success(`🎯 Specifications refined successfully!`);

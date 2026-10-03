@@ -7,7 +7,7 @@ import { ProjectDetector } from '../utils/projectDetector';
 import { getFrameworksForLanguage } from '../utils/frameworks';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
 import { TemplateEngine } from '../utils/templateEngine';
-import { SpecGenerator } from '../utils/specGenerator';
+import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 import {
@@ -157,12 +157,14 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     const specGenerator = new SpecGenerator(templateEngine);
     
     // Generate .specs directory structure (the options builder is shared with `specpilot serve`, BL-055)
-    const { onboardingPrompt } = await specGenerator.generateSpecs(
-      addSpecsOptions(projectDir, projectInfo, { language, framework, projectType, apiParadigm, handle: developerName, ide }, analysis, !options.prompts),
+    const result = await specGenerator.generateSpecs(
+      addSpecsOptions(projectDir, projectInfo, { language, framework, projectType, apiParadigm, handle: developerName, ide }, analysis),
     );
+    const { onboardingPrompt } = result;
     if (ide.toLowerCase() === 'codex') console.log(CODEX_PROMPTS_NOTICE);
 
     logger.success('✅ .specs folder created successfully!');
+    keepReport(result).forEach(line => logger.info(line));
     logger.info(`📁 Location: ${specsDir}`);
 
     // Show next steps with logo

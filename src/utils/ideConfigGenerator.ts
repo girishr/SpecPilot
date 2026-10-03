@@ -1,6 +1,5 @@
 import { dirname, join } from 'path';
 import { mkdirSync, writeFileSync, existsSync, appendFileSync, readFileSync } from 'fs';
-import inquirer from 'inquirer';
 import { TemplateContext } from './templateEngine';
 
 /** IDE-specific overlay keys appended on top of the shared base settings.
@@ -52,14 +51,28 @@ export const GITATTRIBUTES_FILE = '.gitattributes';
 const at = (projectDir: string, rel: string) => join(projectDir, ...rel.split('/'));
 
 /**
+ * Create `path` with `content` only if nothing is there (BL-073): an existing file, or a link at the
+ * path itself, is never written or written through. Returns false when it was kept (EEXIST).
+ */
+export function writeNew(path: string, content: string): boolean {
+  try {
+    writeFileSync(path, content, { flag: 'wx' });
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EEXIST') return false;
+    throw err;
+  }
+}
+
+/**
  * Generates IDE workspace settings (.vscode, .cursor, .windsurf, .antigravity).
  * Each IDE gets a settings.json and extensions.json with a shared base config
  * plus per-IDE overlay keys.
  */
 export class IdeConfigGenerator {
-  /** Entry point — routes to the correct IDE settings generator. */
-  async generate(projectDir: string, context: TemplateContext, ide: string): Promise<void> {
-    await this.generateIDESettings(projectDir, context, ide);
+  /** Entry point — routes to the correct IDE settings generator. Returns the kept (existing) files. */
+  async generate(projectDir: string, context: TemplateContext, ide: string): Promise<string[]> {
+    return this.generateIDESettings(projectDir, context, ide);
   }
 
   /** The files `generate()` writes, project-relative (BL-055); read from the same table as the writes. */
@@ -74,85 +87,26 @@ export class IdeConfigGenerator {
   }
 
   /**
-   * Generates .github/copilot-instructions.md with critical mandates.
-   * Read automatically by GitHub Copilot, Cursor, and other AI tools on every request.
-   * Always generated regardless of IDE choice.
-   *
-   * If the file already exists:
-   *   - noPrompts=false → asks user: overwrite / append / skip
-   *   - noPrompts=true  → auto-skips and prints a warning
-   */
-  /**
    * Routes to the correct IDE-native AI context file based on the selected IDE.
    * - vscode / codex → .github/copilot-instructions.md
    * - cursor         → .cursor/rules/specpilot.mdc
    * - windsurf       → .windsurfrules
    * - antigravity    → .antigravity/rules.md
+   * - claude-code    → CLAUDE.md
+   * An existing file is kept (BL-073); returns it as kept, else [].
    */
-  async generateAiContextFile(
-    projectDir: string,
-    context: TemplateContext,
-    ide: string,
-    noPrompts = false,
-  ): Promise<void> {
+  generateAiContextFile(projectDir: string, context: TemplateContext, ide: string): string[] {
     const key = ide.toLowerCase();
-    const filePath = at(projectDir, this.aiContextTarget(key));
+    const rel = this.aiContextTarget(key);
+    const filePath = at(projectDir, rel);
     mkdirSync(dirname(filePath), { recursive: true });
-    if (key === 'cursor') {
-      const content =
-        `---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n` +
-        this.buildCopilotInstructions(context);
-      writeFileSync(filePath, content);
-    } else if (key === 'windsurf' || key === 'antigravity') {
-      writeFileSync(filePath, this.buildCopilotInstructions(context));
-    } else if (key === 'claude-code') {
-      await this.generateClaudeMd(filePath, context, noPrompts);
-    } else {
-      // vscode, codex, and unknown IDEs → copilot-instructions.md
-      await this.generateCopilotInstructions(projectDir, context, noPrompts);
-    }
-  }
-
-  private async generateClaudeMd(
-    filePath: string,
-    context: TemplateContext,
-    noPrompts = false,
-  ): Promise<void> {
-
-    if (!existsSync(filePath)) {
-      writeFileSync(filePath, this.buildClaudeMd(context));
-      return;
-    }
-
-    // File already exists
-    if (noPrompts) {
-      console.log(
-        '\u26a0\ufe0f  CLAUDE.md already exists \u2014 skipping (--no-prompts).\n' +
-        '   Manually merge the SpecPilot mandates shown below into that file:\n\n' +
-        this.buildClaudeMdSection(context),
-      );
-      return;
-    }
-
-    const { action } = await inquirer.prompt<{ action: string }>([
-      {
-        type: 'list',
-        name: 'action',
-        message: '\u26a0\ufe0f  CLAUDE.md already exists. What would you like to do?',
-        choices: [
-          { name: 'Overwrite with SpecPilot template', value: 'o' },
-          { name: 'Append SpecPilot section to existing file', value: 'a' },
-          { name: 'Skip (keep existing file unchanged)', value: 's' },
-        ],
-      },
-    ]);
-
-    if (action === 'o') {
-      writeFileSync(filePath, this.buildClaudeMd(context));
-    } else if (action === 'a') {
-      appendFileSync(filePath, '\n\n' + this.buildClaudeMdSection(context));
-    }
-    // action === 's' → leave file unchanged
+    const content =
+      key === 'claude-code'
+        ? this.buildClaudeMd(context)
+        : key === 'cursor'
+          ? `---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n` + this.buildCopilotInstructions(context)
+          : this.buildCopilotInstructions(context);
+    return writeNew(filePath, content) ? [] : [rel];
   }
 
   private buildClaudeMd(context: TemplateContext): string {
@@ -190,113 +144,14 @@ For a ready-made re-anchor prompt, see \`.specs/development/prompts.md \u2192 ##
 `;
   }
 
-  private buildClaudeMdSection(context: TemplateContext): string {
-    const stack = context.framework
-      ? `${context.language} / ${context.framework}`
-      : context.language;
-    return `## SpecPilot Mandates \u2014 ${context.projectName}
-
-> Added by \`specpilot add-specs\`. These mandates apply alongside your existing instructions.
-> Full context is in \`.specs/project/project.yaml\`.
-
-### Project
-
-- **Name:** ${context.projectName}
-- **Stack:** ${stack}
-- **Specs location:** \`.specs/\`
-
-### \ud83d\udd34 Critical Mandates \u2014 Never violate, no exceptions
-
-${this.buildCriticalMandatesMarkdown()}
-
-### \ud83d\udfe1 Process Mandates
-
-${this.buildProcessMandatesMarkdown()}
-
-${this.buildContextRoutingTable()}
-
-${this.buildCodePhilosophyMarkdown()}
-`;
-  }
-
-  async generateCopilotInstructions(
-    projectDir: string,
-    context: TemplateContext,
-    noPrompts = false,
-  ): Promise<void> {
+  /**
+   * Generates .github/copilot-instructions.md with critical mandates (`specpilot backfill`, when it is
+   * missing). Read automatically by GitHub Copilot, Cursor, and other AI tools on every request.
+   */
+  generateCopilotInstructions(projectDir: string, context: TemplateContext): void {
     const filePath = at(projectDir, COPILOT_INSTRUCTIONS);
     mkdirSync(dirname(filePath), { recursive: true });
-
-    if (!existsSync(filePath)) {
-      writeFileSync(filePath, this.buildCopilotInstructions(context));
-      return;
-    }
-
-    // File already exists
-    if (noPrompts) {
-      console.log(
-        '\u26a0\ufe0f  .github/copilot-instructions.md already exists \u2014 skipping (--no-prompts).\n' +
-        '   Manually merge the SpecPilot mandates shown below into that file:\n\n' +
-        this.buildCopilotSection(context),
-      );
-      return;
-    }
-
-    const { action } = await inquirer.prompt<{ action: string }>([
-      {
-        type: 'list',
-        name: 'action',
-        message: '⚠️  .github/copilot-instructions.md already exists. What would you like to do?',
-        choices: [
-          { name: 'Overwrite with SpecPilot template', value: 'o' },
-          { name: 'Append SpecPilot section to existing file', value: 'a' },
-          { name: 'Skip (keep existing file unchanged)', value: 's' },
-        ],
-      },
-    ]);
-
-    if (action === 'o') {
-      writeFileSync(filePath, this.buildCopilotInstructions(context));
-    } else if (action === 'a') {
-      appendFileSync(filePath, '\n\n' + this.buildCopilotSection(context));
-    }
-    // action === 's' → leave file unchanged
-  }
-
-  /**
-   * Builds just the SpecPilot mandates block — used in append mode and
-   * in the --no-prompts warning message.
-   */
-  private buildCopilotSection(context: TemplateContext): string {
-    const stack = context.framework
-      ? `${context.language} / ${context.framework}`
-      : context.language;
-    return `## SpecPilot Mandates — ${context.projectName}
-
-> Added by \`specpilot add-specs\`. These mandates apply alongside your existing instructions.
-> Full context is in \`.specs/project/project.yaml\`.
-
-### Project
-
-- **Name:** ${context.projectName}
-- **Stack:** ${stack}
-- **Specs location:** \`.specs/\`
-
-### 🔴 Critical Mandates — Never violate, no exceptions
-
-${this.buildCriticalMandatesMarkdown()}
-
-### 🟡 Process Mandates
-
-${this.buildProcessMandatesMarkdown()}
-
-${this.buildContextRoutingTable()}
-
-### Re-Anchor
-
-If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
-For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
-`;
+    writeNew(filePath, this.buildCopilotInstructions(context));
   }
 
   private buildCopilotInstructions(context: TemplateContext): string {
@@ -390,14 +245,15 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
 7. Read before write. Never reference code you haven't read.`;
   }
 
-  private async generateIDESettings(projectDir: string, context: TemplateContext, ide: string): Promise<void> {
+  private async generateIDESettings(projectDir: string, context: TemplateContext, ide: string): Promise<string[]> {
     const key = ide.toLowerCase();
     const overrides = IDE_OVERRIDES[key] ?? {};
-    const [settingsFile, extensionsFile] = this.settingsTargets(key).map(rel => at(projectDir, rel));
-    mkdirSync(dirname(settingsFile), { recursive: true });
+    const [settingsRel, extensionsRel] = this.settingsTargets(key);
+    mkdirSync(dirname(at(projectDir, settingsRel)), { recursive: true });
 
+    const kept: string[] = [];
     const settingsWithComment = this.buildSettingsJson(ide, context, overrides);
-    writeFileSync(settingsFile, settingsWithComment);
+    if (!writeNew(at(projectDir, settingsRel), settingsWithComment)) kept.push(settingsRel);
 
     const extensions = {
       recommendations: [
@@ -408,7 +264,8 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
       ],
       unwantedRecommendations: [],
     };
-    writeFileSync(extensionsFile, JSON.stringify(extensions, null, 2));
+    if (!writeNew(at(projectDir, extensionsRel), JSON.stringify(extensions, null, 2))) kept.push(extensionsRel);
+    return kept;
   }
 
   private buildSettingsJson(
@@ -474,9 +331,9 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
   /**
    * Generates (or updates) .gitattributes at project root with merge=union rules
    * for append-heavy spec files, preventing git merge conflicts on shared branches.
-   * If the file already exists, only missing lines are appended.
+   * If the file already exists, only missing lines are appended. Returns how many were appended.
    */
-  generateGitAttributes(projectDir: string): void {
+  generateGitAttributes(projectDir: string): number {
     const GITATTRIBUTES_LINES = [
       '.specs/development/prompts*.md merge=union',
       '.specs/planning/tasks.md merge=union',
@@ -487,7 +344,7 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
 
     if (!existsSync(filePath)) {
       writeFileSync(filePath, GITATTRIBUTES_LINES.join('\n') + '\n');
-      return;
+      return 0;
     }
 
     const existing = readFileSync(filePath, 'utf8');
@@ -496,5 +353,6 @@ If you lose context mid-session, read \`.specs/project/project.yaml\` to restore
       const suffix = existing.endsWith('\n') ? '' : '\n';
       appendFileSync(filePath, suffix + missing.join('\n') + '\n');
     }
+    return missing.length;
   }
 }

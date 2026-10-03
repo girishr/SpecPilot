@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
 lastUpdated: 2026-10-03
-version: 2.52
+version: 2.53
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- v2.7.1 recorded as shipped after the developer pushed, published and released it and asked for the record; checked: `origin/main` = `d790133`, `refs/tags/v2.7.1` on origin = the local annotated tag `0cd1226` (peeled `d790133`), `npm view specpilot` version and `latest` 2.7.1, `gh release view v2.7.1` published 2026-10-03T13:28:37Z (not draft or prerelease); tagged commit not amended, tag untouched; commit not pushed until the developer says yes (October 3, 2026) [PROMPT-002.0.0.86]
 - Release v2.7.1 prepared after the developer's typed "Yes proceed" (push, tag push and publish not asked; BL-073 only, BL-077 stays in Backlog): version 2.7.0 → 2.7.1 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.7.1] - 2026-10-03` with a new empty `[Unreleased]`; roadmap timeline and SpecPilot Local step 1, CTX-002, release row CD-girishr-060; annotated tag `v2.7.1` (`--cleanup=verbatim`) checked against the CHANGELOG section with `git cat-file -p` and `cmp`; both `FORCE_COLOR` test runs, `validate` and `npm pack --dry-run` checked (October 3, 2026) [PROMPT-002.0.0.85]
 - `fix/bl-073-add-specs-keep-existing` committed as `08088d6` and fast-forwarded into `main` after spec-reviewer's build PASS (one ESCALATE on the `--no-prompts` note, resolved by the developer: scoped note in CHANGELOG and GUIDE) and the developer's typed "yes, proceed" for commit, merge, archive, push and branch delete; BL-073 moved to Completed as CD-girishr-059; `specpilot archive` run (October 3, 2026) [PROMPT-002.0.0.84]
 - BL-073 built on `fix/bl-073-add-specs-keep-existing` after the developer's "yes, proceed" (pasted, with their typed "go ahead"): a, c, e, f as specced; b: the appended `.gitattributes` lines are counted and printed; d: `kept` comes from the `wx` EEXIST failures themselves (so the pre-check was dropped, not added to); `--no-prompts` left working rather than made a no-op, because it still skips the commands' other questions; on spec-reviewer's escalation the developer chose a narrower note in CHANGELOG and GUIDE (no longer needed to avoid the existing-file question, still skips the setup questions); CHANGELOG reworded as asked. `writeNew()` helper, generators return kept paths, `keepReport()` shared by the three commands; 608/608 tests with FORCE_COLOR=1 and 0, built-CLI check passed; not committed (October 3, 2026) [PROMPT-002.0.0.83]

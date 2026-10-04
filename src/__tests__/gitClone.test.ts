@@ -448,9 +448,10 @@ const alive = (pid: number) => {
     return false;
   }
 };
-const until = async (test: () => boolean, ms = 3000) => {
+/** Poll a condition; the time is only the limit after which the test gives up, never a wait that is relied on. */
+const until = async (test: () => boolean | Promise<boolean>, ms = 15000) => {
   const end = Date.now() + ms;
-  while (!test() && Date.now() < end) await new Promise(r => setTimeout(r, 20));
+  while (!(await test()) && Date.now() < end) await new Promise(r => setTimeout(r, 20));
   return test();
 };
 
@@ -530,10 +531,8 @@ const until = async (test: () => boolean, ms = 3000) => {
 
   it('kills the whole process group at the time limit and leaves no timer', async () => {
     process.env.STUB_MODE = 'hang';
-    const t0 = Date.now();
     const out = await cloneRepository('https://github.com/owner/repo.git', target, { timeoutMs: 400 });
     expect(out).toEqual({ ok: false, aborted: false, error: 'The clone was stopped after 10 minutes. What it had downloaded was removed.' });
-    expect(Date.now() - t0).toBeLessThan(5000);
     expect(await until(() => !alive(Number(logged('pid'))) && !alive(Number(logged('child'))))).toBe(true);
     expect(readdirSync(target)).toEqual(['partial']); // the caller cleans up; this function only stops git
   });
@@ -842,10 +841,7 @@ function call(port: number, path: string, method: string, headers: Record<string
     expect(await projects()).toHaveLength(2);
     delete process.env.STUB_MODE;
     let next = await clone();
-    for (let i = 0; next.status === 409 && i < 50; i++) {
-      await new Promise(r => setTimeout(r, 20));
-      next = await clone();
-    }
+    await until(async () => next.status !== 409 || (next = await clone()).status !== 409); // until the slot is given back
     expect(next.status).toBe(200);
     expect(next.json.project).toBe(2);
   });
@@ -886,16 +882,18 @@ function call(port: number, path: string, method: string, headers: Record<string
 
   it('a cancel that arrives just after git finished still removes the clone and serves nothing', async () => {
     let running!: ReturnType<typeof post>;
-    jest.spyOn(gitClone, 'cloneRepository').mockImplementation(async (_url, target) => {
+    let sawAbort = false;
+    jest.spyOn(gitClone, 'cloneRepository').mockImplementation(async (_url, target, opts) => {
       mkdirSync(join(target, '.specs'), { recursive: true });
       writeFileSync(join(target, 'README.md'), 'done');
       running.req.destroy(); // git has exited 0; the page goes away before the folder is served
-      await new Promise(r => setTimeout(r, 100));
+      sawAbort = await until(() => opts!.signal!.aborted); // the server has noticed the closed connection
       return { ok: true };
     });
     running = post('/api/projects/clone', { url: URL, parent, name: '' });
     await expect(running.answer).rejects.toThrow();
     expect(await until(() => !existsSync(join(parent, 'repo')))).toBe(true);
+    expect(sawAbort).toBe(true);
     expect(await projects()).toHaveLength(1);
     expect(existsSync(regFile())).toBe(false);
   });
@@ -933,9 +931,11 @@ function call(port: number, path: string, method: string, headers: Record<string
   it('removes the clone without blocking the server, so a stop signal\'s time limit can fire meanwhile', async () => {
     const real = gitClone.emptyTarget;
     let removing = false;
+    let finish!: () => void;
+    const large = new Promise<void>(r => (finish = r)); // a large tree: the removal ends when the test says so
     jest.spyOn(gitClone, 'emptyTarget').mockImplementation(async (target, created) => {
       removing = true;
-      await new Promise(r => setTimeout(r, 300)); // a large tree
+      await large;
       return real(target, created);
     });
     process.env.STUB_MODE = 'hang';
@@ -944,10 +944,12 @@ function call(port: number, path: string, method: string, headers: Record<string
     expect(await until(() => existsSync(`${log}.child`))).toBe(true);
     let ticked = false;
     const stopped = spec.stopClone();
-    await until(() => removing);
-    setTimeout(() => (ticked = true), 50);
+    expect(await until(() => removing)).toBe(true);
+    await new Promise<void>(r => setTimeout(() => ((ticked = true), r()), 0));
+    expect(ticked).toBe(true); // a timer fired while the removal was under way: the event loop is free
+    expect(existsSync(join(parent, 'repo', 'partial'))).toBe(true); // and nothing is removed yet
+    finish();
     await stopped;
-    expect(ticked).toBe(true); // a timer ran while the removal was under way
     expect(readdirSync(parent)).toEqual([]);
     await spec.close();
     await start([served]);

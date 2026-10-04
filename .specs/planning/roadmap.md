@@ -87,7 +87,7 @@ Priority: the complete UI and its features first. Order, one BL per branch and S
 
 1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
 2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ and the Home screen (BL-PM-001) ✅ in v2.8.0
-3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅ built on its branch, unreleased; then clone a repository (BL-PM-002), the 8-step chat setup with live preview and drafts (BL-PM-004)
+3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅ on `main`, unreleased; then clone a repository (BL-PM-002), the 8-step chat setup with live preview and drafts (BL-PM-004)
 4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
 5. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)
 6. Full release of SpecPilot Local

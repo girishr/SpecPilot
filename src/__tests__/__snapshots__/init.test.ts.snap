@@ -1,0 +1,685 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`specpilot init: terminal output (BL-075) asks and prints the same with prompts on 1`] = `
+"
+🚀 Initializing SDD project...
+   Project: demo  ·  Language: typescript
+
+? Is this a greenfield or brownfield project?
+    {"name":"Greenfield — new project, writing code from scratch","value":"greenfield"}
+    {"name":"Brownfield — existing codebase, initializing specs retroactively","value":"brownfield"}
+? Choose a framework:
+    "none"
+    "react"
+    "express"
+    "next"
+    "nest"
+    "vue"
+    "angular"
+? What API paradigm does this project use?
+    {"name":"REST / OpenAPI — HTTP endpoints, JSON responses","value":"rest"}
+    {"name":"CLI — command-line tool with commands and flags","value":"cli"}
+    {"name":"GraphQL — schema-first query/mutation API","value":"graphql"}
+    {"name":"None — skip api.yaml (UI library, mobile app, etc.)","value":"none"}
+? Your short handle is used as a prefix in task IDs (e.g. CD-jsmith-001) and prompt IDs
+  (e.g. PROMPT-jsmith-001) to avoid collisions when multiple devs share the same spec files.
+  Use your GitHub, GitLab, or Bitbucket username, or any short tag of your choice [osuser]:
+? Select your AI IDE/Agent for SpecPilot context:
+    {"name":"GitHub Copilot","value":"vscode"}
+    {"name":"Cursor","value":"Cursor"}
+    {"name":"Windsurf","value":"Windsurf"}
+    {"name":"Antigravity","value":"Antigravity"}
+    {"name":"Claude Code","value":"claude-code"}
+    {"name":"Codex","value":"Codex"}
+
+📋 Project Context (helps AI generate better specs)
+
+? What does your project do? (required):
+? Who are the target users? (Enter to skip):
+? What's the expected scale? (Enter to skip):
+? Any key constraints or requirements? (Enter to skip):
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Project Initialized Successfully!
+
+✅ Project "demo" created
+📁 Location: <dir>/demo
+📋 Specs: <dir>/demo/.specs
+
+Generated specs:
+  📂 .specs/
+  ├── architecture/
+  │   ├── api.yaml               — CLI / REST API / GraphQL interface spec
+  │   └── architecture.md        — system design decisions and patterns
+  ├── development/
+  │   ├── context.md             — development memory, decisions, learnings
+  │   ├── prompts.md             — AI interaction log — MANDATED, update every session
+  │   └── onboarding.md          — one-time onboarding prompt — delete after first use
+  ├── planning/
+  │   ├── roadmap.md             — release milestones and objectives
+  │   └── tasks.md               — sprint tracker (backlog / current / completed)
+  ├── project/
+  │   ├── project.yaml           — project config, rules, AI context (MANDATED)
+  │   └── requirements.md        — functional and non-functional requirements
+  ├── quality/
+  │   └── tests.md               — test strategy and coverage targets
+  └── security/
+      ├── security-decisions.md  — security ADR log (mitigations and rationale)
+      └── threat-model.md        — threat model and attack surface analysis
+
+? Press Enter to continue...
+🚀 Next steps to populate your specs with AI:
+1. Open .specs/README.md for full guidance
+2. Copy the onboarding prompt from .specs/development/onboarding.md
+3. Paste into your AI agent and run it
+4. Review the generated spec files
+
+Your project is now ready for AI-assisted development!
+
+? Press Enter to see your onboarding prompt...
+
+──────────────────────────────────────────────────
+📋 NEXT STEP: Populate your .specs/ files
+──────────────────────────────────────────────────
+Paste this prompt into your AI agent:
+
+You are the specification co-pilot for a new project called "demo".
+Tech stack: typescript / react
+
+**Project context (provided by the developer):**
+- **What it does:** Tracks parcels
+- **Target users:** Couriers
+- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Key constraints:** Offline first
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-jsmith-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what you understood, assumptions you made, and recommended next steps.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin drafting now.
+
+💡 Also saved to .specs/development/onboarding.md — delete it after first use.
+──────────────────────────────────────────────────"
+`;
+
+exports[`specpilot init: terminal output (BL-075) prints the Codex notice and asks no framework for a language without frameworks 1`] = `
+"
+🚀 Initializing SDD project...
+   Project: demo  ·  Language: javascript
+
+? Is this a greenfield or brownfield project?
+    {"name":"Greenfield — new project, writing code from scratch","value":"greenfield"}
+    {"name":"Brownfield — existing codebase, initializing specs retroactively","value":"brownfield"}
+? What API paradigm does this project use?
+    {"name":"REST / OpenAPI — HTTP endpoints, JSON responses","value":"rest"}
+    {"name":"CLI — command-line tool with commands and flags","value":"cli"}
+    {"name":"GraphQL — schema-first query/mutation API","value":"graphql"}
+    {"name":"None — skip api.yaml (UI library, mobile app, etc.)","value":"none"}
+? Your short handle is used as a prefix in task IDs (e.g. CD-jsmith-001) and prompt IDs
+  (e.g. PROMPT-jsmith-001) to avoid collisions when multiple devs share the same spec files.
+  Use your GitHub, GitLab, or Bitbucket username, or any short tag of your choice [osuser]:
+? Select your AI IDE/Agent for SpecPilot context:
+    {"name":"GitHub Copilot","value":"vscode"}
+    {"name":"Cursor","value":"Cursor"}
+    {"name":"Windsurf","value":"Windsurf"}
+    {"name":"Antigravity","value":"Antigravity"}
+    {"name":"Claude Code","value":"claude-code"}
+    {"name":"Codex","value":"Codex"}
+
+📋 Project Context (helps AI generate better specs)
+
+? What does your project do? (required):
+? Who are the target users? (Enter to skip):
+? What's the expected scale? (Enter to skip):
+? Any key constraints or requirements? (Enter to skip):
+⚠️  SpecPilot slash commands were written to .codex/prompts/ for reference.
+   Codex only auto-discovers prompts from ~/.codex/prompts/ — copy them there manually:
+   cp .codex/prompts/specpilot-*.md ~/.codex/prompts/
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Project Initialized Successfully!
+
+✅ Project "demo" created
+📁 Location: <dir>/demo
+📋 Specs: <dir>/demo/.specs
+
+Generated specs:
+  📂 .specs/
+  ├── architecture/
+  │   ├── api.yaml               — CLI / REST API / GraphQL interface spec
+  │   └── architecture.md        — system design decisions and patterns
+  ├── development/
+  │   ├── context.md             — development memory, decisions, learnings
+  │   ├── prompts.md             — AI interaction log — MANDATED, update every session
+  │   └── onboarding.md          — one-time onboarding prompt — delete after first use
+  ├── planning/
+  │   ├── roadmap.md             — release milestones and objectives
+  │   └── tasks.md               — sprint tracker (backlog / current / completed)
+  ├── project/
+  │   ├── project.yaml           — project config, rules, AI context (MANDATED)
+  │   └── requirements.md        — functional and non-functional requirements
+  ├── quality/
+  │   └── tests.md               — test strategy and coverage targets
+  └── security/
+      ├── security-decisions.md  — security ADR log (mitigations and rationale)
+      └── threat-model.md        — threat model and attack surface analysis
+
+? Press Enter to continue...
+🚀 Next steps to populate your specs with AI:
+1. Open .specs/README.md for full guidance
+2. Copy the onboarding prompt from .specs/development/onboarding.md
+3. Paste into your AI agent and run it
+4. Review the generated spec files
+
+Your project is now ready for AI-assisted development!
+
+? Press Enter to see your onboarding prompt...
+
+──────────────────────────────────────────────────
+📋 NEXT STEP: Populate your .specs/ files
+──────────────────────────────────────────────────
+Paste this prompt into your AI agent:
+
+You are the specification co-pilot for a new project called "demo".
+Tech stack: javascript
+
+**Project context (provided by the developer):**
+- **What it does:** Tracks parcels
+- **Target users:** Couriers
+- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Key constraints:** Offline first
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-osuser-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what you understood, assumptions you made, and recommended next steps.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin drafting now.
+
+💡 Also saved to .specs/development/onboarding.md — delete it after first use.
+──────────────────────────────────────────────────"
+`;
+
+exports[`specpilot init: terminal output (BL-075) prints the same for --dry-run 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Dry run — no files will be written
+
+Files that would be created:
+
+  <dir>/demo/
+  <dir>/demo/.specs/
+  <dir>/demo/.specs/README.md
+  <dir>/demo/.specs/project/
+  <dir>/demo/.specs/project/project.yaml
+  <dir>/demo/.specs/project/requirements.md
+  <dir>/demo/.specs/architecture/
+  <dir>/demo/.specs/architecture/architecture.md
+  <dir>/demo/.specs/architecture/api.yaml
+  <dir>/demo/.specs/planning/
+  <dir>/demo/.specs/planning/tasks.md
+  <dir>/demo/.specs/planning/roadmap.md
+  <dir>/demo/.specs/quality/
+  <dir>/demo/.specs/quality/tests.md
+  <dir>/demo/.specs/development/
+  <dir>/demo/.specs/development/context.md
+  <dir>/demo/.specs/development/prompts.md
+  <dir>/demo/.specs/development/onboarding.md
+  <dir>/demo/.specs/security/
+  <dir>/demo/.specs/security/threat-model.md
+  <dir>/demo/.specs/security/security-decisions.md
+  <dir>/demo/.vscode/
+  <dir>/demo/.vscode/settings.json
+  <dir>/demo/.vscode/extensions.json
+  <dir>/demo/.github/
+  <dir>/demo/.github/copilot-instructions.md  (or IDE-native equivalent)
+
+(16 files, 10 directories)
+
+💡 Run without --dry-run to create these files."
+`;
+
+exports[`specpilot init: terminal output (BL-075) prints the same with --no-prompts 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Project Initialized Successfully!
+
+✅ Project "demo" created
+📁 Location: <dir>/demo
+📋 Specs: <dir>/demo/.specs
+
+Generated specs:
+  📂 .specs/
+  ├── architecture/
+  │   ├── api.yaml               — CLI / REST API / GraphQL interface spec
+  │   └── architecture.md        — system design decisions and patterns
+  ├── development/
+  │   ├── context.md             — development memory, decisions, learnings
+  │   ├── prompts.md             — AI interaction log — MANDATED, update every session
+  │   └── onboarding.md          — one-time onboarding prompt — delete after first use
+  ├── planning/
+  │   ├── roadmap.md             — release milestones and objectives
+  │   └── tasks.md               — sprint tracker (backlog / current / completed)
+  ├── project/
+  │   ├── project.yaml           — project config, rules, AI context (MANDATED)
+  │   └── requirements.md        — functional and non-functional requirements
+  ├── quality/
+  │   └── tests.md               — test strategy and coverage targets
+  └── security/
+      ├── security-decisions.md  — security ADR log (mitigations and rationale)
+      └── threat-model.md        — threat model and attack surface analysis
+🚀 Next steps to populate your specs with AI:
+1. Open .specs/README.md for full guidance
+2. Copy the onboarding prompt from .specs/development/onboarding.md
+3. Paste into your AI agent and run it
+4. Review the generated spec files
+
+Your project is now ready for AI-assisted development!
+
+──────────────────────────────────────────────────
+📋 NEXT STEP: Populate your .specs/ files
+──────────────────────────────────────────────────
+Paste this prompt into your AI agent:
+
+You are the specification co-pilot for a new project called "demo".
+Tech stack: python
+
+**Project context (provided by the developer):**
+- **What it does:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Target users:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Key constraints:** Not specified — use your judgment and mark as [ASSUMPTION]
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-osuser-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what you understood, assumptions you made, and recommended next steps.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin drafting now.
+
+💡 Also saved to .specs/development/onboarding.md — delete it after first use.
+──────────────────────────────────────────────────"
+`;
+
+exports[`specpilot init: terminal output (BL-075) refuses a folder that already has .specs/ with the same text 1`] = `
+"
+🚀 Initializing SDD project...
+   Project: demo  ·  Language: typescript
+
+? Is this a greenfield or brownfield project?
+    {"name":"Greenfield — new project, writing code from scratch","value":"greenfield"}
+    {"name":"Brownfield — existing codebase, initializing specs retroactively","value":"brownfield"}
+? Choose a framework:
+    "none"
+    "react"
+    "express"
+    "next"
+    "nest"
+    "vue"
+    "angular"
+? What API paradigm does this project use?
+    {"name":"REST / OpenAPI — HTTP endpoints, JSON responses","value":"rest"}
+    {"name":"CLI — command-line tool with commands and flags","value":"cli"}
+    {"name":"GraphQL — schema-first query/mutation API","value":"graphql"}
+    {"name":"None — skip api.yaml (UI library, mobile app, etc.)","value":"none"}
+? Your short handle is used as a prefix in task IDs (e.g. CD-jsmith-001) and prompt IDs
+  (e.g. PROMPT-jsmith-001) to avoid collisions when multiple devs share the same spec files.
+  Use your GitHub, GitLab, or Bitbucket username, or any short tag of your choice [osuser]:
+? Select your AI IDE/Agent for SpecPilot context:
+    {"name":"GitHub Copilot","value":"vscode"}
+    {"name":"Cursor","value":"Cursor"}
+    {"name":"Windsurf","value":"Windsurf"}
+    {"name":"Antigravity","value":"Antigravity"}
+    {"name":"Claude Code","value":"claude-code"}
+    {"name":"Codex","value":"Codex"}
+
+📋 Project Context (helps AI generate better specs)
+
+? What does your project do? (required):
+? Who are the target users? (Enter to skip):
+? What's the expected scale? (Enter to skip):
+? Any key constraints or requirements? (Enter to skip):
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Project Already Exists
+
+Project "demo" already exists at <dir>/demo
+
+💡 To continue with this project:
+  cd <dir>/demo
+  specpilot validate  # Check current specs
+  # Edit .specs/project/requirements.md
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Initialization Failed
+
+exit 1
+[exit 1]"
+`;
+
+exports[`specpilot init: terminal output (BL-075) refuses a name that is a path with the same text 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Invalid Project Name
+
+Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores
+
+💡 Example: my-project, app_v2, project.name
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Initialization Failed
+
+exit 1
+[exit 1]"
+`;
+
+exports[`specpilot init: terminal output (BL-075) refuses a name that is empty with the same text 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Invalid Project Name
+
+Project name is required and cannot be empty
+
+💡 Usage: specpilot init <project-name>
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Initialization Failed
+
+exit 1
+[exit 1]"
+`;
+
+exports[`specpilot init: terminal output (BL-075) refuses a name that is outside the allowlist with the same text 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Invalid Project Name
+
+Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores
+
+💡 Example: my-project, app_v2, project.name
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Initialization Failed
+
+exit 1
+[exit 1]"
+`;
+
+exports[`specpilot init: terminal output (BL-075) refuses a name that is too long with the same text 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Invalid Project Name
+
+Project name must be 214 characters or fewer
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Initialization Failed
+
+exit 1
+[exit 1]"
+`;
+
+exports[`specpilot init: terminal output (BL-075) refuses an unsupported language with the same text 1`] = `
+"███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Unsupported Language
+
+Language "rust" is not supported
+
+💡 Supported languages: typescript, javascript, python, kotlin, swift
+███████╗██████╗ ███████╗ ██████╗██████╗ ██╗██╗      ██████╗ ████████╗
+██╔════╝██╔══██╗██╔════╝██╔════╝██╔══██╗██║██║     ██╔═══██╗╚══██╔══╝
+███████╗██████╔╝█████╗  ██║     ██████╔╝██║██║     ██║   ██║   ██║
+╚════██║██╔═══╝ ██╔══╝  ██║     ██╔═══╝ ██║██║     ██║   ██║   ██║
+███████║██║     ███████╗╚██████╗██║     ██║███████╗╚██████╔╝   ██║
+╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝     ╚═╝╚══════╝ ╚═════╝    ╚═╝
+
+🚀 Initializing SDD project...
+
+Initialization Failed
+
+exit 1
+[exit 1]"
+`;

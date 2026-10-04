@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-03 (BL-067 Spec Report)
-version: 1.9
+lastUpdated: 2026-10-04 (BL-PM-003 Spec Report)
+version: 1.10
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -158,12 +158,26 @@ This file records security-related architectural and implementation decisions ma
   - Storing the project name and branch in the registry: rejected, stale copies shown as fact; they are read live once the folder is served.
 - **Reference**: SEC-002.5 (k), REQ-002.H.18, REQ-002.H.19, REQ-002.H.20, ARCH-004.42
 
+### [SEC-004.14] New project from the page: the parent through the one path rule, the name through `init`'s allowlist, one exclusive `mkdir`, BL-055's staging
+
+- **Date**: 2026-10-04
+- **Decision**: `POST /api/projects/new` (BL-PM-003) is the fourth write route and the first that creates a folder. It has every layer of SEC-004.10 (Host, exact `Origin`, per-start token, `application/json`, ≤ 16 KB) and is absent with `--read-only`. The request names the parent and the project name separately. The parent goes through `checkOpenPath()` (SEC-004.13) unchanged: `~`-expanded, absolute, `realpath`-resolved, a directory, not home, not a root (for this field that refusal reads `Pick a folder inside your home folder, like ~/dev.`), and its real path must have no segment named `.specs`. The name must match `init`'s allowlist `^[a-zA-Z0-9][a-zA-Z0-9._-]*$` (SEC-004.1) and be at most 214 characters, checked by the function `init` uses. The target `<parent>/<name>` is looked at with `lstat`: a symbolic link or a non-folder is refused; an existing folder is used only when it has no entry at all and is not served; a missing one is created with one non-recursive `mkdir`, which fails if anything is there. No parent is created and nothing existing is overwritten, emptied or removed. The files are written by guided setup's path (SEC-004.12): the unchanged generator into a marked staging folder inside the target, then one exclusive create per file; on failure only what the request created is removed, the target itself with a non-recursive `rmdir` and only when the request created it. Every answer is a choice from a fixed list, except the handle (SEC-004.12's allowlist) and the four project-context answers `init` asks: each a single line of at most 1000 characters with no control characters or line separators (U+0000 to U+001F, U+007F to U+009F, U+2028, U+2029), written as plain text into `.specs/development/onboarding.md` and nowhere else, never compiled as a template. The 20-project cap is checked before anything is created. The new folder is then served and recorded exactly as a folder opened through `POST /api/projects`. No `git` or other process is started.
+- **Rationale**: The two risks of creating a folder from a request are where it lands and what it replaces. Splitting the target into a parent that must already exist (and passes the rule every opened folder passes) and a name that is one allowlisted segment leaves nothing to traverse and nothing for `realpath` to guess about a path that does not exist yet. A non-recursive `mkdir` is the file system's own exclusive create, so "never overwrite" does not rest on a check made earlier. Requiring an existing target to be empty keeps one meaning per flow: new or empty folder is `init`, a folder with content is `add-specs` through the existing setup. Reusing the staging path means there is still one writer of generated files behind the server, with the keep and rollback behaviour already tested. The context answers are accepted because the feature is "the same questions as `init`", and bounded because they are the first free text from a request: one line, a length cap and no control characters is what the terminal prompt could deliver, and plain-text interpolation means template syntax in them is inert.
+- **Alternatives considered**:
+  - One `path` for the target: rejected, the last segment needs the name rule anyway and the rest cannot be `realpath`-resolved before it exists.
+  - `mkdir` with `recursive: true`: rejected, a mistyped parent would create a tree, and it does not fail when the folder exists.
+  - Using an existing folder whatever it holds, as the CLI does: rejected, that is guided setup's case and would give two flows with different questions for one folder.
+  - Generating straight into the new folder because it is new: rejected, a second write path with no rollback and no exclusive create.
+  - Leaving the four context questions out over HTTP: rejected by the developer (2026-10-04), who accepted the free text with these limits; it would not be "the same questions as `init`".
+  - Running `git init` in the new folder: rejected for this item, the CLI runs none and it would start a process from a browser request (the developer's decision).
+- **Reference**: SEC-002.5 (l), SEC-002.1, SEC-002.2, REQ-002.H.23, REQ-002.H.24, ARCH-004.43
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
-- Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged.)
+- Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged. Since BL-PM-003 the project-context answers sent over HTTP are limited to one line of 1000 characters without control characters, SEC-004.14.)
 - Should the `build:plugin` generator's own dependency chain be pinned/audited separately, given it now sits in the plugin's trusted computing base (SEC-002.4)?
 
 ---
 
-_Last updated: 2026-10-03_
+_Last updated: 2026-10-04_

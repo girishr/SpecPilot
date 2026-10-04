@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Start a new project from the `specpilot serve` page** (BL-PM-003): Home has a Start a New Project button and the Open a Project sheet has a New tab. Give a parent folder and a project name, answer the questions `specpilot init` asks, and the page creates the folder (or uses it when it exists and is empty), writes the same files `init` writes there, and opens the project. Nothing that exists is changed: a folder with content is refused (open it from the Folder tab to add `.specs/` to it), and a run that fails removes what it created. The request is protected like the other write routes, and `--read-only` turns it off.
+
+### Changed
+
+- `specpilot init` takes its API-paradigm and IDE choices, its handle message and its language list from the module `add-specs` and the page already share (BL-075). What it asks and writes is unchanged.
+
 ## [2.8.0] - 2026-10-04
 
 ### Added

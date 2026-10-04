@@ -9,6 +9,10 @@ import { TemplateEngine } from '../utils/templateEngine';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
+import {
+  API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
+} from '../utils/addSpecsQuestions';
+import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, projectNameError } from '../utils/initQuestions';
 
 export interface InitOptions {
   lang: string;
@@ -23,30 +27,17 @@ export async function initCommand(name: string, options: InitOptions) {
   const logger = new Logger();
   
   try {
-    // Validate project name
-    if (!name || name.trim() === '') {
-      logger.displayError('Invalid Project Name', 'Project name is required and cannot be empty\n\n💡 Usage: specpilot init <project-name>');
-      process.exit(1);
-    }
-    
-    const projectName = name.trim();
-    
-    // Validate project name length (npm limit)
-    if (projectName.length > 214) {
-      logger.displayError('Invalid Project Name', 'Project name must be 214 characters or fewer');
+    // Validate project name (required, npm's length limit, allowlist: the shared rule, BL-075)
+    const projectName = (name || '').trim();
+    const nameProblem = projectNameError(projectName);
+    if (nameProblem) {
+      logger.displayError('Invalid Project Name', nameProblem.message + (nameProblem.hint ? `\n\n${nameProblem.hint}` : ''));
       process.exit(1);
     }
 
-    // Validate project name with allowlist (prevents filesystem issues and Handlebars template injection)
-    if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(projectName)) {
-      logger.displayError('Invalid Project Name', 'Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores\n\n💡 Example: my-project, app_v2, project.name');
-      process.exit(1);
-    }
-    
     // Validate supported language
-    const supportedLanguages = ['typescript', 'javascript', 'python', 'kotlin', 'swift'];
-    if (!supportedLanguages.includes(options.lang)) {
-      logger.displayError('Unsupported Language', `Language "${options.lang}" is not supported\n\n💡 Supported languages: ${supportedLanguages.join(', ')}`);
+    if (!SUPPORTED_LANGUAGES.includes(options.lang)) {
+      logger.displayError('Unsupported Language', `Language "${options.lang}" is not supported\n\n💡 Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
       process.exit(1);
     }
     
@@ -115,11 +106,8 @@ export async function initCommand(name: string, options: InitOptions) {
       const typeResponse = await inquirer.prompt([{
         type: 'list',
         name: 'projectType',
-        message: 'Is this a greenfield or brownfield project?',
-        choices: [
-          { name: 'Greenfield — new project, writing code from scratch', value: 'greenfield' },
-          { name: 'Brownfield — existing codebase, initializing specs retroactively', value: 'brownfield' },
-        ],
+        message: PROJECT_TYPE_MESSAGE,
+        choices: INIT_PROJECT_TYPE_CHOICES,
       }]);
       projectType = typeResponse.projectType;
     }
@@ -132,7 +120,7 @@ export async function initCommand(name: string, options: InitOptions) {
         const response = await inquirer.prompt([{
           type: 'list',
           name: 'framework',
-          message: 'Choose a framework:',
+          message: FRAMEWORK_MESSAGE,
           choices: ['none', ...frameworks]
         }]);
         framework = response.framework === 'none' ? undefined : response.framework;
@@ -145,13 +133,8 @@ export async function initCommand(name: string, options: InitOptions) {
       const paradigmResponse = await inquirer.prompt([{
         type: 'list',
         name: 'apiParadigm',
-        message: 'What API paradigm does this project use?',
-        choices: [
-          { name: 'REST / OpenAPI — HTTP endpoints, JSON responses', value: 'rest' },
-          { name: 'CLI — command-line tool with commands and flags', value: 'cli' },
-          { name: 'GraphQL — schema-first query/mutation API', value: 'graphql' },
-          { name: 'None — skip api.yaml (UI library, mobile app, etc.)', value: 'none' },
-        ],
+        message: API_PARADIGM_MESSAGE,
+        choices: API_PARADIGM_CHOICES,
       }]);
       apiParadigm = paradigmResponse.apiParadigm;
     }
@@ -165,7 +148,7 @@ export async function initCommand(name: string, options: InitOptions) {
         const nameResponse = await inquirer.prompt([{
           type: 'input',
           name: 'developerName',
-          message: `Your short handle is used as a prefix in task IDs (e.g. CD-jsmith-001) and prompt IDs\n  (e.g. PROMPT-jsmith-001) to avoid collisions when multiple devs share the same spec files.\n  Use your GitHub, GitLab, or Bitbucket username, or any short tag of your choice [${osUsername}]:`,
+          message: handleMessage(osUsername),
         }]);
         handle = nameResponse.developerName.trim();
         if (!handle) handle = osUsername;
@@ -179,80 +162,47 @@ export async function initCommand(name: string, options: InitOptions) {
       const ideResponse = await inquirer.prompt([{
         type: 'list',
         name: 'ide',
-        message: 'Select your AI IDE/Agent for SpecPilot context:',
-        choices: [
-          { name: 'GitHub Copilot', value: 'vscode' },
-          { name: 'Cursor', value: 'Cursor' },
-          { name: 'Windsurf', value: 'Windsurf' },
-          { name: 'Antigravity', value: 'Antigravity' },
-          { name: 'Claude Code', value: 'claude-code' },
-          { name: 'Codex', value: 'Codex' },
-        ]
+        message: IDE_MESSAGE,
+        choices: IDE_CHOICES,
       }]);
       ide = ideResponse.ide;
     }
     
-    // Project context questions (helps AI generate better specs)
-    const NOT_SPECIFIED = 'Not specified — use your judgment and mark as [ASSUMPTION]';
-    let projectContext = {
-      whatItDoes: NOT_SPECIFIED,
-      targetUsers: NOT_SPECIFIED,
-      expectedScale: NOT_SPECIFIED,
-      constraints: NOT_SPECIFIED,
-    };
-    
+    // Project context questions (helps AI generate better specs); an empty answer becomes NOT_SPECIFIED in initOptions()
+    let projectContext = { whatItDoes: '', targetUsers: '', expectedScale: '', constraints: '' };
+
     if (options.prompts) {
       console.log('');
       console.log(chalk.blue.bold('📋 Project Context') + chalk.gray(' (helps AI generate better specs)'));
       console.log('');
-      
+
       // Mandatory question — re-prompt if empty
+      const [required, ...optional] = CONTEXT_QUESTIONS;
       let whatItDoes = '';
       while (!whatItDoes.trim()) {
         const descResponse = await inquirer.prompt([{
           type: 'input',
-          name: 'whatItDoes',
-          message: 'What does your project do? (required):',
+          name: required.key,
+          message: required.message,
         }]);
         whatItDoes = descResponse.whatItDoes.trim();
         if (!whatItDoes) {
           console.log(chalk.yellow('  This is required — a brief sentence about what the project does.'));
         }
       }
-      
+
       // Optional questions — Enter to skip
-      const optionalResponse = await inquirer.prompt([
-        {
-          type: 'input',
-          name: 'targetUsers',
-          message: 'Who are the target users? (Enter to skip):',
-          default: '',
-          filter: (val: string) => val.trim(),
-        },
-        {
-          type: 'input',
-          name: 'expectedScale',
-          message: 'What\'s the expected scale? (Enter to skip):',
-          default: '',
-          filter: (val: string) => val.trim(),
-        },
-        {
-          type: 'input',
-          name: 'constraints',
-          message: 'Any key constraints or requirements? (Enter to skip):',
-          default: '',
-          filter: (val: string) => val.trim(),
-        },
-      ]);
-      
-      projectContext = {
-        whatItDoes,
-        targetUsers: optionalResponse.targetUsers || NOT_SPECIFIED,
-        expectedScale: optionalResponse.expectedScale || NOT_SPECIFIED,
-        constraints: optionalResponse.constraints || NOT_SPECIFIED,
-      };
+      const optionalResponse = await inquirer.prompt(optional.map(q => ({
+        type: 'input' as const,
+        name: q.key,
+        message: q.message,
+        default: '',
+        filter: (val: string) => val.trim(),
+      })));
+
+      projectContext = { whatItDoes, targetUsers: optionalResponse.targetUsers, expectedScale: optionalResponse.expectedScale, constraints: optionalResponse.constraints };
     }
-    
+
     // Create project directory
     const targetDir = join(options.dir, projectName);
     if (!existsSync(targetDir)) {
@@ -314,19 +264,9 @@ export async function initCommand(name: string, options: InitOptions) {
     const specGenerator = new SpecGenerator(templateEngine);
     
     // Generate .specs directory structure
-    const result = await specGenerator.generateSpecs({
-      projectName,
-      language: options.lang,
-      framework,
-      targetDir,
-      specsName: options.specsName,
-      author: developerName,
-      ide,
-      mode: 'new',
-      projectType,
-      apiParadigm,
-      projectContext,
-    });
+    const result = await specGenerator.generateSpecs(
+      initOptions(targetDir, projectName, { language: options.lang, framework, projectType, apiParadigm, handle: developerName, ide, ...projectContext }, options.specsName),
+    );
     const { onboardingPrompt } = result;
     if (ide.toLowerCase() === 'codex') console.log(CODEX_PROMPTS_NOTICE);
 

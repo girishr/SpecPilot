@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-04 (BL-PM-001 built)
-version: 1.25
+lastUpdated: 2026-10-04 (Release v2.8.0)
+version: 1.26
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -79,13 +79,14 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-10-02: v2.6.0 — Added: `specpilot serve` serves several projects from one server (BL-054); Fixed: `backfill` and `validate` follow what `init` writes since 2.0.0 (BL-066, BL-069); Changed: `## Completed` limit 40 lines (BL-060) (per CHANGELOG `[2.6.0]`)
 - 2026-10-03: v2.7.0 — Added: `specpilot serve` can set up `.specs/` in a named folder that has none, running what `add-specs` runs and keeping every existing file (BL-055) (per CHANGELOG `[2.7.0]`)
 - 2026-10-03: v2.7.1 — Fixed: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` instead of replacing them, and the overwrite / append / skip question is gone (BL-073) (per CHANGELOG `[2.7.1]`)
+- 2026-10-04: v2.8.0 — Added: open another project from the `specpilot serve` page and have it remembered in `~/.specpilot/projects.json` (BL-067); a Home screen with Open a Project Folder and Recent projects (BL-PM-001) (per CHANGELOG `[2.8.0]`)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 
 Priority: the complete UI and its features first. Order, one BL per branch and Spec Report:
 
 1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
-2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ on `main`, unreleased; then the Home screen (BL-PM-001) ✅ on `main`, unreleased
+2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ and the Home screen (BL-PM-001) ✅ in v2.8.0
 3. New projects: start a new project in an empty folder (BL-PM-003), clone a repository (BL-PM-002), the 8-step chat setup with live preview and drafts (BL-PM-004)
 4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
 5. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)

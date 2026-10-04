@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-04 (BL-PM-001 layout follow-up merged)
-version: 2.62
+lastUpdated: 2026-10-04 (Release v2.8.0 prepared)
+version: 2.63
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- Release v2.8.0 prepared after the developer's pasted "yes, proceed" (BL-067 and BL-PM-001; push and publish not asked): the layout follow-up was pushed first on a separate "yes, proceed"; BL-078 (toast order on a failed load from a Home row) and BL-079 (headless browser smoke test for `ui/app.js`) added to Backlog; version 2.7.1 → 2.8.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.8.0] - 2026-10-04` with a new empty `[Unreleased]` (the BL-067 entry no longer says "no Home screen yet"); roadmap timeline and SpecPilot Local step 2, CTX-002, release row CD-girishr-063; annotated tag `v2.8.0` made with `--cleanup=verbatim` and compared with the CHANGELOG section; tests in both colour modes, validate, `npm pack --dry-run`, spec-reviewer D; nothing pushed or published (October 4, 2026) [PROMPT-002.0.0.95]
 - `fix/bl-pm-001-home-layout` committed as `537e56d` and fast-forwarded into `main` after spec-reviewer's Spec Report PASS and build PASS (one FIX round: a `.playwright-mcp` log folder left in the repo, removed), as the developer's brief asked; the BL-PM-001 Completed row now cites both commits; then tests in both colour modes, validate, spec-reviewer C and the push; no tag (October 4, 2026) [PROMPT-002.0.0.94]
 - BL-PM-001 layout follow-up on `fix/bl-pm-001-home-layout` from `main`, the brief pasted by the developer (2.8.0 release prep on hold): Home did not match the mockup's `#s-welcome`. Specced and built, `ui/` only: centred column of at most 560px with the `.welcome` spacing and type, no top bar on Home, the 56px logo, `.specs/` in mono, the two benefit rows `Files are the truth` and `Nothing leaves this machine` with their icons, Recent projects below them, the line `Server running on <host:port> · v<version>` with real values, dates as `4 Oct 2026, 07:08`; still out: the "needs you" row, Start a New Project, Clone a Repository, the MCP card, the sample project. Steps asked for: Spec Report and spec-reviewer, build on PASS, browser check at 1280px and 420px in light and dark, commit, fast-forward, Completed row, tests in both colour modes, validate, spec-reviewer C, push; no tag (October 4, 2026) [PROMPT-002.0.0.93]
 - `feat/bl-pm-001-home` committed as `755bd1a` and fast-forwarded into `main` after spec-reviewer's second build PASS, on the developer's pasted "yes, proceed" with four steps (commit and fast-forward, Completed row, tests with `FORCE_COLOR` 1 and 0 + validate + reviewer C, push and branch delete; no tag, no version bump); BL-PM-001 moved to Completed as CD-girishr-062; `specpilot archive` run on `main` because this entry took `prompts.md` to its line limit (October 4, 2026) [PROMPT-002.0.0.92]

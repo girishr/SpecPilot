@@ -9,13 +9,14 @@ import { readSpecs } from './specReader';
 import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
-import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
-// guided setup and new projects through specSetup.ts (BL-055, BL-PM-003) and the project registry through
-// projectRegistry.ts (BL-067).
+// guided setup and new projects through specSetup.ts (BL-055, BL-PM-003), the project registry through
+// projectRegistry.ts (BL-067) and a clone through gitClone.ts, which runs the user's git (BL-PM-002).
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
@@ -203,13 +204,17 @@ export interface SpecServerOptions {
   named?: boolean[];
   /** The registry file (`~/.specpilot/projects.json`); the registry routes exist only when set and not read-only (BL-067). */
   registry?: string;
+  /** Time limit of a clone in ms (tests shorten it; default `CLONE_TIMEOUT_MS`). */
+  cloneTimeoutMs?: number;
 }
 
 export interface SpecServer {
   server: Server;
   /** Open event streams right now. */
   streams(): number;
-  /** End every event stream, clear every timer, then close the listener. */
+  /** Kill a running clone and remove what it downloaded (BL-PM-002); resolves when that is done. */
+  stopClone(): Promise<void>;
+  /** Stop a running clone, end every event stream, clear every timer, then close the listener. */
   close(): Promise<void>;
 }
 
@@ -262,6 +267,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     writeLock = writeLock.then(fn).catch(() => {
       if (!res.headersSent) sendJson(res, 500, { error: 'The server could not finish this request.' });
     });
+    return writeLock;
   };
 
   /** The checks every write shares (SEC-004.10): Origin, token, content type, size. False = already answered. */
@@ -437,7 +443,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       underLock(res, () => {
         const check = checkOpenPath((body as { path: string }).path, roots, home);
         if ('status' in check) return sendJson(res, check.status, check.project === undefined ? { error: check.error } : { error: check.error, project: check.project });
-        if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
+        if (cloningTarget && (check.root === cloningTarget || check.root.startsWith(cloningTarget + sep))) return sendJson(res, 409, { error: `${cloningTarget} is being cloned. Wait for it to finish.` });
+        if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
         const body200 = serveRoot(res, check.root);
         if (body200) sendJson(res, 200, body200);
       });
@@ -460,12 +467,83 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (problem) return sendJson(res, 422, { error: problem });
       const { parent, name, ...answers } = body as Record<string, string>;
       underLock(res, async () => {
-        if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS }); // before anything is created
-        const out = await createProject(parent, name, answers, roots, home);
+        if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS }); // before anything is created
+        const out = await createProject(parent, name, answers, roots, home, cloningTarget);
         if (out.status !== 200) return sendJson(res, out.status, out.project === undefined ? { error: out.error } : { error: out.error, project: out.project });
         const body200 = serveRoot(res, out.root);
         if (body200) sendJson(res, 200, { ...body200, kept: out.kept, notice: out.notice });
       });
+    });
+  };
+
+  // ---- clone a repository (BL-PM-002): the user's git fills <parent>/<name>, then served like an opened folder.
+  // One at a time, outside the write lock: the lock covers the checks and the mkdir, and serving the folder.
+  let cloneBusy = false;
+  let closing = false; // set by stopClone(): no clone starts once the server is being stopped
+  let cloningTarget: string | null = null; // reserved: counted in the cap, refused by the open and new routes
+  let cloneAbort: AbortController | null = null;
+  let cloneDone: Promise<void> = Promise.resolve();
+
+  const runClone = async (res: ServerResponse, url: string, parent: string, name: string, signal: AbortSignal) => {
+    const probe = await probeGit(home); // before anything is created
+    if ('error' in probe) return sendJson(res, 422, { error: probe.error });
+    let reserved: { target: string; created: boolean } | undefined;
+    await underLock(res, () => {
+      if (signal.aborted) return;
+      if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
+      const r = reserveTarget(parent, name, roots, home);
+      if (!('status' in r)) {
+        reserved = r;
+        cloningTarget = r.target;
+      } else if (r.notEmpty) sendJson(res, 409, { error: `${r.notEmpty} already exists and is not empty, so nothing was cloned.` });
+      else sendJson(res, r.status, r.project === undefined ? { error: r.error } : { error: r.error, project: r.project });
+    });
+    if (!reserved) return;
+    const { target, created } = reserved;
+    const cleanUp = async () => {
+      const code = await emptyTarget(target, created);
+      return code ? ` ${target} could not be cleaned up (${code}).` : '';
+    };
+    const out = await cloneRepository(url, target, { batchSsh: probe.batchSsh, timeoutMs: opts.cloneTimeoutMs, signal });
+    if (!out.ok) {
+      const note = await cleanUp();
+      if (!out.aborted) sendJson(res, 422, { error: out.error + note });
+      return;
+    }
+    await underLock(res, async () => {
+      if (signal.aborted) return void (await cleanUp()); // cancelled just after git finished: nothing happened
+      const body200 = serveRoot(res, target);
+      if (body200) sendJson(res, 200, body200);
+    });
+  };
+
+  const handleProjectClone = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
+    readJson(req, res, body => {
+      const problem = cloneShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      if (closing) return sendJson(res, 503, { error: 'The server is stopping.' });
+      if (cloneBusy) return sendJson(res, 409, { error: 'Another clone is running. Wait for it to finish.' });
+      cloneBusy = true;
+      const { url, parent, name } = body as Record<string, string>;
+      const abort = new AbortController();
+      cloneAbort = abort;
+      // The page went away before the answer (Cancel, a closed tab): the response closes unfinished.
+      const gone = () => {
+        if (!res.writableEnded) abort.abort();
+      };
+      res.on('close', gone);
+      cloneDone = runClone(res, url, parent, name || repoNameFromUrl(url), abort.signal)
+        .catch(() => {
+          if (!res.headersSent) sendJson(res, 500, { error: 'The server could not finish this request.' });
+        })
+        .then(() => {
+          res.off('close', gone);
+          if (!res.writableEnded) res.destroy(); // aborted: nothing was sent, and close() must not wait for this connection
+          cloneBusy = false;
+          cloningTarget = null;
+          cloneAbort = null;
+        });
     });
   };
 
@@ -497,6 +575,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         if (registry && req.method === 'GET') return handleProjectNewGet(res);
         if (registry && req.method === 'POST') return handleProjectNew(req, res);
         res.setHeader('Allow', registry ? 'GET, POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/projects/clone') {
+        if (registry && req.method === 'POST') return handleProjectClone(req, res);
+        res.setHeader('Allow', registry ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
       if (url.pathname === '/api/projects/remove') {
@@ -539,11 +622,19 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     }
   });
 
+  const stopClone = () => {
+    closing = true;
+    cloneAbort?.abort();
+    return cloneDone;
+  };
+
   return {
     server,
     streams: () => allStreams().length,
-    close: () =>
-      new Promise<void>(resolveClose => {
+    stopClone,
+    close: async () => {
+      await stopClone();
+      await new Promise<void>(resolveClose => {
         projects.forEach((p, i) =>
           [...p.streams].forEach(res => {
             res.end();
@@ -553,7 +644,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         projects.forEach(p => p.poller.stop());
         server.close(() => resolveClose());
         server.closeIdleConnections?.();
-      }),
+      });
+    },
   };
 }
 

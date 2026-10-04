@@ -57,11 +57,13 @@ function recentHtml(reg,home,projects,chev){
 /* What the page does with the answer to POST /api/projects, from the sheet or a row on Home:
    `project` is the one to show (null: nothing was opened, the page stays where it is), `specs` its
    payload when the answer carries one, `toast` the message, the server's own when it sent one.
-   `created` says the answer is POST /api/projects/new's (BL-PM-003): only the two texts differ. */
+   `created` says the answer is POST /api/projects/new's (BL-PM-003), or with 'cloned' POST
+   /api/projects/clone's (BL-PM-002): only the two texts differ. */
 function openOutcome(status,res,created){
-  if(status===200)return {project:res.project,specs:res.specs,toast:`${res.specs.projects[res.project].root} ${created?'created and opened':'opened'} as project ${res.project}`+(res.registry&&res.registry.error?'. '+res.registry.error:'')};
+  const did=created==='cloned'?'cloned':created?'created':'opened';
+  if(status===200)return {project:res.project,specs:res.specs,toast:`${res.specs.projects[res.project].root} ${did==='opened'?did:did+' and opened'} as project ${res.project}`+(res.registry&&res.registry.error?'. '+res.registry.error:'')};
   if(status===409&&typeof res.project==='number')return {project:res.project,specs:null,toast:res.error||`Already open as project ${res.project}`};
-  return {project:null,specs:null,toast:res.error||`Nothing was ${created?'created':'opened'} (HTTP ${status}).`};
+  return {project:null,specs:null,toast:res.error||`Nothing was ${did} (HTTP ${status}).`};
 }
 
 /* The view a live-reload payload forces, or null to stay: setup when .specs/ is gone, Tasks when it
@@ -72,6 +74,14 @@ function reloadView(curView,hadSpecs,hasSpecs){
   return null;
 }
 
-const api={resolveRoute,goneHtml,recentHtml,openOutcome,reloadView};
+/* The folder git clone makes for a repository URL: its last path segment without `.git`. The one copy
+   of the rule: the Clone tab fills Folder name with it and the server uses it for an empty name (BL-PM-002). */
+function repoNameFromUrl(url){return String(url).replace(/\/+$/,'').replace(/\.git$/,'').split(/[/:]/).pop()||'';}
+
+/* The name a project is shown under: the one in its project.yaml, else its folder's own name (the last
+   segment of its root), never the whole path, which stays in the tooltip and the sub-line. */
+function projectLabel(p){return p.name!==null&&p.name!==undefined?p.name:String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root;}
+
+const api={resolveRoute,goneHtml,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);
 })(this);

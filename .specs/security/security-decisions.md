@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-04 (BL-PM-003 Spec Report)
-version: 1.10
+lastUpdated: 2026-10-04 (BL-PM-002 built)
+version: 1.11
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -171,6 +171,26 @@ This file records security-related architectural and implementation decisions ma
   - Leaving the four context questions out over HTTP: rejected by the developer (2026-10-04), who accepted the free text with these limits; it would not be "the same questions as `init`".
   - Running `git init` in the new folder: rejected for this item, the CLI runs none and it would start a process from a browser request (the developer's decision).
 - **Reference**: SEC-002.5 (l), SEC-002.1, SEC-002.2, REQ-002.H.23, REQ-002.H.24, ARCH-004.43
+
+### [SEC-004.15] Clone from the page: the user's `git` started without a shell, a URL allowlist behind `--`, https and ssh only, no prompt, a time limit, BL-PM-003's folder rule
+
+- **Date**: 2026-10-04
+- **Decision**: `POST /api/projects/clone` (BL-PM-002) is the fifth write route, the first that starts a process for a request and the first use of the network. It has every layer of SEC-004.10 (Host, exact `Origin`, per-start token, `application/json`, ≤ 16 KB) and is absent with `--read-only`. git is run as the argument array `['clone', '--no-recurse-submodules', '--', url, target]`, with no shell (`spawn` without the shell option, because `execFile`, which the probe uses, cannot start a detached child), and only the URL and the target folder come from the request. The URL must match one of three anchored forms on a fixed character set (`https://host[:port]/path`, `ssh://[user@]host[:port]/path`, `user@host:path`), be 1 to 2048 characters, hold no whitespace or control character and no user or password in an https URL, and is passed to git unchanged; `file://`, `ext::`, `http://`, `git://`, local paths and anything starting with `-` match no form. `GIT_ALLOW_PROTOCOL=https:ssh` repeats the transport rule inside git. No prompt can be waited on: stdin closed, no controlling terminal, `GIT_TERMINAL_PROMPT=0`, empty `GIT_ASKPASS`, `SSH_ASKPASS_REQUIRE=never`, `GCM_INTERACTIVE=never`. Nothing about ssh is set on macOS and Linux; on Windows `GIT_SSH_COMMAND=ssh -oBatchMode=yes` is added only when the user has set no ssh command of their own (`GIT_SSH_COMMAND`, `GIT_SSH`, `core.sshCommand`). The clone has 10 minutes; then its process group is killed. The parent and the folder name follow SEC-004.14 through the same function; the target is created by one exclusive `mkdir` or is an existing empty folder. One clone runs at a time, outside the write lock, and counts toward the 20-project cap. While it runs, its folder is refused to the open and new-project routes. `serve` stops it on SIGINT, SIGTERM and SIGHUP. Any early end (git's error, the limit, the page's connection closing, also just after git finished, the server stopping) removes the entries of that folder, and the folder itself only when the request created it. git's last `fatal:` line, with the line before it in front, is returned as one line of text, control characters removed, at most 300 characters, `remote:` lines left out. The folder then enters the server as in SEC-004.13.
+- **Rationale**: The classic ways a clone URL turns into code execution are an option (`--upload-pack=`, `-u`), a transport that runs a command (`ext::`) and a host that ssh reads as an option (`-oProxyCommand=`). `--` ends option parsing, the allowlist leaves no form that starts with `-` or names another transport, and `GIT_ALLOW_PROTOCOL` holds even if the allowlist had a gap or the user's config rewrites the URL. Refusing `file://` and local paths keeps a forged request from copying a local repository into a folder the page can then read. Refusing credentials in the URL keeps secrets out of error messages, the process list and `.git/config`; the user's credential helper and ssh agent still work, because the child inherits the user's environment. Submodules are off because they are URLs the repository chooses, not the user. A process without a terminal must fail instead of asking, and a limit must end what still waits. A user's own ssh command is never replaced, because it may be how their keys are found; on POSIX that is kept without exception by setting nothing, since a probe cannot see a command configured through `includeIf "gitdir:"`, and the missing terminal already makes ssh fail instead of asking. The clean-up can be recursive because the folder was empty or missing when the request began, checked under the lock.
+- **Alternatives considered**:
+  - A git library (isomorphic-git, nodegit): rejected, a new dependency and its own credential, proxy and ssh handling beside the user's.
+  - `exec` or `spawn` with `shell: true`: rejected, request text would be quoted for a shell.
+  - Checking the URL with `new URL()` and passing its serialisation: rejected, git would get a string other than the one checked, and the scp-like form is not a URL.
+  - Allowing `http://` or `git://`: rejected, clear text and no host authentication.
+  - Allowing `https://user@host/...`: rejected, tokens are often pasted in that place.
+  - Holding the write lock for the whole clone: rejected (the developer's decision), every other write would wait for minutes.
+  - Always setting `GIT_SSH_COMMAND`: rejected (the developer's decision), it would replace the user's own ssh command.
+  - Setting it on POSIX when the probe finds no ssh command (the Spec Report's default): dropped after the build (the developer's decision), it overrode a `core.sshCommand` set through a conditional include.
+  - `StrictHostKeyChecking=accept-new` so first-time hosts work: rejected, it would accept a host key nobody looked at; the page shows ssh's message and the user runs `ssh -T git@host` once.
+  - A size limit on the clone: not built, git offers none and watching the folder size is new machinery; the time limit bounds it.
+  - Showing all of git's stderr: rejected, `remote:` lines are text the remote host chooses.
+  - Showing the `fatal:` line alone (the Spec Report's default): changed after the build (the developer's decision), over ssh it is always `Could not read from remote repository.` and the reason is the line before it.
+- **Reference**: SEC-002.5 (m), SEC-002.3, REQ-002.H.25, REQ-002.H.26, ARCH-003.23, ARCH-004.44
 
 ## Open Questions [SEC-005]
 

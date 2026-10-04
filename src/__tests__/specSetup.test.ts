@@ -14,7 +14,7 @@ import { ProjectDetector } from '../utils/projectDetector';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 import {
-  answersShapeError, createProject, newProjectQuestions, newProjectShapeError, removeStaleStaging, setupProject, setupQuestions, specsMissing, STAGING_MARKER,
+  answersShapeError, createProject, newProjectQuestions, newProjectShapeError, removeStaleStaging, setupProject, setupQuestions, specsMissing, STAGING_MARKER, reserveTarget,
 } from '../utils/specSetup';
 import { API_PARADIGM_CHOICES } from '../utils/addSpecsQuestions';
 import { NOT_SPECIFIED } from '../utils/initQuestions';
@@ -560,6 +560,35 @@ describe('createProject() refusals: nothing created, nothing changed', () => {
     expect(await createProject(a.base, 'demo', { ...NEW, handle: '' }, [], a.home)).toEqual({ status: 422, error: 'The OS username could not be read: no passwd entry' });
     expect(readdirSync(a.base)).toEqual([]);
     expect((await createProject(a.base, 'demo', NEW, [], a.home)).status).toBe(200); // a handle was given: the username is not needed
+  });
+});
+
+describe('reserveTarget() (BL-PM-002): the folder steps of createProject(), shared with the clone route', () => {
+  it('makes a missing target and says so, and uses an empty one as it is', () => {
+    const a = makeBase();
+    expect(reserveTarget(a.base, 'demo', [], a.home)).toEqual({ target: join(a.base, 'demo'), created: true });
+    expect(readdirSync(join(a.base, 'demo'))).toEqual([]);
+    expect(reserveTarget(a.base, 'demo', [], a.home)).toEqual({ target: join(a.base, 'demo'), created: false });
+  });
+
+  it('marks the not-empty refusal with the target, so the clone route can word it', () => {
+    const a = makeBase();
+    mkdirSync(join(a.base, 'demo'));
+    writeFileSync(join(a.base, 'demo', '.hidden'), 'x');
+    const target = join(a.base, 'demo');
+    expect(reserveTarget(a.base, 'demo', [], a.home)).toEqual({ status: 409, error: `${target} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.`, notEmpty: target });
+  });
+
+  it('refuses the folder a running clone holds before looking at it, also for a new project', async () => {
+    const a = makeBase();
+    const target = join(a.base, 'demo');
+    const busy = { status: 409, error: `${target} is being cloned. Wait for it to finish.` };
+    expect(reserveTarget(a.base, 'demo', [], a.home, target)).toEqual(busy);
+    expect(existsSync(target)).toBe(false);
+    mkdirSync(target); // the clone's own mkdir: still empty, and still refused
+    expect(await createProject(a.base, 'demo', NEW, [], a.home, target)).toEqual(busy);
+    expect(readdirSync(target)).toEqual([]);
+    expect(reserveTarget(a.base, 'other', [], a.home, target)).toEqual({ target: join(a.base, 'other'), created: true });
   });
 });
 

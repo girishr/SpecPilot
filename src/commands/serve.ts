@@ -18,6 +18,8 @@ export interface ServeOptions {
 
 const DEFAULT_PORT = 4321;
 const DEFAULT_POLL_MS = 1000;
+/** Longest a stop signal waits for a running clone to be killed and cleaned up. */
+export const STOP_CLONE_MS = 5000;
 const MIN_POLL_MS = 250;
 
 /** Open `url` in the default browser. The URL is built here, never taken from input. */
@@ -131,7 +133,27 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
   if (registryNote) console.log(registryNote);
   if (options.open) openBrowser(url, logger);
 
-  process.once('SIGINT', () => {
-    void handle.close().then(() => process.exit(0));
-  });
+  // Ctrl+C, `kill` and a closed terminal end the same way. A clone runs in its own session and would
+  // outlive the server, so the signals stay handled until it is stopped and cleaned up (BL-PM-002),
+  // for at most STOP_CLONE_MS; after that a second signal ends the process at once, as before.
+  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
+  let stopping = false;
+  const stop = () => {
+    if (stopping) return;
+    stopping = true;
+    let cap: NodeJS.Timeout;
+    const capped = new Promise<boolean>(r => (cap = setTimeout(() => r(false), STOP_CLONE_MS)));
+    void Promise.race([handle.stopClone().then(() => true), capped])
+      .then(stopped => {
+        clearTimeout(cap);
+        for (const signal of signals) process.removeListener(signal, stop);
+        if (!stopped) {
+          logger.warn(`The clone could not be cleaned up within ${STOP_CLONE_MS / 1000} seconds. Its folder may be left behind.`);
+          return process.exit(0);
+        }
+        return handle.close();
+      })
+      .then(() => process.exit(0));
+  };
+  for (const signal of signals) process.on(signal, stop);
 }

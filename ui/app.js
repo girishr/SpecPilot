@@ -42,8 +42,8 @@ function initials(n){const w=String(n).split(/[^A-Za-z0-9]+/).filter(Boolean);
   if(w.length>1)return (w[0][0]+w[1][0]).toUpperCase();
   return w[0].slice(0,2).toUpperCase();}
 function renderProject(){
-  const p=DATA.project, name=p.name!==null?p.name:p.root, where=p.root+(p.branch?' · '+p.branch:'');
-  $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=q.name!==null?q.name:q.root,cur=i===PROJECT&&curView!=='home';
+  const p=DATA.project, name=projectLabel(p), where=p.root+(p.branch?' · '+p.branch:'');
+  $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=projectLabel(q),cur=i===PROJECT&&curView!=='home';
     return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
@@ -520,22 +520,25 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
    The + tile opens the mockup's sheet on its Folder tab. The list is GET /api/projects; opening is
    POST /api/projects, which serves one more folder and remembers it; Remove from list edits the
    registry only. The New tab (BL-PM-003) asks what specpilot init asks (GET /api/projects/new) and
-   POST /api/projects/new creates the folder, writes what init writes and opens it. Nothing here is
-   file content; the strings are the ones REQ-002.H.21 and H.24 list. */
+   POST /api/projects/new creates the folder, writes what init writes and opens it. The Clone tab
+   (BL-PM-002) POSTs /api/projects/clone, which runs git clone and opens the folder; closing the sheet
+   meanwhile aborts the request, and the server then removes what was downloaded. Nothing here is
+   file content; the strings are the ones REQ-002.H.21, H.24 and H.26 list. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
-let openBusy=false,sheetFrom=addBtn,sheetTab='folder',newQ=null;
+const TABS=['folder','clone','new'],GO={folder:'Open',clone:'Clone Repository',new:'Create Project'};
+let openBusy=false,sheetFrom=addBtn,sheetTab='folder',newQ=null,cloneCtl=null,cloneNamed=false,cloneTick=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 function openSheet(from,tab){
   hideTip();sheetFrom=from;openVeil.classList.add('open');
-  pathIn.value=$('#parentIn').value=$('#nameIn').value='';newQ=null;$('#newQs').innerHTML='';
-  setTab(tab||'folder');setTimeout(()=>(sheetTab==='new'?$('#parentIn'):pathIn).focus(),50);
+  $$('#openForm .field input').forEach(el=>{el.value='';});newQ=null;cloneNamed=false;$('#newQs').innerHTML='';
+  setTab(tab||'folder');setTimeout(()=>(sheetTab==='new'?$('#parentIn'):sheetTab==='clone'?$('#cloneIn'):pathIn).focus(),50);
 }
 function setTab(t){
   sheetTab=t;
   $$('#openTabs button').forEach(b=>{const on=b.dataset.t===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1;});
-  $('#paneFolder').hidden=t!=='folder';$('#paneNew').hidden=t!=='new';
-  $('#openGo').textContent=t==='new'?'Create Project':'Open';
-  if(t==='new')loadNew();else loadRecent();
+  $('#paneFolder').hidden=t!=='folder';$('#paneClone').hidden=t!=='clone';$('#paneNew').hidden=t!=='new';
+  $('#openGo').textContent=GO[t];
+  if(t==='new')loadNew();else if(t==='folder')loadRecent();
 }
 /* init's questions, fetched when the New tab is first shown after the sheet opens. */
 async function loadNew(){
@@ -546,7 +549,7 @@ async function loadNew(){
   if(q.error){box.innerHTML=`<p class="note">${esc(q.error)}</p>`;return;}
   newQ=q;box.innerHTML=q.questions.map(qu=>questionHtml(qu)).join('');syncFrameworks($('#openForm'),q);
 }
-function closeSheet(){if(!openVeil.classList.contains('open'))return;openVeil.classList.remove('open');sheetFrom.focus();}
+function closeSheet(){if(!openVeil.classList.contains('open'))return;if(cloneCtl)cloneCtl.abort();openVeil.classList.remove('open');sheetFrom.focus();}
 /* The registry as GET /api/projects sends it: in the sheet, or on Home (BL-PM-001), where a row opens
    its folder at once, has no Remove, and a served project also shows the branch the rail tooltip shows. */
 function drawRecent(reg,home){
@@ -605,6 +608,30 @@ async function createNew(){
   if(res.notice)lines.push(res.notice);
   if(lines.length)setFileNote('development/onboarding.md',lines);
 }
+/* Clone a repository: the Clone tab's Clone Repository. Minutes can pass; only the button says so. */
+function setCloning(ctl){
+  cloneCtl=ctl;openBusy=!!ctl;
+  $('#openGo').disabled=!!ctl;
+  $$('#paneClone input, #openTabs button').forEach(el=>{el.disabled=!!ctl;});
+  // An indeterminate bar and the time since the click: the page knows nothing else about a running clone.
+  clearInterval(cloneTick);cloneTick=null;$('#cloneStatus').hidden=!ctl;
+  if(!ctl)return;
+  const t0=Date.now(),tick=()=>{const s=Math.floor((Date.now()-t0)/1000);$('#cloneTime').textContent=`Cloning… ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+  tick();cloneTick=setInterval(tick,1000);
+}
+async function cloneRepo(){
+  if(openBusy)return;
+  const body={url:$('#cloneIn').value.trim(),parent:$('#cloneParentIn').value.trim(),name:$('#cloneNameIn').value.trim()};
+  const ctl=new AbortController();setCloning(ctl);
+  let r,res={};
+  try{
+    r=await fetch('/api/projects/clone',{method:'POST',cache:'no-store',signal:ctl.signal,headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});
+    res=await r.json().catch(()=>({}));
+  }catch(e){setCloning(null);if(!ctl.signal.aborted)toast('The server did not answer.');return;}
+  setCloning(null);
+  if(ctl.signal.aborted)return; // the sheet was closed: the server removes the clone
+  await showOutcome(openOutcome(r.status,res,'cloned'));
+}
 async function removeRecent(path){
   let out;
   try{out=await postPath(path,'/api/projects/remove');}catch(e){toast('The server did not answer.');return;}
@@ -614,17 +641,21 @@ addBtn.onclick=()=>openSheet(addBtn);
 homeBtn.onclick=()=>go('home');
 $('#homeOpen').onclick=e=>openSheet(e.currentTarget);
 $('#homeNew').onclick=e=>openSheet(e.currentTarget,'new');
+$('#homeClone').onclick=e=>openSheet(e.currentTarget,'clone');
+/* Folder name follows the URL (the server's own rule, route.js) until the user types a name. */
+$('#cloneIn').addEventListener('input',e=>{if(!cloneNamed)$('#cloneNameIn').value=repoNameFromUrl(e.target.value.trim());});
+$('#cloneNameIn').addEventListener('input',()=>{cloneNamed=true;});
 $('#openTabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b&&b.dataset.t!==sheetTab)setTab(b.dataset.t);});
 $('#openTabs').addEventListener('keydown',e=>{
   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
-  e.preventDefault();const t=e.key==='Home'?'folder':e.key==='End'?'new':sheetTab==='folder'?'new':'folder';
+  e.preventDefault();const n=TABS.length,i=TABS.indexOf(sheetTab),t=TABS[e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowLeft'?n-1:1))%n];
   setTab(t);$(`#openTabs [data-t="${t}"]`).focus();
 });
 $('#openForm').addEventListener('change',()=>{if(newQ)syncFrameworks($('#openForm'),newQ);});
 $('#homeBox').addEventListener('click',e=>{const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);});
 $('#openCancel').onclick=closeSheet;
 openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
-$('#openForm').onsubmit=e=>{e.preventDefault();if(sheetTab==='new')createNew();else openPath(pathIn.value.trim());};
+$('#openForm').onsubmit=e=>{e.preventDefault();if(sheetTab==='new')createNew();else if(sheetTab==='clone')cloneRepo();else openPath(pathIn.value.trim());};
 $('#recentBox').addEventListener('click',e=>{
   const rm=e.target.closest('[data-remove]');if(rm){removeRecent(rm.dataset.remove);return;}
   const row=e.target.closest('[data-path]');if(row){pathIn.value=row.dataset.path;pathIn.focus();}

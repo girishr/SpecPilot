@@ -336,27 +336,26 @@ export type NewProjectOutcome =
   | { status: 200; root: string; kept: string[]; notice: string | null }
   | { status: 409 | 422 | 500; error: string; project?: number };
 
+export type Reserved =
+  | { target: string; created: boolean }
+  | { status: 409 | 422; error: string; project?: number; notEmpty?: string };
+
 /**
- * Create `<parent>/<name>` when it is missing (one non-recursive `mkdir`), or use it when it is an empty
- * folder, and write there what `init` writes (REQ-002.H.23 steps 2 to 5; body shape already checked).
- * No asynchronous I/O between the checks and the writes, like `setupProject()`. Nothing that exists is changed.
+ * The folder a request names as parent + name (REQ-002.H.23 steps 2 to 4), for a new project and for a
+ * clone (BL-PM-002): the parent through `checkOpenPath()`, the target `<parent>/<name>` made with one
+ * non-recursive `mkdir` when it is missing, or used when it is an empty folder. `cloning` is the folder
+ * a running clone holds. Synchronous; nothing that exists is changed.
  */
-export async function createProject(parent: string, name: string, answers: Record<string, string>, roots: string[], home: string): Promise<NewProjectOutcome> {
+export function reserveTarget(parent: string, name: string, roots: string[], home: string, cloning: string | null = null): Reserved {
   const check = checkOpenPath(parent, [], home);
   if ('status' in check) return { status: check.status, error: check.error === HOME_OR_ROOT_ERROR ? 'Pick a folder inside your home folder, like ~/dev.' : check.error };
   if (check.root.split(sep).some(segment => segment.toLowerCase() === '.specs')) return { status: 422, error: 'A project cannot be created inside a .specs/ folder.' };
   const target = join(check.root, name);
+  if (cloning !== null && (target === cloning || target.startsWith(cloning + sep))) return { status: 409, error: `${cloning} is being cloned. Wait for it to finish.` };
   // Also when the folder is gone: a served root must never be made, or served, a second time.
   const served = roots.indexOf(target);
   if (served >= 0) return { status: 409, error: `${target} is already open as project ${served}.`, project: served };
-  let handle = answers.handle.trim();
-  try {
-    handle = handle || os.userInfo().username;
-  } catch (err) {
-    return { status: 422, error: `The OS username could not be read: ${(err as Error).message}` };
-  }
 
-  let created = false;
   let st;
   try {
     st = lstatSync(target);
@@ -374,17 +373,34 @@ export async function createProject(parent: string, name: string, answers: Recor
     } catch (err) {
       return { status: 422, error: `${target} could not be read (${(err as NodeJS.ErrnoException).code}).` };
     }
-    if (entries.length) return { status: 409, error: `${target} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.` };
-  } else {
-    try {
-      mkdirSync(target); // not recursive: fails when anything is there, and never makes a parent
-      created = true;
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code === 'EEXIST') return { status: 409, error: `${target} was created by something else just now, so nothing was written.` };
-      return { status: 422, error: `${target} could not be created (${code}).` };
-    }
+    if (entries.length) return { status: 409, error: `${target} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.`, notEmpty: target };
+    return { target, created: false };
   }
+  try {
+    mkdirSync(target); // not recursive: fails when anything is there, and never makes a parent
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === 'EEXIST') return { status: 409, error: `${target} was created by something else just now, so nothing was written.` };
+    return { status: 422, error: `${target} could not be created (${code}).` };
+  }
+  return { target, created: true };
+}
+
+/**
+ * Create `<parent>/<name>` when it is missing (one non-recursive `mkdir`), or use it when it is an empty
+ * folder, and write there what `init` writes (REQ-002.H.23 steps 2 to 5; body shape already checked).
+ * No asynchronous I/O between the checks and the writes, like `setupProject()`. Nothing that exists is changed.
+ */
+export async function createProject(parent: string, name: string, answers: Record<string, string>, roots: string[], home: string, cloning: string | null = null): Promise<NewProjectOutcome> {
+  let handle = answers.handle.trim();
+  try {
+    handle = handle || os.userInfo().username;
+  } catch (err) {
+    return { status: 422, error: `The OS username could not be read: ${(err as Error).message}` };
+  }
+  const reserved = reserveTarget(parent, name, roots, home, cloning);
+  if ('status' in reserved) return reserved.project === undefined ? { status: reserved.status, error: reserved.error } : { status: reserved.status, error: reserved.error, project: reserved.project };
+  const { target, created } = reserved;
 
   const framework = answers.framework && answers.framework !== 'none' ? answers.framework : undefined;
   const context = Object.fromEntries(CONTEXT_KEYS.map(key => [key, (answers[key] ?? '').trim()])) as Pick<InitAnswers, 'whatItDoes' | 'targetUsers' | 'expectedScale' | 'constraints'>;

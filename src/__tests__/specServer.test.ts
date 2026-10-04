@@ -9,7 +9,9 @@ import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readB
 import { resolveAllowedPath } from '../utils/specPaths';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
-import { serveCommand } from '../commands/serve';
+import { serveCommand, STOP_CLONE_MS } from '../commands/serve';
+import * as gitClone from '../utils/gitClone';
+import * as specServerModule from '../utils/specServer';
 import * as specSetup from '../utils/specSetup';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
@@ -416,6 +418,55 @@ describe('serveCommand', () => {
     process.emit('SIGINT');
     expect(await exitCode).toBe(0);
   });
+
+  it.each(['SIGINT', 'SIGTERM', 'SIGHUP'] as const)('closes and exits 0 on %s, and then handles none of the three (BL-PM-002)', async signal => {
+    const probe = await startSpecServer([p.root], 0, 'x');
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+    const before = { SIGINT: process.listenerCount('SIGINT'), SIGTERM: process.listenerCount('SIGTERM'), SIGHUP: process.listenerCount('SIGHUP') };
+
+    let exited: (code: number) => void;
+    const exitCode = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
+
+    await serveCommand([], { port: String(port) });
+    for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) expect(process.listenerCount(s)).toBe(before[s] + 1);
+    process.emit(signal);
+    process.emit(signal); // a second one while it stops changes nothing
+    expect(await exitCode).toBe(0);
+    expect(exit).toHaveBeenCalledTimes(1);
+    for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) expect(process.listenerCount(s)).toBe(before[s]);
+    await expect(startSpecServer([p.root], port, 'x').then(s => s.close())).resolves.toBeUndefined(); // the port is free again
+  });
+
+  it(`waits at most ${STOP_CLONE_MS / 1000} seconds for a clone's clean-up, ignoring further signals meanwhile, then exits anyway`, async () => {
+    const close = jest.fn(async () => {});
+    jest.spyOn(specServerModule, 'startSpecServer').mockResolvedValue({ server: {} as never, streams: () => 0, stopClone: () => new Promise<void>(() => {}), close });
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    let exited: (code: number) => void;
+    const exitCode = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => exited(code)) as never);
+    const before = process.listenerCount('SIGINT');
+    await serveCommand([], { port: '4398' });
+    jest.useFakeTimers();
+    try {
+      process.emit('SIGINT');
+      process.emit('SIGINT'); // ignored while the clone is being stopped
+      jest.advanceTimersByTime(STOP_CLONE_MS - 1);
+      await Promise.resolve();
+      expect(exit).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1);
+    } finally {
+      jest.useRealTimers();
+    }
+    expect(await exitCode).toBe(0);
+    expect(close).not.toHaveBeenCalled(); // it would wait for the same clean-up
+    expect(process.listenerCount('SIGINT')).toBe(before);
+    expect([...warn.mock.calls, ...logs.map(l => [l])].flat().join('\n') + errors.join('\n')).toContain('The clone could not be cleaned up within 5 seconds. Its folder may be left behind.');
+  });
 });
 
 // ─── Live reload (BL-052) ────────────────────────────────────────────────────
@@ -598,11 +649,13 @@ describe('the poller watches exactly what /api/file serves', () => {
 
 describe('UI routing (ui/route.js)', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { resolveRoute, goneHtml, recentHtml, openOutcome, reloadView } = require('../../ui/route.js') as {
+  const { resolveRoute, goneHtml, recentHtml, openOutcome, reloadView, repoNameFromUrl, projectLabel } = require('../../ui/route.js') as {
+    repoNameFromUrl: (url: string) => string;
+    projectLabel: (p: { name: string | null; root: string }) => string;
     resolveRoute: (hash: string, files: Record<string, unknown>, count?: number, home?: boolean) => { project: number; view: string; sub: string; missing: boolean };
     goneHtml: (path: string) => string;
     recentHtml: (reg: unknown, home: boolean, projects?: unknown[], chev?: string) => string;
-    openOutcome: (status: number, res: unknown, created?: boolean) => { project: number | null; specs: unknown; toast: string };
+    openOutcome: (status: number, res: unknown, created?: boolean | 'cloned') => { project: number | null; specs: unknown; toast: string };
     reloadView: (curView: string, hadSpecs: boolean, hasSpecs: boolean) => string | null;
   };
   const files = { 'quality/tests.md': {}, 'planning/roadmap.md': {} };
@@ -708,6 +761,33 @@ describe('UI routing (ui/route.js)', () => {
     }
   });
 
+  it('a project without a name is shown under its folder\'s own name, never its whole path (BL-PM-002)', () => {
+    expect(projectLabel({ name: 'SpecPilot SDD CLI', root: '~/Documents/dev/SpecPilot' })).toBe('SpecPilot SDD CLI');
+    expect(projectLabel({ name: '', root: '~/x' })).toBe(''); // an empty name in the file is the file's own text
+    expect(projectLabel({ name: null, root: '~/Documents/dev' })).toBe('dev');
+    expect(projectLabel({ name: null, root: '/Users/you/Documents/dev/Hello-World' })).toBe('Hello-World');
+    expect(projectLabel({ name: null, root: '/srv/app/' })).toBe('app');
+    expect(projectLabel({ name: null, root: 'C:\\work\\my app' })).toBe('my app');
+    expect(projectLabel({ name: null, root: '~' })).toBe('~');
+    expect(projectLabel({ name: null, root: '/' })).toBe('/');
+  });
+
+  it('the Clone tab and the server take the folder name from the URL with one function (BL-PM-002)', () => {
+    expect(gitClone.repoNameFromUrl).toBe(repoNameFromUrl);
+    expect(repoNameFromUrl('https://github.com/girishr/SpecPilot.git')).toBe('SpecPilot');
+    expect(repoNameFromUrl('git@github.com:octocat/Hello-World.git')).toBe('Hello-World');
+    for (const typing of ['', 'https:', 'https://', 'https://github.com/']) expect(repoNameFromUrl(typing)).toBe(typing.endsWith('.com/') ? 'github.com' : ''); // while typing: whatever the rule gives
+  });
+
+  it('an answer to a clone differs only in its two texts (BL-PM-002)', () => {
+    const specs = { projects: [{ root: '~/a' }, { root: '~/dev/repo' }] };
+    expect(openOutcome(200, { project: 1, specs, registry: { error: null } }, 'cloned')).toEqual({ project: 1, specs, toast: '~/dev/repo cloned and opened as project 1' });
+    expect(openOutcome(200, { project: 1, specs, registry: { error: 'x could not be written (EACCES).' } }, 'cloned').toast).toBe('~/dev/repo cloned and opened as project 1. x could not be written (EACCES).');
+    expect(openOutcome(409, { error: '/x is already open as project 1.', project: 1 }, 'cloned')).toEqual({ project: 1, specs: null, toast: '/x is already open as project 1.' });
+    expect(openOutcome(422, { error: 'git clone failed: fatal: repository not found' }, 'cloned')).toEqual({ project: null, specs: null, toast: 'git clone failed: fatal: repository not found' });
+    expect(openOutcome(502, {}, 'cloned')).toEqual({ project: null, specs: null, toast: 'Nothing was cloned (HTTP 502).' });
+  });
+
   it('a refused open (422, 403, or no message) opens nothing and shows the server\'s message, so a row click on Home stays on Home', () => {
     expect(openOutcome(422, { error: '~/gone does not exist.' })).toEqual({ project: null, specs: null, toast: '~/gone does not exist.' });
     expect(openOutcome(403, { error: 'Forbidden' })).toEqual({ project: null, specs: null, toast: 'Forbidden' });
@@ -767,18 +847,29 @@ describe('UI routing (ui/route.js)', () => {
       expect(home.indexOf('benefits')).toBeLessThan(home.indexOf('id="homeBox"'));
       expect(page).not.toContain('needs you');
       expect(page).toContain('id="homeOpen">Open a Project Folder</button>');
-      // BL-PM-003: Start a New Project sits under it in the mockup's .alt row; Clone stays out
-      expect(home).toContain('<div class="alt"><button type="button" class="btn line" id="homeNew">Start a New Project</button></div>');
+      // BL-PM-003 and BL-PM-002: the mockup's .alt row, Start a New Project then Clone a Repository
+      expect(home).toContain('<div class="alt"><button type="button" class="btn line" id="homeNew">Start a New Project</button><button type="button" class="btn line" id="homeClone">Clone a Repository</button></div>');
       expect(home.indexOf('id="homeOpen"')).toBeLessThan(home.indexOf('id="homeNew"'));
       // the sheet: the mockup's tab row with Folder and New, and the New tab's own strings
       const sheet = page.slice(page.indexOf('<div class="veil" id="openVeil">'), page.indexOf('<!-- PALETTE'));
-      expect(sheet).toContain('<div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabNew" data-t="new" aria-controls="paneNew" aria-selected="false" tabindex="-1">New</button></div>');
+      expect(sheet).toContain('<div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabClone" data-t="clone" aria-controls="paneClone" aria-selected="false" tabindex="-1">Clone</button><button type="button" role="tab" id="tabNew" data-t="new" aria-controls="paneNew" aria-selected="false" tabindex="-1">New</button></div>');
+      // BL-PM-002: the Clone tab's own strings, its three fields in order, no browser URL check on the field
+      expect(sheet).toContain('<div class="pane" id="paneClone" role="tabpanel" aria-labelledby="tabClone" hidden>');
+      expect(sheet).toContain('<p class="note">Runs git clone on this machine, then opens the folder. Submodules are not cloned.</p>');
+      expect(sheet).toContain('<input id="cloneIn" name="repo-url" type="text" inputmode="url" spellcheck="false" aria-label="Repository URL" placeholder="https://github.com/owner/repo.git or git@github.com:owner/repo.git" maxlength="2048">');
+      expect(sheet).toContain('<input id="cloneParentIn" name="clone-parent" type="text" spellcheck="false" aria-label="Parent folder" placeholder="/path/to/folder or ~/folder">');
+      expect(sheet).toContain('<input id="cloneNameIn" name="clone-name" type="text" spellcheck="false" aria-label="Folder name" placeholder="the repository\'s name" maxlength="214">');
+      expect(sheet).toContain('<div class="sf"><span class="cloning" id="cloneStatus" hidden><span class="bar" role="progressbar" aria-label="Cloning"></span><span id="cloneTime">Cloning… 0:00</span></span><button type="button" class="btn" id="openCancel">Cancel</button>');
+      expect(sheet.indexOf('id="cloneIn"')).toBeLessThan(sheet.indexOf('id="cloneParentIn"'));
+      expect(sheet.indexOf('id="cloneParentIn"')).toBeLessThan(sheet.indexOf('id="cloneNameIn"'));
+      expect(sheet.indexOf('id="recentBox"')).toBeLessThan(sheet.indexOf('id="paneClone"'));
+      expect(sheet.indexOf('id="paneClone"')).toBeLessThan(sheet.indexOf('id="paneNew"'));
       expect(sheet).toContain('<div class="pane" id="paneNew" role="tabpanel" aria-labelledby="tabNew" hidden>');
       expect(sheet).toContain('<p class="note">Runs what specpilot init runs in a new folder. Existing files are never changed.</p>');
       expect(sheet).toContain('aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"');
       expect(sheet).toContain('aria-label="Project name" placeholder="my-project"');
       expect(sheet.indexOf('id="recentBox"')).toBeLessThan(sheet.indexOf('id="paneNew"')); // Recent projects belongs to the Folder tab
-      for (const left of ['Clone', 'Browse', 'Connect Your AI IDE', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
+      for (const left of ['Browse', 'Connect Your AI IDE', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
       expect(page.includes('specpilot-token" content=')).toBe(!readOnly); // no token, so the script never shows the tile
     } finally {
       await s.close();

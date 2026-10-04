@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-04 (BL-PM-003 completed)
-version: 6.07
+lastUpdated: 2026-10-04 (BL-PM-002 built)
+version: 6.08
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -56,17 +56,20 @@ Notes
 | BL-079 | No automated test covers the wiring in `ui/app.js` (clicks, keys, fetches, focus); Jest has no DOM, so only the DOM-free decisions in `ui/route.js` are tested and the rest is checked by hand. Add a headless browser smoke test (Playwright with the preinstalled Chromium) for: open a folder from the sheet, Home (tile, `h`, a row click), a task move, and guided setup. Found during BL-PM-001. |
 | BL-080 | `specpilot serve` with no arguments in a folder without `.specs/` starts on Home instead of exiting 1 (reverses REQ-002.H.1; needs a server with zero projects, which every route's project 0 default assumes today). Asked during BL-PM-003; the developer kept REQ-002.H.1 for that item. |
 | BL-081 | `specpilot serve` on a case-insensitive volume (macOS default): `realpath` keeps the spelling it is given, so a folder already served as `Foo` and opened or created again as `foo` is not seen as the same folder and gets a second index (two tiles, two pollers); nothing is overwritten. Affects `POST /api/projects` since BL-067 and `POST /api/projects/new` (BL-PM-003); compare served roots by `realpathSync.native` or by device and inode. Found by spec-reviewer during BL-PM-003; not part of it. |
-| BL-PM-002 | Clone a repository: a Clone tab in the Open a Project sheet that takes a git URL and a target folder, clones it, then opens it (or runs guided setup when it has no `.specs/`). Architectural: runs git from a browser request, uses the network and writes outside the served folders. Needs BL-067. |
 | BL-PM-004 | Guided setup as the 8-step chat from init.specpilot.dev (questions from `SpecPilot.Init/src/components/chat/flow.ts`), with a step rail, a live `.specs/` preview, a recap and save and resume (`~/.specpilot/drafts`). Output must stay byte-identical to the CLI; relates to BL-032 (shared spec core). Architectural: drafts are written outside the repo. |
 | BL-PM-005 | New Task button: add a row to `## Backlog` in `tasks.md` from the page with the next free BL ID; the only change is one appended line, behind the move route's Origin, token, JSON, size and If-Match checks. New write path. |
 | BL-PM-006 | Commands and Skills split into "From SpecPilot" and "Yours" using `KNOWN_COMMAND_HASHES` (BL-058), plus Regenerate All, which refreshes only byte-exact known versions as `specpilot backfill` does and keeps the rest. New write path. |
 | BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. |
 | BL-PM-008 | Open in VS Code button for the shown project. Architectural: starts a local process from a browser request. |
+| BL-PM-009 | Real clone progress: a percentage on the Clone tab, from `git clone --progress` output streamed to the page while the clone runs. BL-PM-002 shows an indeterminate bar and the elapsed time only. |
+| BL-PM-010 | On `development/onboarding.md`: an "Open in <selected AI IDE>" button that passes the onboarding prompt through that IDE's deep link where one exists (Cursor, Claude Code; research Copilot, Windsurf, Antigravity, Codex), plus a "Copy prompt" button for all. Relates to BL-PM-008. |
+| BL-PM-011 | A "Browse…" button next to every folder field that opens the system folder picker through the server (`osascript` on macOS, `zenity` / `kdialog` on Linux, PowerShell on Windows), as in the mockup and LOCAL-APP.md. Architectural: starts a process from a browser request. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
+| BL-PM-002 | Clone a repository: `Clone a Repository` on Home and a Clone tab in the Open a Project sheet take a git URL, a parent folder and a folder name (default: the repository's name), run the installed `git clone` and then open the folder (guided setup when it has no `.specs/`). Architectural: the first process started from a browser request and the first use of the network. Spec Report written on `feat/bl-pm-002-clone` (REQ-002.H.25, H.26, ARCH-003.23, ARCH-004.44, SEC-002.5 m, SEC-004.15); the developer kept all seven defaults. Built on the branch (new `src/utils/gitClone.ts`, `reserveTarget()` shared with BL-PM-003, `serve` handles SIGTERM and SIGHUP like SIGINT; 811 → 952 tests). After the build report: no `GIT_SSH_COMMAND` on POSIX, the `fatal:` line with the line before it, a 5-second cap on the clean-up at a stop signal, unnamed projects shown under their folder name, Folder name filled from the URL, a bar and elapsed time while cloning. Checked by hand against github.com and in a browser; the ssh clone expected to succeed could not on this machine (no `~/.ssh`), so it is not committed. |
 
 ## Completed
 

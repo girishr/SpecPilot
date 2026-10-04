@@ -43,7 +43,7 @@ function initials(n){const w=String(n).split(/[^A-Za-z0-9]+/).filter(Boolean);
   return w[0].slice(0,2).toUpperCase();}
 function renderProject(){
   const p=DATA.project, name=p.name!==null?p.name:p.root, where=p.root+(p.branch?' · '+p.branch:'');
-  $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=q.name!==null?q.name:q.root,cur=i===PROJECT;
+  $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=q.name!==null?q.name:q.root,cur=i===PROJECT&&curView!=='home';
     return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
@@ -53,6 +53,7 @@ function renderProject(){
 }
 
 /* ---------------- views ---------------- */
+const homeBtn=$('#homeBtn');
 const VIEWS={board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills',setup:''};
 const TITLES={'planning/roadmap.md':'Roadmap','project/requirements.md':'Requirements','architecture/architecture.md':'Architecture','quality/tests.md':'Tests'};
 const NAV=[['board'],['file','planning/roadmap.md'],['file','project/requirements.md'],['explorer'],['file','architecture/architecture.md'],['file','quality/tests.md'],['security'],['instructions'],['commands'],['skills']];
@@ -61,18 +62,25 @@ function syncNav(){
   $$('.src .srow').forEach(b=>{
     const on=b.dataset.v==='file'?(curView==='file'&&b.dataset.f===curFile):(b.dataset.v===curView);
     b.classList.toggle('on',on);b.setAttribute('aria-current',on?'page':'false');});
+  /* the rail: on Home (BL-PM-001) the Home tile is the current one and no project tile is */
+  const home=curView==='home';
+  [homeBtn,...$$('#projList .tile')].forEach(t=>{const cur=t===homeBtn?home:!home&&+t.dataset.project===PROJECT;
+    t.classList.toggle('cur',cur);if(cur)t.setAttribute('aria-current','true');else t.removeAttribute('aria-current');});
 }
 function go(v,keep,sub){
   if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
+  else if(v==='home'){if(!TOKEN)v='board';} // no Home with --read-only: nothing could be listed or opened
   else if(!VIEWS[v]||v==='setup')v='board';
-  if(DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route shows the setup view (BL-055)
+  if(v!=='home'&&DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route of the project shows the setup view (BL-055)
   curView=v;
+  $('#win').classList.toggle('home',v==='home');
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   syncNav();
-  $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?'No .specs/ folder in '+DATA.projects[PROJECT].root:VIEWS[v];
+  $('#title').textContent=v==='home'?'Home':v==='file'?(TITLES[sub]||sub):v==='setup'?'No .specs/ folder in '+DATA.projects[PROJECT].root:VIEWS[v];
   $('#modeSeg').hidden=v!=='board';
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();
+  if(v==='home')loadRecent();
   if(v==='setup')renderSetup();
   if(v==='file')renderFile(sub);
   if(v==='explorer')renderExplorer();
@@ -86,11 +94,12 @@ let urlOk=true,memHash='';
 try{history.replaceState(null,'',location.href);}catch(e){urlOk=false;}
 try{memHash=location.hash;}catch(e){memHash='';}
 function curHash(){if(!urlOk)return memHash;try{return location.hash;}catch(e){return memHash;}}
-function setHash(v,sub){const h='#'+(PROJECT?PROJECT+'/':'')+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
+function setHash(v,sub){const h='#'+(PROJECT&&v!=='home'?PROJECT+'/':'')+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
   if(!urlOk)return;
   try{history.replaceState(null,'',h);}catch(e){urlOk=false;}}
 function route(){
-  const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1);
+  const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1,!!TOKEN);
+  if(r.view==='home'){go('home');return;} // Home belongs to no project: the shown one stays loaded behind it
   if(r.project!==PROJECT){switchProject(r.project,true);return;}
   if(r.view==='board'&&r.sub==='board'){mode='board';$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.m==='board'));renderTasks();}
   go(r.view,true,r.sub);
@@ -290,6 +299,7 @@ document.addEventListener('keydown',e=>{
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
   if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();setNav(false);return}
   if(inField||mod||e.altKey)return;
+  if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$((mode==='board'?'#boardMode':'#listMode')+' .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
 });
@@ -450,11 +460,11 @@ async function apply(d,paths){
   const key=focusKey(document.activeElement);
   const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;
   const was=inspOpen;
-  const hadSpecs=DATA&&DATA.project.specs!==false;
+  const hadSpecs=!(DATA&&DATA.project.specs===false);
   DATA=d;
   renderProject();renderTasks();renderIde();renderAgentFiles();
-  if(d.project.specs===false&&curView!=='setup'){go('setup');return;} // .specs/ gone: offer setup
-  if(hadSpecs===false&&d.project.specs!==false&&curView==='setup'){go('board');return;} // .specs/ appeared another way
+  const to=reloadView(curView,hadSpecs,d.project.specs!==false); // .specs/ gone: offer setup; appeared another way: Tasks; Home stays
+  if(to){go(to);return;}
   if(curView==='file')await renderFile(curFile);
   if(curView==='explorer')renderExplorer();
   if(curView==='security')await renderSecurity();
@@ -494,64 +504,64 @@ function showProject(d,keepRoute){
   renderProject();renderTasks();renderIde();renderAgentFiles();listen();
   if(keepRoute)route();else go('board');
 }
-$('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-project]');if(b&&+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);});
+$('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-project]');if(!b)return;
+  if(+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);else if(curView==='home')go('board');});
 
 /* ---------------- open a project (BL-067) ----------------
    The + tile opens the mockup's sheet (Folder tab only). The list is GET /api/projects; opening is
    POST /api/projects, which serves one more folder and remembers it; Remove from list edits the
    registry only. Nothing here is file content; the strings are the ones REQ-002.H.21 lists. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
-let openBusy=false;
-if(TOKEN)addBtn.hidden=false;
-function openSheet(){hideTip();openVeil.classList.add('open');pathIn.value='';loadRecent();setTimeout(()=>pathIn.focus(),50);}
-function closeSheet(){if(!openVeil.classList.contains('open'))return;openVeil.classList.remove('open');addBtn.focus();}
-function drawRecent(reg){
-  $('#recentPath').textContent=reg.path||'';
-  const box=$('#recentBox');
-  if(reg.error){box.innerHTML=`<p class="note">${esc(reg.error)}</p>`;return;}
-  if(!reg.entries.length){box.innerHTML='<div class="empty">No projects remembered yet.</div>';return;}
-  box.innerHTML=reg.entries.map(e=>{
-    const when=new Date(e.lastOpened),det=[isNaN(when)?e.lastOpened:when.toLocaleString()];
-    if(e.project!==null)det.push('open as project '+e.project);
-    if(!e.exists)det.push('folder not found');
-    return `<div class="row recent"><div class="body" data-path="${esc(e.path)}" role="button" tabindex="0"><div class="ttl" translate="no">${esc(e.root)}</div><div class="det">${esc(det.join(' · '))}</div></div><button type="button" class="btn sm" data-remove="${esc(e.path)}">Remove from list</button></div>`;
-  }).join('');
+let openBusy=false,sheetFrom=addBtn;
+if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
+function openSheet(from){hideTip();sheetFrom=from;openVeil.classList.add('open');pathIn.value='';loadRecent();setTimeout(()=>pathIn.focus(),50);}
+function closeSheet(){if(!openVeil.classList.contains('open'))return;openVeil.classList.remove('open');sheetFrom.focus();}
+/* The registry as GET /api/projects sends it: in the sheet, or on Home (BL-PM-001), where a row opens
+   its folder at once, has no Remove, and a served project also shows the branch the rail tooltip shows. */
+function drawRecent(reg,home){
+  $(home?'#homePath':'#recentPath').textContent=reg.path||'';
+  $(home?'#homeBox':'#recentBox').innerHTML=recentHtml(reg,home,DATA?DATA.projects:[],chev);
 }
 async function loadRecent(){
   let reg;
   try{const r=await fetch('/api/projects',{cache:'no-store'});reg=r.ok?await r.json():{error:'HTTP '+r.status,entries:[]};}
   catch(e){reg={error:'The server did not answer.',entries:[]};}
   if(openVeil.classList.contains('open'))drawRecent(reg);
+  if(curView==='home')drawRecent(reg,true);
 }
 async function postPath(path,url){
   const r=await fetch(url,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify({path})});
   return {r,res:await r.json().catch(()=>({}))};
 }
-async function submitOpen(){
-  const path=pathIn.value.trim();if(!path||openBusy)return;
+/* Open a folder: the sheet's Open, and a row on Home. */
+async function openPath(path){
+  if(!path||openBusy)return;
   openBusy=true;$('#openGo').disabled=true;
   let out;
   try{out=await postPath(path,'/api/projects');}
   catch(e){openBusy=false;$('#openGo').disabled=false;toast('The server did not answer.');return;}
   openBusy=false;$('#openGo').disabled=false;
-  const {r,res}=out;
-  if(r.status===200){
-    closeSheet();PROJECT=res.project;showProject(res.specs,false);
-    const root=res.specs.projects[res.project].root;
-    toast(`${root} opened as project ${res.project}`+(res.registry&&res.registry.error?'. '+res.registry.error:''));
-  }else if(r.status===409&&typeof res.project==='number'){
-    closeSheet();toast(res.error||`Already open as project ${res.project}`);if(res.project!==PROJECT)switchProject(res.project);
-  }else toast(res.error||`Nothing was opened (HTTP ${r.status}).`);
+  const o=openOutcome(out.r.status,out.res),wasHome=curView==='home';
+  if(o.project===null){toast(o.toast);return;} // refused: the page stays where it is
+  closeSheet();
+  if(o.specs){PROJECT=o.project;showProject(o.specs,false);}
+  else if(o.project!==PROJECT)await switchProject(o.project);
+  else if(wasHome)go('board');
+  toast(o.toast);
+  if(wasHome)$('#content').focus(); // Home is gone from the screen: focus goes to the project's view, not to a hidden control
 }
 async function removeRecent(path){
   let out;
   try{out=await postPath(path,'/api/projects/remove');}catch(e){toast('The server did not answer.');return;}
-  if(out.r.status===200)drawRecent(out.res);else toast(out.res.error||`Nothing was removed (HTTP ${out.r.status}).`);
+  if(out.r.status===200){drawRecent(out.res);if(curView==='home')drawRecent(out.res,true);}else toast(out.res.error||`Nothing was removed (HTTP ${out.r.status}).`);
 }
-addBtn.onclick=openSheet;
+addBtn.onclick=()=>openSheet(addBtn);
+homeBtn.onclick=()=>go('home');
+$('#homeOpen').onclick=e=>openSheet(e.currentTarget);
+$('#homeBox').addEventListener('click',e=>{const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);});
 $('#openCancel').onclick=closeSheet;
 openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
-$('#openForm').onsubmit=e=>{e.preventDefault();submitOpen();};
+$('#openForm').onsubmit=e=>{e.preventDefault();openPath(pathIn.value.trim());};
 $('#recentBox').addEventListener('click',e=>{
   const rm=e.target.closest('[data-remove]');if(rm){removeRecent(rm.dataset.remove);return;}
   const row=e.target.closest('[data-path]');if(row){pathIn.value=row.dataset.path;pathIn.focus();}

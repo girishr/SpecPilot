@@ -597,9 +597,12 @@ describe('the poller watches exactly what /api/file serves', () => {
 
 describe('UI routing (ui/route.js)', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { resolveRoute, goneHtml } = require('../../ui/route.js') as {
-    resolveRoute: (hash: string, files: Record<string, unknown>, count?: number) => { project: number; view: string; sub: string; missing: boolean };
+  const { resolveRoute, goneHtml, recentHtml, openOutcome, reloadView } = require('../../ui/route.js') as {
+    resolveRoute: (hash: string, files: Record<string, unknown>, count?: number, home?: boolean) => { project: number; view: string; sub: string; missing: boolean };
     goneHtml: (path: string) => string;
+    recentHtml: (reg: unknown, home: boolean, projects?: unknown[], chev?: string) => string;
+    openOutcome: (status: number, res: unknown) => { project: number | null; specs: unknown; toast: string };
+    reloadView: (curView: string, hadSpecs: boolean, hasSpecs: boolean) => string | null;
   };
   const files = { 'quality/tests.md': {}, 'planning/roadmap.md': {} };
 
@@ -637,6 +640,113 @@ describe('UI routing (ui/route.js)', () => {
 
   it.each([['#9/explorer'], ['#3/explorer'], ['#01/explorer'], ['#1/explorer']])('sends %j (no such project) to project 0 Tasks', hash => {
     expect(resolveRoute(hash, files, hash === '#1/explorer' ? 1 : 3)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+  });
+
+  it.each([['#home'], ['#home/x'], ['#1/home'], ['#9/home'], ['#01/home']])('routes %j to Home when the page has one, whatever index or rest it carries (BL-PM-001)', hash => {
+    expect(resolveRoute(hash, files, 2, true)).toEqual({ project: 0, view: 'home', sub: '', missing: false });
+  });
+
+  it('keeps #homes an unknown view and every other route as it was when the page has a Home', () => {
+    expect(resolveRoute('#homes', files, 2, true)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#1/homes', files, 2, true)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#1/explorer', files, 2, true)).toEqual({ project: 1, view: 'explorer', sub: '', missing: false });
+    expect(resolveRoute('#file/quality/tests.md', files, 2, true)).toEqual({ project: 0, view: 'file', sub: 'quality/tests.md', missing: false });
+    expect(resolveRoute('#9/explorer', files, 2, true)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+  });
+
+  it.each([[false], [undefined]])('sends #home to the Tasks view of the route\'s project when there is no Home (--read-only; home = %j)', home => {
+    expect(resolveRoute('#home', files, 2, home)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#home/x', files, 2, home)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#1/home', files, 2, home)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#9/home', files, 2, home)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+  });
+
+  const REG = {
+    path: '~/.specpilot/projects.json',
+    error: null,
+    entries: [
+      { path: '/h/old', root: '~/old', lastOpened: '2026-01-02T03:04:05.000Z', pinned: true, project: null, exists: true },
+      { path: '/h/api', root: '~/api', lastOpened: '2026-10-03T10:00:00.000Z', pinned: false, project: 1, exists: true },
+      { path: '/h/<gone>', root: '~/<gone>', lastOpened: '2026-10-02T10:00:00.000Z', pinned: false, project: null, exists: false },
+    ],
+  };
+  const SERVED = [{ name: 'a', root: '~/a', branch: 'main' }, { name: 'api', root: '~/api', branch: 'feat/x' }];
+
+  it('draws a Home row per entry in the order sent: root, the branch only of an open project, the time, and "folder not found" (BL-PM-001)', () => {
+    const rows = recentHtml(REG, true, SERVED, '').split('</button>').filter(Boolean);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toContain('data-path="/h/old"');
+    expect(rows[0]).toContain('<div class="ttl" translate="no">~/old</div>'); // not open: no branch
+    expect(rows[0]).toContain(`<div class="det">${new Date('2026-01-02T03:04:05.000Z').toLocaleString()}</div>`);
+    expect(rows[1]).toContain('<div class="ttl" translate="no">~/api · feat/x</div>');
+    expect(rows[1]).toContain(' · open as project 1</div>');
+    expect(rows[2]).toContain('data-path="/h/&lt;gone&gt;"');
+    expect(rows[2]).toContain('<div class="ttl" translate="no">~/&lt;gone&gt;</div>');
+    expect(rows[2]).toContain(' · folder not found</div>');
+    for (const r of rows) {
+      expect(r).toMatch(/^<button type="button" class="row act" data-path=/); // the whole row opens the folder
+      expect(r).not.toMatch(/Remove from list|disabled|pinned|badge|pill/);
+    }
+  });
+
+  it('keeps the sheet\'s list as it was: a Remove button per row and no branch', () => {
+    const html = recentHtml(REG, false, SERVED, '');
+    expect(html.match(/Remove from list/g)).toHaveLength(3);
+    expect(html).toContain('<div class="ttl" translate="no">~/api</div>');
+    expect(html).toContain(' · folder not found</div>');
+    expect(html).not.toContain('feat/x');
+  });
+
+  it('shows an empty registry and a refused one in both lists, the reason verbatim and escaped', () => {
+    for (const home of [true, false]) {
+      expect(recentHtml({ path: 'p', error: null, entries: [] }, home)).toBe('<div class="empty">No projects remembered yet.</div>');
+      expect(recentHtml({ path: 'p', error: 'x <b> could not be read', entries: [] }, home)).toBe('<p class="note">x &lt;b&gt; could not be read</p>');
+    }
+  });
+
+  it('a refused open (422, 403, or no message) opens nothing and shows the server\'s message, so a row click on Home stays on Home', () => {
+    expect(openOutcome(422, { error: '~/gone does not exist.' })).toEqual({ project: null, specs: null, toast: '~/gone does not exist.' });
+    expect(openOutcome(403, { error: 'Forbidden' })).toEqual({ project: null, specs: null, toast: 'Forbidden' });
+    expect(openOutcome(422, {})).toEqual({ project: null, specs: null, toast: 'Nothing was opened (HTTP 422).' });
+    expect(openOutcome(409, { error: 'Too many projects.' })).toEqual({ project: null, specs: null, toast: 'Too many projects.' }); // a 409 without a project
+  });
+
+  it('an open that worked shows the project with the payload it came with; an already open folder is switched to', () => {
+    const specs = { projects: [{ root: '~/a' }, { root: '~/api' }] };
+    expect(openOutcome(200, { project: 1, specs, registry: { error: null } })).toEqual({ project: 1, specs, toast: '~/api opened as project 1' });
+    expect(openOutcome(200, { project: 1, specs, registry: { error: 'not saved' } }).toast).toBe('~/api opened as project 1. not saved');
+    expect(openOutcome(409, { project: 0, error: '~/a is already open as project 0.' })).toEqual({ project: 0, specs: null, toast: '~/a is already open as project 0.' });
+    expect(openOutcome(409, { project: 0 }).toast).toBe('Already open as project 0');
+  });
+
+  it('a live-reload change never moves the page off Home, and moves the other views as before', () => {
+    for (const had of [true, false]) for (const has of [true, false]) expect(reloadView('home', had, has)).toBeNull();
+    expect(reloadView('board', true, false)).toBe('setup'); // .specs/ gone
+    expect(reloadView('file', true, false)).toBe('setup');
+    expect(reloadView('setup', false, true)).toBe('board'); // .specs/ appeared another way
+    expect(reloadView('setup', false, false)).toBeNull();
+    expect(reloadView('setup', true, true)).toBeNull();
+    expect(reloadView('board', true, true)).toBeNull();
+  });
+
+  it.each([[false], [true]])('serves the Home screen hidden behind the token, with nothing that is not built (BL-PM-001; readOnly %j)', async readOnly => {
+    const p = makeProject();
+    const s = await startSpecServer([p.root], 0, 'x', { readOnly });
+    try {
+      const port = (s.server.address() as AddressInfo).port;
+      const page = (await hit(port, '/')).body;
+      expect(page).toMatch(/<button class="tile home" id="homeBtn" aria-label="Home" aria-keyshortcuts="h" data-tip="Home" hidden>/);
+      expect(page).toContain('<h2>Your specs, as a board.</h2>');
+      expect(page).toContain(
+        'SpecPilot reads the .specs/ folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.',
+      );
+      expect(page).toContain('id="homeOpen">Open a Project Folder</button>');
+      for (const left of ['Start a New Project', 'Clone a Repository', 'Connect Your AI IDE', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
+      expect(page.includes('specpilot-token" content=')).toBe(!readOnly); // no token, so the script never shows the tile
+    } finally {
+      await s.close();
+      p.cleanup();
+    }
   });
 
   it('is served and loaded by the page', async () => {

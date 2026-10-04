@@ -69,6 +69,7 @@
 <div class="win" id="win">
 <nav class="rail" id="rail" aria-label="Projects">
   <svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
+  <button class="tile home" id="homeBtn" aria-label="Home" aria-keyshortcuts="h" data-tip="Home" hidden><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg></button>
   <div class="rsep" aria-hidden="true"></div>
   <div class="rlist" id="projList" role="group" aria-label="Open projects"></div>
   <button class="tile act" id="addBtn" aria-label="Add a project" data-tip="Add a project" hidden><svg aria-hidden="true" focusable="false"><use href="#i-plus"/></svg></button>
@@ -112,8 +113,15 @@
       <div class="seg" id="modeSeg"><button class="on" data-m="list">List</button><button data-m="board">Board</button></div>
     </div>
   </div>
-  <div class="content" id="content">
+  <div class="content" id="content" tabindex="-1">
     <p class="note" id="loadErr" hidden></p>
+
+    <!-- HOME (BL-PM-001): the mockup's launcher, cut down to the BL-067 sheet and GET /api/projects -->
+    <section class="view" id="v-home">
+      <div><h2>Your specs, as a board.</h2><p class="home-lead">SpecPilot reads the .specs/ folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p></div>
+      <button type="button" class="btn pri big" id="homeOpen">Open a Project Folder</button>
+      <div class="gl"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
+    </section>
 
     <!-- TASKS: the rows of planning/tasks.md, from readSpecs() -->
     <section class="view on" id="v-board">

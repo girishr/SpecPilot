@@ -334,3 +334,17 @@ input.txt{width:100%}
 .recent .row .body{cursor:pointer}
 .recent .btn{flex:none}
 .sheet .note{padding:10px 14px}
+
+/* Home (BL-PM-001): the mockup's welcome column, without what is not built */
+@media (min-width:901px){.win.home{grid-template-columns:60px minmax(0,1fr)}}
+.win.home .src,.win.home .tb .sub{display:none}
+.tile.home{background:transparent}
+.tile.home:hover,.tile.home.cur{background:var(--hover)}
+.tile.home .logo{width:26px;height:26px;margin:0}
+#v-home{max-width:560px;gap:22px;padding-top:clamp(8px,5vh,48px)}
+#v-home h2{font-size:clamp(26px,4vw,32px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0;text-wrap:balance}
+#v-home .home-lead{font-size:16px;line-height:1.55;color:var(--label-2);margin:10px 0 0;max-width:52ch}
+#v-home .btn.big{min-height:48px;font-size:15px;font-weight:600;padding:0 20px;width:100%}
+#content:focus{outline:0}
+#v-home .row{text-align:left}
+#v-home .row .ttl{white-space:normal;overflow-wrap:anywhere}

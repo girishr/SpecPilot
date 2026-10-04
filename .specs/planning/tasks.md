@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-03 (BL-067 completed as CD-girishr-061)
-version: 6.00
+lastUpdated: 2026-10-04 (BL-PM-001 built)
+version: 6.01
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -53,7 +53,6 @@ Notes
 | BL-075 | After BL-055: `init.ts` still holds its own copies of the API-paradigm and IDE choice lists, the handle message and the supported-language list that `add-specs` and guided setup then share from `addSpecsQuestions.ts` (ARCH-003.19); switch `init` to the shared exports, terminal output unchanged. Found during BL-055; left out to keep its diff small. |
 | BL-077 | `init`, `add-specs` and `refine --update` create IDE files inside existing folders with `mkdirSync({ recursive: true })`, so a `.vscode/`, `.github/`, `.claude/commands/` (etc.) that is a symbolic link to a folder outside the project gets new files written outside it. Guided setup refuses this (REQ-002.H.16 step 5, 409, nothing written). Apply the same check in the CLI: refuse before writing anything when a folder on the way is a symbolic link or not a folder. Found by spec-reviewer during BL-073; not part of it (BL-073 guards only the file's own path). |
 | BL-076 | `specpilot backfill` does not add the three `merge=union` lines to an existing `.gitattributes` (`specBackfiller.ts` never touches the file), so a project whose `.gitattributes` BL-055's guided setup keeps, or that was initialised before the lines existed, never gets them from backfill. Add a `.gitattributes` check to backfill, append-only as `IdeConfigGenerator.generateGitAttributes()` does. Found during BL-055's review; not part of it. |
-| BL-PM-001 | Home screen: what the page shows before a project is open, as in the mockup ("Your specs, as a board.", Open a project folder, Start a new project, Clone a repository) plus the remembered projects from BL-067. Needs BL-067 first. |
 | BL-PM-002 | Clone a repository: a Clone tab in the Open a Project sheet that takes a git URL and a target folder, clones it, then opens it (or runs guided setup when it has no `.specs/`). Architectural: runs git from a browser request, uses the network and writes outside the served folders. Needs BL-067. |
 | BL-PM-003 | Start a new project: set up `.specs/` in an empty or new folder from the page (what `specpilot init` does), not only in an existing named folder (BL-055 runs `add-specs`). Architectural: may create the folder. Needs BL-067. |
 | BL-PM-004 | Guided setup as the 8-step chat from init.specpilot.dev (questions from `SpecPilot.Init/src/components/chat/flow.ts`), with a step rail, a live `.specs/` preview, a recap and save and resume (`~/.specpilot/drafts`). Output must stay byte-identical to the CLI; relates to BL-032 (shared spec core). Architectural: drafts are written outside the repo. |
@@ -66,6 +65,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-PM-001 | Home screen for `specpilot serve` (REQ-002.H.22): the rail logo becomes a Home tile and `#home` shows "Your specs, as a board.", a short intro, Open a Project Folder (the BL-067 sheet) and the Recent projects list from `GET /api/projects` (path, branch for served projects, last opened, pinned first); a row opens through the existing `POST /api/projects`. Client-side only: no new route, no new write. Left out until built: Start a New Project (BL-PM-003), Clone a Repository (BL-PM-002), the MCP card (BL-PM-007), the sample project; health, drift, validate and "needs you" stay parked. Decided by the developer: `serve` keeps starting on Tasks, `h` shows Home, no branch for folders that are not open. Built on `feat/bl-pm-001-home` (717 tests). |
 
 ## Completed
 

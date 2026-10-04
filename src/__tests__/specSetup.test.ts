@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import * as os from 'os';
 
 // The real module objects, which specSetup.ts calls through (a namespace import cannot be spied on).
@@ -13,7 +13,15 @@ import { addSpecsOptions, IDE_CHOICES, SUPPORTED_LANGUAGES } from '../utils/addS
 import { ProjectDetector } from '../utils/projectDetector';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
-import { answersShapeError, removeStaleStaging, setupProject, setupQuestions, specsMissing, STAGING_MARKER } from '../utils/specSetup';
+import {
+  answersShapeError, createProject, newProjectQuestions, newProjectShapeError, removeStaleStaging, setupProject, setupQuestions, specsMissing, STAGING_MARKER,
+} from '../utils/specSetup';
+import { API_PARADIGM_CHOICES } from '../utils/addSpecsQuestions';
+import { NOT_SPECIFIED } from '../utils/initQuestions';
+
+jest.mock('inquirer', () => ({ __esModule: true, default: { prompt: jest.fn() } }));
+import inquirer from 'inquirer';
+import { initCommand } from '../commands/init';
 
 // Guided setup (BL-055): the same bytes as `specpilot add-specs`, never a changed file.
 
@@ -372,5 +380,323 @@ describe('removeStaleStaging()', () => {
     marked(root, '.specpilot-setup-0123456789ab');
     expect(removeStaleStaging(root)).toHaveLength(1);
     expect(removeStaleStaging(join(root, 'does-not-exist'))).toEqual([]);
+  });
+});
+
+// ---- a new project (BL-PM-003): the same bytes as `specpilot init`, in a new or empty folder
+
+/** A temp base (real path) to create projects in, and a separate temp home. */
+function makeBase(): { base: string; home: string } {
+  const base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-new-')));
+  const home = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-newhome-')));
+  bases.push(base, home);
+  return { base, home };
+}
+
+const NEW = {
+  projectType: 'greenfield', language: 'typescript', framework: 'react', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode',
+  whatItDoes: 'Tracks parcels', targetUsers: 'Couriers', expectedScale: '', constraints: 'Offline first',
+};
+
+/** What the real `specpilot init <name>` writes in `dir` for the same answers (inquirer answered by question name). */
+async function initOutput(dir: string, name: string, a: Record<string, string>): Promise<Record<string, Buffer>> {
+  const answers: Record<string, string> = { ...a, developerName: a.handle };
+  (inquirer.prompt as unknown as jest.Mock).mockImplementation(async (questions: { name: string }[]) =>
+    Object.fromEntries(questions.map(q => [q.name, answers[q.name] ?? ''])));
+  const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  await initCommand(name, { lang: a.language, dir, specsName: '.specs', prompts: true });
+  log.mockRestore();
+  return tree(join(dir, name));
+}
+
+const sameTree = (got: Record<string, Buffer>, expected: Record<string, Buffer>) => {
+  expect(Object.keys(got).sort()).toEqual(Object.keys(expected).sort());
+  for (const p of Object.keys(expected)) expect([p, got[p].equals(expected[p])]).toEqual([p, true]);
+};
+
+describe('createProject() writes what specpilot init writes', () => {
+  it.each(IDES)('byte for byte, for %s, in a folder it creates', async ide => {
+    const [a, b] = [makeBase(), makeBase()];
+    const out = await createProject(a.base, 'demo', { ...NEW, ide }, [], a.home);
+    expect(out).toEqual({ status: 200, root: join(a.base, 'demo'), kept: [], notice: ide === 'Codex' ? CODEX_PROMPTS_NOTICE : null });
+    sameTree(tree(join(a.base, 'demo')), await initOutput(b.base, 'demo', { ...NEW, ide }));
+    expect(readdirSync(join(a.base, 'demo')).some(n => n.startsWith('.specpilot-setup-'))).toBe(false);
+    expect(readdirSync(a.base)).toEqual(['demo']);
+  });
+
+  it('byte for byte for brownfield, a language without frameworks, an empty handle and only the required context answer', async () => {
+    const [a, b] = [makeBase(), makeBase()];
+    const answers = { projectType: 'brownfield', language: 'javascript', apiParadigm: 'none', handle: '  ', ide: 'claude-code', whatItDoes: ' A thing ' };
+    expect((await createProject(a.base, 'app_v2.x', answers, [], a.home)).status).toBe(200);
+    sameTree(tree(join(a.base, 'app_v2.x')), await initOutput(b.base, 'app_v2.x', { ...answers, handle: '' }));
+    expect(readFileSync(join(a.base, 'app_v2.x/.specs/project/project.yaml'), 'utf-8')).toContain(`devPrefix: "${os.userInfo().username}"`);
+  });
+
+  it('writes the context answers into onboarding.md as plain text, NOT_SPECIFIED for an empty one, and "none" as no framework', async () => {
+    const a = makeBase();
+    expect((await createProject(a.base, 'demo', { ...NEW, framework: 'none', whatItDoes: 'Uses {{author}} & <b>' }, [], a.home)).status).toBe(200);
+    const onboarding = readFileSync(join(a.base, 'demo/.specs/development/onboarding.md'), 'utf-8');
+    expect(onboarding).toContain('- **What it does:** Uses {{author}} & <b>\n');
+    expect(onboarding).toContain(`- **Expected scale:** ${NOT_SPECIFIED}\n`);
+    expect(onboarding).toContain('Tech stack: typescript\n');
+  });
+
+  it('uses an existing empty folder as it is', async () => {
+    const [a, b] = [makeBase(), makeBase()];
+    mkdirSync(join(a.base, 'demo'), { mode: 0o750 });
+    expect((await createProject(a.base, 'demo', NEW, [], a.home)).status).toBe(200);
+    sameTree(tree(join(a.base, 'demo')), await initOutput(b.base, 'demo', NEW));
+    expect(lstatSync(join(a.base, 'demo')).mode & 0o777).toBe(0o750);
+  });
+
+  it('resolves ~/ against the given home, builds the target under a linked parent\'s real path, and allows a served folder as parent', async () => {
+    const a = makeBase();
+    mkdirSync(join(a.home, 'dev'));
+    expect(await createProject('~/dev', 'one', NEW, [], a.home)).toMatchObject({ status: 200, root: join(a.home, 'dev', 'one') });
+    symlinkSync(join(a.home, 'dev'), join(a.base, 'link'));
+    expect(await createProject(join(a.base, 'link'), 'two', NEW, [join(a.home, 'dev')], a.home)).toMatchObject({ status: 200, root: join(a.home, 'dev', 'two') });
+    expect(readdirSync(a.base)).toEqual(['link']);
+  });
+});
+
+describe('createProject() refusals: nothing created, nothing changed', () => {
+  const refused = async (parent: (a: { base: string; home: string }) => string, name: string, expected: object, prepare?: (a: { base: string; home: string }) => void, roots: (a: { base: string }) => string[] = () => []) => {
+    const a = makeBase();
+    prepare?.(a);
+    const before = [tree(a.base), tree(a.home), readdirSync(a.base), readdirSync(a.home)];
+    expect(await createProject(parent(a), name, NEW, roots(a), a.home)).toEqual(expected);
+    expect([tree(a.base), tree(a.home), readdirSync(a.base), readdirSync(a.home)]).toEqual(before);
+    return a;
+  };
+
+  it('a relative, missing or non-folder parent, with checkOpenPath()\'s own words', async () => {
+    await refused(() => 'dev', 'demo', { status: 422, error: 'The path must be absolute, e.g. /Users/you/project or ~/project.' });
+    await refused(a => join(a.base, 'nope'), 'demo', { status: 422, error: expect.stringMatching(/^Folder not found: .*nope$/) });
+    await refused(a => join(a.base, 'f.txt'), 'demo', { status: 422, error: expect.stringMatching(/^Not a folder: .*f\.txt$/) }, a => writeFileSync(join(a.base, 'f.txt'), 'x'));
+  });
+
+  it('the home folder or a root as parent, with the parent field\'s own message', async () => {
+    const error = 'Pick a folder inside your home folder, like ~/dev.';
+    await refused(() => '~', 'demo', { status: 422, error });
+    await refused(a => a.home, 'demo', { status: 422, error });
+    await refused(() => '/', 'specpilot-must-not-exist', { status: 422, error });
+    expect(existsSync('/specpilot-must-not-exist')).toBe(false);
+  });
+
+  it('a parent that is a .specs folder, under one, or .SPECS', async () => {
+    const error = 'A project cannot be created inside a .specs/ folder.';
+    const prepare = (a: { base: string }) => mkdirSync(join(a.base, 'proj', '.specs', 'planning'), { recursive: true });
+    await refused(a => join(a.base, 'proj', '.specs'), 'demo', { status: 422, error }, prepare);
+    await refused(a => join(a.base, 'proj', '.specs', 'planning'), 'demo', { status: 422, error }, prepare);
+    await refused(a => join(a.base, '.SPECS'), 'demo', { status: 422, error }, a => mkdirSync(join(a.base, '.SPECS')));
+    // a folder inside a project that is not .specs is fine
+    const a = makeBase();
+    mkdirSync(join(a.base, 'proj', '.specs'), { recursive: true });
+    mkdirSync(join(a.base, 'proj', 'packages'));
+    expect((await createProject(join(a.base, 'proj', 'packages'), 'demo', NEW, [join(a.base, 'proj')], a.home)).status).toBe(200);
+  });
+
+  it('a target that is a link (to a folder, or dangling), a file, or a folder with anything in it', async () => {
+    const link = (a: { base: string }) => expect.objectContaining({ status: 409, error: `${join(a.base, 'demo')} is a symbolic link, so nothing was created.` });
+    let a = makeBase();
+    mkdirSync(join(a.base, 'real'));
+    symlinkSync(join(a.base, 'real'), join(a.base, 'demo'));
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual(link(a));
+    expect(readdirSync(join(a.base, 'real'))).toEqual([]);
+    a = makeBase();
+    symlinkSync(join(a.base, 'gone'), join(a.base, 'demo'));
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual(link(a));
+    expect(existsSync(join(a.base, 'gone'))).toBe(false);
+    await refused(x => x.base, 'demo', { status: 409, error: expect.stringMatching(/demo exists and is not a folder, so nothing was created\.$/) }, x => writeFileSync(join(x.base, 'demo'), 'x'));
+    const notEmpty = { status: 409, error: expect.stringMatching(/demo already exists and is not empty\. Use the Folder tab to open it and add \.specs\/ there\.$/) };
+    await refused(x => x.base, 'demo', notEmpty, x => { mkdirSync(join(x.base, 'demo')); writeFileSync(join(x.base, 'demo', 'README.md'), 'mine\n'); });
+    await refused(x => x.base, 'demo', notEmpty, x => { mkdirSync(join(x.base, 'demo')); writeFileSync(join(x.base, 'demo', '.DS_Store'), ''); });
+    await refused(x => x.base, 'demo', notEmpty, x => mkdirSync(join(x.base, 'demo', 'sub'), { recursive: true }));
+  });
+
+  it('a target that is already served: an empty served folder, and a served root whose folder is gone', async () => {
+    const served = (a: { base: string }) => ({ status: 409, error: `${join(a.base, 'demo')} is already open as project 1.`, project: 1 });
+    let a = makeBase();
+    mkdirSync(join(a.base, 'demo'));
+    expect(await createProject(a.base, 'demo', NEW, ['/x', join(a.base, 'demo')], a.home)).toEqual(served(a));
+    expect(readdirSync(join(a.base, 'demo'))).toEqual([]);
+    a = makeBase();
+    expect(await createProject(a.base, 'demo', NEW, ['/x', join(a.base, 'demo')], a.home)).toEqual(served(a));
+    expect(readdirSync(a.base)).toEqual([]);
+  });
+
+  it('a target that is the home folder gets checkOpenPath()\'s refusal', async () => {
+    const base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-new-')));
+    bases.push(base);
+    mkdirSync(join(base, 'me'));
+    expect(await createProject(base, 'me', NEW, [], join(base, 'me'))).toEqual({ status: 422, error: 'SpecPilot does not open your home folder or the root of a drive.' });
+    expect(readdirSync(join(base, 'me'))).toEqual([]);
+  });
+
+  it('a mkdir that fails: the target appeared since the lstat (409), or the parent is not writable (422)', async () => {
+    let a = makeBase();
+    const real = realFs.mkdirSync;
+    jest.spyOn(realFs, 'mkdirSync').mockImplementationOnce(((path: import('fs').PathLike) => {
+      real(path); // something else makes it first
+      writeFileSync(join(String(path), 'theirs.txt'), 'x');
+      return real(path); // ours then fails with EEXIST
+    }) as typeof realFs.mkdirSync);
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual({ status: 409, error: `${join(a.base, 'demo')} was created by something else just now, so nothing was written.` });
+    expect(tree(a.base)).toEqual({ 'demo/theirs.txt': Buffer.from('x') });
+    jest.restoreAllMocks();
+    a = makeBase();
+    mkdirSync(join(a.base, 'ro'), { mode: 0o555 });
+    const out = await createProject(join(a.base, 'ro'), 'demo', NEW, [], a.home);
+    chmodSync(join(a.base, 'ro'), 0o755);
+    if (process.getuid?.() !== 0) expect(out).toEqual({ status: 422, error: `${join(a.base, 'ro', 'demo')} could not be created (EACCES).` });
+    if (process.getuid?.() !== 0) expect(readdirSync(join(a.base, 'ro'))).toEqual([]);
+  });
+
+  it('an OS username that cannot be read, when the handle is empty', async () => {
+    const a = makeBase();
+    jest.spyOn(realOs, 'userInfo').mockImplementation(() => {
+      throw new Error('no passwd entry');
+    });
+    expect(await createProject(a.base, 'demo', { ...NEW, handle: '' }, [], a.home)).toEqual({ status: 422, error: 'The OS username could not be read: no passwd entry' });
+    expect(readdirSync(a.base)).toEqual([]);
+    expect((await createProject(a.base, 'demo', NEW, [], a.home)).status).toBe(200); // a handle was given: the username is not needed
+  });
+});
+
+describe('createProject() rollback', () => {
+  const failThirdCreate = (onFail: () => void) => {
+    const real = realFs.openSync;
+    let opens = 0;
+    jest.spyOn(realFs, 'openSync').mockImplementation(((path: import('fs').PathLike, flags: import('fs').OpenMode, mode?: import('fs').Mode) => {
+      if (flags === 'wx' && !String(path).includes('.specpilot-setup-') && ++opens === 3) {
+        onFail();
+        throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
+      }
+      return real(path, flags, mode);
+    }) as typeof realFs.openSync);
+  };
+  const failed = { status: 500, error: 'Setup could not finish: disk full. The files it had created were removed.' };
+
+  it('removes the files, the staging folder and the folder it created', async () => {
+    const a = makeBase();
+    failThirdCreate(() => undefined);
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual(failed);
+    expect(readdirSync(a.base)).toEqual([]);
+  });
+
+  it('leaves an existing empty folder it used, empty', async () => {
+    const a = makeBase();
+    mkdirSync(join(a.base, 'demo'));
+    failThirdCreate(() => undefined);
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual(failed);
+    expect(readdirSync(a.base)).toEqual(['demo']);
+    expect(readdirSync(join(a.base, 'demo'))).toEqual([]);
+  });
+
+  it('keeps the folder, and the file, when something else put a file there during the run', async () => {
+    const a = makeBase();
+    failThirdCreate(() => writeFileSync(join(a.base, 'demo', 'theirs.txt'), 'someone else\n'));
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual(failed);
+    expect(tree(a.base)).toEqual({ 'demo/theirs.txt': Buffer.from('someone else\n') });
+    expect(readdirSync(join(a.base, 'demo'))).toEqual(['theirs.txt']);
+  });
+
+  it('keeps a file that appears outside .specs/ during the run and reports it', async () => {
+    const a = makeBase();
+    const real = realFs.openSync;
+    jest.spyOn(realFs, 'openSync').mockImplementation(((path: import('fs').PathLike, flags: import('fs').OpenMode, mode?: import('fs').Mode) => {
+      if (flags === 'wx' && String(path) === join(a.base, 'demo', '.gitattributes')) writeFileSync(String(path), 'theirs\n');
+      return real(path, flags, mode);
+    }) as typeof realFs.openSync);
+    expect(await createProject(a.base, 'demo', NEW, [], a.home)).toMatchObject({ status: 200, kept: ['.gitattributes'] });
+    expect(readFileSync(join(a.base, 'demo', '.gitattributes'), 'utf-8')).toBe('theirs\n');
+  });
+});
+
+describe('newProjectQuestions()', () => {
+  it('returns init\'s questions in its order, with the CLI\'s own text, Greenfield first', () => {
+    const q = newProjectQuestions();
+    expect(q.questions.map(x => x.key)).toEqual(['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide', 'whatItDoes', 'targetUsers', 'expectedScale', 'constraints']);
+    expect(q.questions[0]).toEqual({
+      key: 'projectType', message: 'Is this a greenfield or brownfield project?',
+      choices: [
+        { name: 'Greenfield — new project, writing code from scratch', value: 'greenfield' },
+        { name: 'Brownfield — existing codebase, initializing specs retroactively', value: 'brownfield' },
+      ],
+    });
+    expect(q.questions[1]).toEqual({ key: 'language', message: 'Choose a language:', choices: SUPPORTED_LANGUAGES.map(v => ({ name: v, value: v })) });
+    expect(q.questions[2]).toEqual({ key: 'framework', message: 'Choose a framework:' });
+    expect(q.questions[3].choices).toBe(API_PARADIGM_CHOICES);
+    expect(q.questions[4].message).toContain(`[${os.userInfo().username}]:`);
+    expect(q.questions[5].choices).toBe(IDE_CHOICES);
+    expect(q.questions.slice(6).map(x => x.message)).toEqual([
+      'What does your project do? (required):', 'Who are the target users? (Enter to skip):', 'What\'s the expected scale? (Enter to skip):', 'Any key constraints or requirements? (Enter to skip):',
+    ]);
+    expect(q.frameworks.typescript).toEqual(['none', 'react', 'express', 'next', 'nest', 'vue', 'angular']);
+    expect(q.frameworks.javascript).toBeUndefined();
+  });
+
+  it('throws when the OS username cannot be read', () => {
+    jest.spyOn(realOs, 'userInfo').mockImplementation(() => {
+      throw new Error('no passwd entry');
+    });
+    expect(() => newProjectQuestions()).toThrow('no passwd entry');
+  });
+});
+
+describe('newProjectShapeError()', () => {
+  const body = (over: Record<string, unknown> = {}, drop: string[] = []) => {
+    const b: Record<string, unknown> = { parent: '/tmp/x', name: 'demo', ...NEW, ...over };
+    for (const k of drop) delete b[k];
+    return b;
+  };
+  const NAME = 'Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores.';
+
+  it('accepts a full body, one without the optional context answers, and a language without frameworks', () => {
+    expect(newProjectShapeError(body())).toBeNull();
+    expect(newProjectShapeError(body({}, ['targetUsers', 'expectedScale', 'constraints']))).toBeNull();
+    expect(newProjectShapeError(body({ language: 'javascript' }, ['framework']))).toBeNull();
+    expect(newProjectShapeError(body({ framework: 'none', handle: '' }))).toBeNull();
+    expect(newProjectShapeError(body({ name: 'a'.repeat(214), whatItDoes: 'x'.repeat(1000) }))).toBeNull();
+  });
+
+  it.each([
+    ['not an object', null, 'The request must be a JSON object with parent, name and the answers to the questions.'],
+    ['an array', [], 'The request must be a JSON object with parent, name and the answers to the questions.'],
+    ['an unknown key', body({ dir: '/' }), 'Unexpected field "dir".'],
+    ['a value that is not a string', body({ whatItDoes: 3 }), '"whatItDoes" must be a string.'],
+    ['an empty parent', body({ parent: '' }), '"parent" must be 1 to 4096 characters.'],
+    ['a parent of 4097 characters', body({ parent: '/' + 'a'.repeat(4096) }), '"parent" must be 1 to 4096 characters.'],
+    ['a parent with NUL', body({ parent: '/tmp/a' + String.fromCharCode(0) }), '"parent" must not contain a NUL character.'],
+    ['an empty name', body({ name: '' }), 'Project name is required and cannot be empty.'],
+    ['a name of 215 characters', body({ name: 'a'.repeat(215) }), 'Project name must be 214 characters or fewer.'],
+    ['a name with ..', body({ name: '../x' }), NAME],
+    ['a name with a separator', body({ name: 'a/b' }), NAME],
+    ['a hidden name', body({ name: '.specs' }), NAME],
+    ['a name with a space', body({ name: 'my project' }), NAME],
+    ['a name with template syntax', body({ name: '{{x}}' }), NAME],
+    ['a bad project type', body({ projectType: 'new' }), '"projectType" must be one of: greenfield, brownfield.'],
+    ['a bad language', body({ language: 'rust' }), '"language" must be one of: typescript, javascript, python, kotlin, swift.'],
+    ['a bad API paradigm', body({ apiParadigm: 'soap' }), '"apiParadigm" must be one of: rest, cli, graphql, none.'],
+    ['a bad IDE', body({ ide: 'vim' }), '"ide" must be one of: vscode, Cursor, Windsurf, Antigravity, claude-code, Codex.'],
+    ['a missing framework', body({}, ['framework']), '"framework" is missing.'],
+    ['a framework of another language', body({ framework: 'django' }), '"framework" must be one of: none, react, express, next, nest, vue, angular.'],
+    ['a framework for a language without any', body({ language: 'javascript' }), '"framework" must not be sent for this language.'],
+    ['a bad handle', body({ handle: 'a b' }), 'The handle must be 1 to 39 characters of letters, digits, dots, underscores and hyphens, starting with a letter or digit.'],
+    ['an empty whatItDoes', body({ whatItDoes: '' }), '"whatItDoes" must not be empty.'],
+    ['a blank whatItDoes', body({ whatItDoes: '   ' }), '"whatItDoes" must not be empty.'],
+    ['a context answer of 1001 characters', body({ constraints: 'x'.repeat(1001) }), '"constraints" must be at most 1000 characters.'],
+  ])('refuses %s', (_label, b, message) => {
+    expect(newProjectShapeError(b)).toBe(message);
+  });
+
+  it.each(['parent', 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', 'whatItDoes'])('refuses a body without %s', key => {
+    expect(newProjectShapeError(body({}, [key]))).toBe(`"${key}" is missing.`);
+  });
+
+  it.each([['a line feed', 10], ['a tab', 9], ['NUL', 0], ['U+0085', 0x85], ['U+2028', 0x2028], ['U+2029', 0x2029], ['DEL', 0x7f]])('refuses a context answer with %s inside it', (_label, code) => {
+    for (const key of ['whatItDoes', 'targetUsers', 'expectedScale', 'constraints']) {
+      expect(newProjectShapeError(body({ [key]: `one${String.fromCharCode(code)}two` }))).toBe(`"${key}" must be one line of text, without control characters.`);
+    }
   });
 });

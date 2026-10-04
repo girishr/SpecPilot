@@ -9,12 +9,13 @@ import { readSpecs } from './specReader';
 import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
-import { answersShapeError, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, setupProject, setupQuestions, specsMissing } from './specSetup';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
-// guided setup through specSetup.ts (BL-055) and the project registry through projectRegistry.ts (BL-067).
+// guided setup and new projects through specSetup.ts (BL-055, BL-PM-003) and the project registry through
+// projectRegistry.ts (BL-067).
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
@@ -257,7 +258,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
   const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
   /** Run `fn` under the write lock; a throw answers 500 (when nothing was sent) and never breaks the chain for later writes. */
-  const underLock = (res: ServerResponse, fn: () => void) => {
+  const underLock = (res: ServerResponse, fn: () => void | Promise<void>) => {
     writeLock = writeLock.then(fn).catch(() => {
       if (!res.headersSent) sendJson(res, 500, { error: 'The server could not finish this request.' });
     });
@@ -406,6 +407,28 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     return null;
   };
 
+  const TOO_MANY_PROJECTS = `This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.`;
+  /**
+   * Serve `root` as the next index and record it in the registry: the success body of an open, or null
+   * after answering 422 because the folder's allowlisted files cannot be read (it is then not half-opened).
+   */
+  const serveRoot = (res: ServerResponse, root: string) => {
+    let specs;
+    try {
+      specs = buildSpecsPayload(root, specpilotVersion);
+    } catch (err) {
+      sendJson(res, 422, { error: `This folder could not be read: ${(err as Error).message}` });
+      return null;
+    }
+    const project = projectFor(root); // built before anything is pushed, so the three lists never disagree
+    const n = roots.length;
+    roots.push(root);
+    namedFlags.push(true);
+    projects.push(project);
+    const error = changeRegistry(entries => upsertEntry(entries, root, new Date()));
+    return { project: n, specs: { ...specs, projects: projectList(roots) }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
+  };
+
   const handleProjectAdd = (req: IncomingMessage, res: ServerResponse) => {
     if (!writeAllowed(req, res)) return;
     readJson(req, res, body => {
@@ -414,21 +437,34 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       underLock(res, () => {
         const check = checkOpenPath((body as { path: string }).path, roots, home);
         if ('status' in check) return sendJson(res, check.status, check.project === undefined ? { error: check.error } : { error: check.error, project: check.project });
-        if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: `This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.` });
-        // Read the folder's payload before serving it: a folder whose allowlisted files cannot be read is refused, not half-opened.
-        let specs;
-        try {
-          specs = buildSpecsPayload(check.root, specpilotVersion);
-        } catch (err) {
-          return sendJson(res, 422, { error: `This folder could not be read: ${(err as Error).message}` });
-        }
-        const project = projectFor(check.root); // built before anything is pushed, so the three lists never disagree
-        const n = roots.length;
-        roots.push(check.root);
-        namedFlags.push(true);
-        projects.push(project);
-        const error = changeRegistry(entries => upsertEntry(entries, check.root, new Date()));
-        sendJson(res, 200, { project: n, specs: { ...specs, projects: projectList(roots) }, registry: { ...registryBody(), ...(error ? { error } : {}) } });
+        if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
+        const body200 = serveRoot(res, check.root);
+        if (body200) sendJson(res, 200, body200);
+      });
+    });
+  };
+
+  // ---- a new project (BL-PM-003): what `init` does in <parent>/<name>, then served like an opened folder
+  const handleProjectNewGet = (res: ServerResponse) => {
+    try {
+      sendJson(res, 200, newProjectQuestions());
+    } catch (err) {
+      sendJson(res, 422, { error: `The OS username could not be read: ${(err as Error).message}` });
+    }
+  };
+
+  const handleProjectNew = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
+    readJson(req, res, body => {
+      const problem = newProjectShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      const { parent, name, ...answers } = body as Record<string, string>;
+      underLock(res, async () => {
+        if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS }); // before anything is created
+        const out = await createProject(parent, name, answers, roots, home);
+        if (out.status !== 200) return sendJson(res, out.status, out.project === undefined ? { error: out.error } : { error: out.error, project: out.project });
+        const body200 = serveRoot(res, out.root);
+        if (body200) sendJson(res, 200, { ...body200, kept: out.kept, notice: out.notice });
       });
     });
   };
@@ -454,6 +490,12 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (url.pathname === '/api/projects') {
         if (registry && req.method === 'GET') return sendJson(res, 200, registryBody());
         if (registry && req.method === 'POST') return handleProjectAdd(req, res);
+        res.setHeader('Allow', registry ? 'GET, POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/projects/new') {
+        if (registry && req.method === 'GET') return handleProjectNewGet(res);
+        if (registry && req.method === 'POST') return handleProjectNew(req, res);
         res.setHeader('Allow', registry ? 'GET, POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

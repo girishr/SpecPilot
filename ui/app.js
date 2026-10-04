@@ -365,6 +365,23 @@ async function move(col,i,toSection,toIndex,isUndo){
 let setupQ=null,setupBusy=false,fileNoteFor=null;
 function clearFileNote(){const n=$('#fileNote');n.hidden=true;n.innerHTML='';fileNoteFor=null;}
 function setFileNote(path,lines){const n=$('#fileNote');n.innerHTML=lines.map(l=>`<p class="note" translate="no">${esc(l)}</p>`).join('');n.hidden=false;fileNoteFor=path;}
+/* One question as native controls, its text verbatim: radios for choices, a text field for the handle
+   and for init's project-context questions (BL-PM-003); the framework's choices follow the language. */
+function questionHtml(qu,extra){
+  const body=qu.choices?qu.choices.map((c,i)=>`<label><input type="radio" name="${esc(qu.key)}" value="${esc(c.value)}"${i===0?' checked':''}>${esc(c.name)}</label>`).join('')
+    :qu.key==='handle'?`<input type="text" name="handle" aria-label="handle" maxlength="39">`
+    :qu.key==='framework'?''
+    :`<input type="text" name="${esc(qu.key)}" aria-label="${esc(qu.message)}" maxlength="1000">`;
+  return `<fieldset data-key="${esc(qu.key)}"><legend>${esc(qu.message)}</legend><div class="opts">${body}</div>${extra||''}</fieldset>`;
+}
+/* When the language is asked, the framework question lists that language's choices and hides when it has
+   none. Redrawn only when the language changes, so a chosen framework survives the form's other changes. */
+function syncFrameworks(form,q){
+  const lang=form.language?form.language.value:null,fw=form.querySelector('fieldset[data-key="framework"]');
+  if(!fw||!q.frameworks||fw.dataset.lang===lang)return;
+  const list=lang&&q.frameworks[lang]||[];fw.hidden=!list.length;fw.dataset.lang=lang;
+  fw.querySelector('.opts').innerHTML=list.map((v,i)=>`<label><input type="radio" name="framework" value="${esc(v)}"${i===0?' checked':''}>${esc(v)}</label>`).join('');
+}
 async function renderSetup(){
   const pj=PROJECT,intro=$('#setupIntro'),det=$('#setupDetected'),form=$('#setupForm'),note=$('#setupNote');
   intro.hidden=det.hidden=form.hidden=note.hidden=true;form.innerHTML='';
@@ -377,18 +394,10 @@ async function renderSetup(){
   if(q.error){note.textContent=q.error;note.hidden=false;return;}
   setupQ=q;intro.hidden=false;
   if(q.detected){det.textContent=q.detected.line;det.hidden=false;}
-  form.innerHTML=q.questions.map(qu=>{
-    const body=qu.key==='handle'
-      ?`<input type="text" name="handle" aria-label="handle" maxlength="39">`
-      :qu.choices?qu.choices.map((c,i)=>`<label><input type="radio" name="${esc(qu.key)}" value="${esc(c.value)}"${i===0?' checked':''}>${esc(c.name)}</label>`).join('')
-      :'';
-    return `<fieldset data-key="${esc(qu.key)}"><legend>${esc(qu.message)}</legend><div class="opts">${body}</div>${qu.key==='ide'?'<div class="keep" id="setupKeep" hidden translate="no"></div>':''}</fieldset>`;
-  }).join('')+'<button type="submit" class="go">Create .specs/</button>';
+  form.innerHTML=q.questions.map(qu=>questionHtml(qu,qu.key==='ide'?'<div class="keep" id="setupKeep" hidden translate="no"></div>':'')).join('')+'<button type="submit" class="go">Create .specs/</button>';
   form.hidden=false;
   const sync=()=>{
-    const lang=form.language?form.language.value:null,fw=form.querySelector('fieldset[data-key="framework"]');
-    if(fw&&q.frameworks){const list=lang&&q.frameworks[lang]||[];fw.hidden=!list.length;
-      fw.querySelector('.opts').innerHTML=list.map((v,i)=>`<label><input type="radio" name="framework" value="${esc(v)}"${i===0?' checked':''}>${esc(v)}</label>`).join('');}
+    syncFrameworks(form,q);
     const ide=form.ide.value,keep=(q.keep&&q.keep[ide])||[],k=$('#setupKeep');
     k.hidden=!keep.length;k.textContent=keep.length?'Already here, will be kept: '+keep.join(', '):'';
   };
@@ -508,13 +517,35 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
   if(+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);else if(curView==='home')go('board');});
 
 /* ---------------- open a project (BL-067) ----------------
-   The + tile opens the mockup's sheet (Folder tab only). The list is GET /api/projects; opening is
+   The + tile opens the mockup's sheet on its Folder tab. The list is GET /api/projects; opening is
    POST /api/projects, which serves one more folder and remembers it; Remove from list edits the
-   registry only. Nothing here is file content; the strings are the ones REQ-002.H.21 lists. */
+   registry only. The New tab (BL-PM-003) asks what specpilot init asks (GET /api/projects/new) and
+   POST /api/projects/new creates the folder, writes what init writes and opens it. Nothing here is
+   file content; the strings are the ones REQ-002.H.21 and H.24 list. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
-let openBusy=false,sheetFrom=addBtn;
+let openBusy=false,sheetFrom=addBtn,sheetTab='folder',newQ=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
-function openSheet(from){hideTip();sheetFrom=from;openVeil.classList.add('open');pathIn.value='';loadRecent();setTimeout(()=>pathIn.focus(),50);}
+function openSheet(from,tab){
+  hideTip();sheetFrom=from;openVeil.classList.add('open');
+  pathIn.value=$('#parentIn').value=$('#nameIn').value='';newQ=null;$('#newQs').innerHTML='';
+  setTab(tab||'folder');setTimeout(()=>(sheetTab==='new'?$('#parentIn'):pathIn).focus(),50);
+}
+function setTab(t){
+  sheetTab=t;
+  $$('#openTabs button').forEach(b=>{const on=b.dataset.t===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1;});
+  $('#paneFolder').hidden=t!=='folder';$('#paneNew').hidden=t!=='new';
+  $('#openGo').textContent=t==='new'?'Create Project':'Open';
+  if(t==='new')loadNew();else loadRecent();
+}
+/* init's questions, fetched when the New tab is first shown after the sheet opens. */
+async function loadNew(){
+  if(newQ)return;
+  const box=$('#newQs');let q;
+  try{const r=await fetch('/api/projects/new',{cache:'no-store'});q=r.ok?await r.json():{error:(await r.json().catch(()=>({}))).error||'HTTP '+r.status};}
+  catch(e){q={error:'The server did not answer.'};}
+  if(q.error){box.innerHTML=`<p class="note">${esc(q.error)}</p>`;return;}
+  newQ=q;box.innerHTML=q.questions.map(qu=>questionHtml(qu)).join('');syncFrameworks($('#openForm'),q);
+}
 function closeSheet(){if(!openVeil.classList.contains('open'))return;openVeil.classList.remove('open');sheetFrom.focus();}
 /* The registry as GET /api/projects sends it: in the sheet, or on Home (BL-PM-001), where a row opens
    its folder at once, has no Remove, and a served project also shows the branch the rail tooltip shows. */
@@ -541,7 +572,11 @@ async function openPath(path){
   try{out=await postPath(path,'/api/projects');}
   catch(e){openBusy=false;$('#openGo').disabled=false;toast('The server did not answer.');return;}
   openBusy=false;$('#openGo').disabled=false;
-  const o=openOutcome(out.r.status,out.res),wasHome=curView==='home';
+  await showOutcome(openOutcome(out.r.status,out.res));
+}
+/* Act on an answer to an open or a create (openOutcome()): show the project, or stay and say why. */
+async function showOutcome(o){
+  const wasHome=curView==='home';
   if(o.project===null){toast(o.toast);return;} // refused: the page stays where it is
   closeSheet();
   if(o.specs){PROJECT=o.project;showProject(o.specs,false);}
@@ -549,6 +584,26 @@ async function openPath(path){
   else if(wasHome)go('board');
   toast(o.toast);
   if(wasHome)$('#content').focus(); // Home is gone from the screen: focus goes to the project's view, not to a hidden control
+}
+/* Create a project: the New tab's Create Project. */
+async function createNew(){
+  if(openBusy||!newQ)return;
+  const form=$('#openForm'),body={parent:$('#parentIn').value.trim(),name:$('#nameIn').value.trim()};
+  $$('#newQs fieldset[data-key]').forEach(f=>{if(f.hidden)return;const el=form[f.dataset.key];if(el)body[f.dataset.key]=el.value;});
+  openBusy=true;$('#openGo').disabled=true;
+  let r,res={};
+  try{
+    r=await fetch('/api/projects/new',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});
+    res=await r.json().catch(()=>({}));
+  }catch(e){openBusy=false;$('#openGo').disabled=false;toast('The server did not answer.');return;}
+  openBusy=false;$('#openGo').disabled=false;
+  await showOutcome(openOutcome(r.status,res,true));
+  if(r.status!==200)return;
+  go('file',false,'development/onboarding.md');
+  const lines=[];
+  if(res.kept&&res.kept.length)lines.push('Kept as they were: '+res.kept.join(', ')+'. Run specpilot backfill there to add missing SpecPilot sections to the instruction and command files.');
+  if(res.notice)lines.push(res.notice);
+  if(lines.length)setFileNote('development/onboarding.md',lines);
 }
 async function removeRecent(path){
   let out;
@@ -558,10 +613,18 @@ async function removeRecent(path){
 addBtn.onclick=()=>openSheet(addBtn);
 homeBtn.onclick=()=>go('home');
 $('#homeOpen').onclick=e=>openSheet(e.currentTarget);
+$('#homeNew').onclick=e=>openSheet(e.currentTarget,'new');
+$('#openTabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b&&b.dataset.t!==sheetTab)setTab(b.dataset.t);});
+$('#openTabs').addEventListener('keydown',e=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+  e.preventDefault();const t=e.key==='Home'?'folder':e.key==='End'?'new':sheetTab==='folder'?'new':'folder';
+  setTab(t);$(`#openTabs [data-t="${t}"]`).focus();
+});
+$('#openForm').addEventListener('change',()=>{if(newQ)syncFrameworks($('#openForm'),newQ);});
 $('#homeBox').addEventListener('click',e=>{const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);});
 $('#openCancel').onclick=closeSheet;
 openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
-$('#openForm').onsubmit=e=>{e.preventDefault();openPath(pathIn.value.trim());};
+$('#openForm').onsubmit=e=>{e.preventDefault();if(sheetTab==='new')createNew();else openPath(pathIn.value.trim());};
 $('#recentBox').addEventListener('click',e=>{
   const rm=e.target.closest('[data-remove]');if(rm){removeRecent(rm.dataset.remove);return;}
   const row=e.target.closest('[data-path]');if(row){pathIn.value=row.dataset.path;pathIn.focus();}

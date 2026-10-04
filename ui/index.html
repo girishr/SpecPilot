@@ -120,7 +120,10 @@
     <section class="view welcome" id="v-home" aria-labelledby="wTitle">
       <svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
       <div><h1 id="wTitle">Your specs, as a board.</h1><p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p></div>
-      <button type="button" class="btn pri big" id="homeOpen">Open a Project Folder</button>
+      <div class="cta">
+        <button type="button" class="btn pri big" id="homeOpen">Open a Project Folder</button>
+        <div class="alt"><button type="button" class="btn line" id="homeNew">Start a New Project</button></div>
+      </div>
       <div class="gl benefits"><div class="box">
         <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div></div></div>
         <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? The guided setup writes one for you.</div></div></div>
@@ -189,12 +192,23 @@
 </main>
 </div>
 
-<!-- OPEN A PROJECT (BL-067): the mockup's sheet, Folder tab only; the list is GET /api/projects -->
+<!-- OPEN A PROJECT (BL-067): the mockup's sheet; the Folder tab lists GET /api/projects, the New tab (BL-PM-003) asks what specpilot init asks -->
 <div class="veil" id="openVeil"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="openTitle" tabindex="-1">
   <div class="sh"><div><h2 id="openTitle">Open a Project</h2><p>SpecPilot reads the folder on this machine. Nothing is uploaded.</p></div></div>
   <form class="sb" id="openForm" autocomplete="off">
-    <div class="gl"><div class="box"><div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="pathIn" name="folder-path" type="text" spellcheck="false" aria-label="Folder path" placeholder="/path/to/project or ~/project"></div></div></div>
-    <div class="gl"><div class="gh">Recent projects <span class="cnt" id="recentPath" translate="no"></span></div><div class="box" id="recentBox"></div></div>
+    <div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabNew" data-t="new" aria-controls="paneNew" aria-selected="false" tabindex="-1">New</button></div>
+    <div class="pane" id="paneFolder" role="tabpanel" aria-labelledby="tabFolder">
+      <div class="gl"><div class="box"><div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="pathIn" name="folder-path" type="text" spellcheck="false" aria-label="Folder path" placeholder="/path/to/project or ~/project"></div></div></div>
+      <div class="gl"><div class="gh">Recent projects <span class="cnt" id="recentPath" translate="no"></span></div><div class="box" id="recentBox"></div></div>
+    </div>
+    <div class="pane" id="paneNew" role="tabpanel" aria-labelledby="tabNew" hidden>
+      <p class="note">Runs what specpilot init runs in a new folder. Existing files are never changed.</p>
+      <div class="gl"><div class="box">
+        <div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="parentIn" name="parent-folder" type="text" spellcheck="false" aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"></div>
+        <div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><input id="nameIn" name="project-name" type="text" spellcheck="false" aria-label="Project name" placeholder="my-project" maxlength="214"></div>
+      </div></div>
+      <div class="setup" id="newQs"></div>
+    </div>
   </form>
   <div class="sf"><button type="button" class="btn" id="openCancel">Cancel</button><button type="submit" class="btn pri" id="openGo" form="openForm">Open</button></div>
 </div></div>

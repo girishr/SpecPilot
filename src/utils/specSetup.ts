@@ -1,21 +1,24 @@
 import { closeSync, fsyncSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, rmdirSync, rmSync, unlinkSync, writeFileSync, writeSync } from 'fs';
 import { randomBytes } from 'crypto';
-import { dirname, join } from 'path';
+import { dirname, join, sep } from 'path';
 import os from 'os';
 import { ProjectDetector, ProjectInfo } from './projectDetector';
 import { CodeAnalyzer } from './codeAnalyzer';
 import { TemplateEngine } from './templateEngine';
-import { SpecGenerator } from './specGenerator';
+import { SpecGenerator, SpecGeneratorOptions } from './specGenerator';
 import { getFrameworksForLanguage } from './frameworks';
 import { CODEX_PROMPTS_NOTICE } from './slashCommandGenerator';
 import {
   AddSpecsAnswers, addSpecsOptions, API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, detectedLine, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES,
   IDE_MESSAGE, LANGUAGE_MESSAGE, PROJECT_TYPE_CHOICES, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
 } from './addSpecsQuestions';
+import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, InitAnswers, projectNameError } from './initQuestions';
+import { checkOpenPath, HOME_OR_ROOT_ERROR, pathShapeError } from './projectRegistry';
 
 // Guided setup behind `specpilot serve` (BL-055, ARCH-003.20, SEC-004.12): what `add-specs` does, in a
 // named folder that has no `.specs/`, generated into a staging folder inside it and then created in
 // place file by file with an exclusive create, so nothing that exists is ever written through.
+// A new project (BL-PM-003) is what `init` does, in a new or empty folder, placed the same way.
 
 /** Staging folders live inside the served folder and carry this marker file beside the generated tree. */
 export const STAGING_MARKER = '.specpilot-setup';
@@ -47,7 +50,7 @@ const exists = (path: string): boolean => {
 const choices = (values: string[]) => values.map(value => ({ name: value, value }));
 
 export interface SetupQuestion {
-  key: keyof AddSpecsAnswers;
+  key: string;
   message: string;
   /** Absent for the handle (free text) and for the framework when it depends on the language answer. */
   choices?: { name: string; value: string }[];
@@ -62,6 +65,16 @@ export interface SetupQuestions {
   keep: Record<string, string[]>;
 }
 
+/** `none` plus its frameworks, for each language that has any. */
+function frameworksByLanguage(): Record<string, string[]> {
+  const frameworks: Record<string, string[]> = {};
+  for (const language of SUPPORTED_LANGUAGES) {
+    const list = getFrameworksForLanguage(language);
+    if (list.length) frameworks[language] = ['none', ...list];
+  }
+  return frameworks;
+}
+
 /** The questions `add-specs` would ask in this folder. Throws when the detector or the OS username fails. */
 export async function setupQuestions(root: string): Promise<SetupQuestions> {
   const info = await new ProjectDetector().detectProject(root);
@@ -70,11 +83,7 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
   let frameworks: Record<string, string[]> | undefined;
   if (!info) {
     questions.push({ key: 'language', message: LANGUAGE_MESSAGE, choices: choices(SUPPORTED_LANGUAGES) });
-    frameworks = {};
-    for (const language of SUPPORTED_LANGUAGES) {
-      const list = getFrameworksForLanguage(language);
-      if (list.length) frameworks[language] = ['none', ...list];
-    }
+    frameworks = frameworksByLanguage();
     questions.push({ key: 'framework', message: FRAMEWORK_MESSAGE });
   } else if (!info.framework && getFrameworksForLanguage(info.language).length) {
     questions.push({ key: 'framework', message: FRAMEWORK_MESSAGE, choices: choices(['none', ...getFrameworksForLanguage(info.language)]) });
@@ -97,6 +106,7 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
 
 const KEYS = ['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide'];
 const oneOf = (key: string, values: string[]) => `"${key}" must be one of: ${values.join(', ')}.`;
+const HANDLE_ERROR = 'The handle must be 1 to 39 characters of letters, digits, dots, underscores and hyphens, starting with a letter or digit.';
 
 /** Shape of a setup body, checked before the lock: keys, types, fixed choices, the handle. Null when fine. */
 export function answersShapeError(body: unknown): string | null {
@@ -112,10 +122,7 @@ export function answersShapeError(body: unknown): string | null {
   ];
   for (const [key, values] of lists) if (!values.includes(b[key] as string)) return oneOf(key, values);
   const handle = (b.handle as string).trim();
-  if (handle && !HANDLE_PATTERN.test(handle)) {
-    return 'The handle must be 1 to 39 characters of letters, digits, dots, underscores and hyphens, starting with a letter or digit.';
-  }
-  return null;
+  return handle && !HANDLE_PATTERN.test(handle) ? HANDLE_ERROR : null;
 }
 
 /** `language` and `framework` against what the detector found: required when asked, absent otherwise. */
@@ -168,14 +175,25 @@ export async function setupProject(root: string, answers: Record<string, string>
   const framework = info?.framework ?? (answers.framework && answers.framework !== 'none' ? answers.framework : undefined);
   const handle = answers.handle.trim() || username;
   const analysis = await new CodeAnalyzer().analyzeCodebase(root);
-  const generator = new SpecGenerator(new TemplateEngine());
-  const options = addSpecsOptions(
+  return placeGenerated(
     root,
-    info,
-    { language, framework, projectType: answers.projectType as AddSpecsAnswers['projectType'], apiParadigm: answers.apiParadigm as AddSpecsAnswers['apiParadigm'], handle, ide: answers.ide },
-    analysis,
+    addSpecsOptions(
+      root,
+      info,
+      { language, framework, projectType: answers.projectType as AddSpecsAnswers['projectType'], apiParadigm: answers.apiParadigm as AddSpecsAnswers['apiParadigm'], handle, ide: answers.ide },
+      analysis,
+    ),
   );
+}
 
+/**
+ * Generate with `options` into a marked staging folder inside `root`, then create each staged file in
+ * place with an exclusive create: the one writer behind guided setup and a new project. Existing files
+ * outside `.specs/` are kept; a failure removes what this call created; the staging folder always goes.
+ */
+async function placeGenerated(root: string, options: SpecGeneratorOptions): Promise<SetupOutcome> {
+  const generator = new SpecGenerator(new TemplateEngine());
+  const ide = options.ide || 'vscode';
   const staging = join(root, `.specpilot-setup-${randomBytes(6).toString('hex')}`);
   const createdFiles: string[] = [];
   const createdDirs: string[] = [];
@@ -189,7 +207,7 @@ export async function setupProject(root: string, answers: Record<string, string>
     await generator.generateSpecs({ ...options, targetDir: staging });
     const staged = walk(staging).filter(p => p !== STAGING_MARKER);
     // Outside .specs/ in the generator's own order (what `kept` reports), then the .specs/ files last.
-    const order = generator.targetsOutsideSpecs(answers.ide);
+    const order = generator.targetsOutsideSpecs(ide);
     const rank = (p: string) => (order.includes(p) ? order.indexOf(p) : order.length);
     const files = [...staged.filter(p => !p.startsWith('.specs/')).sort((a, b) => rank(a) - rank(b)), ...staged.filter(p => p.startsWith('.specs/'))];
 
@@ -244,13 +262,147 @@ export async function setupProject(root: string, answers: Record<string, string>
         closeSync(fd);
       }
     }
-    return { status: 200, kept, notice: answers.ide.toLowerCase() === 'codex' ? CODEX_PROMPTS_NOTICE : null };
+    return { status: 200, kept, notice: ide.toLowerCase() === 'codex' ? CODEX_PROMPTS_NOTICE : null };
   } catch (err) {
     rollback();
     return { status: 500, error: `Setup could not finish: ${(err as Error).message}. The files it had created were removed.` };
   } finally {
     rmSync(staging, { recursive: true, force: true });
   }
+}
+
+// ---- a new project (BL-PM-003): what `specpilot init <name>` does, in `<parent>/<name>`
+
+/** The questions `init` asks, in its order, with the CLI's own text. Throws when the OS username cannot be read. */
+export function newProjectQuestions(): { questions: SetupQuestion[]; frameworks: Record<string, string[]> } {
+  return {
+    questions: [
+      { key: 'projectType', message: PROJECT_TYPE_MESSAGE, choices: INIT_PROJECT_TYPE_CHOICES },
+      { key: 'language', message: LANGUAGE_MESSAGE, choices: choices(SUPPORTED_LANGUAGES) },
+      { key: 'framework', message: FRAMEWORK_MESSAGE },
+      { key: 'apiParadigm', message: API_PARADIGM_MESSAGE, choices: API_PARADIGM_CHOICES },
+      { key: 'handle', message: handleMessage(os.userInfo().username) },
+      { key: 'ide', message: IDE_MESSAGE, choices: IDE_CHOICES },
+      ...CONTEXT_QUESTIONS,
+    ],
+    frameworks: frameworksByLanguage(),
+  };
+}
+
+const CONTEXT_KEYS = CONTEXT_QUESTIONS.map(q => q.key as string);
+const NEW_KEYS = ['parent', 'name', ...KEYS, ...CONTEXT_KEYS];
+/** Longest project-context answer a request may send. */
+export const MAX_CONTEXT_LENGTH = 1000;
+// What one line typed at the CLI's prompt cannot hold: control characters and the two line separators.
+// eslint-disable-next-line no-control-regex
+const NOT_ONE_LINE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+
+/** Shape of a new-project body, checked before the lock. Null when fine. */
+export function newProjectShapeError(body: unknown): string | null {
+  const b = body as Record<string, unknown> | null;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with parent, name and the answers to the questions.';
+  for (const key of Object.keys(b)) if (!NEW_KEYS.includes(key)) return `Unexpected field "${key}".`;
+  for (const key of ['parent', 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', 'whatItDoes']) if (!(key in b)) return `"${key}" is missing.`;
+  for (const key of NEW_KEYS) if (key in b && typeof b[key] !== 'string') return `"${key}" must be a string.`;
+  const s = b as Record<string, string>;
+  const parentProblem = pathShapeError({ path: s.parent });
+  if (parentProblem) return parentProblem.replace('"path"', '"parent"');
+  const nameProblem = projectNameError(s.name);
+  if (nameProblem) return `${nameProblem.message}.`;
+  const lists: [string, string[]][] = [
+    ['projectType', INIT_PROJECT_TYPE_CHOICES.map(c => c.value)],
+    ['language', SUPPORTED_LANGUAGES],
+    ['apiParadigm', API_PARADIGM_CHOICES.map(c => c.value)],
+    ['ide', IDE_CHOICES.map(c => c.value)],
+  ];
+  for (const [key, values] of lists) if (!values.includes(s[key])) return oneOf(key, values);
+  const frameworks = getFrameworksForLanguage(s.language);
+  if (!frameworks.length) {
+    if ('framework' in s) return '"framework" must not be sent for this language.';
+  } else if (!('framework' in s)) return '"framework" is missing.';
+  else if (!['none', ...frameworks].includes(s.framework)) return oneOf('framework', ['none', ...frameworks]);
+  const handle = s.handle.trim();
+  if (handle && !HANDLE_PATTERN.test(handle)) return HANDLE_ERROR;
+  if (!s.whatItDoes.trim()) return '"whatItDoes" must not be empty.';
+  for (const key of CONTEXT_KEYS) {
+    const value = (s[key] ?? '').trim();
+    if (value.length > MAX_CONTEXT_LENGTH) return `"${key}" must be at most ${MAX_CONTEXT_LENGTH} characters.`;
+    if (NOT_ONE_LINE.test(value)) return `"${key}" must be one line of text, without control characters.`;
+  }
+  return null;
+}
+
+export type NewProjectOutcome =
+  | { status: 200; root: string; kept: string[]; notice: string | null }
+  | { status: 409 | 422 | 500; error: string; project?: number };
+
+/**
+ * Create `<parent>/<name>` when it is missing (one non-recursive `mkdir`), or use it when it is an empty
+ * folder, and write there what `init` writes (REQ-002.H.23 steps 2 to 5; body shape already checked).
+ * No asynchronous I/O between the checks and the writes, like `setupProject()`. Nothing that exists is changed.
+ */
+export async function createProject(parent: string, name: string, answers: Record<string, string>, roots: string[], home: string): Promise<NewProjectOutcome> {
+  const check = checkOpenPath(parent, [], home);
+  if ('status' in check) return { status: check.status, error: check.error === HOME_OR_ROOT_ERROR ? 'Pick a folder inside your home folder, like ~/dev.' : check.error };
+  if (check.root.split(sep).some(segment => segment.toLowerCase() === '.specs')) return { status: 422, error: 'A project cannot be created inside a .specs/ folder.' };
+  const target = join(check.root, name);
+  // Also when the folder is gone: a served root must never be made, or served, a second time.
+  const served = roots.indexOf(target);
+  if (served >= 0) return { status: 409, error: `${target} is already open as project ${served}.`, project: served };
+  let handle = answers.handle.trim();
+  try {
+    handle = handle || os.userInfo().username;
+  } catch (err) {
+    return { status: 422, error: `The OS username could not be read: ${(err as Error).message}` };
+  }
+
+  let created = false;
+  let st;
+  try {
+    st = lstatSync(target);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return { status: 422, error: `${target} could not be created (${(err as NodeJS.ErrnoException).code}).` };
+  }
+  if (st) {
+    if (st.isSymbolicLink()) return { status: 409, error: `${target} is a symbolic link, so nothing was created.` };
+    if (!st.isDirectory()) return { status: 409, error: `${target} exists and is not a folder, so nothing was created.` };
+    const open = checkOpenPath(target, roots, home);
+    if ('status' in open) return open;
+    let entries: string[];
+    try {
+      entries = readdirSync(target);
+    } catch (err) {
+      return { status: 422, error: `${target} could not be read (${(err as NodeJS.ErrnoException).code}).` };
+    }
+    if (entries.length) return { status: 409, error: `${target} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.` };
+  } else {
+    try {
+      mkdirSync(target); // not recursive: fails when anything is there, and never makes a parent
+      created = true;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === 'EEXIST') return { status: 409, error: `${target} was created by something else just now, so nothing was written.` };
+      return { status: 422, error: `${target} could not be created (${code}).` };
+    }
+  }
+
+  const framework = answers.framework && answers.framework !== 'none' ? answers.framework : undefined;
+  const context = Object.fromEntries(CONTEXT_KEYS.map(key => [key, (answers[key] ?? '').trim()])) as Pick<InitAnswers, 'whatItDoes' | 'targetUsers' | 'expectedScale' | 'constraints'>;
+  let out: SetupOutcome | undefined;
+  try {
+    out = await placeGenerated(
+      target,
+      initOptions(target, name, {
+        language: answers.language, framework, projectType: answers.projectType as InitAnswers['projectType'],
+        apiParadigm: answers.apiParadigm as InitAnswers['apiParadigm'], handle, ide: answers.ide, ...context,
+      }),
+    );
+  } finally {
+    // Also when placeGenerated() itself throws: the folder this call made goes, if it is empty again.
+    if (out?.status !== 200 && created) try { rmdirSync(target); } catch { /* something else put a file there: the folder stays */ }
+  }
+  if (out.status === 200) return { status: 200, root: target, kept: out.kept, notice: out.notice };
+  return { status: out.status, error: out.error };
 }
 
 /**

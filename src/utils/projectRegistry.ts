@@ -176,6 +176,9 @@ export function pathShapeError(body: unknown): string | null {
   return null;
 }
 
+/** `checkOpenPath()`'s refusal of the home folder and of a file-system root. */
+export const HOME_OR_ROOT_ERROR = 'SpecPilot does not open your home folder or the root of a drive.';
+
 export type OpenCheck = { root: string } | { status: 409 | 422; error: string; project?: number };
 
 /**
@@ -205,7 +208,7 @@ export function checkOpenPath(input: string, roots: string[], home: string): Ope
   } catch {
     realHome = home;
   }
-  if (root === realHome || parse(root).root === root) return { status: 422, error: 'SpecPilot does not open your home folder or the root of a drive.' };
+  if (root === realHome || parse(root).root === root) return { status: 422, error: HOME_OR_ROOT_ERROR };
   const served = roots.findIndex(r => {
     try {
       return realpathSync(r) === root;

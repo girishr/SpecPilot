@@ -1,6 +1,6 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-10-04 (BL-PM-003 Spec Report)
+lastUpdated: 2026-10-04 (BL-PM-003 built)
 version: 2.26
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]

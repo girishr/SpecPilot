@@ -315,7 +315,17 @@ input.txt{width:100%}
 .setup button.go{display:inline-block;padding:8px 14px;border-radius:var(--rs);background:var(--accent-fill);color:var(--on-accent);font-weight:600}
 .setup button.go:disabled{opacity:.6;cursor:default}
 
-/* Open a Project sheet (BL-067): the mockup's sheet and + tile, Folder tab only */
+/* Open a Project sheet (BL-067): the mockup's sheet and + tile; its tab row and the New tab (BL-PM-003) */
+.tabs{display:flex;gap:2px;background:var(--muted);padding:2px;border-radius:var(--r);width:max-content;max-width:100%;overflow-x:auto}
+.tabs button{padding:4px 12px;border-radius:var(--rs);color:var(--label-2);font-weight:500;font-size:13px}
+.tabs button:hover{color:var(--label)}
+.tabs button.on{background:var(--group);color:var(--label);box-shadow:inset 0 0 0 1px var(--sep-2)}
+.sheet .tabs{flex:none}
+.sheet .pane{display:flex;flex-direction:column;gap:14px;flex:none}
+.sheet .pane[hidden]{display:none}
+.sheet .pane>.note{margin:0;padding:0 2px}
+.sheet .pane .field+.field{border-top:1px solid var(--sep)}
+.sheet .setup fieldset:last-child{margin-bottom:0}
 .tile.act{background:transparent;border:1px dashed var(--sep-2);color:var(--label-3)}
 .tile.act:hover{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 .tile.act svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8}
@@ -347,6 +357,9 @@ input.txt{width:100%}
 .welcome .logo{width:56px;height:56px;border-radius:12px}
 .welcome h1{font-size:clamp(26px,4vw,32px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0;text-wrap:balance}
 .welcome .lead{font-size:16px;line-height:1.55;color:var(--label-2);margin:0;max-width:52ch}
+.welcome .cta{display:flex;flex-direction:column;gap:10px}
+.welcome .alt{display:flex;gap:10px;flex-wrap:wrap}
+.welcome .alt .btn{flex:1;min-height:40px}
 .welcome .btn.big{min-height:48px;font-size:15px;font-weight:600;padding:0 20px;width:100%}
 .welcome .benefits .row{min-height:52px;align-items:flex-start}
 .welcome .benefits .row .body{padding:10px 0}

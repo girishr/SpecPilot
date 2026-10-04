@@ -56,11 +56,12 @@ function recentHtml(reg,home,projects,chev){
 
 /* What the page does with the answer to POST /api/projects, from the sheet or a row on Home:
    `project` is the one to show (null: nothing was opened, the page stays where it is), `specs` its
-   payload when the answer carries one, `toast` the message, the server's own when it sent one. */
-function openOutcome(status,res){
-  if(status===200)return {project:res.project,specs:res.specs,toast:`${res.specs.projects[res.project].root} opened as project ${res.project}`+(res.registry&&res.registry.error?'. '+res.registry.error:'')};
+   payload when the answer carries one, `toast` the message, the server's own when it sent one.
+   `created` says the answer is POST /api/projects/new's (BL-PM-003): only the two texts differ. */
+function openOutcome(status,res,created){
+  if(status===200)return {project:res.project,specs:res.specs,toast:`${res.specs.projects[res.project].root} ${created?'created and opened':'opened'} as project ${res.project}`+(res.registry&&res.registry.error?'. '+res.registry.error:'')};
   if(status===409&&typeof res.project==='number')return {project:res.project,specs:null,toast:res.error||`Already open as project ${res.project}`};
-  return {project:null,specs:null,toast:res.error||`Nothing was opened (HTTP ${status}).`};
+  return {project:null,specs:null,toast:res.error||`Nothing was ${created?'created':'opened'} (HTTP ${status}).`};
 }
 
 /* The view a live-reload payload forces, or null to stay: setup when .specs/ is gone, Tasks when it

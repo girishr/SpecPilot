@@ -116,11 +116,17 @@
   <div class="content" id="content" tabindex="-1">
     <p class="note" id="loadErr" hidden></p>
 
-    <!-- HOME (BL-PM-001): the mockup's launcher, cut down to the BL-067 sheet and GET /api/projects -->
-    <section class="view" id="v-home">
-      <div><h2>Your specs, as a board.</h2><p class="home-lead">SpecPilot reads the .specs/ folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p></div>
+    <!-- HOME (BL-PM-001): the mockup's #s-welcome column, cut down to what is built and true today -->
+    <section class="view welcome" id="v-home" aria-labelledby="wTitle">
+      <svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
+      <div><h1 id="wTitle">Your specs, as a board.</h1><p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p></div>
       <button type="button" class="btn pri big" id="homeOpen">Open a Project Folder</button>
-      <div class="gl"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
+      <div class="gl benefits"><div class="box">
+        <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div></div></div>
+        <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? The guided setup writes one for you.</div></div></div>
+      </div></div>
+      <div class="gl recents"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
+      <div class="fine"><i aria-hidden="true"></i><span>Server running on <span class="mono" id="homeAddr" translate="no"></span> · <span id="homeVer" translate="no"></span></span></div>
     </section>
 
     <!-- TASKS: the rows of planning/tasks.md, from readSpecs() -->

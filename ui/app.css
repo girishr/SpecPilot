@@ -335,16 +335,25 @@ input.txt{width:100%}
 .recent .btn{flex:none}
 .sheet .note{padding:10px 14px}
 
-/* Home (BL-PM-001): the mockup's welcome column, without what is not built */
-@media (min-width:901px){.win.home{grid-template-columns:60px minmax(0,1fr)}}
-.win.home .src,.win.home .tb .sub{display:none}
+/* Home (BL-PM-001): the mockup's .welcome column. The sidebar and the top bar give way and the rail
+   stays; in a narrow window the bar keeps its menu button, the only way to the rail there. */
+@media (min-width:901px){.win.home{grid-template-columns:60px minmax(0,1fr)}.win.home .tb{display:none}}
+.win.home .src,.win.home .tb>div{display:none}
 .tile.home{background:transparent}
 .tile.home:hover,.tile.home.cur{background:var(--hover)}
 .tile.home .logo{width:26px;height:26px;margin:0}
-#v-home{max-width:560px;gap:22px;padding-top:clamp(8px,5vh,48px)}
-#v-home h2{font-size:clamp(26px,4vw,32px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0;text-wrap:balance}
-#v-home .home-lead{font-size:16px;line-height:1.55;color:var(--label-2);margin:10px 0 0;max-width:52ch}
-#v-home .btn.big{min-height:48px;font-size:15px;font-weight:600;padding:0 20px;width:100%}
 #content:focus{outline:0}
-#v-home .row{text-align:left}
-#v-home .row .ttl{white-space:normal;overflow-wrap:anywhere}
+.content>.welcome{width:100%;max-width:560px;margin:0 auto;gap:22px;padding:clamp(28px,8vh,72px) 0 48px}
+.welcome .logo{width:56px;height:56px;border-radius:12px}
+.welcome h1{font-size:clamp(26px,4vw,32px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0;text-wrap:balance}
+.welcome .lead{font-size:16px;line-height:1.55;color:var(--label-2);margin:0;max-width:52ch}
+.welcome .btn.big{min-height:48px;font-size:15px;font-weight:600;padding:0 20px;width:100%}
+.welcome .benefits .row{min-height:52px;align-items:flex-start}
+.welcome .benefits .row .body{padding:10px 0}
+.welcome .benefits .ttl,.welcome .benefits .det{white-space:normal}
+.welcome .ic2{width:28px;height:28px;border-radius:var(--rs);background:var(--muted);display:grid;place-items:center;flex:none;margin-top:10px}
+.welcome .ic2 svg{width:15px;height:15px;stroke:var(--green-ink)}
+.welcome .recents .row{text-align:left}
+.welcome .recents .row .ttl{white-space:normal;overflow-wrap:anywhere}
+.welcome .fine{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--label-3);font-size:13px}
+.welcome .fine i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}

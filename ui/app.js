@@ -48,13 +48,13 @@ function renderProject(){
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
   $('#subName').textContent=name;$('#subPath').textContent=where;
-  $('#footAddr').textContent=location.host;$('#footVer').textContent='v'+p.specpilotVersion;
+  $('#footAddr').textContent=$('#homeAddr').textContent=location.host;$('#footVer').textContent=$('#homeVer').textContent='v'+p.specpilotVersion;
   document.title=name+' · SpecPilot Local';
 }
 
 /* ---------------- views ---------------- */
 const homeBtn=$('#homeBtn');
-const VIEWS={board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills',setup:''};
+const VIEWS={board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills',setup:'',home:''};
 const TITLES={'planning/roadmap.md':'Roadmap','project/requirements.md':'Requirements','architecture/architecture.md':'Architecture','quality/tests.md':'Tests'};
 const NAV=[['board'],['file','planning/roadmap.md'],['file','project/requirements.md'],['explorer'],['file','architecture/architecture.md'],['file','quality/tests.md'],['security'],['instructions'],['commands'],['skills']];
 let curView='board',curFile='';
@@ -76,7 +76,7 @@ function go(v,keep,sub){
   $('#win').classList.toggle('home',v==='home');
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));
   syncNav();
-  $('#title').textContent=v==='home'?'Home':v==='file'?(TITLES[sub]||sub):v==='setup'?'No .specs/ folder in '+DATA.projects[PROJECT].root:VIEWS[v];
+  $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?'No .specs/ folder in '+DATA.projects[PROJECT].root:VIEWS[v];
   $('#modeSeg').hidden=v!=='board';
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();

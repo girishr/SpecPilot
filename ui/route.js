@@ -31,6 +31,13 @@ function resolveRoute(hash,files,count,home){
 /* The whole content of a view whose file is gone: its path, and that it no longer exists. */
 function goneHtml(path){return `<p class="note"><span class="mono" translate="no">${esc(path)}</span> no longer exists.</p>`;}
 
+/* A time as "4 Oct 2026, 07:08", local, the same in every locale; what Date cannot parse is shown as it is. */
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function when(iso){
+  const d=new Date(iso),p=n=>String(n).padStart(2,'0');
+  return isNaN(d)?iso:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 /* The registry as GET /api/projects sends it (BL-067): the rows of the sheet's list, or of Home's
    (BL-PM-001), where a row is one button that opens its folder, has no Remove, and a project that
    is open also shows the branch /api/specs gives for it (`projects`, as the rail tooltip does). */
@@ -38,7 +45,7 @@ function recentHtml(reg,home,projects,chev){
   if(reg.error)return `<p class="note">${esc(reg.error)}</p>`;
   if(!reg.entries.length)return '<div class="empty">No projects remembered yet.</div>';
   return reg.entries.map(e=>{
-    const when=new Date(e.lastOpened),det=[isNaN(when)?e.lastOpened:when.toLocaleString()];
+    const det=[when(e.lastOpened)];
     if(e.project!==null)det.push('open as project '+e.project);
     if(!e.exists)det.push('folder not found');
     if(home){const q=e.project!==null&&projects?projects[e.project]:null;

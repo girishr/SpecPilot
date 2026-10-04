@@ -665,8 +665,8 @@ describe('UI routing (ui/route.js)', () => {
     path: '~/.specpilot/projects.json',
     error: null,
     entries: [
-      { path: '/h/old', root: '~/old', lastOpened: '2026-01-02T03:04:05.000Z', pinned: true, project: null, exists: true },
-      { path: '/h/api', root: '~/api', lastOpened: '2026-10-03T10:00:00.000Z', pinned: false, project: 1, exists: true },
+      { path: '/h/old', root: '~/old', lastOpened: new Date(2026, 9, 4, 7, 8, 59).toISOString(), pinned: true, project: null, exists: true },
+      { path: '/h/api', root: '~/api', lastOpened: new Date(2025, 0, 31, 23, 0).toISOString(), pinned: false, project: 1, exists: true },
       { path: '/h/<gone>', root: '~/<gone>', lastOpened: '2026-10-02T10:00:00.000Z', pinned: false, project: null, exists: false },
     ],
   };
@@ -677,9 +677,9 @@ describe('UI routing (ui/route.js)', () => {
     expect(rows).toHaveLength(3);
     expect(rows[0]).toContain('data-path="/h/old"');
     expect(rows[0]).toContain('<div class="ttl" translate="no">~/old</div>'); // not open: no branch
-    expect(rows[0]).toContain(`<div class="det">${new Date('2026-01-02T03:04:05.000Z').toLocaleString()}</div>`);
+    expect(rows[0]).toContain('<div class="det">4 Oct 2026, 07:08</div>'); // local time, day not padded, hour and minute padded, no seconds
     expect(rows[1]).toContain('<div class="ttl" translate="no">~/api · feat/x</div>');
-    expect(rows[1]).toContain(' · open as project 1</div>');
+    expect(rows[1]).toContain('<div class="det">31 Jan 2025, 23:00 · open as project 1</div>');
     expect(rows[2]).toContain('data-path="/h/&lt;gone&gt;"');
     expect(rows[2]).toContain('<div class="ttl" translate="no">~/&lt;gone&gt;</div>');
     expect(rows[2]).toContain(' · folder not found</div>');
@@ -695,6 +695,9 @@ describe('UI routing (ui/route.js)', () => {
     expect(html).toContain('<div class="ttl" translate="no">~/api</div>');
     expect(html).toContain(' · folder not found</div>');
     expect(html).not.toContain('feat/x');
+    expect(html).toContain('<div class="det">4 Oct 2026, 07:08</div>'); // the same date form as Home
+    const odd = recentHtml({ path: 'p', error: null, entries: [{ ...REG.entries[0], lastOpened: 'not a <date>' }] }, false, SERVED, '');
+    expect(odd).toContain('<div class="det">not a &lt;date&gt;</div>'); // what Date cannot parse is shown as it is
   });
 
   it('shows an empty registry and a refused one in both lists, the reason verbatim and escaped', () => {
@@ -736,10 +739,22 @@ describe('UI routing (ui/route.js)', () => {
       const port = (s.server.address() as AddressInfo).port;
       const page = (await hit(port, '/')).body;
       expect(page).toMatch(/<button class="tile home" id="homeBtn" aria-label="Home" aria-keyshortcuts="h" data-tip="Home" hidden>/);
-      expect(page).toContain('<h2>Your specs, as a board.</h2>');
-      expect(page).toContain(
-        'SpecPilot reads the .specs/ folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.',
+      const home = page.slice(page.indexOf('<section class="view welcome" id="v-home"'), page.indexOf('<!-- TASKS'));
+      expect(home).toMatch(/^<section class="view welcome" id="v-home" aria-labelledby="wTitle">\s*<svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"\/><\/svg>/);
+      expect(home).toContain('<h1 id="wTitle">Your specs, as a board.</h1>');
+      expect(home).toContain(
+        '<p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p>',
       );
+      expect(home).toContain(
+        '<use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div>',
+      );
+      expect(home).toContain(
+        '<use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? The guided setup writes one for you.</div>',
+      );
+      expect(home.match(/class="ic2"/g)).toHaveLength(2); // two benefit rows, not the mockup's three
+      expect(home).toContain('Server running on <span class="mono" id="homeAddr" translate="no"></span> · <span id="homeVer" translate="no"></span>'); // filled by the script with the real values
+      expect(home.indexOf('benefits')).toBeLessThan(home.indexOf('id="homeBox"'));
+      expect(page).not.toContain('needs you');
       expect(page).toContain('id="homeOpen">Open a Project Folder</button>');
       for (const left of ['Start a New Project', 'Clone a Repository', 'Connect Your AI IDE', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
       expect(page.includes('specpilot-token" content=')).toBe(!readOnly); // no token, so the script never shows the tile

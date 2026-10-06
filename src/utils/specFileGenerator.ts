@@ -6,6 +6,24 @@ import { TemplateEngine, TemplateContext } from './templateEngine';
  * Generates all `.specs/` markdown and YAML files.
  * Responsible only for content inside the specs directory.
  */
+/** Every file the generator writes: its subfolder of the specs folder and its name, in write order (BL-PM-004). */
+const SPEC_FILES = {
+  ReadmeMd: ['', 'README.md'],
+  ProjectYaml: ['project', 'project.yaml'],
+  RequirementsMd: ['project', 'requirements.md'],
+  ArchitectureMd: ['architecture', 'architecture.md'],
+  ApiYaml: ['architecture', 'api.yaml'],
+  TasksMd: ['planning', 'tasks.md'],
+  RoadmapMd: ['planning', 'roadmap.md'],
+  ContextMd: ['development', 'context.md'],
+  PromptsMd: ['development', 'prompts.md'],
+  OnboardingMd: ['development', 'onboarding.md'],
+  TestsMd: ['quality', 'tests.md'],
+  ThreatModelMd: ['security', 'threat-model.md'],
+  SecurityDecisionsMd: ['security', 'security-decisions.md'],
+} as const;
+type SpecFileKey = keyof typeof SPEC_FILES;
+
 export class SpecFileGenerator {
   constructor(private templateEngine: TemplateEngine) {}
 
@@ -79,28 +97,38 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
 
   /** Generate all spec files into the pre-created specs directory. */
   async generateAll(specsDir: string, context: TemplateContext): Promise<{ onboardingPrompt: string }> {
-    await this.generateReadmeMd(specsDir, context);
-    await this.generateProjectYaml(join(specsDir, 'project'), context);
-    await this.generateRequirementsMd(join(specsDir, 'project'), context);
-    await this.generateArchitectureMd(join(specsDir, 'architecture'), context);
-    await this.generateApiYaml(join(specsDir, 'architecture'), context);
-    await this.generateTasksMd(join(specsDir, 'planning'), context);
-    await this.generateRoadmapMd(join(specsDir, 'planning'), context);
-    await this.generateContextMd(join(specsDir, 'development'), context);
-    await this.generatePromptsMd(join(specsDir, 'development'), context);
-    const onboardingPrompt = await this.generateOnboardingMd(join(specsDir, 'development'), context);
-    await this.generateTestsMd(join(specsDir, 'quality'), context);
-    const securityDir = join(specsDir, 'security');
-    mkdirSync(securityDir, { recursive: true });
-    await this.generateThreatModelMd(securityDir, context);
-    await this.generateSecurityDecisionsMd(securityDir, context);
+    const dir = (key: SpecFileKey) => join(specsDir, SPEC_FILES[key][0]);
+    await this.generateReadmeMd(dir('ReadmeMd'), context);
+    await this.generateProjectYaml(dir('ProjectYaml'), context);
+    await this.generateRequirementsMd(dir('RequirementsMd'), context);
+    await this.generateArchitectureMd(dir('ArchitectureMd'), context);
+    await this.generateApiYaml(dir('ApiYaml'), context);
+    await this.generateTasksMd(dir('TasksMd'), context);
+    await this.generateRoadmapMd(dir('RoadmapMd'), context);
+    await this.generateContextMd(dir('ContextMd'), context);
+    await this.generatePromptsMd(dir('PromptsMd'), context);
+    const onboardingPrompt = await this.generateOnboardingMd(dir('OnboardingMd'), context);
+    await this.generateTestsMd(dir('TestsMd'), context);
+    mkdirSync(dir('ThreatModelMd'), { recursive: true });
+    await this.generateThreatModelMd(dir('ThreatModelMd'), context);
+    await this.generateSecurityDecisionsMd(dir('SecurityDecisionsMd'), context);
     return { onboardingPrompt };
+  }
+
+  /**
+   * The files `generateAll()` writes for an API paradigm, relative to the specs folder, in the order
+   * it writes them (BL-PM-004): read from the table the writes use, and pinned to the output by a test.
+   */
+  targets(apiParadigm: string): string[] {
+    return (Object.keys(SPEC_FILES) as SpecFileKey[])
+      .filter(key => key !== 'ApiYaml' || apiParadigm !== 'none')
+      .map(key => SPEC_FILES[key].filter(Boolean).join('/'));
   }
 
   private async generateReadmeMd(specsDir: string, context: TemplateContext): Promise<void> {
     const template = context.mode === 'existing' ? this.EXISTING_PROJECT_README : this.NEW_PROJECT_README;
     const rendered = this.templateEngine.renderFromString(template, context);
-    writeFileSync(join(specsDir, 'README.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.ReadmeMd[1]), rendered);
   }
 
   private async generateProjectYaml(specsDir: string, context: TemplateContext): Promise<void> {
@@ -110,7 +138,7 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
       'project.yaml'
     );
     const content = this.templateEngine.renderFromString(template, context);
-    writeFileSync(join(specsDir, 'project.yaml'), content);
+    writeFileSync(join(specsDir, SPEC_FILES.ProjectYaml[1]), content);
   }
 
   private async generateArchitectureMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -120,7 +148,7 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
       'architecture.md'
     );
     const content = this.templateEngine.renderFromString(template, context);
-    writeFileSync(join(specsDir, 'architecture.md'), content);
+    writeFileSync(join(specsDir, SPEC_FILES.ArchitectureMd[1]), content);
   }
 
   private async generateRequirementsMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -146,7 +174,7 @@ sourceOfTruth: project/project.yaml
 [TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'requirements.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.RequirementsMd[1]), rendered);
   }
 
   private async generateApiYaml(specsDir: string, context: TemplateContext): Promise<void> {
@@ -210,7 +238,7 @@ graphql:
 
     const content = header + sections[paradigm];
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'api.yaml'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.ApiYaml[1]), rendered);
   }
 
   private async generateTasksMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -245,7 +273,7 @@ Task ID conventions
 1. [CD-001] Initialise .specs directory ({{currentDate}})`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'tasks.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.TasksMd[1]), rendered);
   }
 
   private async generateRoadmapMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -274,7 +302,7 @@ sourceOfTruth: project/project.yaml
 [TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'roadmap.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.RoadmapMd[1]), rendered);
   }
 
   private async generateContextMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -294,7 +322,7 @@ sourceOfTruth: project/project.yaml
 [TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'context.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.ContextMd[1]), rendered);
   }
 
   private async generatePromptsMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -353,7 +381,7 @@ For full project context, read .specs/project/project.yaml.
 | YYYY-MM-DD | @username | Example prompt | Brief context or outcome |`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'prompts.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.PromptsMd[1]), rendered);
   }
 
   private async generateOnboardingMd(specsDir: string, context: TemplateContext): Promise<string> {
@@ -485,7 +513,7 @@ lastUpdated: ${new Date().toISOString().split('T')[0]}
 
 ${prompt}`;
 
-    writeFileSync(join(specsDir, 'onboarding.md'), content);
+    writeFileSync(join(specsDir, SPEC_FILES.OnboardingMd[1]), content);
     return prompt;
   }
 
@@ -506,7 +534,7 @@ sourceOfTruth: project/project.yaml
 [TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'tests.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.TestsMd[1]), rendered);
   }
 
   private async generateThreatModelMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -534,7 +562,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 [TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'threat-model.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.ThreatModelMd[1]), rendered);
   }
 
   private async generateSecurityDecisionsMd(specsDir: string, context: TemplateContext): Promise<void> {
@@ -553,7 +581,7 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
 [TODO]`;
 
     const rendered = this.templateEngine.renderFromString(content, context);
-    writeFileSync(join(specsDir, 'security-decisions.md'), rendered);
+    writeFileSync(join(specsDir, SPEC_FILES.SecurityDecisionsMd[1]), rendered);
   }
 
 }

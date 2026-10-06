@@ -700,6 +700,13 @@ describe('UI routing (ui/route.js)', () => {
     expect(resolveRoute(hash, files, 2, true)).toEqual({ project: 0, view: 'home', sub: '', missing: false });
   });
 
+  it.each([['#new'], ['#new/x'], ['#1/new'], ['#9/new']])('routes %j to the new-project chat when the page has a Home (BL-PM-004), and to Tasks without one', hash => {
+    expect(resolveRoute(hash, files, 2, true)).toEqual({ project: 0, view: 'new', sub: '', missing: false });
+    expect(resolveRoute(hash, files, 2, false).view).toBe('board');
+    expect(resolveRoute('#news', files, 2, true).view).toBe('board');
+    for (const had of [true, false]) for (const has of [true, false]) expect(reloadView('new', had, has)).toBeNull();
+  });
+
   it('keeps #homes an unknown view and every other route as it was when the page has a Home', () => {
     expect(resolveRoute('#homes', files, 2, true)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
     expect(resolveRoute('#1/homes', files, 2, true)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
@@ -850,9 +857,23 @@ describe('UI routing (ui/route.js)', () => {
       // BL-PM-003 and BL-PM-002: the mockup's .alt row, Start a New Project then Clone a Repository
       expect(home).toContain('<div class="alt"><button type="button" class="btn line" id="homeNew">Start a New Project</button><button type="button" class="btn line" id="homeClone">Clone a Repository</button></div>');
       expect(home.indexOf('id="homeOpen"')).toBeLessThan(home.indexOf('id="homeNew"'));
-      // the sheet: the mockup's tab row with Folder and New, and the New tab's own strings
+      // the sheet: the mockup's tab row; the New tab went into the setup assistant (BL-PM-004)
       const sheet = page.slice(page.indexOf('<div class="veil" id="openVeil">'), page.indexOf('<!-- PALETTE'));
-      expect(sheet).toContain('<div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabClone" data-t="clone" aria-controls="paneClone" aria-selected="false" tabindex="-1">Clone</button><button type="button" role="tab" id="tabNew" data-t="new" aria-controls="paneNew" aria-selected="false" tabindex="-1">New</button></div>');
+      expect(sheet).toContain('<div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabClone" data-t="clone" aria-controls="paneClone" aria-selected="false" tabindex="-1">Clone</button></div>');
+      for (const gone of ['id="tabNew"', 'id="paneNew"', '>New<', 'Create Project', 'Runs what specpilot init runs']) expect(page).not.toContain(gone);
+      // BL-PM-004: the setup chat, with only its own strings in the markup (the questions, their chat lines and choices come from the server)
+      const chat = page.slice(page.indexOf('<section class="view chat" id="v-chat">'), page.indexOf('<!-- FILE: any .specs/ file'));
+      expect(chat).toContain('<div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>');
+      expect(chat).toContain("<h2>Hey, I'm SpecPilot</h2>");
+      expect(chat).toContain('<div class="fine">Runs on this machine. Nothing leaves it.</div>');
+      expect(chat).toContain('<div class="lbl" id="nameLbl">Name your project to start</div>');
+      expect(chat).toContain('<input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button>');
+      expect(chat).toContain('<button type="button" class="btn pri" id="setupStart" hidden>Start Guided Setup</button>');
+      expect(chat).toContain('<section class="thread" id="thread" hidden><div class="col" id="msgs"></div></section>');
+      expect(chat).toContain('<section class="composer" id="composer" hidden><form class="col" id="comp" autocomplete="off"></form></section>');
+      expect(page).toContain('<button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>');
+      expect(page).toContain('<span id="chatSub" aria-live="polite" hidden></span>');
+      for (const never of ['id="v-setup"', 'id="setupVeil"', 'id="stepRail"', 'id="qNext"', 'Next Question', 'Review Answers', 'Steps', 'Enter an answer.', 'Create .specs/ and Open Project', 'Save and Close', 'Skip step', 'Start Over', 'Download', 'id="setupForm"', 'Runs what specpilot add-specs runs']) expect(page).not.toContain(never);
       // BL-PM-002: the Clone tab's own strings, its three fields in order, no browser URL check on the field
       expect(sheet).toContain('<div class="pane" id="paneClone" role="tabpanel" aria-labelledby="tabClone" hidden>');
       expect(sheet).toContain('<p class="note">Runs git clone on this machine, then opens the folder. Submodules are not cloned.</p>');
@@ -863,12 +884,6 @@ describe('UI routing (ui/route.js)', () => {
       expect(sheet.indexOf('id="cloneIn"')).toBeLessThan(sheet.indexOf('id="cloneParentIn"'));
       expect(sheet.indexOf('id="cloneParentIn"')).toBeLessThan(sheet.indexOf('id="cloneNameIn"'));
       expect(sheet.indexOf('id="recentBox"')).toBeLessThan(sheet.indexOf('id="paneClone"'));
-      expect(sheet.indexOf('id="paneClone"')).toBeLessThan(sheet.indexOf('id="paneNew"'));
-      expect(sheet).toContain('<div class="pane" id="paneNew" role="tabpanel" aria-labelledby="tabNew" hidden>');
-      expect(sheet).toContain('<p class="note">Runs what specpilot init runs in a new folder. Existing files are never changed.</p>');
-      expect(sheet).toContain('aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"');
-      expect(sheet).toContain('aria-label="Project name" placeholder="my-project"');
-      expect(sheet.indexOf('id="recentBox"')).toBeLessThan(sheet.indexOf('id="paneNew"')); // Recent projects belongs to the Folder tab
       for (const left of ['Browse', 'Connect Your AI IDE', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
       expect(page.includes('specpilot-token" content=')).toBe(!readOnly); // no token, so the script never shows the tile
     } finally {
@@ -2088,7 +2103,7 @@ describe('a new project over HTTP (BL-PM-003)', () => {
     const r = await hit(port, '/api/projects/new?project=7');
     expect(r.status).toBe(200);
     const q = JSON.parse(r.body);
-    expect(Object.keys(q)).toEqual(['questions', 'frameworks']);
+    expect(Object.keys(q)).toEqual(['questions', 'steps', 'frameworks', 'files']); // steps and files since BL-PM-004
     expect(q.questions.map((x: { key: string }) => x.key)).toEqual(['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide', 'whatItDoes', 'targetUsers', 'expectedScale', 'constraints']);
     expect(q.questions[0].choices[0].value).toBe('greenfield');
     expect(q.frameworks.python).toContain('django');
@@ -2141,6 +2156,17 @@ describe('a new project over HTTP (BL-PM-003)', () => {
       expect([r.status, r.json]).toEqual([422, { error }]);
     }
     expect(readdirSync(base)).toEqual([]);
+  });
+
+  it('creates a Brownfield project without the four context answers (BL-PM-004)', async () => {
+    const { whatItDoes, targetUsers, expectedScale, constraints, ...rest } = NEW_ANSWERS;
+    void [whatItDoes, targetUsers, expectedScale, constraints];
+    const r = await create({ ...rest, projectType: 'brownfield' });
+    expect(r.status).toBe(200);
+    expect(existsSync(join(base, 'demo', '.specs', 'development', 'onboarding.md'))).toBe(true);
+    const missing = await post(port, JSON.stringify({ parent: base, name: 'other', ...rest }), good(), '/api/projects/new');
+    expect([missing.status, missing.json.error]).toEqual([422, '"whatItDoes" is missing.']);
+    expect(existsSync(join(base, 'other'))).toBe(false);
   });
 
   it('creates the folder, writes the project, serves it as the next index and records it', async () => {

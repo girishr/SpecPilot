@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-04 (BL-PM-002 built)
-version: 1.28
+lastUpdated: 2026-10-06 (BL-PM-004 built)
+version: 1.29
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -87,7 +87,7 @@ Priority: the complete UI and its features first. Order, one BL per branch and S
 
 1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
 2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ and the Home screen (BL-PM-001) ✅ in v2.8.0
-3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅ on `main`, unreleased; clone a repository (BL-PM-002) ✅ on `main`, unreleased; then the 8-step chat setup with live preview and drafts (BL-PM-004)
+3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅ on `main`, unreleased; clone a repository (BL-PM-002) ✅ on `main`, unreleased; then the chat-style guided setup over the CLI's questions, as the init.specpilot.dev chat (BL-PM-004; built on `feat/bl-pm-004-chat-setup`, not committed); the further init.specpilot.dev questions (BL-PM-004b) and setup drafts wait for BL-032, which comes after the full release (the developer's decision, 2026-10-05)
 4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
 5. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)
 6. Full release of SpecPilot Local

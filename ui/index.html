@@ -108,9 +108,10 @@
 <main class="pane">
   <div class="tb">
     <button class="ib menu" id="menuBtn" aria-label="Show sidebar"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
-    <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span></div></div>
+    <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span><span id="chatSub" aria-live="polite" hidden></span></div></div>
     <div class="right">
       <div class="seg" id="modeSeg"><button class="on" data-m="list">List</button><button data-m="board">Board</button></div>
+      <button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>
     </div>
   </div>
   <div class="content" id="content" tabindex="-1">
@@ -155,12 +156,24 @@
       <div id="secBody"></div>
     </section>
 
-    <!-- SETUP (BL-055): a named folder with no .specs/ yet; the questions are the CLI's own -->
-    <section class="view" id="v-setup">
-      <p class="note" id="setupIntro" hidden>Runs what specpilot add-specs runs in this folder. Existing files are never changed.</p>
-      <p class="note" id="setupDetected" hidden translate="no"></p>
-      <form class="setup" id="setupForm" hidden autocomplete="off"></form>
-      <p class="note" id="setupNote" hidden></p>
+    <!-- SETUP CHAT (BL-PM-004): the init.specpilot.dev chat over the CLI's own questions; shown for a new project
+         (#new) and for a named folder with no .specs/ yet (BL-055). The questions, their chat lines and choices come from the server -->
+    <section class="view chat" id="v-chat">
+      <div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>
+      <p class="note" id="chatNote" hidden></p>
+      <section class="intro" id="intro" hidden>
+        <svg class="big" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
+        <div><h2>Hey, I'm SpecPilot</h2><p id="introText"></p><p class="note" id="introDetected" hidden translate="no"></p></div>
+        <div class="fine">Runs on this machine. Nothing leaves it.</div>
+        <form class="start" id="introForm" autocomplete="off">
+          <div class="lbl" id="nameLbl">Name your project to start</div>
+          <div class="row"><input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button></div>
+          <div class="err" id="nameErr" role="alert"></div>
+          <button type="button" class="btn pri" id="setupStart" hidden>Start Guided Setup</button>
+        </form>
+      </section>
+      <section class="thread" id="thread" hidden><div class="col" id="msgs"></div></section>
+      <section class="composer" id="composer" hidden><form class="col" id="comp" autocomplete="off"></form></section>
     </section>
 
     <!-- FILE: any .specs/ file, rendered as written -->
@@ -192,11 +205,11 @@
 </main>
 </div>
 
-<!-- OPEN A PROJECT (BL-067): the mockup's sheet; the Folder tab lists GET /api/projects, the Clone tab (BL-PM-002) runs git clone, the New tab (BL-PM-003) asks what specpilot init asks -->
+<!-- OPEN A PROJECT (BL-067): the mockup's sheet; the Folder tab lists GET /api/projects, the Clone tab (BL-PM-002) runs git clone -->
 <div class="veil" id="openVeil"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="openTitle" tabindex="-1">
   <div class="sh"><div><h2 id="openTitle">Open a Project</h2><p>SpecPilot reads the folder on this machine. Nothing is uploaded.</p></div></div>
   <form class="sb" id="openForm" autocomplete="off">
-    <div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabClone" data-t="clone" aria-controls="paneClone" aria-selected="false" tabindex="-1">Clone</button><button type="button" role="tab" id="tabNew" data-t="new" aria-controls="paneNew" aria-selected="false" tabindex="-1">New</button></div>
+    <div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabClone" data-t="clone" aria-controls="paneClone" aria-selected="false" tabindex="-1">Clone</button></div>
     <div class="pane" id="paneFolder" role="tabpanel" aria-labelledby="tabFolder">
       <div class="gl"><div class="box"><div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="pathIn" name="folder-path" type="text" spellcheck="false" aria-label="Folder path" placeholder="/path/to/project or ~/project"></div></div></div>
       <div class="gl"><div class="gh">Recent projects <span class="cnt" id="recentPath" translate="no"></span></div><div class="box" id="recentBox"></div></div>
@@ -208,14 +221,6 @@
         <div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="cloneParentIn" name="clone-parent" type="text" spellcheck="false" aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"></div>
         <div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><input id="cloneNameIn" name="clone-name" type="text" spellcheck="false" aria-label="Folder name" placeholder="the repository's name" maxlength="214"></div>
       </div></div>
-    </div>
-    <div class="pane" id="paneNew" role="tabpanel" aria-labelledby="tabNew" hidden>
-      <p class="note">Runs what specpilot init runs in a new folder. Existing files are never changed.</p>
-      <div class="gl"><div class="box">
-        <div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg><input id="parentIn" name="parent-folder" type="text" spellcheck="false" aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"></div>
-        <div class="field"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><input id="nameIn" name="project-name" type="text" spellcheck="false" aria-label="Project name" placeholder="my-project" maxlength="214"></div>
-      </div></div>
-      <div class="setup" id="newQs"></div>
     </div>
   </form>
   <div class="sf"><span class="cloning" id="cloneStatus" hidden><span class="bar" role="progressbar" aria-label="Cloning"></span><span id="cloneTime">Cloning… 0:00</span></span><button type="button" class="btn" id="openCancel">Cancel</button><button type="submit" class="btn pri" id="openGo" form="openForm">Open</button></div>

@@ -10,7 +10,7 @@ import { getFrameworksForLanguage } from './frameworks';
 import { CODEX_PROMPTS_NOTICE } from './slashCommandGenerator';
 import {
   AddSpecsAnswers, addSpecsOptions, API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, detectedLine, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES,
-  IDE_MESSAGE, LANGUAGE_MESSAGE, PROJECT_TYPE_CHOICES, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
+  CHAT_ORDER, IDE_MESSAGE, LANGUAGE_MESSAGE, PROJECT_TYPE_CHOICES, PROJECT_TYPE_MESSAGE, QUESTION_CHAT, QUESTION_STEPS, SETUP_STEPS, SUPPORTED_LANGUAGES,
 } from './addSpecsQuestions';
 import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, InitAnswers, projectNameError } from './initQuestions';
 import { checkOpenPath, HOME_OR_ROOT_ERROR, pathShapeError } from './projectRegistry';
@@ -25,8 +25,12 @@ export const STAGING_MARKER = '.specpilot-setup';
 export const STAGING_PATTERN = /^\.specpilot-setup-[0-9a-f]{12}$/;
 const MARKER_TEXT = 'specpilot serve guided setup staging folder; safe to delete\n';
 
-/** What a handle sent over HTTP may be (the CLI's own prompt is unchanged, SEC-004.12). */
-export const HANDLE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/;
+/**
+ * What is wrong with a handle sent over HTTP, or null; an empty one is fine (the CLI's own prompt is
+ * unchanged, SEC-004.12). The rule lives in the page's `ui/route.js`, like the project name's (BL-PM-004).
+ */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+export const { handleError, HANDLE_PATTERN } = require('../../ui/route.js') as { handleError: (handle: string) => string | null; HANDLE_PATTERN: RegExp };
 
 /** True when `.specs` does not exist at all (a file, link or folder of that name counts as existing). */
 export function specsMissing(root: string): boolean {
@@ -52,17 +56,54 @@ const choices = (values: string[]) => values.map(value => ({ name: value, value 
 export interface SetupQuestion {
   key: string;
   message: string;
+  /** The step of the page's chat the question belongs to, and its place in the chat's order (BL-PM-004). */
+  step: string;
+  order: number;
+  /** False for an answer the CLI lets pass with Enter. */
+  required: boolean;
+  /** The chat's friendly line (`{language}` filled by the page) and the recap row's label. */
+  chat: string;
+  label: string;
+  /** The field's example, for a typed answer. */
+  placeholder?: string;
+  /** Asked only while these answers are selected. */
+  when?: Record<string, string>;
   /** Absent for the handle (free text) and for the framework when it depends on the language answer. */
   choices?: { name: string; value: string }[];
 }
 
 export interface SetupQuestions {
   questions: SetupQuestion[];
+  /** The steps that hold a question, in order. */
+  steps: string[];
   /** When the language is asked: `none` plus each language's frameworks (a language with none is absent). */
   frameworks?: Record<string, string[]>;
+  /** What will be written: the `.specs/` files per API paradigm and the files outside it per IDE choice. */
+  files: GeneratedFiles;
   detected: { language: string; framework: string | null; line: string } | null;
   /** Per IDE choice, the files outside `.specs/` that would be written and already exist (kept). */
   keep: Record<string, string[]>;
+}
+
+export interface GeneratedFiles {
+  specs: Record<string, string[]>;
+  outside: Record<string, string[]>;
+}
+
+type AskedQuestion = Omit<SetupQuestion, 'step' | 'order' | 'required' | 'chat' | 'label' | 'placeholder'> & { required?: boolean };
+
+/** Each question with its step, whether it is required (every one but the handle, unless it says so) and its chat wording, and the steps in use. */
+function inSteps(asked: AskedQuestion[]): { questions: SetupQuestion[]; steps: string[] } {
+  const questions = asked.map(q => ({ ...q, step: QUESTION_STEPS[q.key], order: CHAT_ORDER.findIndex(([key]) => key === q.key), required: q.required ?? q.key !== 'handle', ...QUESTION_CHAT[q.key] }));
+  return { questions, steps: SETUP_STEPS.filter(step => questions.some(q => q.step === step)) };
+}
+
+/** The generators' own path tables, per choice. */
+function generatedFiles(generator: SpecGenerator): GeneratedFiles {
+  return {
+    specs: Object.fromEntries(API_PARADIGM_CHOICES.map(c => [c.value, generator.targetsInSpecs(c.value)])),
+    outside: Object.fromEntries(IDE_CHOICES.map(c => [c.value, generator.targetsOutsideSpecs(c.value)])),
+  };
 }
 
 /** `none` plus its frameworks, for each language that has any. */
@@ -79,7 +120,7 @@ function frameworksByLanguage(): Record<string, string[]> {
 export async function setupQuestions(root: string): Promise<SetupQuestions> {
   const info = await new ProjectDetector().detectProject(root);
   const username = os.userInfo().username;
-  const questions: SetupQuestion[] = [{ key: 'projectType', message: PROJECT_TYPE_MESSAGE, choices: PROJECT_TYPE_CHOICES }];
+  const questions: AskedQuestion[] = [{ key: 'projectType', message: PROJECT_TYPE_MESSAGE, choices: PROJECT_TYPE_CHOICES }];
   let frameworks: Record<string, string[]> | undefined;
   if (!info) {
     questions.push({ key: 'language', message: LANGUAGE_MESSAGE, choices: choices(SUPPORTED_LANGUAGES) });
@@ -97,8 +138,9 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
   const keep: Record<string, string[]> = {};
   for (const { value } of IDE_CHOICES) keep[value] = generator.targetsOutsideSpecs(value).filter(rel => exists(join(root, ...rel.split('/'))));
   return {
-    questions,
+    ...inSteps(questions),
     ...(frameworks ? { frameworks } : {}),
+    files: generatedFiles(generator),
     detected: info ? { language: info.language, framework: info.framework ?? null, line: detectedLine(info) } : null,
     keep,
   };
@@ -106,7 +148,6 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
 
 const KEYS = ['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide'];
 const oneOf = (key: string, values: string[]) => `"${key}" must be one of: ${values.join(', ')}.`;
-const HANDLE_ERROR = 'The handle must be 1 to 39 characters of letters, digits, dots, underscores and hyphens, starting with a letter or digit.';
 
 /** Shape of a setup body, checked before the lock: keys, types, fixed choices, the handle. Null when fine. */
 export function answersShapeError(body: unknown): string | null {
@@ -121,8 +162,7 @@ export function answersShapeError(body: unknown): string | null {
     ['ide', IDE_CHOICES.map(c => c.value)],
   ];
   for (const [key, values] of lists) if (!values.includes(b[key] as string)) return oneOf(key, values);
-  const handle = (b.handle as string).trim();
-  return handle && !HANDLE_PATTERN.test(handle) ? HANDLE_ERROR : null;
+  return handleError(b.handle as string);
 }
 
 /** `language` and `framework` against what the detector found: required when asked, absent otherwise. */
@@ -274,9 +314,9 @@ async function placeGenerated(root: string, options: SpecGeneratorOptions): Prom
 // ---- a new project (BL-PM-003): what `specpilot init <name>` does, in `<parent>/<name>`
 
 /** The questions `init` asks, in its order, with the CLI's own text. Throws when the OS username cannot be read. */
-export function newProjectQuestions(): { questions: SetupQuestion[]; frameworks: Record<string, string[]> } {
+export function newProjectQuestions(): { questions: SetupQuestion[]; steps: string[]; frameworks: Record<string, string[]>; files: GeneratedFiles } {
   return {
-    questions: [
+    ...inSteps([
       { key: 'projectType', message: PROJECT_TYPE_MESSAGE, choices: INIT_PROJECT_TYPE_CHOICES },
       { key: 'language', message: LANGUAGE_MESSAGE, choices: choices(SUPPORTED_LANGUAGES) },
       { key: 'framework', message: FRAMEWORK_MESSAGE },
@@ -284,8 +324,9 @@ export function newProjectQuestions(): { questions: SetupQuestion[]; frameworks:
       { key: 'handle', message: handleMessage(os.userInfo().username) },
       { key: 'ide', message: IDE_MESSAGE, choices: IDE_CHOICES },
       ...CONTEXT_QUESTIONS,
-    ],
+    ]),
     frameworks: frameworksByLanguage(),
+    files: generatedFiles(new SpecGenerator(new TemplateEngine())),
   };
 }
 
@@ -302,7 +343,9 @@ export function newProjectShapeError(body: unknown): string | null {
   const b = body as Record<string, unknown> | null;
   if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with parent, name and the answers to the questions.';
   for (const key of Object.keys(b)) if (!NEW_KEYS.includes(key)) return `Unexpected field "${key}".`;
-  for (const key of ['parent', 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', 'whatItDoes']) if (!(key in b)) return `"${key}" is missing.`;
+  // The context answers are required for Greenfield only: `init` writes them nowhere for Brownfield (BL-PM-004).
+  const required = ['parent', 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', ...(b.projectType === 'brownfield' ? [] : ['whatItDoes'])];
+  for (const key of required) if (!(key in b)) return `"${key}" is missing.`;
   for (const key of NEW_KEYS) if (key in b && typeof b[key] !== 'string') return `"${key}" must be a string.`;
   const s = b as Record<string, string>;
   const parentProblem = pathShapeError({ path: s.parent });
@@ -321,9 +364,9 @@ export function newProjectShapeError(body: unknown): string | null {
     if ('framework' in s) return '"framework" must not be sent for this language.';
   } else if (!('framework' in s)) return '"framework" is missing.';
   else if (!['none', ...frameworks].includes(s.framework)) return oneOf('framework', ['none', ...frameworks]);
-  const handle = s.handle.trim();
-  if (handle && !HANDLE_PATTERN.test(handle)) return HANDLE_ERROR;
-  if (!s.whatItDoes.trim()) return '"whatItDoes" must not be empty.';
+  const handleProblem = handleError(s.handle);
+  if (handleProblem) return handleProblem;
+  if (s.projectType === 'greenfield' && !s.whatItDoes.trim()) return '"whatItDoes" must not be empty.';
   for (const key of CONTEXT_KEYS) {
     const value = (s[key] ?? '').trim();
     if (value.length > MAX_CONTEXT_LENGTH) return `"${key}" must be at most ${MAX_CONTEXT_LENGTH} characters.`;

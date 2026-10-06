@@ -107,6 +107,14 @@ export class SpecGenerator {
   }
 
   /**
+   * The project-relative files `generateSpecs()` writes under `.specs/` for an API paradigm, in the
+   * order it writes them (BL-PM-004); `api.yaml` is absent for `none`.
+   */
+  targetsInSpecs(apiParadigm: string, specsName = '.specs'): string[] {
+    return this.specFileGenerator.targets(apiParadigm).map(rel => `${specsName}/${rel}`);
+  }
+
+  /**
    * The project-relative files `generateSpecs()` writes outside `.specs/` for an IDE choice, in the
    * order it writes them (BL-055): read from the same tables the writes use, and pinned to the real
    * output by a test, so `specpilot serve` can say which existing files it will keep before it runs.

@@ -8,29 +8,22 @@ import { SpecGeneratorOptions } from './specGenerator';
 /** `init` lists Greenfield first. */
 export const INIT_PROJECT_TYPE_CHOICES = [PROJECT_TYPE_CHOICES[1], PROJECT_TYPE_CHOICES[0]];
 
-export const MAX_PROJECT_NAME_LENGTH = 214; // npm limit
-/** Allowlist: prevents filesystem issues and Handlebars template injection (SEC-004.1). */
-export const PROJECT_NAME_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+/**
+ * What is wrong with a project name, in `init`'s words (`hint` is the terminal's extra line), or null.
+ * The allowlist prevents filesystem issues and Handlebars template injection (SEC-004.1). The rule lives
+ * in the page's `ui/route.js`, which checks the name as it is typed in, so there is one copy (BL-PM-004).
+ */
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+export const { projectNameError } = require('../../ui/route.js') as { projectNameError: (name: string) => { message: string; hint?: string } | null };
 
-/** What is wrong with a project name, in `init`'s words (`hint` is the terminal's extra line), or null. */
-export function projectNameError(name: string): { message: string; hint?: string } | null {
-  if (!name) return { message: 'Project name is required and cannot be empty', hint: '💡 Usage: specpilot init <project-name>' };
-  if (name.length > MAX_PROJECT_NAME_LENGTH) return { message: `Project name must be ${MAX_PROJECT_NAME_LENGTH} characters or fewer` };
-  if (!PROJECT_NAME_PATTERN.test(name)) {
-    return {
-      message: 'Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores',
-      hint: '💡 Example: my-project, app_v2, project.name',
-    };
-  }
-  return null;
-}
-
+/** `specpilot serve` asks the context questions only for Greenfield: `init` writes them nowhere for Brownfield (BL-082). */
+const GREENFIELD_ONLY = { projectType: 'greenfield' };
 /** The four project-context questions, in order; only the first is required. */
 export const CONTEXT_QUESTIONS = [
-  { key: 'whatItDoes', message: 'What does your project do? (required):' },
-  { key: 'targetUsers', message: 'Who are the target users? (Enter to skip):' },
-  { key: 'expectedScale', message: 'What\'s the expected scale? (Enter to skip):' },
-  { key: 'constraints', message: 'Any key constraints or requirements? (Enter to skip):' },
+  { key: 'whatItDoes', message: 'What does your project do? (required):', required: true, when: GREENFIELD_ONLY },
+  { key: 'targetUsers', message: 'Who are the target users? (Enter to skip):', required: false, when: GREENFIELD_ONLY },
+  { key: 'expectedScale', message: 'What\'s the expected scale? (Enter to skip):', required: false, when: GREENFIELD_ONLY },
+  { key: 'constraints', message: 'Any key constraints or requirements? (Enter to skip):', required: false, when: GREENFIELD_ONLY },
 ] as const;
 
 export const NOT_SPECIFIED = 'Not specified — use your judgment and mark as [ASSUMPTION]';

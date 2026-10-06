@@ -1,3 +1,4 @@
+// @ts-check
 /* Hash routing for the serve UI, kept free of the DOM so Jest can require it.
    Loaded as /assets/route.js in the browser. */
 (function (root) {
@@ -9,12 +10,14 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
    so the page can say it no longer exists instead of silently showing something else.
    "#2/board" is project 2 of `count` (BL-054); no index, or "#0/", is project 0; an index
    that names no served project goes to project 0's Tasks view. "#home" is the Home screen
-   (BL-PM-001) when `home` says the page has one: it belongs to no project, so an index before
-   it and anything after it are ignored; without `home` it is an unknown view. */
+   (BL-PM-001) when `home` says the page has one, and "#new" the new-project chat (BL-PM-004) on the
+   same terms: both belong to no project, so an index before them and anything after is ignored;
+   without `home` they are unknown views. */
 function resolveRoute(hash,files,count,home){
   let h=String(hash||'').replace(/^#/,''),project=0;
   const m=/^(\d+)\/(.*)$/.exec(h);
-  if(home&&/^home(\/|$)/.test(m?m[2]:h))return {project:0,view:'home',sub:'',missing:false};
+  const top=/^(home|new)(\/|$)/.exec(m?m[2]:h);
+  if(home&&top)return {project:0,view:top[1],sub:'',missing:false};
   if(m){
     if(!/^(0|[1-9][0-9]*)$/.test(m[1])||Number(m[1])>=(count||1))return {project:0,view:'board',sub:'',missing:false};
     project=Number(m[1]);h=m[2];
@@ -35,7 +38,7 @@ function goneHtml(path){return `<p class="note"><span class="mono" translate="no
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function when(iso){
   const d=new Date(iso),p=n=>String(n).padStart(2,'0');
-  return isNaN(d)?iso:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return isNaN(d.getTime())?iso:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 /* The registry as GET /api/projects sends it (BL-067): the rows of the sheet's list, or of Home's
@@ -67,9 +70,9 @@ function openOutcome(status,res,created){
 }
 
 /* The view a live-reload payload forces, or null to stay: setup when .specs/ is gone, Tasks when it
-   appeared while the setup view was shown. Home belongs to no project, so it never moves. */
+   appeared while the setup view was shown. Home and the new-project chat belong to no project, so they never move. */
 function reloadView(curView,hadSpecs,hasSpecs){
-  if(!hasSpecs&&curView!=='setup'&&curView!=='home')return 'setup';
+  if(!hasSpecs&&curView!=='setup'&&curView!=='home'&&curView!=='new')return 'setup';
   if(!hadSpecs&&hasSpecs&&curView==='setup')return 'board';
   return null;
 }
@@ -82,6 +85,125 @@ function repoNameFromUrl(url){return String(url).replace(/\/+$/,'').replace(/\.g
    segment of its root), never the whole path, which stays in the tooltip and the sub-line. */
 function projectLabel(p){return p.name!==null&&p.name!==undefined?p.name:String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root;}
 
-const api={resolveRoute,goneHtml,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel};
+/* ---- the setup chat (BL-PM-004): one question at a time over GET /api/setup or /api/projects/new ---- */
+
+/* What is wrong with a project name, in `specpilot init`'s words (`hint` is the terminal's extra line), or
+   null. The one copy of the rule: init and the server load it from here, the page checks with it. */
+const MAX_PROJECT_NAME_LENGTH=214; // npm limit
+const PROJECT_NAME_PATTERN=/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+function projectNameError(name){
+  if(!name)return {message:'Project name is required and cannot be empty',hint:'💡 Usage: specpilot init <project-name>'};
+  if(name.length>MAX_PROJECT_NAME_LENGTH)return {message:`Project name must be ${MAX_PROJECT_NAME_LENGTH} characters or fewer`};
+  if(!PROJECT_NAME_PATTERN.test(name))return {message:'Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores',hint:'💡 Example: my-project, app_v2, project.name'};
+  return null;
+}
+
+/* What is wrong with a handle sent over HTTP, or null. Trimmed first, and an empty one is fine: the OS
+   username is used then. The one copy, as above. */
+const HANDLE_PATTERN=/^[A-Za-z0-9][A-Za-z0-9._-]{0,38}$/;
+function handleError(handle){
+  const h=String(handle).trim();
+  return h&&!HANDLE_PATTERN.test(h)?'The handle must be 1 to 39 characters of letters, digits, dots, underscores and hyphens, starting with a letter or digit.':null;
+}
+
+/* The answer a question has now: the one given, else the first choice (the one that comes pressed), else empty. */
+function flowValue(qu,answers){
+  const v=answers[qu.key];
+  if(qu.choices)return qu.choices.some(c=>c.value===v)?v:qu.choices[0].value;
+  return v===undefined?'':v;
+}
+
+/* Whether a question has been answered: its key is there and, for a choice, the answer is one of the
+   choices now offered (a framework kept from another language is asked again). An empty optional answer counts. */
+function answered(qu,answers){
+  if(!(qu.key in answers))return false;
+  return !qu.choices||qu.choices.some(c=>c.value===answers[qu.key]);
+}
+
+/* The questions to ask for the answers so far, in the chat's order (`order`, which groups them by step):
+   `first` (the page's own parent question of a new project) before the server's; the framework question with
+   the selected language's choices, left out when that language has none; a question with `when` only while
+   those answers are selected. */
+function flowQuestions(q,answers,first){
+  const all=[...(first||[]),...q.questions],byKey=k=>all.find(x=>x.key===k),out=[];
+  const now=k=>{const x=byKey(k);return x?flowValue(x,answers):undefined;};
+  for(const qu of all){
+    if(qu.when&&!Object.keys(qu.when).every(k=>now(k)===qu.when[k]))continue;
+    if(qu.key==='framework'&&!qu.choices){
+      const list=q.frameworks&&q.frameworks[now('language')]||[];
+      if(list.length)out.push({...qu,choices:list.map(v=>({name:v,value:v}))});
+    }else out.push(qu);
+  }
+  return out.sort((a,b)=>(a.order??-1)-(b.order??-1));
+}
+
+/* The question the composer shows: the one being edited, else the first asked question without an answer,
+   else null, which means the recap. */
+function nextQuestion(list,answers,editing){
+  if(editing){const qu=list.find(x=>x.key===editing);if(qu)return qu;}
+  return list.find(x=>!answered(x,answers))||null;
+}
+
+/* What Continue shows under the answer, or null: a required text left empty, a project name or a handle
+   the server would refuse (its own message; never the terminal's hint). */
+function answerError(qu,value){
+  const v=String(value).trim();
+  if(qu.choices)return null;
+  if(!v)return qu.required?'This one is required.':null;
+  if(qu.key==='name'){const e=projectNameError(v);return e?e.message+'.':null;}
+  return qu.key==='handle'?handleError(v):null;
+}
+
+/* The bot bubble's line: `chat` with `{name}` and `{language}` filled. `ctx` is {name, language}: the project
+   name (the folder's label in guided setup) and the language choice's text, or the detected language. */
+function chatText(qu,ctx){return String(qu.chat||'').replace(/\{name\}/g,ctx.name||'').replace(/\{language\}/g,ctx.language||'');}
+
+/* The answer as a bubble or a recap row shows it: the choice's own text up to its " — " part (the chips
+   keep the whole), the typed text, or Skipped. */
+function answerText(qu,answers){
+  const v=answers[qu.key];
+  if(qu.choices){const c=qu.choices.find(x=>x.value===v);return c?c.name.split(' — ')[0]:'';}
+  return String(v===undefined?'':v).trim()||'Skipped';
+}
+
+/* The thread up to the current question: the name bubble (a new project only: `named`), a divider per step,
+   a bot row per asked question and an answer row per answered one; after the last answer a Review divider. */
+function threadRows(q,list,answers,cur,ctx,named){
+  const steps=[...new Set(list.map(x=>x.step))],rows=[];
+  if(named)rows.push({kind:'user',key:'name',text:ctx.name,mono:true,skipped:false});
+  let last=null;
+  for(const qu of list){
+    if(qu.step!==last){rows.push({kind:'divider',text:`Step ${steps.indexOf(qu.step)+1} · ${qu.step}`});last=qu.step;}
+    rows.push({kind:'bot',key:qu.key,text:chatText(qu,ctx),cli:qu.message});
+    if(cur&&qu.key===cur.key)break;
+    if(answered(qu,answers))rows.push({kind:'user',key:qu.key,text:answerText(qu,answers),mono:qu.key==='parent'||qu.key==='handle',skipped:!qu.choices&&!String(answers[qu.key]).trim()});
+  }
+  if(!cur)rows.push({kind:'divider',text:'Review'});
+  return rows;
+}
+
+/* The recap: one card per step in use, one row per asked question. */
+function recapCards(list,answers){
+  const steps=[...new Set(list.map(x=>x.step))];
+  return steps.map(step=>({title:step,rows:list.filter(x=>x.step===step).map(qu=>({key:qu.key,label:qu.label,value:answerText(qu,answers)}))}));
+}
+
+/* The POST body: the answer of every question asked, text trimmed. */
+function flowBody(list,answers){
+  const body={};
+  for(const qu of list)body[qu.key]=qu.choices?flowValue(qu,answers):String(flowValue(qu,answers)).trim();
+  return body;
+}
+
+/* The files that will be written for the answers so far: .specs/ for the API paradigm, then the files
+   outside it for the IDE; `kept` marks one that is already in the folder (guided setup's `keep`). */
+function previewFiles(q,answers){
+  const pick=k=>{const x=q.questions.find(y=>y.key===k);return x?flowValue(x,answers):undefined;};
+  const ide=pick('ide'),keep=q.keep&&q.keep[ide]||[];
+  return [...(q.files.specs[pick('apiParadigm')]||[]),...(q.files.outside[ide]||[])].map(path=>({path,kept:keep.includes(path)}));
+}
+
+const api={resolveRoute,goneHtml,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
+  projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);
 })(this);

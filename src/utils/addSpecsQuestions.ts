@@ -4,6 +4,34 @@ import { SpecGeneratorOptions } from './specGenerator';
 // What `specpilot add-specs` asks, and how its answers become generator options: one copy, used by
 // the command's inquirer prompts and by `specpilot serve`'s guided setup (BL-055, ARCH-003.19).
 
+/** The steps `specpilot serve` asks the questions in, named as init.specpilot.dev names them (BL-PM-004). */
+export const SETUP_STEPS = ['Project identity', 'Platform & IDE', 'Target users', 'Scale & deploy', 'Architecture & data', 'Constraints & non-goals'];
+/**
+ * The chat's friendly line for each question, a short recap label and, for a typed answer, the field's
+ * example (REQ-002.H.27). `{language}` is filled by the page with the language choice's text. The CLI's own
+ * message is shown under the line, verbatim; none of this reaches the terminal.
+ */
+export const QUESTION_CHAT: Record<string, { chat: string; label: string; placeholder?: string }> = {
+  projectType: { chat: 'Got it. Is this a new build, or are we adding specs to an existing codebase?', label: 'Type' },
+  whatItDoes: { chat: 'Describe it in plain words. As short or as detailed as you like.', label: 'What it does', placeholder: 'A tracker for courier parcels with live status for customers' },
+  handle: { chat: "Last thing for this part: your short handle? Optional. It prefixes task IDs, like CD-jsmith-001. Skip and I'll use your OS username.", label: 'Handle', placeholder: 'e.g. jsmith' },
+  language: { chat: 'Which language is it in?', label: 'Language' },
+  framework: { chat: 'Any framework on top of {language}?', label: 'Framework' },
+  ide: { chat: 'Which AI IDE do you use, so I can write its context files?', label: 'AI IDE' },
+  targetUsers: { chat: "Who's going to use it? Optional.", label: 'Users', placeholder: 'Couriers and the customers waiting for parcels' },
+  expectedScale: { chat: "What's the expected scale? Optional.", label: 'Scale', placeholder: 'About 5,000 parcels a day in one city' },
+  apiParadigm: { chat: 'What kind of API does it expose? This decides whether api.yaml is written.', label: 'API' },
+  constraints: { chat: 'Any key constraints or requirements? Optional.', label: 'Constraints', placeholder: 'Must work offline on cheap Android phones' },
+};
+/** The questions in the order the chat asks them, each with its step (the page's parent-folder question comes first). */
+export const CHAT_ORDER: [string, string][] = [
+  ['projectType', SETUP_STEPS[0]], ['whatItDoes', SETUP_STEPS[0]], ['handle', SETUP_STEPS[0]],
+  ['language', SETUP_STEPS[1]], ['framework', SETUP_STEPS[1]], ['ide', SETUP_STEPS[1]],
+  ['targetUsers', SETUP_STEPS[2]], ['expectedScale', SETUP_STEPS[3]], ['apiParadigm', SETUP_STEPS[4]], ['constraints', SETUP_STEPS[5]],
+];
+/** Question key → its step. */
+export const QUESTION_STEPS: Record<string, string> = Object.fromEntries(CHAT_ORDER);
+
 export const SUPPORTED_LANGUAGES = ['typescript', 'javascript', 'python', 'kotlin', 'swift'];
 
 export const PROJECT_TYPE_MESSAGE = 'Is this a greenfield or brownfield project?';

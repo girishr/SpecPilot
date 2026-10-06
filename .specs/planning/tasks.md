@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-04 (BL-PM-002 completed)
-version: 6.09
+lastUpdated: 2026-10-06 (BL-PM-004 built)
+version: 6.10
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -56,7 +56,9 @@ Notes
 | BL-079 | No automated test covers the wiring in `ui/app.js` (clicks, keys, fetches, focus); Jest has no DOM, so only the DOM-free decisions in `ui/route.js` are tested and the rest is checked by hand. Add a headless browser smoke test (Playwright with the preinstalled Chromium) for: open a folder from the sheet, Home (tile, `h`, a row click), a task move, and guided setup. Found during BL-PM-001. |
 | BL-080 | `specpilot serve` with no arguments in a folder without `.specs/` starts on Home instead of exiting 1 (reverses REQ-002.H.1; needs a server with zero projects, which every route's project 0 default assumes today). Asked during BL-PM-003; the developer kept REQ-002.H.1 for that item. |
 | BL-081 | `specpilot serve` on a case-insensitive volume (macOS default): `realpath` keeps the spelling it is given, so a folder already served as `Foo` and opened or created again as `foo` is not seen as the same folder and gets a second index (two tiles, two pollers); nothing is overwritten. Affects `POST /api/projects` since BL-067 and `POST /api/projects/new` (BL-PM-003); compare served roots by `realpathSync.native` or by device and inode. Found by spec-reviewer during BL-PM-003; not part of it. |
-| BL-PM-004 | Guided setup as the 8-step chat from init.specpilot.dev (questions from `SpecPilot.Init/src/components/chat/flow.ts`), with a step rail, a live `.specs/` preview, a recap and save and resume (`~/.specpilot/drafts`). Output must stay byte-identical to the CLI; relates to BL-032 (shared spec core). Architectural: drafts are written outside the repo. |
+| BL-082 | `specpilot init` asks a Brownfield project its four project-context questions (the first is required) but writes the answers nowhere: `specFileGenerator.ts` puts them into `onboarding.md` only in the Greenfield branch of the onboarding prompt. Either use them in the Brownfield prompt or do not ask. Since BL-PM-004 `specpilot serve` does not ask a Brownfield new project these questions. Found by spec-reviewer during BL-PM-004; not part of it. |
+| BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
+| BL-PM-004b | The rest of the init.specpilot.dev chat in `specpilot serve`: the questions of `SpecPilot.Init/src/components/chat/flow.ts` that the CLI's templates cannot hold (platforms, user types, access control, deploy targets, databases, auth, integrations, compliance, security, testing, CI/CD and the others of its 33), its `Integrations` and `Security & NFR` steps, a preview with file contents, and save and resume of an unfinished setup as a draft in `~/.specpilot/drafts` (Architectural: a second file written outside the repo; moved here from BL-PM-004 by the developer on 2026-10-05). Needs BL-032 (a pure `render(context)` and optional template fields); do not build before it. Split from BL-PM-004 on 2026-10-05. |
 | BL-PM-005 | New Task button: add a row to `## Backlog` in `tasks.md` from the page with the next free BL ID; the only change is one appended line, behind the move route's Origin, token, JSON, size and If-Match checks. New write path. |
 | BL-PM-006 | Commands and Skills split into "From SpecPilot" and "Yours" using `KNOWN_COMMAND_HASHES` (BL-058), plus Regenerate All, which refreshes only byte-exact known versions as `specpilot backfill` does and keeps the rest. New write path. |
 | BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. |
@@ -69,6 +71,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-PM-004 | Guided setup as the init.specpilot.dev chat in `specpilot serve` (part a of the split of 2026-10-05; part b is BL-PM-004b): the questions `specpilot init` and `add-specs` ask today (BL-PM-003's and BL-055's), one at a time in a thread with a friendly line per question and the CLI's question under it, step dividers, a progress bar, a composer, editing from any bubble or recap row, a recap of cards per step with the files that will be written folded inside; the same create and setup routes, no new route and no write outside the project, output byte-identical to the CLI; replaces the New tab's form and BL-055's setup form; a Brownfield new project is not asked the context questions; name and handle checked by the rule the server uses (REQ-002.H.27). No drafts (BL-PM-004b). First built as a modal sheet with a step rail (983 tests, not committed); revised on 2026-10-06 to the init.specpilot.dev chat (mockup `specpilot-chat-setup.html`: intro, bubbles with the CLI's question under a friendly line, step dividers, progress bar, composer, edit from any bubble or recap row, recap as cards) with the friendly wording stored on the server, built after the developer's typed `yes, proceed` (991 tests); not committed. |
 
 ## Completed
 

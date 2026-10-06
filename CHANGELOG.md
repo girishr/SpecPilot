@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-10-06
+
 ### Added
 
 - **Guided setup, one question at a time, in the `specpilot serve` page** (BL-PM-004): Start a New Project and the setup of a folder without `.specs/` ask the questions `specpilot init` and `specpilot add-specs` ask, one at a time, as a chat: a friendly line per question with the CLI's own question under it, step dividers, a progress bar, chips or a field with Continue and Skip, and a recap of your answers by step, with the files that will be written folded inside, before anything is written. Tap any answer, in the thread or the recap, to change it; you come straight back. A project name or handle that would be refused is caught at its own question. A Brownfield new project is no longer asked the four project-context questions, which `init` does not write for Brownfield. The files written are the same as before, byte for byte what the CLI writes. This replaces the New tab of the Open a Project sheet and the setup form. No new route and no new file outside the project; `--read-only` turns it off.

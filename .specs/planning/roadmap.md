@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-06 (BL-PM-004 built)
-version: 1.29
+lastUpdated: 2026-10-06 (v2.9.0 prepared)
+version: 1.30
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -23,7 +23,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - Code Philosophy + Code Rules in all generated AI instruction files [ROADMAP-002.11] ✅
 - `specpilot-*` slash command generator with 8 commands across all supported IDEs, plus CLI-side backfill [ROADMAP-002.12] ✅
 - Claude Code plugin (community marketplace) — self-contained, lowest-privilege plugin generated from `src/utils` into a `plugin/` subdir, distributed via `git-subdir` [ROADMAP-002.13]
-- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list and opening a folder from the page, BL-067 ✅, unreleased) and guided setup of a named folder without `.specs/` (BL-055) ✅ in v2.7.0 [ROADMAP-002.14]
+- `specpilot serve` local UI over `.specs/`: Phase 0 groundwork (BL-050) ✅, Phase 1 read-only UI (BL-051) ✅ and live reload (BL-052) ✅, shipped together as v2.3.0, then task moves (BL-053) ✅ in v2.4.0, multiple projects named on the command line (BL-054) ✅ in v2.6.0 (a remembered project list and opening a folder from the page, BL-067 ✅, and a Home screen, BL-PM-001 ✅, in v2.8.0), guided setup of a named folder without `.specs/` (BL-055) ✅ in v2.7.0, and a new project (BL-PM-003) ✅, a clone (BL-PM-002) ✅ and the setup chat (BL-PM-004) ✅ in v2.9.0 [ROADMAP-002.14]
 - SpecPilot Local complete: every screen and action in the approved mockup that the content rule allows, then one full release, the website update and the announcement (BL-059) [ROADMAP-002.15]
 
 ## Timeline [ROADMAP-003]
@@ -80,6 +80,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-10-03: v2.7.0 — Added: `specpilot serve` can set up `.specs/` in a named folder that has none, running what `add-specs` runs and keeping every existing file (BL-055) (per CHANGELOG `[2.7.0]`)
 - 2026-10-03: v2.7.1 — Fixed: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` instead of replacing them, and the overwrite / append / skip question is gone (BL-073) (per CHANGELOG `[2.7.1]`)
 - 2026-10-04: v2.8.0 — Added: open another project from the `specpilot serve` page and have it remembered in `~/.specpilot/projects.json` (BL-067); a Home screen with Open a Project Folder and Recent projects (BL-PM-001) (per CHANGELOG `[2.8.0]`)
+- 2026-10-06: v2.9.0 — Added: guided setup as the init.specpilot.dev chat in `specpilot serve` (BL-PM-004); start a new project (BL-PM-003) and clone a repository (BL-PM-002) from the page; `init` shares its question lists with `add-specs` and the page (BL-075) (per CHANGELOG `[2.9.0]`)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 
@@ -87,11 +88,12 @@ Priority: the complete UI and its features first. Order, one BL per branch and S
 
 1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
 2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ and the Home screen (BL-PM-001) ✅ in v2.8.0
-3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅ on `main`, unreleased; clone a repository (BL-PM-002) ✅ on `main`, unreleased; then the chat-style guided setup over the CLI's questions, as the init.specpilot.dev chat (BL-PM-004; built on `feat/bl-pm-004-chat-setup`, not committed); the further init.specpilot.dev questions (BL-PM-004b) and setup drafts wait for BL-032, which comes after the full release (the developer's decision, 2026-10-05)
-4. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
-5. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)
-6. Full release of SpecPilot Local
-7. Website update with the `specpilot serve` docs, then the announcement and LinkedIn post (BL-059)
+3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅, clone a repository (BL-PM-002) ✅ and the guided setup as the init.specpilot.dev chat over the CLI's questions (BL-PM-004) ✅, all in v2.9.0
+4. Shared spec core: the pure, browser-safe `@specpilot/spec-core` with optional template fields (BL-032; no longer deferred, the developer's direction of 2026-10-06), then the rest of the init.specpilot.dev chat on top of it: the remaining 23 questions, richer pickers and filled-in spec content, with setup drafts (BL-PM-004b)
+5. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
+6. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)
+7. Full release of SpecPilot Local
+8. Website update with the `specpilot serve` docs, then the announcement and LinkedIn post (BL-059)
 
 Releases between steps are decided per step. Not planned now: the mockup's Needs you list, out-of-date instruction files, the in-sync chip, the conflict banner and the agent runner (left out under the content rule; to be revisited).
 

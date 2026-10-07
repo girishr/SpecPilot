@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-04 (BL-PM-002 built)
-version: 1.11
+lastUpdated: 2026-10-06 (BL-032 Spec Report)
+version: 1.12
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -192,6 +192,17 @@ This file records security-related architectural and implementation decisions ma
   - Showing the `fatal:` line alone (the Spec Report's default): changed after the build (the developer's decision), over ssh it is always `Could not read from remote repository.` and the reason is the line before it.
 - **Reference**: SEC-002.5 (m), SEC-002.3, REQ-002.H.25, REQ-002.H.26, ARCH-003.23, ARCH-004.44
 
+### [SEC-004.16] A pure spec core: input is render context only, YAML through one helper, nothing secret inside, no publish without the developer
+
+- **Date**: 2026-10-06 (BL-032 Spec Report)
+- **Decision**: The templates and everything that renders them live in `src/core/`, which may import nothing but `handlebars` and files beside it and may use no Node global (REQ-002.I.2), checked by an ESLint `no-restricted-imports` override and a test. User answers reach the core as context values only; `renderFromString()` is called on the core's own template literals and never on anything from a prompt, a request or a file. Phase 2's optional fields are rendered through `{{ }}` in markdown and through the `yaml` and `yamlList` helpers in YAML (plain when YAML 1.2 reads the value back unchanged, double-quoted and escaped otherwise), so no `{{{ }}}` appears in any template (SEC-004.3 holds); `project.yaml`'s `name:` and `description:` take the same helper (BL-085). Phase 3 publishes the core as `@specpilot/spec-core` only after its own Spec Report and the developer's `yes, proceed`, with templates precompiled (or no Handlebars) so the web app's CSP keeps no `unsafe-eval`, an exact-version pin, and a `files` whitelist.
+- **Rationale**: The core ships in a public browser bundle and runs in a Worker (SEC-002.7); a module that cannot read the environment or the disk cannot leak either, and a rule enforced by lint and a test does not rot. One quoting helper for YAML is one place to get escaping right, where today's templates quote by hand or not at all (BL-085).
+- **Alternatives considered**:
+  - A comment stating the purity rule, as `specReader.ts` has (ARCH-003.13) — rejected: a comment is not checked, and the folder will grow.
+  - Validating values inside the core (lengths, character sets) — rejected: the core would then refuse what a caller allowed, in two places; validation stays at the entry points (the prompts, the serve routes, REQ-002.H.16).
+  - Escaping markdown values differently from `description` (no HTML escaping) — deferred: it would change the bytes of today's output for the same input, which phases 1 and 2 must not; revisit with SEC-005's open question on `description` and `author`.
+- **Reference**: SEC-002.2, SEC-002.7
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
@@ -200,4 +211,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-10-04_
+_Last updated: 2026-10-06_

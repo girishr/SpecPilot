@@ -4,7 +4,6 @@ import { dirname, join, sep } from 'path';
 import os from 'os';
 import { ProjectDetector, ProjectInfo } from './projectDetector';
 import { CodeAnalyzer } from './codeAnalyzer';
-import { TemplateEngine } from './templateEngine';
 import { SpecGenerator, SpecGeneratorOptions } from './specGenerator';
 import { getFrameworksForLanguage } from './frameworks';
 import { CODEX_PROMPTS_NOTICE } from './slashCommandGenerator';
@@ -134,7 +133,7 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
     { key: 'handle', message: handleMessage(username) },
     { key: 'ide', message: IDE_MESSAGE, choices: IDE_CHOICES },
   );
-  const generator = new SpecGenerator(new TemplateEngine());
+  const generator = new SpecGenerator();
   const keep: Record<string, string[]> = {};
   for (const { value } of IDE_CHOICES) keep[value] = generator.targetsOutsideSpecs(value).filter(rel => exists(join(root, ...rel.split('/'))));
   return {
@@ -232,7 +231,7 @@ export async function setupProject(root: string, answers: Record<string, string>
  * outside `.specs/` are kept; a failure removes what this call created; the staging folder always goes.
  */
 async function placeGenerated(root: string, options: SpecGeneratorOptions): Promise<SetupOutcome> {
-  const generator = new SpecGenerator(new TemplateEngine());
+  const generator = new SpecGenerator();
   const ide = options.ide || 'vscode';
   const staging = join(root, `.specpilot-setup-${randomBytes(6).toString('hex')}`);
   const createdFiles: string[] = [];
@@ -326,7 +325,7 @@ export function newProjectQuestions(): { questions: SetupQuestion[]; steps: stri
       ...CONTEXT_QUESTIONS,
     ]),
     frameworks: frameworksByLanguage(),
-    files: generatedFiles(new SpecGenerator(new TemplateEngine())),
+    files: generatedFiles(new SpecGenerator()),
   };
 }
 

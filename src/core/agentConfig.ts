@@ -1,40 +1,28 @@
-import { dirname, join } from 'path';
-import { mkdirSync } from 'fs';
 import { TemplateEngine, TemplateContext } from './templateEngine';
-import { writeNew } from './ideConfigGenerator';
 
-/** The one file each agent gets, project-relative; `generate()` and `targets()` both read it (BL-055). */
+// The one file each AI agent gets (BL-032, phase 1: the content of src/utils/agentConfigGenerator.ts,
+// which is gone; the writer is SpecGenerator).
+
+/** The one file each agent gets, project-relative; `agentFile()` and `agentTargets()` both read it (BL-055). */
 const AGENT_FILES: Record<string, string> = {
   'claude-code': '.claude/skills/specpilot-project/SKILL.md',
   codex: 'CODEX_INSTRUCTIONS.md',
 };
 
-/**
- * Generates AI agent configuration files:
- * - Claude Code Skills (.claude/skills/specpilot-project/SKILL.md)
- * - Codex Instructions (CODEX_INSTRUCTIONS.md at project root)
- */
-export class AgentConfigGenerator {
-  constructor(private templateEngine: TemplateEngine) {}
+/** The files for this agent, project-relative (BL-055). */
+export function agentTargets(agent: string): string[] {
+  const file = AGENT_FILES[agent.toLowerCase()];
+  return file ? [file] : [];
+}
 
-  /** Entry point — routes to the correct agent config generator. Returns the kept (existing) file, else []. */
-  async generate(projectDir: string, context: TemplateContext, agent: string): Promise<string[]> {
-    const key = agent.toLowerCase();
-    if (!AGENT_FILES[key]) return [];
-    const filePath = join(projectDir, ...AGENT_FILES[key].split('/'));
-    mkdirSync(dirname(filePath), { recursive: true });
-    const created = key === 'claude-code' ? await this.generateClaudeCodeSkills(filePath, context) : await this.generateCodexInstructions(filePath, context);
-    return created ? [] : [AGENT_FILES[key]];
-  }
+/** The agent's file, or null for an agent that has none. */
+export function agentFile(engine: TemplateEngine, context: TemplateContext, agent: string): { path: string; content: string } | null {
+  const key = agent.toLowerCase();
+  if (!AGENT_FILES[key]) return null;
+  return { path: AGENT_FILES[key], content: key === 'claude-code' ? claudeCodeSkill(context) : codexInstructions(engine, context) };
+}
 
-  /** The files `generate()` writes for this agent, project-relative (BL-055). */
-  targets(agent: string): string[] {
-    const file = AGENT_FILES[agent.toLowerCase()];
-    return file ? [file] : [];
-  }
-
-  private async generateClaudeCodeSkills(filePath: string, context: TemplateContext): Promise<boolean> {
-
+function claudeCodeSkill(context: TemplateContext): string {
     const skillContent = `---
 name: specpilot-project
 description: SpecPilot project context, specifications, and development guidelines. Use to understand project architecture, requirements, and AI interaction history.
@@ -123,17 +111,14 @@ All spec files link to each other for easy navigation. Follow the links in relat
 - ../planning/tasks.md
 `;
 
-    return writeNew(
-      filePath,
-      skillContent
+    return skillContent
         .replace(/\{\{projectName\}\}/g, context.projectName)
         .replace(/\{\{language\}\}/g, context.language)
         .replace(/{{#if framework}}/g, context.framework ? '' : '<!-- ')
-        .replace(/{{\/if}}/g, context.framework ? '' : ' -->')
-    );
-  }
+        .replace(/{{\/if}}/g, context.framework ? '' : ' -->');
+}
 
-  private async generateCodexInstructions(filePath: string, context: TemplateContext): Promise<boolean> {
+function codexInstructions(engine: TemplateEngine, context: TemplateContext): string {
     const codexInstructions = `# OpenAI Codex Instructions for {{projectName}}
 
 This file provides context and guidelines for OpenAI Codex when working on {{projectName}}.
@@ -281,7 +266,5 @@ Run \`specpilot validate\` to check:
 *For more details, see .specs/development/prompts.md*
 `;
 
-    const rendered = this.templateEngine.renderFromString(codexInstructions, context);
-    return writeNew(filePath, rendered);
-  }
+  return engine.renderFromString(codexInstructions, context);
 }

@@ -1,0 +1,3394 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`optional template fields (BL-032 phase 2) every field set: claude-code graphql and codex cli (hashes) 1`] = `
+{
+  ".claude/commands/specpilot-archive.md": "c456c0067f69c7ec4300bdbe7fed3727734d7df8b44f56bda77d6ac4f7eece10",
+  ".claude/commands/specpilot-backfill.md": "16c9c26b3e63b6e77067dab0037cb49d51d344e9bf392a431f09f7918ee3c813",
+  ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
+  ".claude/commands/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".claude/commands/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".claude/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".claude/commands/specpilot-validate.md": "c4bc7798f2eef780257a6b91652c4222db3e6b4566da85fc1c2d4552032db269",
+  ".claude/skills/specpilot-project/SKILL.md": "e7e58e9a715a3ef8e09f9963516d8b5c12f1249bd4ccd51dc344e1f13839f1d0",
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "e902111a80715628e91550d372313deb34c828c0dd845c40ec5053865786adcd",
+  ".specs/architecture/architecture.md": "d0d6f2daf2590ab13abc77a694d770b8ed4a26285029ebf76780b4f07a9760cc",
+  ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
+  ".specs/development/onboarding.md": "0bdad383daf4d510536f5f741f82d034253bf765e165b4ac202cf5b41f5ff651",
+  ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
+  ".specs/planning/roadmap.md": "7ed6626df8a290f46af85065cee2cd6e34cc11ae4f07c062275ef4fed751d2fb",
+  ".specs/planning/tasks.md": "8c53c0c44392538576bd63647d03e9c819e7ec7c7867b4eaed8aaf046da1eb55",
+  ".specs/project/project.yaml": "c4d863cdbe89ec83d885d3592392b207ff2a5901112e89208fcbd9ed912d8f79",
+  ".specs/project/requirements.md": "c0ec426aca3abe814c9b00e833a9e5fa9b57af8e777c4f46e7b458e2da771975",
+  ".specs/quality/tests.md": "76c290435c40b48ea0fb429e2b63812ab102806824855b982a29d31b918cee23",
+  ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
+  ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
+  "CLAUDE.md": "ae3bcbd5f33427cac1b90047e3799c8a7458a2f4ab05dfdb9ebb6e958f90ff6f",
+}
+`;
+
+exports[`optional template fields (BL-032 phase 2) every field set: claude-code graphql and codex cli (hashes) 2`] = `
+{
+  ".codex/prompts/specpilot-archive.md": "dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497",
+  ".codex/prompts/specpilot-backfill.md": "1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737",
+  ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
+  ".codex/prompts/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".codex/prompts/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".codex/prompts/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".github/copilot-instructions.md": "b204c9b830126f920e3db041d8a43cc82580a077447ed98546f156d070c3939c",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
+  ".specs/architecture/architecture.md": "d0d6f2daf2590ab13abc77a694d770b8ed4a26285029ebf76780b4f07a9760cc",
+  ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
+  ".specs/development/onboarding.md": "0bdad383daf4d510536f5f741f82d034253bf765e165b4ac202cf5b41f5ff651",
+  ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
+  ".specs/planning/roadmap.md": "7ed6626df8a290f46af85065cee2cd6e34cc11ae4f07c062275ef4fed751d2fb",
+  ".specs/planning/tasks.md": "8c53c0c44392538576bd63647d03e9c819e7ec7c7867b4eaed8aaf046da1eb55",
+  ".specs/project/project.yaml": "c4d863cdbe89ec83d885d3592392b207ff2a5901112e89208fcbd9ed912d8f79",
+  ".specs/project/requirements.md": "c0ec426aca3abe814c9b00e833a9e5fa9b57af8e777c4f46e7b458e2da771975",
+  ".specs/quality/tests.md": "76c290435c40b48ea0fb429e2b63812ab102806824855b982a29d31b918cee23",
+  ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
+  ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
+  "CODEX_INSTRUCTIONS.md": "6c477f5eb06b4a44fdea9cf639c6c8b6c69ea34c4ed04547f7849a04694016f7",
+}
+`;
+
+exports[`optional template fields (BL-032 phase 2) every field set: vscode rest (full content) 1`] = `
+{
+  ".gitattributes": ".specs/development/prompts*.md merge=union
+.specs/planning/tasks.md merge=union
+CHANGELOG.md merge=union
+",
+  ".github/copilot-instructions.md": "# AI Coding Instructions — parcel-track
+
+> This file is automatically read by GitHub Copilot, Cursor, and other AI tools on every request.
+> Keep this file short — only critical mandates. Full context is in \`.specs/project/project.yaml\`.
+
+## Project
+
+- **Name:** parcel-track
+- **Stack:** typescript / express
+- **Specs location:** \`.specs/\`
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+
+## 🟡 Process Mandates
+
+- **Spec-First:** Update \`.specs/\` before writing code.
+- **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
+- **Document decisions** in \`.specs/development/context.md\`.
+
+## Context — read on demand by task type
+
+| Task type | Read |
+|---|---|
+| Session start | \`.specs/project/project.yaml\` |
+| Feature / bug | + \`project/requirements.md\`, \`planning/tasks.md\` |
+| Architecture | + \`architecture/architecture.md\` |
+| Tests | + \`quality/tests.md\` |
+| Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
+| Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+",
+  ".github/prompts/specpilot-archive.prompt.md": "---
+mode: agent
+description: Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard
+---
+
+Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+
+Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+PROMPTS_LINE_LIMIT=100
+PROMPTS_KEEP_LINES=80
+COMPLETED_LINE_LIMIT=40
+COMPLETED_KEEP_ENTRIES=20
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  read -p "Continue? [y/N] " confirm
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    echo "Archive cancelled."
+    exit 0
+  fi
+fi
+
+timestamp() { date -u +"%Y-%m-%d %H:%M:%S"; }
+
+archive_prompts() {
+  local file=".specs/development/prompts.md"
+  local archive=".specs/development/prompts-archive.md"
+  [ -f "$file" ] || return 0
+
+  # Mirrors the CLI's planPromptsArchive() line for line. The log is the list under
+  # "## Latest Entries", else the table under "## Prompt History". Each entry's date is the
+  # last "Month D, YYYY", "Mon. D, YYYY" or "YYYY-MM-DD" in it (a table row: its Date cell).
+  # All dated entries must run one way; the oldest whole entries then move until the file
+  # is within PROMPTS_KEEP_LINES, keeping at least one. Line counts use the CLI's arithmetic
+  # (wc -l + 1). Prints "MOVE <first> <last> <header>" (1-based lines; header 0 for a list),
+  # "REFUSE <reason>", or nothing.
+  local plan
+  plan=$(LC_ALL=C awk -v total="$(wc -l < "$file")" -v limit="$PROMPTS_LINE_LIMIT" -v keep="$PROMPTS_KEEP_LINES" '
+    function trim(s) { sub(/^[ \\t\\r]+/, "", s); sub(/[ \\t\\r]+$/, "", s); return s }
+    function word(c) { return c ~ /[A-Za-z0-9_]/ }
+    function iso(k) { return sprintf("%04d-%02d-%02d", int(k / 10000), int(k / 100) % 100, k % 100) }
+    function lastdate(s,   key, pos, a, b, t, p, m, y, mo, d) {
+      key = 0; pos = 0
+      while (match(substr(s, pos + 1), /(January|February|March|April|May|June|July|August|September|October|November|December|Sept|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\.? [0-9][0-9]?, [0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)) {
+        a = pos + RSTART; b = a + RLENGTH; t = substr(s, a, RLENGTH)
+        # a > 1 guard: on macOS awk substr(s, 0, 1) returns the first character, not ""
+        if ((a > 1 && word(substr(s, a - 1, 1))) || word(substr(s, b, 1))) { pos = a; continue }
+        if (t ~ /^[0-9]/) { y = substr(t, 1, 4) + 0; mo = substr(t, 6, 2) + 0; d = substr(t, 9, 2) + 0 }
+        else { split(t, p, " "); m = p[1]; sub(/\\.$/, "", m); mo = MON[tolower(m)]; d = p[2] + 0; y = p[3] + 0 }
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) key = y * 10000 + mo * 100 + d
+        pos = b - 1
+      }
+      return key
+    }
+    function excerpt(s,   t, i, c, n, out) {
+      t = trim(s); n = 0; out = ""
+      for (i = 1; i <= length(t); i++) {
+        c = substr(t, i, 1)
+        if (ORD[c] < 128 || ORD[c] >= 192) n++
+        if (n > 60) return "\\"" out "…\\""
+        out = out c
+      }
+      return "\\"" t "\\""
+    }
+    BEGIN {
+      split("january jan february feb march mar april apr may june jun july jul august aug september sept sep october oct november nov december dec", nm, " ")
+      split("1 1 2 2 3 3 4 4 5 6 6 7 7 8 8 9 9 9 10 10 11 11 12 12", nv, " ")
+      for (i = 1; i <= 24; i++) MON[nm[i]] = nv[i] + 0
+      for (i = 1; i < 256; i++) ORD[sprintf("%c", i)] = i
+    }
+    { line[NR] = $0; tl[NR] = trim($0) }
+    END {
+      L = total + 1
+      if (L <= limit) exit
+      n = 0; hdr = 0; s = 0
+      for (i = 1; i <= NR; i++) if (index(tl[i], "## Latest Entries") == 1) { s = i; break }
+      if (s) {
+        e = L + 1; for (i = s + 1; i <= NR; i++) if (tl[i] ~ /^## /) { e = i; break }
+        cur = 0
+        for (i = s + 1; i < e && i <= NR; i++) {
+          if (line[i] ~ /^[-*+] /) { n++; st[n] = i; en[n] = i; cur = 1 }
+          else if (cur && line[i] ~ /^[ \\t\\r]+[^ \\t\\r]/) en[n] = i
+          else cur = 0
+        }
+        for (k = 1; k <= n; k++) { txt = line[st[k]]; for (i = st[k] + 1; i <= en[k]; i++) txt = txt "\\n" line[i]; dt[k] = lastdate(txt) }
+      } else {
+        for (i = 1; i <= NR; i++) if (index(tl[i], "## Prompt History") == 1) { s = i; break }
+        if (!s) { print "REFUSE development/prompts.md has no \\"## Latest Entries\\" list or \\"## Prompt History\\" table, so there is nothing SpecPilot can archive safely."; exit }
+        e = L + 1; for (i = s + 1; i <= NR; i++) if (tl[i] ~ /^## /) { e = i; break }
+        for (i = s + 1; i < e - 1 && i < NR; i++) if (tl[i] ~ /^\\|/ && tl[i + 1] ~ /^\\|[ \\t:|-]+$/) { hdr = i; break }
+        if (hdr) {
+          col = 0; h = tl[hdr]; sub(/^\\|/, "", h); sub(/\\|$/, "", h); m = split(h, hc, "|")
+          for (j = 1; j <= m; j++) if (tolower(trim(hc[j])) == "date") { col = j; break }
+          for (i = hdr + 2; i < e && i <= NR && tl[i] ~ /^\\|/; i++) {
+            n++; st[n] = i; en[n] = i
+            if (col) { r = tl[i]; sub(/^\\|/, "", r); sub(/\\|$/, "", r); split(r, rc, "|"); dt[n] = lastdate(trim(rc[col])) }
+            else dt[n] = lastdate(line[i])
+          }
+        }
+      }
+      if (n < 2) exit
+      dir = 0; ps = 0; pd = 0
+      for (k = 1; k <= n; k++) {
+        if (!dt[k]) continue
+        if (ps && dt[k] != pd) {
+          step = dt[k] > pd ? 1 : -1
+          if (!dir) dir = step
+          else if (step != dir) {
+            print "REFUSE SpecPilot cannot tell which development/prompts.md entries are oldest, because their dates run both ways: " excerpt(line[ps]) " (" iso(pd) ") comes right before " excerpt(line[st[k]]) " (" iso(dt[k]) ") in a log that otherwise runs " (dir < 0 ? "newest first" : "oldest first") ". Put those entries in order and run it again."
+            exit
+          }
+        }
+        ps = st[k]; pd = dt[k]
+      }
+      if (!dir) { print "REFUSE SpecPilot cannot tell which development/prompts.md entries are oldest: fewer than two entries carry different dates."; exit }
+      for (k = 1; k < n; k++) {
+        if (dir < 0) { a = st[n - k + 1]; b = en[n] } else { a = st[1]; b = en[k] }
+        if (L - (b - a + 1) <= keep) break
+      }
+      print "MOVE", a, b, hdr
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  case "$plan" in
+    REFUSE\\ *) echo "Not archived: \${plan#REFUSE }"; return 0 ;;
+  esac
+  local kind first last header
+  read -r kind first last header <<< "$plan"
+
+  # A file with no line break after its last line, whose moved block reaches that line: the
+  # CLI joins lines with "\\n", so the block still ends with a blank line in the archive and the
+  # kept file ends, still without a line break, at the line before the block.
+  local at_end=0
+  if [ -n "$(tail -c 1 "$file")" ] && [ "$last" -eq $(( $(wc -l < "$file") + 1 )) ]; then at_end=1; fi
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$header" -gt 0 ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    if [ "$at_end" = 1 ]; then echo; fi
+    echo; echo "---"; echo
+  } >> "$archive"
+  if [ "$at_end" = 1 ]; then
+    awk -v n=$((first - 1)) 'NR <= n { printf "%s%s", (NR > 1 ? "\\n" : ""), $0 }' "$file" > "$file.tmp"
+  else
+    { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
+  fi
+  mv "$file.tmp" "$file"
+  echo "Moved $((last - first + 1)) lines from $file -> $archive"
+}
+
+archive_tasks() {
+  local file=".specs/planning/tasks.md"
+  local archive=".specs/planning/tasks-archive.md"
+  [ -f "$file" ] || return 0
+
+  # Mirrors the CLI's planCompletedArchive() line for line. The section runs from
+  # "## Completed" to the next "## " heading, not EOF. Sizes use the CLI's arithmetic,
+  # which counts one more line than wc -l at EOF, so the EOF section end is total + 2.
+  # Entries are numbered-list lines, or else the body rows of a table (header and
+  # separator stay put); a table keeps only as many rows as fit the line limit.
+  # Prints "<shape> <first> <last> <header>" as 1-based lines to move, or nothing.
+  local plan
+  plan=$(awk -v total="$(wc -l < "$file")" -v limit="$COMPLETED_LINE_LIMIT" -v keep_max="$COMPLETED_KEEP_ENTRIES" '
+    { line[NR] = $0; t = $0; gsub(/^[ \\t]+|[ \\t]+$/, "", t); trimmed[NR] = t }
+    END {
+      for (i = 1; i <= NR; i++) if (trimmed[i] == "## Completed") { start = i; break }
+      if (!start) exit
+      end_ = total + 2
+      for (i = start + 1; i <= NR; i++) if (trimmed[i] ~ /^## /) { end_ = i; break }
+      size = end_ - start
+      if (size <= limit) exit
+      for (i = start + 1; i < end_; i++) if (line[i] ~ /^[0-9]+\\./) {
+        if (end_ - i <= keep_max) exit
+        print "list", i, end_ - keep_max - 1, 0
+        exit
+      }
+      for (i = start + 1; i < end_ - 1; i++) if (trimmed[i] ~ /^\\|/ && trimmed[i + 1] ~ /^\\|[ \\t:|-]+$/) {
+        body = i + 2; stop = body
+        while (stop < end_ && trimmed[stop] ~ /^\\|/) stop++
+        rows = stop - body
+        keep = limit - (size - rows); if (keep < 0) keep = 0; if (keep > keep_max) keep = keep_max
+        if (rows <= keep) exit
+        print "table", body, stop - keep - 1, i
+        exit
+      }
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  local shape first last header
+  read -r shape first last header <<< "$plan"
+
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$shape" = "table" ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    echo; echo "---"; echo
+  } >> "$archive"
+  { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
+  mv "$file.tmp" "$file"
+  echo "Moved $((last - first + 1)) entries from $file -> $archive"
+}
+
+archive_prompts
+archive_tasks
+\`\`\`
+
+After running it:
+1. Report what the script moved (file, line/entry count, archive destination) using its own output — do not recompute or second-guess the numbers.
+2. If nothing exceeded the threshold, say so plainly: "Nothing to archive."
+3. IDs are preserved automatically since content is moved verbatim into the archive file, never rewritten or renumbered.
+
+This mirrors CLI \`specpilot archive --dry-run --force\` (REQ-002.A.8); the branch guard mirrors ARCH-004.19 (warns and requires \`y\` confirmation when not on \`main\`/\`master\`).",
+  ".github/prompts/specpilot-backfill.prompt.md": "---
+mode: agent
+description: Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files
+---
+
+Backfill missing SpecPilot mandate sections into whichever IDE files already exist in this project. Run the script below — it checks four fingerprints per file and appends whichever are missing, append-only, never overwriting existing content.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+CANDIDATE_FILES=(
+  ".github/copilot-instructions.md"
+  "CLAUDE.md"
+  ".cursor/rules/specpilot.mdc"
+  ".windsurfrules"
+  ".antigravity/rules.md"
+)
+
+has_critical() { grep -qF "Critical Mandates" "$1"; }
+has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$1"; }
+has_rules() { grep -qF "## Code Rules" "$1"; }
+has_reanchor() { grep -qF "## Re-Anchor" "$1"; }
+
+append_critical() {
+  cat <<'BLOCK' >> "$1"
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+BLOCK
+}
+
+append_philosophy() {
+  cat <<'BLOCK' >> "$1"
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+BLOCK
+}
+
+append_rules() {
+  cat <<'BLOCK' >> "$1"
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+BLOCK
+}
+
+append_reanchor() {
+  cat <<'BLOCK' >> "$1"
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+BLOCK
+}
+
+for f in "\${CANDIDATE_FILES[@]}"; do
+  if [ ! -f "$f" ]; then
+    echo "SKIPPED (not found): $f"
+    continue
+  fi
+
+  added=()
+  has_critical "$f" || { append_critical "$f"; added+=("Critical Mandates"); }
+  has_philosophy "$f" || { append_philosophy "$f"; added+=("Code Philosophy"); }
+  has_rules "$f" || { append_rules "$f"; added+=("Code Rules"); }
+  has_reanchor "$f" || { append_reanchor "$f"; added+=("Re-Anchor"); }
+
+  if [ \${#added[@]} -eq 0 ]; then
+    echo "ALREADY CURRENT: $f"
+  else
+    echo "UPDATED: $f (added: \${added[*]})"
+  fi
+done
+
+echo
+echo "== team.devPrefix check =="
+YAML=".specs/project/project.yaml"
+if [ -f "$YAML" ] && ! grep -q "devPrefix:" "$YAML"; then
+  echo "MISSING: team.devPrefix in $YAML — ask the user for a short handle (e.g. GitHub username) and add it under a team: section."
+fi
+\`\`\`
+
+After running it:
+1. Report per file: updated (with which sections were added), already-current, or skipped (file not found).
+2. If the devPrefix check printed a missing-handle line, ask the user for a short handle (their GitHub/GitLab/Bitbucket username or any short tag) and add it under a \`team:\` section in \`project.yaml\` yourself — the script only detects the gap, it does not prompt interactively.
+3. Never overwrite existing content in any file; every append goes to the end of the file.
+
+**Maintenance cost**: unlike the CLI's \`specBackfiller.ts\`, this command has no shared source-of-truth constant to import — its four fingerprint blocks above are a literal copy and must be manually kept in sync whenever \`CLAUDE.md\`/\`copilot-instructions.md\` generation changes (\`buildCriticalMandatesMarkdown()\`, \`buildCodePhilosophyMarkdown()\` in \`ideConfigGenerator.ts\`). If this command's output ever looks stale, check those functions first.",
+  ".github/prompts/specpilot-reanchor.prompt.md": "---
+mode: agent
+description: Restore full project context after losing it mid-session
+---
+
+Restore operating context for this project.
+
+1. Read \`.specs/project/project.yaml\` in full.
+2. Read the \`## Re-Anchor Prompt\` section of \`.specs/development/prompts.md\` verbatim.
+3. Restate both as your current operating context for the rest of this session — project identity, stack, rules, and the Re-Anchor Prompt's guidance.
+
+Do not summarize or paraphrase away detail; this command exists specifically to recover full context, not an abbreviated version of it.",
+  ".github/prompts/specpilot-refine.prompt.md": "---
+mode: agent
+description: Refine .specs/ requirements from a new requirement description, with a diff preview before writing
+---
+
+Refine the project's spec files with a new requirement.
+
+Requirement description: $ARGUMENTS
+
+1. Read the current \`.specs/project/requirements.md\`, \`.specs/development/context.md\`, and \`.specs/development/prompts.md\`.
+2. Propose specific additions or edits to those files that incorporate the requirement description above, following the existing stable-ID conventions (e.g. \`REQ-###.#\`).
+3. Show a line-level diff preview of every proposed change — do not just describe it.
+4. Wait for the user's confirmation before writing anything.
+5. Once confirmed, write the changes.
+
+This mirrors the CLI's \`specpilot refine\` (REQ-002.A.6) as a standalone agent workflow — it has no dependency on the CLI being installed.",
+  ".github/prompts/specpilot-report.prompt.md": "---
+mode: agent
+description: Run the Spec-First review gate: classify the change, update specs, then wait for confirmation before coding
+---
+
+Formalize the Spec-First review gate (mandate 8) for the pending change.
+
+1. Classify the pending change as trivial, feature, or architectural:
+   - Trivial: no spec update required.
+   - Feature: touches \`project/requirements.md\` and \`planning/tasks.md\`.
+   - Architectural: touches all affected spec files plus \`CHANGELOG.md\`.
+2. Read the relevant \`.specs/\` files per the Context routing table (session start → \`project/project.yaml\`; feature/bug → + \`project/requirements.md\`, \`planning/tasks.md\`; architecture → + \`architecture/architecture.md\`; tests → + \`quality/tests.md\`; security → + \`security/threat-model.md\`, \`security/security-decisions.md\`; planning → + \`planning/tasks.md\`, \`planning/roadmap.md\`).
+3. Update the affected spec files first — before writing any code.
+4. Present a Spec Report: classification, files touched, what changed in each, and what the specs now say.
+5. Wait for the user's literal \`yes, proceed\` before writing or editing any code or non-spec file. An ambiguous "ok" or "sure" is not sufficient for an architectural-tier change — ask for the explicit phrase if it wasn't given.",
+  ".github/prompts/specpilot-status.prompt.md": "---
+mode: agent
+description: Show current sprint status and next milestone at a glance
+---
+
+Give a one-screen status summary of the current sprint.
+
+1. Read \`.specs/planning/tasks.md\` and extract the \`## Current Sprint\` section — list each item's ID and a short (<15 word) restatement.
+2. Read \`.specs/planning/roadmap.md\` and find the \`## Milestones\` section — identify the next incomplete milestone.
+3. Present a compact summary with two headings:
+   - **Current Sprint**: bullet list of \`[CS-###] [BL-###]\` items with their short restatement.
+   - **Next Milestone**: the next unchecked milestone from roadmap.md.
+
+Keep it to one screen — do not re-print full task descriptions, just IDs and short summaries.",
+  ".github/prompts/specpilot-sync.prompt.md": "---
+mode: agent
+description: Compare .specs/ against actual project state and propose fixes for drift
+---
+
+Find and fix drift between \`.specs/\` and the real project.
+
+1. Read \`.specs/architecture/architecture.md\`, \`.specs/project/requirements.md\`, and \`.specs/quality/tests.md\`.
+2. Compare their claims against the actual \`src/\` structure and \`package.json\` (versions, dependencies, scripts).
+3. List concrete discrepancies: stale version numbers, renamed or removed files/modules still referenced, undocumented modules that exist in \`src/\` but aren't mentioned in the specs, stale command or test-suite lists.
+4. Propose specific per-file edits to close each discrepancy — do not just describe the problem, show the fix.
+5. Wait for the user's confirmation before writing any of the proposed edits.
+
+This is a judgment/comparison task, not a mechanical one — do not attempt to script the diff; read and reason about each file.",
+  ".github/prompts/specpilot-validate.prompt.md": "---
+mode: agent
+description: Validate .specs/ structure, front-matter, and cross-references; suggest fixes without auto-applying
+---
+
+Validate the project's \`.specs/\` files. Run the script below, then summarize the results in plain language.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+REQUIRED_FILES=(
+  ".specs/project/project.yaml"
+  ".specs/architecture/architecture.md"
+  ".specs/project/requirements.md"
+  ".specs/architecture/api.yaml"
+  ".specs/quality/tests.md"
+  ".specs/planning/tasks.md"
+  ".specs/development/context.md"
+  ".specs/development/prompts.md"
+  ".specs/security/threat-model.md"
+  ".specs/security/security-decisions.md"
+)
+
+echo "== Missing required files =="
+missing=0
+for f in "\${REQUIRED_FILES[@]}"; do
+  if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
+done
+[ "$missing" -eq 0 ] && echo "none"
+
+echo
+echo "== Front-matter field checks (fileID, lastUpdated, version, contributors, relatedFiles) =="
+clean=1
+for f in "\${REQUIRED_FILES[@]}"; do
+  [[ "$f" == *.md ]] || continue
+  [ -f "$f" ] || continue
+  fm=$(sed -n '2,/^---$/p' "$f")
+  for field in fileID lastUpdated version contributors relatedFiles; do
+    if ! echo "$fm" | grep -q "^\${field}:"; then
+      echo "MISSING $field in $f"
+      clean=0
+    fi
+  done
+done
+[ "$clean" -eq 1 ] && echo "all fields present"
+
+echo
+echo "== relatedFiles cross-reference check =="
+clean=1
+for f in "\${REQUIRED_FILES[@]}"; do
+  [[ "$f" == *.md ]] || continue
+  [ -f "$f" ] || continue
+  refs=$(sed -n '2,/^---$/p' "$f" | sed -n '/^relatedFiles:/,/^[a-zA-Z]/p' | grep -oE '[A-Za-z0-9_.-]+\\.(md|yaml)')
+  for ref in $refs; do
+    if ! find .specs -name "$ref" | grep -q .; then
+      echo "BROKEN REF in $f -> $ref (not found anywhere under .specs/)"
+      clean=0
+    fi
+  done
+done
+[ "$clean" -eq 1 ] && echo "all cross-references resolve"
+\`\`\`
+
+Never eyeball line counts or fingerprints by hand where this script already computes them exactly.
+
+After running it:
+1. Summarize each of the three sections in plain language (what's missing, what's wrong, what's broken).
+2. For every issue found, suggest a specific fix — but never apply it automatically. Wait for the user to ask before editing any file.
+3. If everything passes, say so plainly; do not manufacture issues.
+
+**Known platform limitation**: GitHub Copilot only executes terminal commands in "agent mode." Outside agent mode, this command degrades to prose-only — read the files yourself and reason about the same three checks without the script, which carries a higher error rate than the scripted version.",
+  ".specs/README.md": "# SpecPilot Specifications
+
+This folder contains structured documentation for your project.
+
+## 🚀 Quick Start: Generate Your Specs with AI
+
+Your spec files have been scaffolded with placeholders. An onboarding prompt has been saved to [\`development/onboarding.md\`](development/onboarding.md).
+
+1. Open \`development/onboarding.md\` and copy the prompt inside it.
+2. Paste it into your AI agent (VS Code, Cursor, etc.).
+3. The AI will draft all spec files based on your project description.
+4. Review each file, refine as needed, then **delete \`onboarding.md\`**.
+
+Run \`specpilot validate\` to check consistency at any time.
+
+## 📁 File Structure
+- \`project/\`: Metadata and requirements
+- \`architecture/\`: Design and APIs
+- \`planning/\`: Tasks and roadmap
+- \`quality/\`: Testing
+- \`development/\`: Docs and prompts
+
+## 🛠️ Commands
+\\\`\\\`\\\`bash
+# Validate your specs
+specpilot validate
+
+# Add specs to an existing project later
+specpilot add-specs
+\\\`\\\`\\\`
+
+For AI guidelines and prompt history, see [\`development/prompts.md\`](development/prompts.md).",
+  ".specs/architecture/api.yaml": "# .specs/architecture/api.yaml
+# meta: project=parcel-track language=typescript framework=express updated=2026-10-06
+
+project: "parcel-track"
+version: "1.0.0"
+lastUpdated: "2026-10-06"
+
+openapi: "3.0.0"
+info:
+  title: "parcel-track API"
+  version: "1.0.0"
+  description: "[TODO: Describe your API]"
+
+servers:
+  - url: "http://localhost:3000"
+    description: "Local development"
+
+paths:
+  /example:
+    get:
+      summary: "[TODO: Replace with your first endpoint]"
+      responses:
+        "200":
+          description: "Success"
+
+databases:
+  - PostgreSQL
+  - Redis
+auth_strategy: Clerk
+realtime:
+  enabled: true
+  transports:
+  - WebSockets
+",
+  ".specs/architecture/architecture.md": "---
+title: Architecture
+description: System design, components, data flow, and architecture decisions
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Architecture
+
+## Overview
+This document outlines the architecture and design decisions for parcel-track, a typescript application.
+
+## Architecture Patterns
+- **Language**: typescript
+- **Architecture Style**: Modular monolith
+- **Data Flow**: [Specify: Unidirectional, Event-driven, etc.]
+
+## Core Components
+
+### Application Structure
+*No architecture analysis available. This template was generated without project analysis.*
+
+**Application structure placeholder:**
+\`\`\`text
+[ADD YOUR APPLICATION STRUCTURE TREE HERE]
+\`\`\`
+
+*Replace the placeholder with the directories and files that represent your real application structure. Include annotations for responsibilities when helpful.*
+
+## Scale
+- Active users: 1,000 - 10,000
+- Team size: 2-5 devs
+
+## Deployment targets
+- AWS
+- Vercel
+
+## Data layer
+- **Offline support**: Yes
+- **Local database(s)**: SQLite
+- **Data sync strategy**: Last write wins
+
+## Integrations
+- **payments**: Stripe
+- **ai**: OpenAI, Anthropic
+
+Other: Twilio for SMS
+
+## Design Decisions
+
+### Decision 1: [Decision Title]
+- **Date**: 2026-10-06
+- **Context**: [Why this decision was needed]
+- **Decision**: [What was decided]
+- **Consequences**: [Positive and negative impacts]
+
+## Deployment Architecture
+[Describe deployment strategy, infrastructure, and environments]
+
+## Security Considerations
+[List security measures and considerations]
+
+## Performance Considerations
+- **API response-time target**: &lt; 200 ms (p95)
+- **Availability target**: 99.9%
+
+## Monitoring and Observability
+[Describe logging, metrics, and monitoring strategy]
+
+## Assumptions
+
+> Label each assumption with [ASSUMPTION] so it can be reviewed and revised.
+
+- [ASSUMPTION] [e.g. Single-region deployment; no multi-region failover required]
+- [ASSUMPTION] [e.g. No backward-compatibility constraints with legacy systems]
+- [ASSUMPTION] [e.g. Runtime environment is controlled; no adversarial input at infrastructure level]
+
+---
+*Last updated: 2026-10-06*",
+  ".specs/development/context.md": "---
+title: Development Context
+description: Project memory, decisions, and implementation notes
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Development Context
+
+## Project Memory
+### Constraints
+Must run on the existing Postgres cluster.
+",
+  ".specs/development/onboarding.md": "---
+title: Onboarding Prompt (Greenfield)
+description: One-time AI prompt to bootstrap .specs/ files — delete after use
+project: parcel-track
+lastUpdated: 2026-10-06
+---
+
+> **One-time file — delete after use.**
+> Copy the prompt below and paste it into your AI agent. Once all \`.specs/\` files are populated, your AI will delete this file as its final step. If it doesn't, delete it manually.
+
+---
+
+You are the specification co-pilot for a new project called "parcel-track".
+Tech stack: typescript / express
+
+**Project context:**
+- **What it does:** [DESCRIBE YOUR PROJECT HERE]
+- **Target users:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Expected scale:** Not specified — use your judgment and mark as [ASSUMPTION]
+- **Key constraints:** Not specified — use your judgment and mark as [ASSUMPTION]
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-girishr-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what you understood, assumptions you made, and recommended next steps.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin drafting now.",
+  ".specs/development/prompts.md": "---
+title: Prompts Log
+description: AI interaction log for parcel-track
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# Development Prompts Log
+
+## Overview
+This file (prompts.md) contains ALL AI interactions for parcel-track. Update .specs/prompts.md with every AI interaction.
+
+**🚨 MANDATE**: Update with every AI interaction.
+
+## Archive Policy
+
+> **Line limit: 100 lines.** When this file exceeds 100 lines, run:
+>
+> \`\`\`bash
+> specpilot archive
+> \`\`\`
+>
+> This will move older entries from this file into \`development/prompts-archive.md\` automatically, keeping the most recent entries here. A \`--dry-run\` flag is available to preview changes before writing.
+>
+> No stub \`prompts-archive.md\` file is generated during \`specpilot init\` — it is created on first archive run.
+
+## Re-Anchor Prompt
+
+> Paste this into your AI agent when: the session has been running > 1 hour, you've made > 20 exchanges, or the AI seems to have forgotten project rules.
+
+~~~
+You are working on parcel-track (typescript / express).
+
+CRITICAL RULES — re-read these before continuing:
+1. NEVER commit, push, or deploy unless I explicitly ask you to.
+2. NEVER modify .specs/ folder structure or file names — only update file contents.
+3. After EVERY code change, proactively update all affected .specs/ files without being asked.
+4. Spec-First Development — update .specs/ before writing code.
+5. Log this and all AI interactions in .specs/development/prompts.md.
+
+For full project context, read .specs/project/project.yaml.
+~~~
+
+---
+
+## Prompt History
+
+| Date | User | Prompt Summary | Context |
+|------|------|----------------|---------|
+| YYYY-MM-DD | @username | Example prompt | Brief context or outcome |",
+  ".specs/planning/roadmap.md": "---
+title: Roadmap
+description: Release milestones, objectives, and delivery timeline
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track — Development Roadmap
+
+## Milestones
+Build timeline: 3 months
+
+[TODO]
+
+## Objectives
+[TODO]
+
+## Goals & Success Criteria
+[TODO]
+
+## Risks and Mitigations
+[TODO]",
+  ".specs/planning/tasks.md": "---
+fileID: TASKS-001
+description: Sprint tracker with backlog, current sprint, and completed work
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [roadmap.md, project.yaml, requirements.md]
+---
+
+# parcel-track — Task Tracking
+
+Task ID conventions
+
+- BL-###: Backlog items
+- CS-###: Current Sprint items
+- CD-{devPrefix}-###: Completed items (e.g. CD-girishr-001)
+- PROMPT-{devPrefix}-###: Prompt log entries (e.g. PROMPT-girishr-001)
+
+## Backlog
+
+[TODO]
+
+## Current Sprint
+
+[TODO]
+
+## Completed
+
+1. [CD-001] Initialise .specs directory (2026-10-06)",
+  ".specs/project/project.yaml": "# parcel-track - SDD Project Configuration
+name: parcel-track
+version: "1.0.0"
+language: typescript
+framework: express
+description: Tracks parcels for small couriers
+
+# Rules and mandates: see your AI agent configuration file (single source of truth)
+
+# Team Guidelines
+team:
+  devPrefix: "girishr"
+  code_review_required: true
+  testing_required: true
+  documentation_required: true
+  
+# Platforms
+platforms:
+  - iOS Native
+  - Node.js / Express
+
+# Build and Deployment
+build:
+  command: "npm run build"
+  
+  
+  
+  
+
+# Dependencies (framework-specific)
+dependencies:
+  runtime:
+    - "express"
+    - "cors"
+    - "helmet"
+  development:
+    - "@types/express"
+    - "@types/cors"
+    - "@types/helmet"
+    - "typescript"
+    - "ts-node"",
+  ".specs/project/requirements.md": "---
+title: Requirements
+description: Functional and non-functional requirements for the project
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Requirements
+
+## Project Overview
+Tracks parcels for small couriers
+
+## Functional Requirements
+[TODO]
+
+### Access control
+Role-based (admin, agent, customer)
+
+### Special considerations
+- Accessibility (WCAG)
+- i18n
+
+Screen reader support and right-to-left layout.
+
+## Assumptions
+[TODO]",
+  ".specs/quality/tests.md": "---
+title: Test Strategy
+description: Test strategy, coverage goals, and quality approach
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Test Strategy
+
+## Overview
+Strategy: Unit, E2E
+",
+  ".specs/security/security-decisions.md": "---
+fileID: SEC-002
+description: Security ADR log with decisions, rationale, and trade-offs
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [security/threat-model.md, architecture/architecture.md]
+---
+
+# Security Decisions
+
+## Decisions [SEC-002.1]
+Auth strategy: Clerk
+Compliance: GDPR, SOC 2
+CI/CD: GitHub Actions
+",
+  ".specs/security/threat-model.md": "---
+fileID: SEC-001
+description: Threat model and attack surface analysis
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [security/security-decisions.md, architecture/architecture.md, project/requirements.md]
+---
+
+# Threat Model
+
+## Overview [SEC-001.1]
+[TODO]
+
+## Threat Model [SEC-002]
+
+### Security concerns
+- Rate limiting
+- Audit logging
+
+### Integration-derived threat entries
+- payments: Stripe — review vendor data-handling and auth scopes
+- ai: OpenAI, Anthropic — review vendor data-handling and auth scopes
+
+## Attack Surface Summary [SEC-003]
+[TODO]
+
+## Out of Scope [SEC-004]
+[TODO]",
+  ".vscode/extensions.json": "{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot",
+    "ms-vscode.vscode-typescript-next"
+  ],
+  "unwantedRecommendations": []
+}",
+  ".vscode/settings.json": "{
+  // SpecPilot AI IDE Configuration
+  // This file configures VS Code to work effectively with SpecPilot specs
+
+  // AI CONTEXT: The recommended way to give AI agents access to your .specs files
+  // is via .github/copilot-instructions.md (VS Code Copilot) or your IDE's equivalent
+  // custom instructions file. See .specs/development/prompts.md for guidelines.
+  // Copy the "First-Use Onboarding Prompt" and paste into your AI agent to populate specs
+
+  // Ensure .specs folder is included in workspace search (not excluded)
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, api.yaml)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation (requires redhat.vscode-yaml extension)
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}"
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  }
+}",
+}
+`;
+
+exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenfield 1`] = `
+{
+  ".agent/workflows/specpilot-archive.md": "dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497",
+  ".agent/workflows/specpilot-backfill.md": "1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737",
+  ".agent/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".agent/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
+  ".agent/workflows/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".agent/workflows/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".agent/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".agent/workflows/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
+  ".antigravity/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
+  ".antigravity/rules.md": "23e05672a0a081155eaa7c388919b570885cd6c2b602df6ef6a6caff99ac9978",
+  ".antigravity/settings.json": "abfe0583c667af7f587b3f37d40226e79a577ae59ddb9405a533754984e46f42",
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "f8c0d041587ac536be3bb29ec28e3dda817806e8caa788ebb8db5c92da7b56dd",
+  ".specs/architecture/architecture.md": "1e09a48f30641c4cf4364ba3129f42973a5b598c43efd6829046d9566d965066",
+  ".specs/development/context.md": "c6f80dfecccc8b227c1bc30d52f9e90c3d94cabb1d30aca7c85dd02697af6bdc",
+  ".specs/development/onboarding.md": "a9cdfcc0bb4ed71098521f7246a1961c1c2d38eaa08ddf62325ce4d6cc8e2bf7",
+  ".specs/development/prompts.md": "d1ca2f9d6f3c24af84e698351a7dcd49fbd47802b9115f2b1f5ecd503a498094",
+  ".specs/planning/roadmap.md": "2ff37cee892d14d570d86e3b873b032424c8c15e3afb8f467c20c90a0fba7d6c",
+  ".specs/planning/tasks.md": "8e647ca4bf8328d1cbd5aaddecaa5ad11c95656e3b48995febe483b3463ba958",
+  ".specs/project/project.yaml": "43c04d24a1b78149f3f81983269ae47121a3dc1977589bc6cff8c3b1bdcd86cb",
+  ".specs/project/requirements.md": "2c79efce5efafd5ad1bd041cdf3e88992a41950e91db0405a24307d597110748",
+  ".specs/quality/tests.md": "438f96d17689bacf512edd58c8ce6cf4277b46ae89645227725514c81ac8f36d",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+}
+`;
+
+exports[`spec core golden recording (BL-032) claude-code javascript/react rest greenfield 1`] = `
+{
+  ".claude/commands/specpilot-archive.md": "c456c0067f69c7ec4300bdbe7fed3727734d7df8b44f56bda77d6ac4f7eece10",
+  ".claude/commands/specpilot-backfill.md": "16c9c26b3e63b6e77067dab0037cb49d51d344e9bf392a431f09f7918ee3c813",
+  ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
+  ".claude/commands/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".claude/commands/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".claude/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".claude/commands/specpilot-validate.md": "c4bc7798f2eef780257a6b91652c4222db3e6b4566da85fc1c2d4552032db269",
+  ".claude/skills/specpilot-project/SKILL.md": "695428e7cb736177763a72b7322c65899076ff70d428d056ad93f8a03ebd7ebb",
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "b6e312a288db4bf4302b9fc040b16734eef3efe7275c719d00952c8bcf0c6ab3",
+  ".specs/architecture/architecture.md": "16cbf967bc8567094abd2d6b2fd3ebf42e8b9cce3d5d3ea48e43e43cc4e5fb77",
+  ".specs/development/context.md": "859cf077a7652d235b581d4e4bf13bfd4426bf30cc0f3935e3912873484cf79d",
+  ".specs/development/onboarding.md": "af0d31622b220d172cf93a25600f83c448c3667676084ac33cbfe4dc043e6aae",
+  ".specs/development/prompts.md": "8161f5064fc91caed7dacc3e896b641e7f3cb55d424975a6c33c7e0bb45a695f",
+  ".specs/planning/roadmap.md": "2a658c4ef644b0884739534e7cc142a2a83b26185ed394cd93182e7f710bf535",
+  ".specs/planning/tasks.md": "69d8eae4298da94ec96a0fbdf0ff14b629aa5163d6eaf0fa8aee9ac1d2de5b75",
+  ".specs/project/project.yaml": "49e010a7d4f50521c5ab2cb1fee5108f198952f584372563bb3a5d68d092c933",
+  ".specs/project/requirements.md": "dd5b8bbbc4dbb962b253a45c179b2a2df48a185dc89f49b648a898b2c90c6d85",
+  ".specs/quality/tests.md": "c259ce6b0adb6ac3d1cf2564a61191b9a60447b10622894f3d131a4205e1f050",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+  "CLAUDE.md": "c73969b00d384b7e7bf42d39a8a0cd7293512bfd9e2c852eb07b160d968b0aa7",
+}
+`;
+
+exports[`spec core golden recording (BL-032) codex typescript no framework rest greenfield 1`] = `
+{
+  ".codex/prompts/specpilot-archive.md": "dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497",
+  ".codex/prompts/specpilot-backfill.md": "1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737",
+  ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
+  ".codex/prompts/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".codex/prompts/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".codex/prompts/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".github/copilot-instructions.md": "c8a10963765a58896cae541cbf6f928e68c92d26162e4b5c754c85befc597553",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "8fa3ff6fdc5c8269285007fa754fcae14f39ac543a682bb2a1a58988e6def0c8",
+  ".specs/architecture/architecture.md": "3e14693f91a127e70d1c57432a284a35317e173b646a940870a3a903d06068d5",
+  ".specs/development/context.md": "603e6c8c9b46652928fe92cf3edabe3d8c528c8b74c17cc8583ea4f630a41179",
+  ".specs/development/onboarding.md": "c5ab61a78976d661e215589c47e0c4e380bfc4a592de932fdd4ab6c9ba8a562a",
+  ".specs/development/prompts.md": "ba25c99b916e20a348965ba79ac441e1eb73f38bc76ed667609fbc61baa12bc8",
+  ".specs/planning/roadmap.md": "c2dc950f4c47f6b397c64db9cfc37438beab5c260c2e2ede5b46316ebfb92520",
+  ".specs/planning/tasks.md": "57616880de454bc372a420563b0eb282524a0e708f0bd361c7563d78ea60611f",
+  ".specs/project/project.yaml": "00dfbfa5f81cb48da4f1a69ec0028d362f8f76e2438fed11011830024ebe2719",
+  ".specs/project/requirements.md": "d86489519a3f82486b40ff146be9aaad2063c721347f9058ad72a7346aeab402",
+  ".specs/quality/tests.md": "c23efcc280452241204382f059b3929ec9824d43225b1c5c716ed486f6d433e5",
+  ".specs/security/security-decisions.md": "a10dae67de140c062af8cef845c2198dfc45a4defb4cbdc3843683f00babc952",
+  ".specs/security/threat-model.md": "56dc59e11d5ab4d80cfe243ac7cc3ae197f6ad3a8473934163ebe970bbc58654",
+  "CODEX_INSTRUCTIONS.md": "99b9da75a3f21c1faa295142fd36f16104af73c6442ffda390c68615102a4119",
+}
+`;
+
+exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfield 1`] = `
+{
+  ".cursor/commands/specpilot-archive.md": "dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497",
+  ".cursor/commands/specpilot-backfill.md": "1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737",
+  ".cursor/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".cursor/commands/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
+  ".cursor/commands/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".cursor/commands/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".cursor/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".cursor/commands/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
+  ".cursor/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
+  ".cursor/rules/specpilot.mdc": "cdfb404e54f7fee84d77b119849bc94b0037354dcad8dae23bf67e2bbe689c4c",
+  ".cursor/settings.json": "040a19c3ec92aa93f255ee9d3c1b1c8f0c1e4991508d01bfb22421c84f72677d",
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "82921e367104d9a4deac9d469dd027e2d79bae2ab53513838db7ae0962263d97",
+  ".specs/architecture/architecture.md": "e3be761c787aeec52a5a3db811aaad82dc7fbe327f150aac5c814ad3a8b2b341",
+  ".specs/development/context.md": "1212b910b202e4f58e0bc9f9941907e67939c4cbe252f5dbafda4f86459c2bff",
+  ".specs/development/onboarding.md": "ebc4606256dd3dc4feb52e6c5b7d16d607efc7e1792f8e2864b78c9d28030422",
+  ".specs/development/prompts.md": "3bb615c051b9395b146404ab46644b6eab249e82c6e8c6d92b77bcc3a27ccbf8",
+  ".specs/planning/roadmap.md": "9abb611721aa27d9f812d2817387df1b4da6d1f53fb75f75767e005f2a83c24a",
+  ".specs/planning/tasks.md": "8f1a54577705188a5991ec0ff167169f72aee9525eb66efe80b219c1da9b3466",
+  ".specs/project/project.yaml": "eaff06974d95f7a84438ba0181883d6539800777937b73e13fe622b559a6e0a1",
+  ".specs/project/requirements.md": "ac263f97cfe4c687cb9a12806dc8f66c1ba65adfda8f4f1beea87759be78bd58",
+  ".specs/quality/tests.md": "758726dca2efcf630d8938d715558865d76ac6288a0e022227a49efc550814d5",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+}
+`;
+
+exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = `
+{
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".github/copilot-instructions.md": "61bb5366fe8c9d4ffcd9fcc0484d0b5f72a9d40d6822cebe8d523ceb7b84a062",
+  ".github/prompts/specpilot-archive.prompt.md": "d04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2",
+  ".github/prompts/specpilot-backfill.prompt.md": "df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc",
+  ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
+  ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
+  ".github/prompts/specpilot-report.prompt.md": "6e72be94c576ac7000896d68e1509d21f4218e1a917ce90b1debd252fdfaddd5",
+  ".github/prompts/specpilot-status.prompt.md": "4620467bfeb8ee2cd31b0b2f45564c41290746332804a2b6de6daa1b25519a1d",
+  ".github/prompts/specpilot-sync.prompt.md": "ef134e6db6cdfb1adcde442c2f4221503e73fbdd2d48172f5ee0f7e3929eee83",
+  ".github/prompts/specpilot-validate.prompt.md": "265ac29d8c2cdf8688dfbfac6b67c266ef1a477ffb608e5222679595bff8d32a",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "d7faf6abd96e65c6eb9f1270c94f0bbf85910446a6b724c88250b65c9a41e294",
+  ".specs/architecture/architecture.md": "efca65b70e5766e32f0cd4d9f43c3d3a1b4bfe21f0f8058310f76442a9e60672",
+  ".specs/development/context.md": "ca71313b8ef2a50dc8cdee4d4e4a10ab5bd511234ae229d6b743f02db9aa80d0",
+  ".specs/development/onboarding.md": "5f28403192948adf78c98a25842656aead7f6d757a9cbfe60761a71c41ad2a5b",
+  ".specs/development/prompts.md": "e64401154b4bcab77359fc0df556410d511d0adcd23b2be2a04e2078ab426f1d",
+  ".specs/planning/roadmap.md": "3ff6e44d56f7567c92feaa34d13fe2579909d69dd40b57afaf00effd6af7833e",
+  ".specs/planning/tasks.md": "fe45c3d4c167b6f749edf0870e131918e5de4df5d8cf4b4d8cd88405f3d952aa",
+  ".specs/project/project.yaml": "4d101d93bb4778b394d329beef8a4e4aeb748e38a6d0e4975235a03dfa316daa",
+  ".specs/project/requirements.md": "38370b9218fda6f3b9678a23e990830aa435dd3958ad6bc143a1e51626604dc5",
+  ".specs/quality/tests.md": "44e53732fe5134629ac95457ee5e1482078f78fe933bc1476dbb32466cc751cc",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+  ".vscode/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
+  ".vscode/settings.json": "66eb7aac95e472034e43f9c62699644bee3d518e4531fc45193513531121cdd7",
+}
+`;
+
+exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] = `
+{
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".github/copilot-instructions.md": "ee2ed779168df6734925e43d5f50e8648bf81369d29eb01a6952af86362c96fb",
+  ".github/prompts/specpilot-archive.prompt.md": "d04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2",
+  ".github/prompts/specpilot-backfill.prompt.md": "df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc",
+  ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
+  ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
+  ".github/prompts/specpilot-report.prompt.md": "6e72be94c576ac7000896d68e1509d21f4218e1a917ce90b1debd252fdfaddd5",
+  ".github/prompts/specpilot-status.prompt.md": "4620467bfeb8ee2cd31b0b2f45564c41290746332804a2b6de6daa1b25519a1d",
+  ".github/prompts/specpilot-sync.prompt.md": "ef134e6db6cdfb1adcde442c2f4221503e73fbdd2d48172f5ee0f7e3929eee83",
+  ".github/prompts/specpilot-validate.prompt.md": "265ac29d8c2cdf8688dfbfac6b67c266ef1a477ffb608e5222679595bff8d32a",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "c1ee01c9c6a2a7a64cb6da4a77f68d3ede4395ae7daf1fc0995bb8020725a22d",
+  ".specs/architecture/architecture.md": "a5734eaf7fd3fd46418bb2d6f95a242bcdd89526fb7ef5d2f335988ff2b1d219",
+  ".specs/development/context.md": "88f1c32be52e81fc02cbf7244647d365673db19d72f1068cb67be296e154f1c8",
+  ".specs/development/onboarding.md": "16756cb43459461a2f7ccaf35a1da66d149b9de1cd7508f7dace37655d0963ba",
+  ".specs/development/prompts.md": "968fd85f0c282eebbc3ca8b499b1cbf9624a99341f701c9ae6e7ce365e59f313",
+  ".specs/planning/roadmap.md": "443f480b5199ff263d6ada7c99060b2ac9c3b4a213278533f9a9e1c5f4aabb0e",
+  ".specs/planning/tasks.md": "862717ea5cfbe46f8d1ea9423b277fcf2678601a2ddf4938f334f4e261501348",
+  ".specs/project/project.yaml": "81cb345a6e8688d281b23155ed25466d67ebe63046c0c533253a8f9f9ddcd389",
+  ".specs/project/requirements.md": "11c47e93730acc855553f32a9fcf11497ae4bdfb1ae13097873b8d79d08422d0",
+  ".specs/quality/tests.md": "3011ecbee45b41a99da14b04008566ccddb0d29221cf437332b5d2c954065768",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+  ".vscode/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
+  ".vscode/settings.json": "66eb7aac95e472034e43f9c62699644bee3d518e4531fc45193513531121cdd7",
+}
+`;
+
+exports[`spec core golden recording (BL-032) vscode typescript/express rest greenfield with context 1`] = `
+{
+  ".gitattributes": ".specs/development/prompts*.md merge=union
+.specs/planning/tasks.md merge=union
+CHANGELOG.md merge=union
+",
+  ".github/copilot-instructions.md": "# AI Coding Instructions — parcel-track
+
+> This file is automatically read by GitHub Copilot, Cursor, and other AI tools on every request.
+> Keep this file short — only critical mandates. Full context is in \`.specs/project/project.yaml\`.
+
+## Project
+
+- **Name:** parcel-track
+- **Stack:** typescript / express
+- **Specs location:** \`.specs/\`
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+
+## 🟡 Process Mandates
+
+- **Spec-First:** Update \`.specs/\` before writing code.
+- **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
+- **Document decisions** in \`.specs/development/context.md\`.
+
+## Context — read on demand by task type
+
+| Task type | Read |
+|---|---|
+| Session start | \`.specs/project/project.yaml\` |
+| Feature / bug | + \`project/requirements.md\`, \`planning/tasks.md\` |
+| Architecture | + \`architecture/architecture.md\` |
+| Tests | + \`quality/tests.md\` |
+| Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
+| Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+",
+  ".github/prompts/specpilot-archive.prompt.md": "---
+mode: agent
+description: Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard
+---
+
+Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+
+Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+PROMPTS_LINE_LIMIT=100
+PROMPTS_KEEP_LINES=80
+COMPLETED_LINE_LIMIT=40
+COMPLETED_KEEP_ENTRIES=20
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  read -p "Continue? [y/N] " confirm
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    echo "Archive cancelled."
+    exit 0
+  fi
+fi
+
+timestamp() { date -u +"%Y-%m-%d %H:%M:%S"; }
+
+archive_prompts() {
+  local file=".specs/development/prompts.md"
+  local archive=".specs/development/prompts-archive.md"
+  [ -f "$file" ] || return 0
+
+  # Mirrors the CLI's planPromptsArchive() line for line. The log is the list under
+  # "## Latest Entries", else the table under "## Prompt History". Each entry's date is the
+  # last "Month D, YYYY", "Mon. D, YYYY" or "YYYY-MM-DD" in it (a table row: its Date cell).
+  # All dated entries must run one way; the oldest whole entries then move until the file
+  # is within PROMPTS_KEEP_LINES, keeping at least one. Line counts use the CLI's arithmetic
+  # (wc -l + 1). Prints "MOVE <first> <last> <header>" (1-based lines; header 0 for a list),
+  # "REFUSE <reason>", or nothing.
+  local plan
+  plan=$(LC_ALL=C awk -v total="$(wc -l < "$file")" -v limit="$PROMPTS_LINE_LIMIT" -v keep="$PROMPTS_KEEP_LINES" '
+    function trim(s) { sub(/^[ \\t\\r]+/, "", s); sub(/[ \\t\\r]+$/, "", s); return s }
+    function word(c) { return c ~ /[A-Za-z0-9_]/ }
+    function iso(k) { return sprintf("%04d-%02d-%02d", int(k / 10000), int(k / 100) % 100, k % 100) }
+    function lastdate(s,   key, pos, a, b, t, p, m, y, mo, d) {
+      key = 0; pos = 0
+      while (match(substr(s, pos + 1), /(January|February|March|April|May|June|July|August|September|October|November|December|Sept|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\.? [0-9][0-9]?, [0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)) {
+        a = pos + RSTART; b = a + RLENGTH; t = substr(s, a, RLENGTH)
+        # a > 1 guard: on macOS awk substr(s, 0, 1) returns the first character, not ""
+        if ((a > 1 && word(substr(s, a - 1, 1))) || word(substr(s, b, 1))) { pos = a; continue }
+        if (t ~ /^[0-9]/) { y = substr(t, 1, 4) + 0; mo = substr(t, 6, 2) + 0; d = substr(t, 9, 2) + 0 }
+        else { split(t, p, " "); m = p[1]; sub(/\\.$/, "", m); mo = MON[tolower(m)]; d = p[2] + 0; y = p[3] + 0 }
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) key = y * 10000 + mo * 100 + d
+        pos = b - 1
+      }
+      return key
+    }
+    function excerpt(s,   t, i, c, n, out) {
+      t = trim(s); n = 0; out = ""
+      for (i = 1; i <= length(t); i++) {
+        c = substr(t, i, 1)
+        if (ORD[c] < 128 || ORD[c] >= 192) n++
+        if (n > 60) return "\\"" out "…\\""
+        out = out c
+      }
+      return "\\"" t "\\""
+    }
+    BEGIN {
+      split("january jan february feb march mar april apr may june jun july jul august aug september sept sep october oct november nov december dec", nm, " ")
+      split("1 1 2 2 3 3 4 4 5 6 6 7 7 8 8 9 9 9 10 10 11 11 12 12", nv, " ")
+      for (i = 1; i <= 24; i++) MON[nm[i]] = nv[i] + 0
+      for (i = 1; i < 256; i++) ORD[sprintf("%c", i)] = i
+    }
+    { line[NR] = $0; tl[NR] = trim($0) }
+    END {
+      L = total + 1
+      if (L <= limit) exit
+      n = 0; hdr = 0; s = 0
+      for (i = 1; i <= NR; i++) if (index(tl[i], "## Latest Entries") == 1) { s = i; break }
+      if (s) {
+        e = L + 1; for (i = s + 1; i <= NR; i++) if (tl[i] ~ /^## /) { e = i; break }
+        cur = 0
+        for (i = s + 1; i < e && i <= NR; i++) {
+          if (line[i] ~ /^[-*+] /) { n++; st[n] = i; en[n] = i; cur = 1 }
+          else if (cur && line[i] ~ /^[ \\t\\r]+[^ \\t\\r]/) en[n] = i
+          else cur = 0
+        }
+        for (k = 1; k <= n; k++) { txt = line[st[k]]; for (i = st[k] + 1; i <= en[k]; i++) txt = txt "\\n" line[i]; dt[k] = lastdate(txt) }
+      } else {
+        for (i = 1; i <= NR; i++) if (index(tl[i], "## Prompt History") == 1) { s = i; break }
+        if (!s) { print "REFUSE development/prompts.md has no \\"## Latest Entries\\" list or \\"## Prompt History\\" table, so there is nothing SpecPilot can archive safely."; exit }
+        e = L + 1; for (i = s + 1; i <= NR; i++) if (tl[i] ~ /^## /) { e = i; break }
+        for (i = s + 1; i < e - 1 && i < NR; i++) if (tl[i] ~ /^\\|/ && tl[i + 1] ~ /^\\|[ \\t:|-]+$/) { hdr = i; break }
+        if (hdr) {
+          col = 0; h = tl[hdr]; sub(/^\\|/, "", h); sub(/\\|$/, "", h); m = split(h, hc, "|")
+          for (j = 1; j <= m; j++) if (tolower(trim(hc[j])) == "date") { col = j; break }
+          for (i = hdr + 2; i < e && i <= NR && tl[i] ~ /^\\|/; i++) {
+            n++; st[n] = i; en[n] = i
+            if (col) { r = tl[i]; sub(/^\\|/, "", r); sub(/\\|$/, "", r); split(r, rc, "|"); dt[n] = lastdate(trim(rc[col])) }
+            else dt[n] = lastdate(line[i])
+          }
+        }
+      }
+      if (n < 2) exit
+      dir = 0; ps = 0; pd = 0
+      for (k = 1; k <= n; k++) {
+        if (!dt[k]) continue
+        if (ps && dt[k] != pd) {
+          step = dt[k] > pd ? 1 : -1
+          if (!dir) dir = step
+          else if (step != dir) {
+            print "REFUSE SpecPilot cannot tell which development/prompts.md entries are oldest, because their dates run both ways: " excerpt(line[ps]) " (" iso(pd) ") comes right before " excerpt(line[st[k]]) " (" iso(dt[k]) ") in a log that otherwise runs " (dir < 0 ? "newest first" : "oldest first") ". Put those entries in order and run it again."
+            exit
+          }
+        }
+        ps = st[k]; pd = dt[k]
+      }
+      if (!dir) { print "REFUSE SpecPilot cannot tell which development/prompts.md entries are oldest: fewer than two entries carry different dates."; exit }
+      for (k = 1; k < n; k++) {
+        if (dir < 0) { a = st[n - k + 1]; b = en[n] } else { a = st[1]; b = en[k] }
+        if (L - (b - a + 1) <= keep) break
+      }
+      print "MOVE", a, b, hdr
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  case "$plan" in
+    REFUSE\\ *) echo "Not archived: \${plan#REFUSE }"; return 0 ;;
+  esac
+  local kind first last header
+  read -r kind first last header <<< "$plan"
+
+  # A file with no line break after its last line, whose moved block reaches that line: the
+  # CLI joins lines with "\\n", so the block still ends with a blank line in the archive and the
+  # kept file ends, still without a line break, at the line before the block.
+  local at_end=0
+  if [ -n "$(tail -c 1 "$file")" ] && [ "$last" -eq $(( $(wc -l < "$file") + 1 )) ]; then at_end=1; fi
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$header" -gt 0 ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    if [ "$at_end" = 1 ]; then echo; fi
+    echo; echo "---"; echo
+  } >> "$archive"
+  if [ "$at_end" = 1 ]; then
+    awk -v n=$((first - 1)) 'NR <= n { printf "%s%s", (NR > 1 ? "\\n" : ""), $0 }' "$file" > "$file.tmp"
+  else
+    { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
+  fi
+  mv "$file.tmp" "$file"
+  echo "Moved $((last - first + 1)) lines from $file -> $archive"
+}
+
+archive_tasks() {
+  local file=".specs/planning/tasks.md"
+  local archive=".specs/planning/tasks-archive.md"
+  [ -f "$file" ] || return 0
+
+  # Mirrors the CLI's planCompletedArchive() line for line. The section runs from
+  # "## Completed" to the next "## " heading, not EOF. Sizes use the CLI's arithmetic,
+  # which counts one more line than wc -l at EOF, so the EOF section end is total + 2.
+  # Entries are numbered-list lines, or else the body rows of a table (header and
+  # separator stay put); a table keeps only as many rows as fit the line limit.
+  # Prints "<shape> <first> <last> <header>" as 1-based lines to move, or nothing.
+  local plan
+  plan=$(awk -v total="$(wc -l < "$file")" -v limit="$COMPLETED_LINE_LIMIT" -v keep_max="$COMPLETED_KEEP_ENTRIES" '
+    { line[NR] = $0; t = $0; gsub(/^[ \\t]+|[ \\t]+$/, "", t); trimmed[NR] = t }
+    END {
+      for (i = 1; i <= NR; i++) if (trimmed[i] == "## Completed") { start = i; break }
+      if (!start) exit
+      end_ = total + 2
+      for (i = start + 1; i <= NR; i++) if (trimmed[i] ~ /^## /) { end_ = i; break }
+      size = end_ - start
+      if (size <= limit) exit
+      for (i = start + 1; i < end_; i++) if (line[i] ~ /^[0-9]+\\./) {
+        if (end_ - i <= keep_max) exit
+        print "list", i, end_ - keep_max - 1, 0
+        exit
+      }
+      for (i = start + 1; i < end_ - 1; i++) if (trimmed[i] ~ /^\\|/ && trimmed[i + 1] ~ /^\\|[ \\t:|-]+$/) {
+        body = i + 2; stop = body
+        while (stop < end_ && trimmed[stop] ~ /^\\|/) stop++
+        rows = stop - body
+        keep = limit - (size - rows); if (keep < 0) keep = 0; if (keep > keep_max) keep = keep_max
+        if (rows <= keep) exit
+        print "table", body, stop - keep - 1, i
+        exit
+      }
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  local shape first last header
+  read -r shape first last header <<< "$plan"
+
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$shape" = "table" ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    echo; echo "---"; echo
+  } >> "$archive"
+  { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
+  mv "$file.tmp" "$file"
+  echo "Moved $((last - first + 1)) entries from $file -> $archive"
+}
+
+archive_prompts
+archive_tasks
+\`\`\`
+
+After running it:
+1. Report what the script moved (file, line/entry count, archive destination) using its own output — do not recompute or second-guess the numbers.
+2. If nothing exceeded the threshold, say so plainly: "Nothing to archive."
+3. IDs are preserved automatically since content is moved verbatim into the archive file, never rewritten or renumbered.
+
+This mirrors CLI \`specpilot archive --dry-run --force\` (REQ-002.A.8); the branch guard mirrors ARCH-004.19 (warns and requires \`y\` confirmation when not on \`main\`/\`master\`).",
+  ".github/prompts/specpilot-backfill.prompt.md": "---
+mode: agent
+description: Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files
+---
+
+Backfill missing SpecPilot mandate sections into whichever IDE files already exist in this project. Run the script below — it checks four fingerprints per file and appends whichever are missing, append-only, never overwriting existing content.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+CANDIDATE_FILES=(
+  ".github/copilot-instructions.md"
+  "CLAUDE.md"
+  ".cursor/rules/specpilot.mdc"
+  ".windsurfrules"
+  ".antigravity/rules.md"
+)
+
+has_critical() { grep -qF "Critical Mandates" "$1"; }
+has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$1"; }
+has_rules() { grep -qF "## Code Rules" "$1"; }
+has_reanchor() { grep -qF "## Re-Anchor" "$1"; }
+
+append_critical() {
+  cat <<'BLOCK' >> "$1"
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+BLOCK
+}
+
+append_philosophy() {
+  cat <<'BLOCK' >> "$1"
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+BLOCK
+}
+
+append_rules() {
+  cat <<'BLOCK' >> "$1"
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+BLOCK
+}
+
+append_reanchor() {
+  cat <<'BLOCK' >> "$1"
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+BLOCK
+}
+
+for f in "\${CANDIDATE_FILES[@]}"; do
+  if [ ! -f "$f" ]; then
+    echo "SKIPPED (not found): $f"
+    continue
+  fi
+
+  added=()
+  has_critical "$f" || { append_critical "$f"; added+=("Critical Mandates"); }
+  has_philosophy "$f" || { append_philosophy "$f"; added+=("Code Philosophy"); }
+  has_rules "$f" || { append_rules "$f"; added+=("Code Rules"); }
+  has_reanchor "$f" || { append_reanchor "$f"; added+=("Re-Anchor"); }
+
+  if [ \${#added[@]} -eq 0 ]; then
+    echo "ALREADY CURRENT: $f"
+  else
+    echo "UPDATED: $f (added: \${added[*]})"
+  fi
+done
+
+echo
+echo "== team.devPrefix check =="
+YAML=".specs/project/project.yaml"
+if [ -f "$YAML" ] && ! grep -q "devPrefix:" "$YAML"; then
+  echo "MISSING: team.devPrefix in $YAML — ask the user for a short handle (e.g. GitHub username) and add it under a team: section."
+fi
+\`\`\`
+
+After running it:
+1. Report per file: updated (with which sections were added), already-current, or skipped (file not found).
+2. If the devPrefix check printed a missing-handle line, ask the user for a short handle (their GitHub/GitLab/Bitbucket username or any short tag) and add it under a \`team:\` section in \`project.yaml\` yourself — the script only detects the gap, it does not prompt interactively.
+3. Never overwrite existing content in any file; every append goes to the end of the file.
+
+**Maintenance cost**: unlike the CLI's \`specBackfiller.ts\`, this command has no shared source-of-truth constant to import — its four fingerprint blocks above are a literal copy and must be manually kept in sync whenever \`CLAUDE.md\`/\`copilot-instructions.md\` generation changes (\`buildCriticalMandatesMarkdown()\`, \`buildCodePhilosophyMarkdown()\` in \`ideConfigGenerator.ts\`). If this command's output ever looks stale, check those functions first.",
+  ".github/prompts/specpilot-reanchor.prompt.md": "---
+mode: agent
+description: Restore full project context after losing it mid-session
+---
+
+Restore operating context for this project.
+
+1. Read \`.specs/project/project.yaml\` in full.
+2. Read the \`## Re-Anchor Prompt\` section of \`.specs/development/prompts.md\` verbatim.
+3. Restate both as your current operating context for the rest of this session — project identity, stack, rules, and the Re-Anchor Prompt's guidance.
+
+Do not summarize or paraphrase away detail; this command exists specifically to recover full context, not an abbreviated version of it.",
+  ".github/prompts/specpilot-refine.prompt.md": "---
+mode: agent
+description: Refine .specs/ requirements from a new requirement description, with a diff preview before writing
+---
+
+Refine the project's spec files with a new requirement.
+
+Requirement description: $ARGUMENTS
+
+1. Read the current \`.specs/project/requirements.md\`, \`.specs/development/context.md\`, and \`.specs/development/prompts.md\`.
+2. Propose specific additions or edits to those files that incorporate the requirement description above, following the existing stable-ID conventions (e.g. \`REQ-###.#\`).
+3. Show a line-level diff preview of every proposed change — do not just describe it.
+4. Wait for the user's confirmation before writing anything.
+5. Once confirmed, write the changes.
+
+This mirrors the CLI's \`specpilot refine\` (REQ-002.A.6) as a standalone agent workflow — it has no dependency on the CLI being installed.",
+  ".github/prompts/specpilot-report.prompt.md": "---
+mode: agent
+description: Run the Spec-First review gate: classify the change, update specs, then wait for confirmation before coding
+---
+
+Formalize the Spec-First review gate (mandate 8) for the pending change.
+
+1. Classify the pending change as trivial, feature, or architectural:
+   - Trivial: no spec update required.
+   - Feature: touches \`project/requirements.md\` and \`planning/tasks.md\`.
+   - Architectural: touches all affected spec files plus \`CHANGELOG.md\`.
+2. Read the relevant \`.specs/\` files per the Context routing table (session start → \`project/project.yaml\`; feature/bug → + \`project/requirements.md\`, \`planning/tasks.md\`; architecture → + \`architecture/architecture.md\`; tests → + \`quality/tests.md\`; security → + \`security/threat-model.md\`, \`security/security-decisions.md\`; planning → + \`planning/tasks.md\`, \`planning/roadmap.md\`).
+3. Update the affected spec files first — before writing any code.
+4. Present a Spec Report: classification, files touched, what changed in each, and what the specs now say.
+5. Wait for the user's literal \`yes, proceed\` before writing or editing any code or non-spec file. An ambiguous "ok" or "sure" is not sufficient for an architectural-tier change — ask for the explicit phrase if it wasn't given.",
+  ".github/prompts/specpilot-status.prompt.md": "---
+mode: agent
+description: Show current sprint status and next milestone at a glance
+---
+
+Give a one-screen status summary of the current sprint.
+
+1. Read \`.specs/planning/tasks.md\` and extract the \`## Current Sprint\` section — list each item's ID and a short (<15 word) restatement.
+2. Read \`.specs/planning/roadmap.md\` and find the \`## Milestones\` section — identify the next incomplete milestone.
+3. Present a compact summary with two headings:
+   - **Current Sprint**: bullet list of \`[CS-###] [BL-###]\` items with their short restatement.
+   - **Next Milestone**: the next unchecked milestone from roadmap.md.
+
+Keep it to one screen — do not re-print full task descriptions, just IDs and short summaries.",
+  ".github/prompts/specpilot-sync.prompt.md": "---
+mode: agent
+description: Compare .specs/ against actual project state and propose fixes for drift
+---
+
+Find and fix drift between \`.specs/\` and the real project.
+
+1. Read \`.specs/architecture/architecture.md\`, \`.specs/project/requirements.md\`, and \`.specs/quality/tests.md\`.
+2. Compare their claims against the actual \`src/\` structure and \`package.json\` (versions, dependencies, scripts).
+3. List concrete discrepancies: stale version numbers, renamed or removed files/modules still referenced, undocumented modules that exist in \`src/\` but aren't mentioned in the specs, stale command or test-suite lists.
+4. Propose specific per-file edits to close each discrepancy — do not just describe the problem, show the fix.
+5. Wait for the user's confirmation before writing any of the proposed edits.
+
+This is a judgment/comparison task, not a mechanical one — do not attempt to script the diff; read and reason about each file.",
+  ".github/prompts/specpilot-validate.prompt.md": "---
+mode: agent
+description: Validate .specs/ structure, front-matter, and cross-references; suggest fixes without auto-applying
+---
+
+Validate the project's \`.specs/\` files. Run the script below, then summarize the results in plain language.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+REQUIRED_FILES=(
+  ".specs/project/project.yaml"
+  ".specs/architecture/architecture.md"
+  ".specs/project/requirements.md"
+  ".specs/architecture/api.yaml"
+  ".specs/quality/tests.md"
+  ".specs/planning/tasks.md"
+  ".specs/development/context.md"
+  ".specs/development/prompts.md"
+  ".specs/security/threat-model.md"
+  ".specs/security/security-decisions.md"
+)
+
+echo "== Missing required files =="
+missing=0
+for f in "\${REQUIRED_FILES[@]}"; do
+  if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
+done
+[ "$missing" -eq 0 ] && echo "none"
+
+echo
+echo "== Front-matter field checks (fileID, lastUpdated, version, contributors, relatedFiles) =="
+clean=1
+for f in "\${REQUIRED_FILES[@]}"; do
+  [[ "$f" == *.md ]] || continue
+  [ -f "$f" ] || continue
+  fm=$(sed -n '2,/^---$/p' "$f")
+  for field in fileID lastUpdated version contributors relatedFiles; do
+    if ! echo "$fm" | grep -q "^\${field}:"; then
+      echo "MISSING $field in $f"
+      clean=0
+    fi
+  done
+done
+[ "$clean" -eq 1 ] && echo "all fields present"
+
+echo
+echo "== relatedFiles cross-reference check =="
+clean=1
+for f in "\${REQUIRED_FILES[@]}"; do
+  [[ "$f" == *.md ]] || continue
+  [ -f "$f" ] || continue
+  refs=$(sed -n '2,/^---$/p' "$f" | sed -n '/^relatedFiles:/,/^[a-zA-Z]/p' | grep -oE '[A-Za-z0-9_.-]+\\.(md|yaml)')
+  for ref in $refs; do
+    if ! find .specs -name "$ref" | grep -q .; then
+      echo "BROKEN REF in $f -> $ref (not found anywhere under .specs/)"
+      clean=0
+    fi
+  done
+done
+[ "$clean" -eq 1 ] && echo "all cross-references resolve"
+\`\`\`
+
+Never eyeball line counts or fingerprints by hand where this script already computes them exactly.
+
+After running it:
+1. Summarize each of the three sections in plain language (what's missing, what's wrong, what's broken).
+2. For every issue found, suggest a specific fix — but never apply it automatically. Wait for the user to ask before editing any file.
+3. If everything passes, say so plainly; do not manufacture issues.
+
+**Known platform limitation**: GitHub Copilot only executes terminal commands in "agent mode." Outside agent mode, this command degrades to prose-only — read the files yourself and reason about the same three checks without the script, which carries a higher error rate than the scripted version.",
+  ".specs/README.md": "# SpecPilot Specifications
+
+This folder contains structured documentation for your project.
+
+## 🚀 Quick Start: Generate Your Specs with AI
+
+Your spec files have been scaffolded with placeholders. An onboarding prompt has been saved to [\`development/onboarding.md\`](development/onboarding.md).
+
+1. Open \`development/onboarding.md\` and copy the prompt inside it.
+2. Paste it into your AI agent (VS Code, Cursor, etc.).
+3. The AI will draft all spec files based on your project description.
+4. Review each file, refine as needed, then **delete \`onboarding.md\`**.
+
+Run \`specpilot validate\` to check consistency at any time.
+
+## 📁 File Structure
+- \`project/\`: Metadata and requirements
+- \`architecture/\`: Design and APIs
+- \`planning/\`: Tasks and roadmap
+- \`quality/\`: Testing
+- \`development/\`: Docs and prompts
+
+## 🛠️ Commands
+\\\`\\\`\\\`bash
+# Validate your specs
+specpilot validate
+
+# Add specs to an existing project later
+specpilot add-specs
+\\\`\\\`\\\`
+
+For AI guidelines and prompt history, see [\`development/prompts.md\`](development/prompts.md).",
+  ".specs/architecture/api.yaml": "# .specs/architecture/api.yaml
+# meta: project=parcel-track language=typescript framework=express updated=2026-10-06
+
+project: "parcel-track"
+version: "1.0.0"
+lastUpdated: "2026-10-06"
+
+openapi: "3.0.0"
+info:
+  title: "parcel-track API"
+  version: "1.0.0"
+  description: "[TODO: Describe your API]"
+
+servers:
+  - url: "http://localhost:3000"
+    description: "Local development"
+
+paths:
+  /example:
+    get:
+      summary: "[TODO: Replace with your first endpoint]"
+      responses:
+        "200":
+          description: "Success"
+",
+  ".specs/architecture/architecture.md": "---
+title: Architecture
+description: System design, components, data flow, and architecture decisions
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Architecture
+
+## Overview
+This document outlines the architecture and design decisions for parcel-track, a typescript application.
+
+## Architecture Patterns
+- **Language**: typescript
+- **Architecture Style**: [Specify: MVC, Microservices, Layered, etc.]
+- **Data Flow**: [Specify: Unidirectional, Event-driven, etc.]
+
+## Core Components
+
+### Application Structure
+*No architecture analysis available. This template was generated without project analysis.*
+
+**Application structure placeholder:**
+\`\`\`text
+[ADD YOUR APPLICATION STRUCTURE TREE HERE]
+\`\`\`
+
+*Replace the placeholder with the directories and files that represent your real application structure. Include annotations for responsibilities when helpful.*
+
+## Design Decisions
+
+### Decision 1: [Decision Title]
+- **Date**: 2026-10-06
+- **Context**: [Why this decision was needed]
+- **Decision**: [What was decided]
+- **Consequences**: [Positive and negative impacts]
+
+## Deployment Architecture
+[Describe deployment strategy, infrastructure, and environments]
+
+## Security Considerations
+[List security measures and considerations]
+
+## Performance Considerations
+[Describe performance requirements and optimization strategies]
+
+## Monitoring and Observability
+[Describe logging, metrics, and monitoring strategy]
+
+## Assumptions
+
+> Label each assumption with [ASSUMPTION] so it can be reviewed and revised.
+
+- [ASSUMPTION] [e.g. Single-region deployment; no multi-region failover required]
+- [ASSUMPTION] [e.g. No backward-compatibility constraints with legacy systems]
+- [ASSUMPTION] [e.g. Runtime environment is controlled; no adversarial input at infrastructure level]
+
+---
+*Last updated: 2026-10-06*",
+  ".specs/development/context.md": "---
+title: Development Context
+description: Project memory, decisions, and implementation notes
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Development Context
+
+## Project Memory
+[TODO]",
+  ".specs/development/onboarding.md": "---
+title: Onboarding Prompt (Greenfield)
+description: One-time AI prompt to bootstrap .specs/ files — delete after use
+project: parcel-track
+lastUpdated: 2026-10-06
+---
+
+> **One-time file — delete after use.**
+> Copy the prompt below and paste it into your AI agent. Once all \`.specs/\` files are populated, your AI will delete this file as its final step. If it doesn't, delete it manually.
+
+---
+
+You are the specification co-pilot for a new project called "parcel-track".
+Tech stack: typescript / express
+
+**Project context (provided by the developer):**
+- **What it does:** Tracks parcels
+- **Target users:** Couriers
+- **Expected scale:** Hundreds of parcels a day
+- **Key constraints:** No native app
+
+**For any areas not covered above, make reasonable assumptions. Clearly label ALL assumptions with [ASSUMPTION] so the developer can review and revise them.**
+
+Based on this context, populate all .specs files following these strict conventions:
+
+**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-girishr-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
+
+**Your Process:**
+1. Read the project context above carefully
+2. For each .specs file, generate content that:
+   - Derives requirements, architecture, and tasks from the project description
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project ambition (prototype = concise, production = comprehensive)
+3. Propose a realistic roadmap with milestones
+4. Draft a test strategy appropriate for the project type
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- These specs are a starting point — the developer will review and refine them
+- Flag uncertainties and assumptions with [ASSUMPTION] comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what you understood, assumptions you made, and recommended next steps.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin drafting now.",
+  ".specs/development/prompts.md": "---
+title: Prompts Log
+description: AI interaction log for parcel-track
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# Development Prompts Log
+
+## Overview
+This file (prompts.md) contains ALL AI interactions for parcel-track. Update .specs/prompts.md with every AI interaction.
+
+**🚨 MANDATE**: Update with every AI interaction.
+
+## Archive Policy
+
+> **Line limit: 100 lines.** When this file exceeds 100 lines, run:
+>
+> \`\`\`bash
+> specpilot archive
+> \`\`\`
+>
+> This will move older entries from this file into \`development/prompts-archive.md\` automatically, keeping the most recent entries here. A \`--dry-run\` flag is available to preview changes before writing.
+>
+> No stub \`prompts-archive.md\` file is generated during \`specpilot init\` — it is created on first archive run.
+
+## Re-Anchor Prompt
+
+> Paste this into your AI agent when: the session has been running > 1 hour, you've made > 20 exchanges, or the AI seems to have forgotten project rules.
+
+~~~
+You are working on parcel-track (typescript / express).
+
+CRITICAL RULES — re-read these before continuing:
+1. NEVER commit, push, or deploy unless I explicitly ask you to.
+2. NEVER modify .specs/ folder structure or file names — only update file contents.
+3. After EVERY code change, proactively update all affected .specs/ files without being asked.
+4. Spec-First Development — update .specs/ before writing code.
+5. Log this and all AI interactions in .specs/development/prompts.md.
+
+For full project context, read .specs/project/project.yaml.
+~~~
+
+---
+
+## Prompt History
+
+| Date | User | Prompt Summary | Context |
+|------|------|----------------|---------|
+| YYYY-MM-DD | @username | Example prompt | Brief context or outcome |",
+  ".specs/planning/roadmap.md": "---
+title: Roadmap
+description: Release milestones, objectives, and delivery timeline
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track — Development Roadmap
+
+## Milestones
+[TODO]
+
+## Objectives
+[TODO]
+
+## Goals & Success Criteria
+[TODO]
+
+## Risks and Mitigations
+[TODO]",
+  ".specs/planning/tasks.md": "---
+fileID: TASKS-001
+description: Sprint tracker with backlog, current sprint, and completed work
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [roadmap.md, project.yaml, requirements.md]
+---
+
+# parcel-track — Task Tracking
+
+Task ID conventions
+
+- BL-###: Backlog items
+- CS-###: Current Sprint items
+- CD-{devPrefix}-###: Completed items (e.g. CD-girishr-001)
+- PROMPT-{devPrefix}-###: Prompt log entries (e.g. PROMPT-girishr-001)
+
+## Backlog
+
+[TODO]
+
+## Current Sprint
+
+[TODO]
+
+## Completed
+
+1. [CD-001] Initialise .specs directory (2026-10-06)",
+  ".specs/project/project.yaml": "# parcel-track - SDD Project Configuration
+name: parcel-track
+version: "1.0.0"
+language: typescript
+framework: express
+description: Tracks parcels for small couriers
+
+# Rules and mandates: see your AI agent configuration file (single source of truth)
+
+# Team Guidelines
+team:
+  devPrefix: "girishr"
+  code_review_required: true
+  testing_required: true
+  documentation_required: true
+  
+# Build and Deployment
+build:
+  command: "npm run build"
+  
+  
+  
+  
+
+# Dependencies (framework-specific)
+dependencies:
+  runtime:
+    - "express"
+    - "cors"
+    - "helmet"
+  development:
+    - "@types/express"
+    - "@types/cors"
+    - "@types/helmet"
+    - "typescript"
+    - "ts-node"",
+  ".specs/project/requirements.md": "---
+title: Requirements
+description: Functional and non-functional requirements for the project
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Requirements
+
+## Project Overview
+Tracks parcels for small couriers
+
+## Functional Requirements
+[TODO]
+
+## Assumptions
+[TODO]",
+  ".specs/quality/tests.md": "---
+title: Test Strategy
+description: Test strategy, coverage goals, and quality approach
+project: parcel-track
+language: typescript
+framework: express
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# parcel-track Test Strategy
+
+## Overview
+[TODO]",
+  ".specs/security/security-decisions.md": "---
+fileID: SEC-002
+description: Security ADR log with decisions, rationale, and trade-offs
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [security/threat-model.md, architecture/architecture.md]
+---
+
+# Security Decisions
+
+## Decisions [SEC-002.1]
+[TODO]",
+  ".specs/security/threat-model.md": "---
+fileID: SEC-001
+description: Threat model and attack surface analysis
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [security/security-decisions.md, architecture/architecture.md, project/requirements.md]
+---
+
+# Threat Model
+
+## Overview [SEC-001.1]
+[TODO]
+
+## Threat Model [SEC-002]
+[TODO]
+
+## Attack Surface Summary [SEC-003]
+[TODO]
+
+## Out of Scope [SEC-004]
+[TODO]",
+  ".vscode/extensions.json": "{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot",
+    "ms-vscode.vscode-typescript-next"
+  ],
+  "unwantedRecommendations": []
+}",
+  ".vscode/settings.json": "{
+  // SpecPilot AI IDE Configuration
+  // This file configures VS Code to work effectively with SpecPilot specs
+
+  // AI CONTEXT: The recommended way to give AI agents access to your .specs files
+  // is via .github/copilot-instructions.md (VS Code Copilot) or your IDE's equivalent
+  // custom instructions file. See .specs/development/prompts.md for guidelines.
+  // Copy the "First-Use Onboarding Prompt" and paste into your AI agent to populate specs
+
+  // Ensure .specs folder is included in workspace search (not excluded)
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, api.yaml)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation (requires redhat.vscode-yaml extension)
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}"
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  }
+}",
+}
+`;
+
+exports[`spec core golden recording (BL-032) vscode typescript/nest brownfield with analysis 1`] = `
+{
+  ".gitattributes": ".specs/development/prompts*.md merge=union
+.specs/planning/tasks.md merge=union
+CHANGELOG.md merge=union
+",
+  ".github/copilot-instructions.md": "# AI Coding Instructions — legacy-api
+
+> This file is automatically read by GitHub Copilot, Cursor, and other AI tools on every request.
+> Keep this file short — only critical mandates. Full context is in \`.specs/project/project.yaml\`.
+
+## Project
+
+- **Name:** legacy-api
+- **Stack:** typescript / nest
+- **Specs location:** \`.specs/\`
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+
+## 🟡 Process Mandates
+
+- **Spec-First:** Update \`.specs/\` before writing code.
+- **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
+- **Document decisions** in \`.specs/development/context.md\`.
+
+## Context — read on demand by task type
+
+| Task type | Read |
+|---|---|
+| Session start | \`.specs/project/project.yaml\` |
+| Feature / bug | + \`project/requirements.md\`, \`planning/tasks.md\` |
+| Architecture | + \`architecture/architecture.md\` |
+| Tests | + \`quality/tests.md\` |
+| Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
+| Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+",
+  ".github/prompts/specpilot-archive.prompt.md": "---
+mode: agent
+description: Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard
+---
+
+Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+
+Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+PROMPTS_LINE_LIMIT=100
+PROMPTS_KEEP_LINES=80
+COMPLETED_LINE_LIMIT=40
+COMPLETED_KEEP_ENTRIES=20
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  read -p "Continue? [y/N] " confirm
+  if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    echo "Archive cancelled."
+    exit 0
+  fi
+fi
+
+timestamp() { date -u +"%Y-%m-%d %H:%M:%S"; }
+
+archive_prompts() {
+  local file=".specs/development/prompts.md"
+  local archive=".specs/development/prompts-archive.md"
+  [ -f "$file" ] || return 0
+
+  # Mirrors the CLI's planPromptsArchive() line for line. The log is the list under
+  # "## Latest Entries", else the table under "## Prompt History". Each entry's date is the
+  # last "Month D, YYYY", "Mon. D, YYYY" or "YYYY-MM-DD" in it (a table row: its Date cell).
+  # All dated entries must run one way; the oldest whole entries then move until the file
+  # is within PROMPTS_KEEP_LINES, keeping at least one. Line counts use the CLI's arithmetic
+  # (wc -l + 1). Prints "MOVE <first> <last> <header>" (1-based lines; header 0 for a list),
+  # "REFUSE <reason>", or nothing.
+  local plan
+  plan=$(LC_ALL=C awk -v total="$(wc -l < "$file")" -v limit="$PROMPTS_LINE_LIMIT" -v keep="$PROMPTS_KEEP_LINES" '
+    function trim(s) { sub(/^[ \\t\\r]+/, "", s); sub(/[ \\t\\r]+$/, "", s); return s }
+    function word(c) { return c ~ /[A-Za-z0-9_]/ }
+    function iso(k) { return sprintf("%04d-%02d-%02d", int(k / 10000), int(k / 100) % 100, k % 100) }
+    function lastdate(s,   key, pos, a, b, t, p, m, y, mo, d) {
+      key = 0; pos = 0
+      while (match(substr(s, pos + 1), /(January|February|March|April|May|June|July|August|September|October|November|December|Sept|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\\.? [0-9][0-9]?, [0-9][0-9][0-9][0-9]|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/)) {
+        a = pos + RSTART; b = a + RLENGTH; t = substr(s, a, RLENGTH)
+        # a > 1 guard: on macOS awk substr(s, 0, 1) returns the first character, not ""
+        if ((a > 1 && word(substr(s, a - 1, 1))) || word(substr(s, b, 1))) { pos = a; continue }
+        if (t ~ /^[0-9]/) { y = substr(t, 1, 4) + 0; mo = substr(t, 6, 2) + 0; d = substr(t, 9, 2) + 0 }
+        else { split(t, p, " "); m = p[1]; sub(/\\.$/, "", m); mo = MON[tolower(m)]; d = p[2] + 0; y = p[3] + 0 }
+        if (mo >= 1 && mo <= 12 && d >= 1 && d <= 31) key = y * 10000 + mo * 100 + d
+        pos = b - 1
+      }
+      return key
+    }
+    function excerpt(s,   t, i, c, n, out) {
+      t = trim(s); n = 0; out = ""
+      for (i = 1; i <= length(t); i++) {
+        c = substr(t, i, 1)
+        if (ORD[c] < 128 || ORD[c] >= 192) n++
+        if (n > 60) return "\\"" out "…\\""
+        out = out c
+      }
+      return "\\"" t "\\""
+    }
+    BEGIN {
+      split("january jan february feb march mar april apr may june jun july jul august aug september sept sep october oct november nov december dec", nm, " ")
+      split("1 1 2 2 3 3 4 4 5 6 6 7 7 8 8 9 9 9 10 10 11 11 12 12", nv, " ")
+      for (i = 1; i <= 24; i++) MON[nm[i]] = nv[i] + 0
+      for (i = 1; i < 256; i++) ORD[sprintf("%c", i)] = i
+    }
+    { line[NR] = $0; tl[NR] = trim($0) }
+    END {
+      L = total + 1
+      if (L <= limit) exit
+      n = 0; hdr = 0; s = 0
+      for (i = 1; i <= NR; i++) if (index(tl[i], "## Latest Entries") == 1) { s = i; break }
+      if (s) {
+        e = L + 1; for (i = s + 1; i <= NR; i++) if (tl[i] ~ /^## /) { e = i; break }
+        cur = 0
+        for (i = s + 1; i < e && i <= NR; i++) {
+          if (line[i] ~ /^[-*+] /) { n++; st[n] = i; en[n] = i; cur = 1 }
+          else if (cur && line[i] ~ /^[ \\t\\r]+[^ \\t\\r]/) en[n] = i
+          else cur = 0
+        }
+        for (k = 1; k <= n; k++) { txt = line[st[k]]; for (i = st[k] + 1; i <= en[k]; i++) txt = txt "\\n" line[i]; dt[k] = lastdate(txt) }
+      } else {
+        for (i = 1; i <= NR; i++) if (index(tl[i], "## Prompt History") == 1) { s = i; break }
+        if (!s) { print "REFUSE development/prompts.md has no \\"## Latest Entries\\" list or \\"## Prompt History\\" table, so there is nothing SpecPilot can archive safely."; exit }
+        e = L + 1; for (i = s + 1; i <= NR; i++) if (tl[i] ~ /^## /) { e = i; break }
+        for (i = s + 1; i < e - 1 && i < NR; i++) if (tl[i] ~ /^\\|/ && tl[i + 1] ~ /^\\|[ \\t:|-]+$/) { hdr = i; break }
+        if (hdr) {
+          col = 0; h = tl[hdr]; sub(/^\\|/, "", h); sub(/\\|$/, "", h); m = split(h, hc, "|")
+          for (j = 1; j <= m; j++) if (tolower(trim(hc[j])) == "date") { col = j; break }
+          for (i = hdr + 2; i < e && i <= NR && tl[i] ~ /^\\|/; i++) {
+            n++; st[n] = i; en[n] = i
+            if (col) { r = tl[i]; sub(/^\\|/, "", r); sub(/\\|$/, "", r); split(r, rc, "|"); dt[n] = lastdate(trim(rc[col])) }
+            else dt[n] = lastdate(line[i])
+          }
+        }
+      }
+      if (n < 2) exit
+      dir = 0; ps = 0; pd = 0
+      for (k = 1; k <= n; k++) {
+        if (!dt[k]) continue
+        if (ps && dt[k] != pd) {
+          step = dt[k] > pd ? 1 : -1
+          if (!dir) dir = step
+          else if (step != dir) {
+            print "REFUSE SpecPilot cannot tell which development/prompts.md entries are oldest, because their dates run both ways: " excerpt(line[ps]) " (" iso(pd) ") comes right before " excerpt(line[st[k]]) " (" iso(dt[k]) ") in a log that otherwise runs " (dir < 0 ? "newest first" : "oldest first") ". Put those entries in order and run it again."
+            exit
+          }
+        }
+        ps = st[k]; pd = dt[k]
+      }
+      if (!dir) { print "REFUSE SpecPilot cannot tell which development/prompts.md entries are oldest: fewer than two entries carry different dates."; exit }
+      for (k = 1; k < n; k++) {
+        if (dir < 0) { a = st[n - k + 1]; b = en[n] } else { a = st[1]; b = en[k] }
+        if (L - (b - a + 1) <= keep) break
+      }
+      print "MOVE", a, b, hdr
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  case "$plan" in
+    REFUSE\\ *) echo "Not archived: \${plan#REFUSE }"; return 0 ;;
+  esac
+  local kind first last header
+  read -r kind first last header <<< "$plan"
+
+  # A file with no line break after its last line, whose moved block reaches that line: the
+  # CLI joins lines with "\\n", so the block still ends with a blank line in the archive and the
+  # kept file ends, still without a line break, at the line before the block.
+  local at_end=0
+  if [ -n "$(tail -c 1 "$file")" ] && [ "$last" -eq $(( $(wc -l < "$file") + 1 )) ]; then at_end=1; fi
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$header" -gt 0 ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    if [ "$at_end" = 1 ]; then echo; fi
+    echo; echo "---"; echo
+  } >> "$archive"
+  if [ "$at_end" = 1 ]; then
+    awk -v n=$((first - 1)) 'NR <= n { printf "%s%s", (NR > 1 ? "\\n" : ""), $0 }' "$file" > "$file.tmp"
+  else
+    { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
+  fi
+  mv "$file.tmp" "$file"
+  echo "Moved $((last - first + 1)) lines from $file -> $archive"
+}
+
+archive_tasks() {
+  local file=".specs/planning/tasks.md"
+  local archive=".specs/planning/tasks-archive.md"
+  [ -f "$file" ] || return 0
+
+  # Mirrors the CLI's planCompletedArchive() line for line. The section runs from
+  # "## Completed" to the next "## " heading, not EOF. Sizes use the CLI's arithmetic,
+  # which counts one more line than wc -l at EOF, so the EOF section end is total + 2.
+  # Entries are numbered-list lines, or else the body rows of a table (header and
+  # separator stay put); a table keeps only as many rows as fit the line limit.
+  # Prints "<shape> <first> <last> <header>" as 1-based lines to move, or nothing.
+  local plan
+  plan=$(awk -v total="$(wc -l < "$file")" -v limit="$COMPLETED_LINE_LIMIT" -v keep_max="$COMPLETED_KEEP_ENTRIES" '
+    { line[NR] = $0; t = $0; gsub(/^[ \\t]+|[ \\t]+$/, "", t); trimmed[NR] = t }
+    END {
+      for (i = 1; i <= NR; i++) if (trimmed[i] == "## Completed") { start = i; break }
+      if (!start) exit
+      end_ = total + 2
+      for (i = start + 1; i <= NR; i++) if (trimmed[i] ~ /^## /) { end_ = i; break }
+      size = end_ - start
+      if (size <= limit) exit
+      for (i = start + 1; i < end_; i++) if (line[i] ~ /^[0-9]+\\./) {
+        if (end_ - i <= keep_max) exit
+        print "list", i, end_ - keep_max - 1, 0
+        exit
+      }
+      for (i = start + 1; i < end_ - 1; i++) if (trimmed[i] ~ /^\\|/ && trimmed[i + 1] ~ /^\\|[ \\t:|-]+$/) {
+        body = i + 2; stop = body
+        while (stop < end_ && trimmed[stop] ~ /^\\|/) stop++
+        rows = stop - body
+        keep = limit - (size - rows); if (keep < 0) keep = 0; if (keep > keep_max) keep = keep_max
+        if (rows <= keep) exit
+        print "table", body, stop - keep - 1, i
+        exit
+      }
+    }' "$file")
+  [ -n "$plan" ] || return 0
+  local shape first last header
+  read -r shape first last header <<< "$plan"
+
+  {
+    echo "## Archived on $(timestamp)"; echo
+    if [ "$shape" = "table" ]; then sed -n "\${header},$((header + 1))p" "$file"; fi
+    sed -n "\${first},\${last}p" "$file"
+    echo; echo "---"; echo
+  } >> "$archive"
+  { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\\$p" "$file"; } > "$file.tmp"
+  mv "$file.tmp" "$file"
+  echo "Moved $((last - first + 1)) entries from $file -> $archive"
+}
+
+archive_prompts
+archive_tasks
+\`\`\`
+
+After running it:
+1. Report what the script moved (file, line/entry count, archive destination) using its own output — do not recompute or second-guess the numbers.
+2. If nothing exceeded the threshold, say so plainly: "Nothing to archive."
+3. IDs are preserved automatically since content is moved verbatim into the archive file, never rewritten or renumbered.
+
+This mirrors CLI \`specpilot archive --dry-run --force\` (REQ-002.A.8); the branch guard mirrors ARCH-004.19 (warns and requires \`y\` confirmation when not on \`main\`/\`master\`).",
+  ".github/prompts/specpilot-backfill.prompt.md": "---
+mode: agent
+description: Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files
+---
+
+Backfill missing SpecPilot mandate sections into whichever IDE files already exist in this project. Run the script below — it checks four fingerprints per file and appends whichever are missing, append-only, never overwriting existing content.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+CANDIDATE_FILES=(
+  ".github/copilot-instructions.md"
+  "CLAUDE.md"
+  ".cursor/rules/specpilot.mdc"
+  ".windsurfrules"
+  ".antigravity/rules.md"
+)
+
+has_critical() { grep -qF "Critical Mandates" "$1"; }
+has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$1"; }
+has_rules() { grep -qF "## Code Rules" "$1"; }
+has_reanchor() { grep -qF "## Re-Anchor" "$1"; }
+
+append_critical() {
+  cat <<'BLOCK' >> "$1"
+
+## 🔴 Critical Mandates — Never violate, no exceptions
+
+1. No commit unless asked.
+2. No push unless asked.
+3. No deploy/publish/release unless asked.
+4. No \`.specs/\` structure changes — content only.
+5. Update specs after change:
+   - Trivial → \`planning/tasks.md\`
+   - Feature → \`project/requirements.md\` + \`planning/tasks.md\`
+   - Architectural → all affected files + \`CHANGELOG.md\`
+6. Never reference file contents without reading first. If unread, say so.
+7. Never write code or change files unless asked. Ask first.
+8. Spec-first gate (scale to task size):
+   - Trivial → no gate
+   - Feature → read 1–2 relevant \`.specs/\` files before coding
+   - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+BLOCK
+}
+
+append_philosophy() {
+  cat <<'BLOCK' >> "$1"
+
+## Code Philosophy — Write Only What Needed
+
+1. Need exist? No → skip. Say why.
+2. Already in codebase? → reuse. Not rewrite.
+3. Stdlib do it? → use it.
+4. Native or installed dep cover it? → use. No new deps.
+5. One line do it? → write that.
+6. Only then: minimum code that work.
+7. Never cut: validation, error handling, security, explicit requirement.
+BLOCK
+}
+
+append_rules() {
+  cat <<'BLOCK' >> "$1"
+
+## Code Rules
+
+1. No abstraction, interface, factory, or pattern unless asked.
+2. No scaffold "for later". Later scaffold itself.
+3. Delete before add.
+4. Shortest correct diff win.
+5. Fix cause, not symptom. One guard in shared function beat guard in every caller.
+6. Boring over clever. Clever = 3am bug.
+7. Read before write. Never reference code you haven't read.
+BLOCK
+}
+
+append_reanchor() {
+  cat <<'BLOCK' >> "$1"
+
+## Re-Anchor
+
+If you lose context mid-session, read \`.specs/project/project.yaml\` to restore full project context.
+For a ready-made re-anchor prompt, see \`.specs/development/prompts.md → ## Re-Anchor Prompt\`.
+BLOCK
+}
+
+for f in "\${CANDIDATE_FILES[@]}"; do
+  if [ ! -f "$f" ]; then
+    echo "SKIPPED (not found): $f"
+    continue
+  fi
+
+  added=()
+  has_critical "$f" || { append_critical "$f"; added+=("Critical Mandates"); }
+  has_philosophy "$f" || { append_philosophy "$f"; added+=("Code Philosophy"); }
+  has_rules "$f" || { append_rules "$f"; added+=("Code Rules"); }
+  has_reanchor "$f" || { append_reanchor "$f"; added+=("Re-Anchor"); }
+
+  if [ \${#added[@]} -eq 0 ]; then
+    echo "ALREADY CURRENT: $f"
+  else
+    echo "UPDATED: $f (added: \${added[*]})"
+  fi
+done
+
+echo
+echo "== team.devPrefix check =="
+YAML=".specs/project/project.yaml"
+if [ -f "$YAML" ] && ! grep -q "devPrefix:" "$YAML"; then
+  echo "MISSING: team.devPrefix in $YAML — ask the user for a short handle (e.g. GitHub username) and add it under a team: section."
+fi
+\`\`\`
+
+After running it:
+1. Report per file: updated (with which sections were added), already-current, or skipped (file not found).
+2. If the devPrefix check printed a missing-handle line, ask the user for a short handle (their GitHub/GitLab/Bitbucket username or any short tag) and add it under a \`team:\` section in \`project.yaml\` yourself — the script only detects the gap, it does not prompt interactively.
+3. Never overwrite existing content in any file; every append goes to the end of the file.
+
+**Maintenance cost**: unlike the CLI's \`specBackfiller.ts\`, this command has no shared source-of-truth constant to import — its four fingerprint blocks above are a literal copy and must be manually kept in sync whenever \`CLAUDE.md\`/\`copilot-instructions.md\` generation changes (\`buildCriticalMandatesMarkdown()\`, \`buildCodePhilosophyMarkdown()\` in \`ideConfigGenerator.ts\`). If this command's output ever looks stale, check those functions first.",
+  ".github/prompts/specpilot-reanchor.prompt.md": "---
+mode: agent
+description: Restore full project context after losing it mid-session
+---
+
+Restore operating context for this project.
+
+1. Read \`.specs/project/project.yaml\` in full.
+2. Read the \`## Re-Anchor Prompt\` section of \`.specs/development/prompts.md\` verbatim.
+3. Restate both as your current operating context for the rest of this session — project identity, stack, rules, and the Re-Anchor Prompt's guidance.
+
+Do not summarize or paraphrase away detail; this command exists specifically to recover full context, not an abbreviated version of it.",
+  ".github/prompts/specpilot-refine.prompt.md": "---
+mode: agent
+description: Refine .specs/ requirements from a new requirement description, with a diff preview before writing
+---
+
+Refine the project's spec files with a new requirement.
+
+Requirement description: $ARGUMENTS
+
+1. Read the current \`.specs/project/requirements.md\`, \`.specs/development/context.md\`, and \`.specs/development/prompts.md\`.
+2. Propose specific additions or edits to those files that incorporate the requirement description above, following the existing stable-ID conventions (e.g. \`REQ-###.#\`).
+3. Show a line-level diff preview of every proposed change — do not just describe it.
+4. Wait for the user's confirmation before writing anything.
+5. Once confirmed, write the changes.
+
+This mirrors the CLI's \`specpilot refine\` (REQ-002.A.6) as a standalone agent workflow — it has no dependency on the CLI being installed.",
+  ".github/prompts/specpilot-report.prompt.md": "---
+mode: agent
+description: Run the Spec-First review gate: classify the change, update specs, then wait for confirmation before coding
+---
+
+Formalize the Spec-First review gate (mandate 8) for the pending change.
+
+1. Classify the pending change as trivial, feature, or architectural:
+   - Trivial: no spec update required.
+   - Feature: touches \`project/requirements.md\` and \`planning/tasks.md\`.
+   - Architectural: touches all affected spec files plus \`CHANGELOG.md\`.
+2. Read the relevant \`.specs/\` files per the Context routing table (session start → \`project/project.yaml\`; feature/bug → + \`project/requirements.md\`, \`planning/tasks.md\`; architecture → + \`architecture/architecture.md\`; tests → + \`quality/tests.md\`; security → + \`security/threat-model.md\`, \`security/security-decisions.md\`; planning → + \`planning/tasks.md\`, \`planning/roadmap.md\`).
+3. Update the affected spec files first — before writing any code.
+4. Present a Spec Report: classification, files touched, what changed in each, and what the specs now say.
+5. Wait for the user's literal \`yes, proceed\` before writing or editing any code or non-spec file. An ambiguous "ok" or "sure" is not sufficient for an architectural-tier change — ask for the explicit phrase if it wasn't given.",
+  ".github/prompts/specpilot-status.prompt.md": "---
+mode: agent
+description: Show current sprint status and next milestone at a glance
+---
+
+Give a one-screen status summary of the current sprint.
+
+1. Read \`.specs/planning/tasks.md\` and extract the \`## Current Sprint\` section — list each item's ID and a short (<15 word) restatement.
+2. Read \`.specs/planning/roadmap.md\` and find the \`## Milestones\` section — identify the next incomplete milestone.
+3. Present a compact summary with two headings:
+   - **Current Sprint**: bullet list of \`[CS-###] [BL-###]\` items with their short restatement.
+   - **Next Milestone**: the next unchecked milestone from roadmap.md.
+
+Keep it to one screen — do not re-print full task descriptions, just IDs and short summaries.",
+  ".github/prompts/specpilot-sync.prompt.md": "---
+mode: agent
+description: Compare .specs/ against actual project state and propose fixes for drift
+---
+
+Find and fix drift between \`.specs/\` and the real project.
+
+1. Read \`.specs/architecture/architecture.md\`, \`.specs/project/requirements.md\`, and \`.specs/quality/tests.md\`.
+2. Compare their claims against the actual \`src/\` structure and \`package.json\` (versions, dependencies, scripts).
+3. List concrete discrepancies: stale version numbers, renamed or removed files/modules still referenced, undocumented modules that exist in \`src/\` but aren't mentioned in the specs, stale command or test-suite lists.
+4. Propose specific per-file edits to close each discrepancy — do not just describe the problem, show the fix.
+5. Wait for the user's confirmation before writing any of the proposed edits.
+
+This is a judgment/comparison task, not a mechanical one — do not attempt to script the diff; read and reason about each file.",
+  ".github/prompts/specpilot-validate.prompt.md": "---
+mode: agent
+description: Validate .specs/ structure, front-matter, and cross-references; suggest fixes without auto-applying
+---
+
+Validate the project's \`.specs/\` files. Run the script below, then summarize the results in plain language.
+
+\`\`\`bash
+cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+
+REQUIRED_FILES=(
+  ".specs/project/project.yaml"
+  ".specs/architecture/architecture.md"
+  ".specs/project/requirements.md"
+  ".specs/architecture/api.yaml"
+  ".specs/quality/tests.md"
+  ".specs/planning/tasks.md"
+  ".specs/development/context.md"
+  ".specs/development/prompts.md"
+  ".specs/security/threat-model.md"
+  ".specs/security/security-decisions.md"
+)
+
+echo "== Missing required files =="
+missing=0
+for f in "\${REQUIRED_FILES[@]}"; do
+  if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
+done
+[ "$missing" -eq 0 ] && echo "none"
+
+echo
+echo "== Front-matter field checks (fileID, lastUpdated, version, contributors, relatedFiles) =="
+clean=1
+for f in "\${REQUIRED_FILES[@]}"; do
+  [[ "$f" == *.md ]] || continue
+  [ -f "$f" ] || continue
+  fm=$(sed -n '2,/^---$/p' "$f")
+  for field in fileID lastUpdated version contributors relatedFiles; do
+    if ! echo "$fm" | grep -q "^\${field}:"; then
+      echo "MISSING $field in $f"
+      clean=0
+    fi
+  done
+done
+[ "$clean" -eq 1 ] && echo "all fields present"
+
+echo
+echo "== relatedFiles cross-reference check =="
+clean=1
+for f in "\${REQUIRED_FILES[@]}"; do
+  [[ "$f" == *.md ]] || continue
+  [ -f "$f" ] || continue
+  refs=$(sed -n '2,/^---$/p' "$f" | sed -n '/^relatedFiles:/,/^[a-zA-Z]/p' | grep -oE '[A-Za-z0-9_.-]+\\.(md|yaml)')
+  for ref in $refs; do
+    if ! find .specs -name "$ref" | grep -q .; then
+      echo "BROKEN REF in $f -> $ref (not found anywhere under .specs/)"
+      clean=0
+    fi
+  done
+done
+[ "$clean" -eq 1 ] && echo "all cross-references resolve"
+\`\`\`
+
+Never eyeball line counts or fingerprints by hand where this script already computes them exactly.
+
+After running it:
+1. Summarize each of the three sections in plain language (what's missing, what's wrong, what's broken).
+2. For every issue found, suggest a specific fix — but never apply it automatically. Wait for the user to ask before editing any file.
+3. If everything passes, say so plainly; do not manufacture issues.
+
+**Known platform limitation**: GitHub Copilot only executes terminal commands in "agent mode." Outside agent mode, this command degrades to prose-only — read the files yourself and reason about the same three checks without the script, which carries a higher error rate than the scripted version.",
+  ".specs/README.md": "# SpecPilot Specifications
+
+This folder contains structured documentation for your codebase.
+
+## 🚀 Quick Start: Populate Your Specs
+
+Your spec files have been scaffolded with placeholders. An onboarding prompt has been saved to [\`development/onboarding.md\`](development/onboarding.md).
+
+1. Open \`development/onboarding.md\` and copy the prompt inside it.
+2. Paste it into your AI agent (VS Code, Cursor, etc.).
+3. The AI will analyze your codebase and populate all spec files.
+4. Review each file, refine as needed, then **delete \`onboarding.md\`**.
+
+Run \`specpilot validate\` to check consistency at any time.
+
+## 📁 File Structure
+- \`project/\`: Metadata and requirements
+- \`architecture/\`: Design and APIs
+- \`planning/\`: Tasks and roadmap
+- \`quality/\`: Testing
+- \`development/\`: Docs and prompts
+
+## 🛠️ Commands
+\\\`\\\`\\\`bash
+# Validate your specs
+specpilot validate
+
+# Update specs after code changes
+specpilot add-specs
+\\\`\\\`\\\`
+
+For AI guidelines and prompt history, see [\`development/prompts.md\`](development/prompts.md).",
+  ".specs/architecture/api.yaml": "# .specs/architecture/api.yaml
+# meta: project=legacy-api language=typescript framework=nest updated=2026-10-06
+
+project: "legacy-api"
+version: "1.0.0"
+lastUpdated: "2026-10-06"
+
+openapi: "3.0.0"
+info:
+  title: "legacy-api API"
+  version: "1.0.0"
+  description: "[TODO: Describe your API]"
+
+servers:
+  - url: "http://localhost:3000"
+    description: "Local development"
+
+paths:
+  /example:
+    get:
+      summary: "[TODO: Replace with your first endpoint]"
+      responses:
+        "200":
+          description: "Success"
+",
+  ".specs/architecture/architecture.md": "---
+title: Architecture
+description: System design, components, data flow, and architecture decisions
+project: legacy-api
+language: typescript
+framework: nest
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# legacy-api Architecture
+
+## Overview
+This document outlines the architecture and design decisions for legacy-api, a typescript application.
+
+## Architecture Patterns
+- **Language**: typescript
+- **Architecture Style**: [Specify: MVC, Microservices, Layered, etc.]
+- **Data Flow**: [Specify: Unidirectional, Event-driven, etc.]
+
+## Core Components
+
+### Application Structure
+Based on analysis of the project structure:
+\`\`\`
+src/
+  routes/
+  store/
+\`\`\`
+
+**Components found**: Router, Store
+
+**File types in project**:
+- .ts: 12 files
+- .json: 2 files
+
+## Design Decisions
+
+### Decision 1: [Decision Title]
+- **Date**: 2026-10-06
+- **Context**: [Why this decision was needed]
+- **Decision**: [What was decided]
+- **Consequences**: [Positive and negative impacts]
+
+## Deployment Architecture
+[Describe deployment strategy, infrastructure, and environments]
+
+## Security Considerations
+[List security measures and considerations]
+
+## Performance Considerations
+[Describe performance requirements and optimization strategies]
+
+## Monitoring and Observability
+[Describe logging, metrics, and monitoring strategy]
+
+## Assumptions
+
+> Label each assumption with [ASSUMPTION] so it can be reviewed and revised.
+
+- [ASSUMPTION] [e.g. Single-region deployment; no multi-region failover required]
+- [ASSUMPTION] [e.g. No backward-compatibility constraints with legacy systems]
+- [ASSUMPTION] [e.g. Runtime environment is controlled; no adversarial input at infrastructure level]
+
+---
+*Last updated: 2026-10-06*",
+  ".specs/development/context.md": "---
+title: Development Context
+description: Project memory, decisions, and implementation notes
+project: legacy-api
+language: typescript
+framework: nest
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# legacy-api Development Context
+
+## Project Memory
+[TODO]",
+  ".specs/development/onboarding.md": "---
+title: Onboarding Prompt (Brownfield)
+description: One-time AI prompt to bootstrap .specs/ files — delete after use
+project: legacy-api
+lastUpdated: 2026-10-06
+---
+
+> **One-time file — delete after use.**
+> Copy the prompt below and paste it into your AI agent. Once all \`.specs/\` files are populated, your AI will delete this file as its final step. If it doesn't, delete it manually.
+
+---
+
+You are onboarding as the specification co-pilot for this repository. We just initialized the .specs directory using SpecPilot SDD. Your task is to inspect the codebase and populate all .specs files following these strict conventions:
+
+**Conventions & Rules:**
+1. **IDs**: Use semantic prefixes with zero-padded numbers (e.g., REQ-001, CD-girishr-001)
+2. **Status values**: Must be one of: not-started, in-progress, completed, blocked, deprecated
+3. **Priority values**: Must be: critical, high, medium, low
+4. **Dates**: Use ISO 8601 format (YYYY-MM-DD)
+5. **YAML**: Use proper indentation (2 spaces), include all required fields
+6. **Markdown**: Use ATX headers (#), fenced code blocks, consistent formatting
+7. **Traceability**: Link requirements to tasks, tasks to tests, architecture to implementation
+8. **❌ CRITICAL**: Never modify the .specs folder structure or file names. Only update file CONTENTS.
+
+**File Structure:**
+- \`project/project.yaml\`: name, version, description, tech_stack[], dependencies[]
+- \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
+- \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
+- \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
+- \`planning/tasks.md\`: ## Backlog/In Progress/Completed with TASK-XXX IDs
+- \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
+- \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
+- \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
+
+**Your Process:**
+1. Analyze the codebase: language, framework, structure, existing tests, dependencies
+2. For each .specs file, generate content that:
+   - Reflects the actual implementation state
+   - Follows the conventions above exactly
+   - Maintains internal consistency (cross-references work)
+   - Scales appropriately to project size (small = concise, large = comprehensive)
+3. Identify gaps: missing tests, undocumented APIs, unclear requirements, architectural debt
+4. Propose actionable next steps in planning/tasks.md
+
+**Output Format:**
+For each file, provide the complete content in a fenced code block:
+\`\`\`markdown
+// filepath: .specs/project/project.yaml
+[full file content]
+\`\`\`
+
+**Constraints:**
+- Maintain the exact file paths and names from the .specs structure
+- Don't invent features that don't exist in the code
+- Flag uncertainties with TODO comments
+- Keep descriptions clear, concise, and technical
+- Ensure all IDs are unique within their domain
+
+After populating all files, provide a summary of: what was discovered, what's documented vs. implemented, critical gaps, and recommended immediate actions.
+
+**Final step: delete \`.specs/development/onboarding.md\` — it is a one-time bootstrap file.**
+
+Begin your analysis now.",
+  ".specs/development/prompts.md": "---
+title: Prompts Log
+description: AI interaction log for legacy-api
+project: legacy-api
+language: typescript
+framework: nest
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# Development Prompts Log
+
+## Overview
+This file (prompts.md) contains ALL AI interactions for legacy-api. Update .specs/prompts.md with every AI interaction.
+
+**🚨 MANDATE**: Update with every AI interaction.
+
+## Archive Policy
+
+> **Line limit: 100 lines.** When this file exceeds 100 lines, run:
+>
+> \`\`\`bash
+> specpilot archive
+> \`\`\`
+>
+> This will move older entries from this file into \`development/prompts-archive.md\` automatically, keeping the most recent entries here. A \`--dry-run\` flag is available to preview changes before writing.
+>
+> No stub \`prompts-archive.md\` file is generated during \`specpilot init\` — it is created on first archive run.
+
+## Re-Anchor Prompt
+
+> Paste this into your AI agent when: the session has been running > 1 hour, you've made > 20 exchanges, or the AI seems to have forgotten project rules.
+
+~~~
+You are working on legacy-api (typescript / nest).
+
+CRITICAL RULES — re-read these before continuing:
+1. NEVER commit, push, or deploy unless I explicitly ask you to.
+2. NEVER modify .specs/ folder structure or file names — only update file contents.
+3. After EVERY code change, proactively update all affected .specs/ files without being asked.
+4. Spec-First Development — update .specs/ before writing code.
+5. Log this and all AI interactions in .specs/development/prompts.md.
+
+For full project context, read .specs/project/project.yaml.
+~~~
+
+---
+
+## Prompt History
+
+| Date | User | Prompt Summary | Context |
+|------|------|----------------|---------|
+| YYYY-MM-DD | @username | Example prompt | Brief context or outcome |",
+  ".specs/planning/roadmap.md": "---
+title: Roadmap
+description: Release milestones, objectives, and delivery timeline
+project: legacy-api
+language: typescript
+framework: nest
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# legacy-api — Development Roadmap
+
+## Milestones
+[TODO]
+
+## Objectives
+[TODO]
+
+## Goals & Success Criteria
+[TODO]
+
+## Risks and Mitigations
+[TODO]",
+  ".specs/planning/tasks.md": "---
+fileID: TASKS-001
+description: Sprint tracker with backlog, current sprint, and completed work
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [roadmap.md, project.yaml, requirements.md]
+---
+
+# legacy-api — Task Tracking
+
+Task ID conventions
+
+- BL-###: Backlog items
+- CS-###: Current Sprint items
+- CD-{devPrefix}-###: Completed items (e.g. CD-girishr-001)
+- PROMPT-{devPrefix}-###: Prompt log entries (e.g. PROMPT-girishr-001)
+
+## Backlog
+
+[TODO]
+
+## Current Sprint
+
+[TODO]
+
+## Completed
+
+1. [CD-001] Initialise .specs directory (2026-10-06)",
+  ".specs/project/project.yaml": "# legacy-api - SDD Project Configuration
+name: legacy-api
+version: "1.0.0"
+language: typescript
+
+description: A typescript project using nest
+
+# Rules and mandates: see your AI agent configuration file (single source of truth)
+
+# Team Guidelines
+team:
+  devPrefix: "girishr"
+  code_review_required: true
+  testing_required: true
+  documentation_required: true
+  
+# Build and Deployment
+build:
+  command: "npm run build"
+  
+  
+  
+  
+
+# Dependencies (framework-specific)
+dependencies:
+  runtime: []
+  development: []",
+  ".specs/project/requirements.md": "---
+title: Requirements
+description: Functional and non-functional requirements for the project
+project: legacy-api
+language: typescript
+framework: nest
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# legacy-api Requirements
+
+## Project Overview
+A typescript project using nest
+
+## Functional Requirements
+[TODO]
+
+## Assumptions
+[TODO]",
+  ".specs/quality/tests.md": "---
+title: Test Strategy
+description: Test strategy, coverage goals, and quality approach
+project: legacy-api
+language: typescript
+framework: nest
+lastUpdated: 2026-10-06
+sourceOfTruth: project/project.yaml
+---
+
+# legacy-api Test Strategy
+
+## Overview
+[TODO]",
+  ".specs/security/security-decisions.md": "---
+fileID: SEC-002
+description: Security ADR log with decisions, rationale, and trade-offs
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [security/threat-model.md, architecture/architecture.md]
+---
+
+# Security Decisions
+
+## Decisions [SEC-002.1]
+[TODO]",
+  ".specs/security/threat-model.md": "---
+fileID: SEC-001
+description: Threat model and attack surface analysis
+lastUpdated: 2026-10-06
+version: 1.0
+contributors: [girishr]
+relatedFiles: [security/security-decisions.md, architecture/architecture.md, project/requirements.md]
+---
+
+# Threat Model
+
+## Overview [SEC-001.1]
+[TODO]
+
+## Threat Model [SEC-002]
+[TODO]
+
+## Attack Surface Summary [SEC-003]
+[TODO]
+
+## Out of Scope [SEC-004]
+[TODO]",
+  ".vscode/extensions.json": "{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "redhat.vscode-yaml",
+    "github.copilot",
+    "ms-vscode.vscode-typescript-next"
+  ],
+  "unwantedRecommendations": []
+}",
+  ".vscode/settings.json": "{
+  // SpecPilot AI IDE Configuration
+  // This file configures VS Code to work effectively with SpecPilot specs
+
+  // AI CONTEXT: The recommended way to give AI agents access to your .specs files
+  // is via .github/copilot-instructions.md (VS Code Copilot) or your IDE's equivalent
+  // custom instructions file. See .specs/development/prompts.md for guidelines.
+  // Copy the "First-Use Onboarding Prompt" and paste into your AI agent to populate specs
+
+  // Ensure .specs folder is included in workspace search (not excluded)
+  "search.exclude": {
+    "**/.specs/*": false
+  },
+
+  // Markdown formatting for spec files
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // YAML formatting for spec files (project.yaml, api.yaml)
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2
+  },
+
+  // YAML validation (requires redhat.vscode-yaml extension)
+  "yaml.validate": true,
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.{yml,yaml}"
+  },
+
+  // General file exclusions
+  "files.exclude": {
+    "**/.git": true,
+    "**/node_modules": true,
+    "**/__pycache__": true
+  }
+}",
+}
+`;
+
+exports[`spec core golden recording (BL-032) vscode typescript/react none inferred 1`] = `
+{
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".github/copilot-instructions.md": "509a78ae48832c3cf644d5b0ac53e6d1002ea3f17cea8b3f98fdee81ac9641bd",
+  ".github/prompts/specpilot-archive.prompt.md": "d04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2",
+  ".github/prompts/specpilot-backfill.prompt.md": "df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc",
+  ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
+  ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
+  ".github/prompts/specpilot-report.prompt.md": "6e72be94c576ac7000896d68e1509d21f4218e1a917ce90b1debd252fdfaddd5",
+  ".github/prompts/specpilot-status.prompt.md": "4620467bfeb8ee2cd31b0b2f45564c41290746332804a2b6de6daa1b25519a1d",
+  ".github/prompts/specpilot-sync.prompt.md": "ef134e6db6cdfb1adcde442c2f4221503e73fbdd2d48172f5ee0f7e3929eee83",
+  ".github/prompts/specpilot-validate.prompt.md": "265ac29d8c2cdf8688dfbfac6b67c266ef1a477ffb608e5222679595bff8d32a",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/architecture.md": "5060cc6ee98f58c2c6f612f87aa13f21a94bf480dfa758ad9505f9461a3ea1d7",
+  ".specs/development/context.md": "5673c13e7542f485334bc81a58023b970d03230938312c685e1e21a2726519a7",
+  ".specs/development/onboarding.md": "b83b11671b57f1621abbf583c71edd68d450df8b958e1aaa6a381254ef57bcc8",
+  ".specs/development/prompts.md": "537946701d725d0b34a5f8528bff4d9fa34942c771f8aab4125682147878cf84",
+  ".specs/planning/roadmap.md": "c462f4d74def35734d672a27cbf54b7d3b09f886523ecf079ce271af73bc6876",
+  ".specs/planning/tasks.md": "f5f4bca1d6487ea4079768d1eeb152a27f8f3bef95d093db9d5d24a94099517e",
+  ".specs/project/project.yaml": "df0c5d340333117be6747f577f3177f733b0c30ee2cdb5677e54db5d0475498e",
+  ".specs/project/requirements.md": "88f7833d4733cec0eb0c0851c28834101d618c7ef1d7613340a8bb7d9a5463ba",
+  ".specs/quality/tests.md": "351b11e3e7b42396ba915fbf5656b16e3a90f7f0956676b843c08ece08455553",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+  ".vscode/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
+  ".vscode/settings.json": "66eb7aac95e472034e43f9c62699644bee3d518e4531fc45193513531121cdd7",
+}
+`;
+
+exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfield 1`] = `
+{
+  ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
+  ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
+  ".specs/architecture/api.yaml": "093c04fa9daf2ccfa44249b87adf915a19ddcd68f52f2db67b3d0c2e23ce9dd4",
+  ".specs/architecture/architecture.md": "84ca1dbf45c875c33e7fce00bf99f3023ccf411ad51b091d2bb6fb80ce42f530",
+  ".specs/development/context.md": "bc31cc7c5593b99db88cbc6fbd3a0fccbfae9009a69fe7243bbf8301590fb9ab",
+  ".specs/development/onboarding.md": "67a999e63bab73ee9bae4b52a326714207a460bf19c82d3c6d5d44e82fcdd05d",
+  ".specs/development/prompts.md": "c0681890c4e99cda37fdd19fb6bcee4d57600d2989c28d38b1b216058da86883",
+  ".specs/planning/roadmap.md": "b693f9ae1a82c887dfd5e977a98351d9b63bd08dfc9db68ee690e19f5ac5cb21",
+  ".specs/planning/tasks.md": "14bff608b94309d69e73dc9f1f030ab5c69caaa1c5d12cf291b9ee78079d98ab",
+  ".specs/project/project.yaml": "645232ad7c475d214a3bbe824ab9b7683fcbdd553aa47ce5680116866cc88bb4",
+  ".specs/project/requirements.md": "d1905f1f97d40a660fb0597ecd90875cd156f3d99785a5c7383b1b06a79108ab",
+  ".specs/quality/tests.md": "2db364325db4dccad2aa401e2714368cc21efc0d29a5c513785a3d5515984a0c",
+  ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
+  ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
+  ".windsurf/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
+  ".windsurf/settings.json": "24f529abe8c9c93f91ca9c1590151223a01ecf4cbbb37ae36200bf6004a96014",
+  ".windsurf/workflows/specpilot-archive.md": "dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497",
+  ".windsurf/workflows/specpilot-backfill.md": "1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737",
+  ".windsurf/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
+  ".windsurf/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
+  ".windsurf/workflows/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
+  ".windsurf/workflows/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
+  ".windsurf/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
+  ".windsurf/workflows/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
+  ".windsurfrules": "4a7644d187a2102784ae9844263717ccfce8719cb172ce576fbe7c2fcd18258a",
+}
+`;

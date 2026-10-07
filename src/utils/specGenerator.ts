@@ -1,108 +1,41 @@
-import { join } from 'path';
-import { mkdirSync } from 'fs';
-import { TemplateEngine, TemplateContext } from './templateEngine';
-import { SpecFileGenerator } from './specFileGenerator';
-import { GITATTRIBUTES_FILE, IdeConfigGenerator } from './ideConfigGenerator';
-import { AgentConfigGenerator } from './agentConfigGenerator';
-import { SlashCommandGenerator } from './slashCommandGenerator';
+import { dirname, join } from 'path';
+import { mkdirSync, writeFileSync } from 'fs';
+import { render, RenderOptions, targetsInSpecs, targetsOutsideSpecs } from '../core/render';
+import { GITATTRIBUTES_FILE } from '../core/ideConfig';
+import { IdeConfigGenerator, writeNew } from './ideConfigGenerator';
 
-export interface SpecGeneratorOptions {
-  projectName: string;
-  language: string;
-  framework?: string;
+export interface SpecGeneratorOptions extends RenderOptions {
   targetDir: string;
   specsName: string;
-  author?: string;
-  description?: string;
-  ide?: string;
-  mode?: 'new' | 'existing';
-  projectType?: 'greenfield' | 'brownfield';
-  apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
-  projectContext?: {
-    whatItDoes: string;
-    targetUsers: string;
-    expectedScale: string;
-    constraints: string;
-  };
-  analysis?: {
-    todos: Array<{ file: string; line: number; text: string; type: string }>;
-    tests: {
-      framework?: string;
-      testFiles: string[];
-      testCount: number;
-      hasE2E: boolean;
-      hasUnit: boolean;
-      hasIntegration: boolean;
-    };
-    architecture: {
-      components: string[];
-      directories: string;
-      fileTypes: Record<string, number>;
-    };
-  };
 }
 
-const AGENT_IDES = new Set(['claude-code', 'codex']);
-
-const REST_FRAMEWORKS = new Set(['express', 'fastapi', 'django', 'flask', 'next', 'nest', 'spring', 'ktor', 'vapor']);
-const NO_API_FRAMEWORKS = new Set(['react', 'vue', 'angular', 'android', 'ios', 'swiftui', 'compose', 'streamlit']);
-
-function inferApiParadigm(framework?: string): 'rest' | 'cli' | 'graphql' | 'none' {
-  if (!framework) return 'rest';
-  const f = framework.toLowerCase();
-  if (REST_FRAMEWORKS.has(f)) return 'rest';
-  if (NO_API_FRAMEWORKS.has(f)) return 'none';
-  return 'rest';
-}
-
+/**
+ * The writer over the core's `render()` (BL-032): every file content comes from `src/core/`; this
+ * class only puts it on disk, the way `init`, `add-specs`, `refine --update` and `serve` always did.
+ */
 export class SpecGenerator {
-  private specFileGenerator: SpecFileGenerator;
-  private ideConfigGenerator: IdeConfigGenerator;
-  private agentConfigGenerator: AgentConfigGenerator;
-  private slashCommandGenerator: SlashCommandGenerator;
-
-  constructor(private templateEngine: TemplateEngine) {
-    this.specFileGenerator = new SpecFileGenerator(templateEngine);
-    this.ideConfigGenerator = new IdeConfigGenerator();
-    this.agentConfigGenerator = new AgentConfigGenerator(templateEngine);
-    this.slashCommandGenerator = new SlashCommandGenerator();
-  }
+  private ideConfigGenerator = new IdeConfigGenerator();
 
   /**
-   * Writes `.specs/` and the IDE files. Outside `.specs/` a file that already exists is never changed
-   * (BL-073): `kept` lists those paths in generator order; `appended` counts lines added to `.gitattributes`.
+   * Writes `.specs/` and the IDE files. Inside `.specs/` a file is written as it is rendered (replaced
+   * when present, which `refine --update` relies on). Outside `.specs/` a file that already exists is
+   * never changed (BL-073): `kept` lists those paths in generator order; `appended` counts lines added
+   * to `.gitattributes`, which is the one file merged rather than created (REQ-002.B.8).
    */
   async generateSpecs(options: SpecGeneratorOptions): Promise<{ onboardingPrompt: string; kept: string[]; appended: number }> {
-    const specsDir = join(options.targetDir, options.specsName);
-    mkdirSync(specsDir, { recursive: true });
-    const subfolders = ['project', 'architecture', 'planning', 'quality', 'development', 'security'];
-    subfolders.forEach(sub => mkdirSync(join(specsDir, sub), { recursive: true }));
-    const context: TemplateContext = {
-      projectName: options.projectName,
-      language: options.language,
-      framework: options.framework,
-      author: options.author || 'Your Name',
-      description: options.description || ('A ' + options.language + ' project' + (options.framework ? ' using ' + options.framework : '')),
-      lastUpdated: new Date().toISOString().split('T')[0],
-      contributors: [options.author || 'Your Name'],
-      architecture: options.analysis && options.analysis.architecture,
-      ide: options.ide || 'vscode',
-      mode: options.mode || 'new',
-      projectType: options.projectType ?? (options.mode === 'existing' ? 'brownfield' : 'greenfield'),
-      apiParadigm: options.apiParadigm ?? inferApiParadigm(options.framework),
-      projectContext: options.projectContext,
-    };
-    const { onboardingPrompt } = await this.specFileGenerator.generateAll(specsDir, context);
-    const ide = (options.ide || 'vscode').toLowerCase();
-    const kept = AGENT_IDES.has(ide)
-      ? await this.agentConfigGenerator.generate(options.targetDir, context, ide)
-      : await this.ideConfigGenerator.generate(options.targetDir, context, ide);
-    // Generate the IDE-native AI context file (routed per IDE choice)
-    kept.push(...this.ideConfigGenerator.generateAiContextFile(options.targetDir, context, ide));
-    // Generate per-IDE slash/workflow command files
-    kept.push(...this.slashCommandGenerator.generate(options.targetDir, ide));
-    // Generate .gitattributes with merge=union for append-heavy spec files
-    const appended = this.ideConfigGenerator.generateGitAttributes(options.targetDir);
+    const { files, onboardingPrompt } = render(options);
+    const kept: string[] = [];
+    let appended = 0;
+    for (const file of files) {
+      const target = join(options.targetDir, ...file.path.split('/'));
+      if (file.path === GITATTRIBUTES_FILE) {
+        appended = this.ideConfigGenerator.generateGitAttributes(options.targetDir);
+        continue;
+      }
+      mkdirSync(dirname(target), { recursive: true });
+      if (file.path.startsWith(`${options.specsName}/`)) writeFileSync(target, file.content);
+      else if (!writeNew(target, file.content)) kept.push(file.path);
+    }
     return { onboardingPrompt, kept, appended };
   }
 
@@ -111,22 +44,16 @@ export class SpecGenerator {
    * order it writes them (BL-PM-004); `api.yaml` is absent for `none`.
    */
   targetsInSpecs(apiParadigm: string, specsName = '.specs'): string[] {
-    return this.specFileGenerator.targets(apiParadigm).map(rel => `${specsName}/${rel}`);
+    return targetsInSpecs(apiParadigm, specsName);
   }
 
   /**
    * The project-relative files `generateSpecs()` writes outside `.specs/` for an IDE choice, in the
-   * order it writes them (BL-055): read from the same tables the writes use, and pinned to the real
+   * order it writes them (BL-055): read from the same tables the renders use, and pinned to the real
    * output by a test, so `specpilot serve` can say which existing files it will keep before it runs.
    */
   targetsOutsideSpecs(ide = 'vscode'): string[] {
-    const key = ide.toLowerCase();
-    return [
-      ...(AGENT_IDES.has(key) ? this.agentConfigGenerator.targets(key) : this.ideConfigGenerator.settingsTargets(key)),
-      this.ideConfigGenerator.aiContextTarget(key),
-      ...this.slashCommandGenerator.targets(key),
-      GITATTRIBUTES_FILE,
-    ];
+    return targetsOutsideSpecs(ide);
   }
 }
 

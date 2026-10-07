@@ -27,4 +27,17 @@ module.exports = [
             'no-undef': 'off', // TypeScript handles this
         },
     },
+    {
+        // The spec core is pure (BL-032, REQ-002.I.2): it may import only handlebars and files beside it.
+        files: ['src/core/**/*.ts'],
+        rules: {
+            'no-restricted-imports': ['error', {
+                patterns: [{
+                    group: ['fs', 'path', 'os', 'crypto', 'child_process', 'util', 'http', 'https', 'net', 'node:*', '../*'],
+                    message: 'src/core is pure: it may import only handlebars and files beside it (REQ-002.I.2).',
+                }],
+            }],
+            'no-restricted-globals': ['error', 'process', 'Buffer', '__dirname', '__filename', 'require'],
+        },
+    },
 ];

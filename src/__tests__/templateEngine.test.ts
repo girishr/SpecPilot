@@ -1,4 +1,4 @@
-import { TemplateEngine, TemplateContext } from '../utils/templateEngine';
+import { TemplateEngine, TemplateContext } from '../core/templateEngine';
 
 const BASE: TemplateContext = { projectName: 'TestApp', language: 'typescript' };
 

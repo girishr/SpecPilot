@@ -4,7 +4,7 @@ import * as yaml from 'js-yaml';
 import * as os from 'os';
 import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
-import { TemplateContext } from './templateEngine';
+import { TemplateContext } from '../core/templateEngine';
 import { CommandRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
 

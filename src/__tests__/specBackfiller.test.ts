@@ -507,11 +507,10 @@ rules:
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { SpecGenerator } = require('../utils/specGenerator');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { TemplateEngine } = require('../utils/templateEngine');
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { SpecValidator } = require('../utils/specValidator');
       jest.spyOn(console, 'log').mockImplementation(() => undefined);
-      await new SpecGenerator(new TemplateEngine()).generateSpecs({ projectName: 'demo', language: 'typescript', targetDir: testDir, specsName: '.specs', ide: 'vscode', author: 'girishr', noPrompts: true });
+      await new SpecGenerator().generateSpecs({ projectName: 'demo', language: 'typescript', targetDir: testDir, specsName: '.specs', ide: 'vscode', author: 'girishr', noPrompts: true });
       const yamlBefore = readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8');
       const result = await backfiller.backfill(testDir, '.specs', true, true);
       expect(result.projectYaml.action).toBe('skipped');

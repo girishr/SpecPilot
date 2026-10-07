@@ -1,5 +1,4 @@
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
-import { TemplateEngine } from '../utils/templateEngine';
 import { writeNew } from '../utils/ideConfigGenerator';
 import { refineCommand } from '../commands/refine';
 import { join } from 'path';
@@ -12,8 +11,7 @@ describe('SpecGenerator', () => {
   let testDir: string;
 
   beforeEach(() => {
-    const templateEngine = new TemplateEngine();
-    specGenerator = new SpecGenerator(templateEngine);
+    specGenerator = new SpecGenerator();
     testDir = join(__dirname, 'test-output');
   });
 

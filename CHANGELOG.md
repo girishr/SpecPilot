@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The spec templates and everything that renders them now live in a pure core** (`src/core/`: no file system, no Node API, checked by lint and a test), and `init`, `add-specs`, `refine --update` and `specpilot serve` write what it returns (BL-032, phase 1). Every file is byte for byte what 2.9.0 wrote, pinned by a test recorded on 2.9.0's generator. One difference in kind: every date in a generated project now comes from one value, where three separate clock reads could straddle midnight.
+
+### Added
+
+- **The templates accept 23 optional answers**, each rendered only when given (BL-032, phase 2): platforms; access control, special considerations and accessibility notes; architecture pattern, active users, team size, deployment targets, offline databases and sync strategy, integrations and other APIs, response-time and availability targets; databases, auth strategy and realtime transports; compliance and CI/CD; security concerns; build timeline; constraint detail; testing strategy. No command asks them yet: the chat of `specpilot serve` will (BL-PM-004b), and init.specpilot.dev's answers map onto them once it adopts the core. A project generated without them is unchanged.
+
+### Fixed
+
+- **`project.yaml` now reads back as written** (BL-085, folded into BL-032): `name:` and `description:` are quoted when YAML needs it (a description containing `: `, a name that looks like a number), and a description containing `&`, `<`, `>`, `"`, `'`, `` ` `` or `=` is written as typed, where it used to be HTML-encoded (`Don&#x27;t`). Any other value is written exactly as before.
+
 ## [2.9.0] - 2026-10-06
 
 ### Added

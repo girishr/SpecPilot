@@ -6,7 +6,6 @@ import inquirer from 'inquirer';
 import { ProjectDetector } from '../utils/projectDetector';
 import { getFrameworksForLanguage } from '../utils/frameworks';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
-import { TemplateEngine } from '../utils/templateEngine';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
@@ -153,8 +152,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     }
     
     // Initialize template engine and spec generator
-    const templateEngine = new TemplateEngine();
-    const specGenerator = new SpecGenerator(templateEngine);
+    const specGenerator = new SpecGenerator();
     
     // Generate .specs directory structure (the options builder is shared with `specpilot serve`, BL-055)
     const result = await specGenerator.generateSpecs(

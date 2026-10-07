@@ -5,7 +5,6 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import * as yaml from 'js-yaml';
 import { getFrameworksForLanguage } from '../utils/frameworks';
-import { TemplateEngine } from '../utils/templateEngine';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
@@ -260,8 +259,7 @@ export async function initCommand(name: string, options: InitOptions) {
     }
     
     // Initialize template engine and spec generator
-    const templateEngine = new TemplateEngine();
-    const specGenerator = new SpecGenerator(templateEngine);
+    const specGenerator = new SpecGenerator();
     
     // Generate .specs directory structure
     const result = await specGenerator.generateSpecs(

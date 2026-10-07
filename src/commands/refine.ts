@@ -2,7 +2,6 @@ import { join } from 'path';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import { TemplateEngine } from '../utils/templateEngine';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 
@@ -136,8 +135,7 @@ export async function refineCommand(description: string | undefined, options: Re
     if (options.update) {
       logger.info('🔄 Regenerating specifications with updated context...');
 
-      const templateEngine = new TemplateEngine();
-      const specGenerator = new SpecGenerator(templateEngine);
+      const specGenerator = new SpecGenerator();
 
       const result = await specGenerator.generateSpecs({
         projectName: projectName || 'updated-project',

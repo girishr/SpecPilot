@@ -7,7 +7,42 @@ export interface ProjectContext {
   constraints: string;
 }
 
-export interface TemplateContext {
+/** The optional answers of REQ-002.I.4 (BL-032, phase 2); each is rendered only when present. */
+export interface OptionalFields {
+  platforms?: string[];
+  accessControl?: string;
+  specialConsiderations?: string[];
+  accessibilityNotes?: string;
+  systemPattern?: string;
+  activeUsers?: string;
+  teamSize?: string;
+  deploymentTargets?: string[];
+  localDatabases?: string[];
+  dataSyncStrategy?: string;
+  integrations?: Record<string, string[]>;
+  otherApis?: string;
+  apiResponseTime?: string;
+  availability?: string;
+  databases?: string[];
+  authStrategy?: string;
+  realtimeTypes?: string[];
+  compliance?: string[];
+  cicd?: string[];
+  securityConcerns?: string[];
+  buildTimeline?: string;
+  constraintDescription?: string;
+  testingStrategy?: string[];
+}
+
+/** The keys of `OptionalFields`, for `render()`'s present-or-absent rule. */
+export const OPTIONAL_FIELDS: (keyof OptionalFields)[] = [
+  'platforms', 'accessControl', 'specialConsiderations', 'accessibilityNotes', 'systemPattern', 'activeUsers', 'teamSize',
+  'deploymentTargets', 'localDatabases', 'dataSyncStrategy', 'integrations', 'otherApis', 'apiResponseTime', 'availability',
+  'databases', 'authStrategy', 'realtimeTypes', 'compliance', 'cicd', 'securityConcerns', 'buildTimeline', 'constraintDescription',
+  'testingStrategy',
+];
+
+export interface TemplateContext extends OptionalFields {
   projectName: string;
   language: string;
   framework?: string;
@@ -18,12 +53,44 @@ export interface TemplateContext {
   projectType?: 'greenfield' | 'brownfield';
   apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
   projectContext?: ProjectContext;
+  /** The date every generated file carries (`YYYY-MM-DD`); set by `render()` (BL-032). */
+  lastUpdated?: string;
   architecture?: {
     components: string[];
     directories: string; // Changed from string[]
     fileTypes: Record<string, number>;
   };
   [key: string]: any;
+}
+
+/** Present means: a string that is not blank, a list with an item, a map with a key (REQ-002.I.4). */
+export function present(value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') return Object.keys(value as object).length > 0;
+  return Boolean(value);
+}
+
+// A value YAML 1.2, or js-yaml (the reader `specpilot validate` uses), would not read back as the
+// same string when written plain (REQ-002.I.5): the words, every number spelling, and timestamps.
+const YAML_WORDS = /^(true|false|null|~|yes|no|on|off)$/i;
+const YAML_NUMBER = /^([-+]?(\.[0-9]+|[0-9][0-9_]*(\.[0-9_]*)?)([eE][-+]?[0-9]+)?|[-+]?0[box][0-9a-fA-F_]+|[-+]?\.(inf|Inf|INF)|\.(nan|NaN|NAN))$/;
+const YAML_TIMESTAMP = /^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \t]+)?([0-9]{1,2}:[0-9]{2}:[0-9]{2}(\.[0-9]*)?([ \t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?$/;
+
+/** `value` as a YAML scalar: plain when YAML reads it back unchanged, else double-quoted and escaped. */
+export function yamlScalar(value: string): string {
+  const plain =
+    value !== '' &&
+    !/^[\s\-?:,[\]{}#&*!|>'"%@`]/.test(value) &&
+    !/[\n\r\t]/.test(value) &&
+    !/: | #/.test(value) &&
+    !/[:\s]$/.test(value) &&
+    !YAML_WORDS.test(value) &&
+    !YAML_NUMBER.test(value) &&
+    !YAML_TIMESTAMP.test(value);
+  if (plain) return value;
+  return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n') + '"';
 }
 
 export class TemplateEngine {
@@ -38,10 +105,18 @@ export class TemplateEngine {
     Handlebars.registerHelper('capitalize', (str: string) => 
       str.charAt(0).toUpperCase() + str.slice(1)
     );
-    Handlebars.registerHelper('currentDate', () => new Date().toISOString().split('T')[0]);
-    Handlebars.registerHelper('currentYear', () => new Date().getFullYear());
+    // One date per render (BL-032): the context's `lastUpdated`, else today, for a bare renderFromString().
+    const dateOf = (options: Handlebars.HelperOptions) => options.data?.root?.lastUpdated ?? new Date().toISOString().split('T')[0];
+    Handlebars.registerHelper('currentDate', (options: Handlebars.HelperOptions) => dateOf(options));
+    Handlebars.registerHelper('currentYear', (options: Handlebars.HelperOptions) => Number(dateOf(options).slice(0, 4)));
     Handlebars.registerHelper('join', (array: string[], separator: string) => 
       Array.isArray(array) ? array.join(separator) : ''
+    );
+    // BL-032 phase 2: `any` for a section that several optional fields share; `yaml`/`yamlList` for YAML values (REQ-002.I.5).
+    Handlebars.registerHelper('any', (...args: unknown[]) => args.slice(0, -1).some(present));
+    Handlebars.registerHelper('yaml', (value: unknown) => new Handlebars.SafeString(yamlScalar(String(value ?? ''))));
+    Handlebars.registerHelper('yamlList', (items: unknown) =>
+      new Handlebars.SafeString(Array.isArray(items) ? items.map(item => `  - ${yamlScalar(String(item))}`).join('\n') : '  []')
     );
   }
   
@@ -106,11 +181,11 @@ export class TemplateEngine {
   
   private getProjectYamlTemplate(language: string, framework?: string): string {
     return `# {{projectName}} - SDD Project Configuration
-name: {{projectName}}
+name: {{yaml projectName}}
 version: "1.0.0"
 language: ${language}
 ${framework ? `framework: ${framework}` : ''}
-description: {{description}}
+description: {{yaml description}}
 
 # Rules and mandates: see your AI agent configuration file (single source of truth)
 
@@ -121,6 +196,12 @@ team:
   testing_required: true
   documentation_required: true
   
+{{#if platforms}}
+# Platforms
+platforms:
+{{yamlList platforms}}
+
+{{/if}}
 # Build and Deployment
 build:
   ${language === 'typescript' ? 'command: "npm run build"' : ''}
@@ -259,7 +340,7 @@ This document outlines the architecture and design decisions for {{projectName}}
 
 ## Architecture Patterns
 - **Language**: ${language}
-- **Architecture Style**: [Specify: MVC, Microservices, Layered, etc.]
+- **Architecture Style**: {{#if systemPattern}}{{systemPattern}}{{else}}[Specify: MVC, Microservices, Layered, etc.]{{/if}}
 - **Data Flow**: [Specify: Unidirectional, Event-driven, etc.]
 
 ## Core Components
@@ -300,6 +381,47 @@ Based on analysis of the project structure:
 *Replace the placeholder with the directories and files that represent your real application structure. Include annotations for responsibilities when helpful.*
 {{/if}}
 
+{{#if (any activeUsers teamSize)}}
+## Scale
+{{#if activeUsers}}
+- Active users: {{activeUsers}}
+{{/if}}
+{{#if teamSize}}
+- Team size: {{teamSize}}
+{{/if}}
+
+{{/if}}
+{{#if deploymentTargets}}
+## Deployment targets
+{{#each deploymentTargets}}
+- {{this}}
+{{/each}}
+
+{{/if}}
+{{#if (any localDatabases dataSyncStrategy)}}
+## Data layer
+- **Offline support**: Yes
+{{#if localDatabases}}
+- **Local database(s)**: {{join localDatabases ", "}}
+{{/if}}
+{{#if dataSyncStrategy}}
+- **Data sync strategy**: {{dataSyncStrategy}}
+{{/if}}
+
+{{/if}}
+{{#if (any integrations otherApis)}}
+## Integrations
+{{#each integrations}}
+- **{{@key}}**: {{join this ", "}}
+{{/each}}
+{{#if otherApis}}
+{{#if integrations}}
+
+{{/if}}
+Other: {{otherApis}}
+{{/if}}
+
+{{/if}}
 ## Design Decisions
 
 ### Decision 1: [Decision Title]
@@ -315,7 +437,16 @@ Based on analysis of the project structure:
 [List security measures and considerations]
 
 ## Performance Considerations
+{{#if (any apiResponseTime availability)}}
+{{#if apiResponseTime}}
+- **API response-time target**: {{apiResponseTime}}
+{{/if}}
+{{#if availability}}
+- **Availability target**: {{availability}}
+{{/if}}
+{{else}}
 [Describe performance requirements and optimization strategies]
+{{/if}}
 
 ## Monitoring and Observability
 [Describe logging, metrics, and monitoring strategy]

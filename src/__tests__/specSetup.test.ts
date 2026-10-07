@@ -8,7 +8,6 @@ const realFs = require('fs') as typeof import('fs');
 const realOs = require('os') as typeof import('os');
 import { join } from 'path';
 import { SpecGenerator } from '../utils/specGenerator';
-import { TemplateEngine } from '../utils/templateEngine';
 import { addSpecsOptions, IDE_CHOICES, SUPPORTED_LANGUAGES } from '../utils/addSpecsQuestions';
 import { ProjectDetector } from '../utils/projectDetector';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
@@ -61,7 +60,7 @@ async function cliOutput(root: string, answers: Record<string, string>): Promise
   const analysis = await new CodeAnalyzer().analyzeCodebase(root);
   const language = info ? info.language : answers.language;
   const framework = info?.framework ?? (answers.framework && answers.framework !== 'none' ? answers.framework : undefined);
-  await new SpecGenerator(new TemplateEngine()).generateSpecs(
+  await new SpecGenerator().generateSpecs(
     addSpecsOptions(root, info, { language, framework, projectType: answers.projectType as 'brownfield', apiParadigm: answers.apiParadigm as 'rest', handle: answers.handle, ide: answers.ide }, analysis),
   );
   return tree(root);
@@ -81,7 +80,7 @@ const folder = (files?: Record<string, string>) => {
 describe('targetsOutsideSpecs() is what generateSpecs() writes outside .specs/', () => {
   it.each(IDES)('for %s', async ide => {
     const root = folder();
-    const generator = new SpecGenerator(new TemplateEngine());
+    const generator = new SpecGenerator();
     await generator.generateSpecs({ projectName: 'p', language: 'typescript', targetDir: root, specsName: '.specs', ide });
     const written = Object.keys(tree(root)).filter(p => !p.startsWith('.specs/'));
     const listed = generator.targetsOutsideSpecs(ide);
@@ -755,7 +754,7 @@ const HANDLE_MESSAGE = 'The handle must be 1 to 39 characters of letters, digits
 describe('targetsInSpecs() is what generateSpecs() writes under .specs/ (BL-PM-004)', () => {
   it.each(PARADIGMS.flatMap(api => [[api, 'new'], [api, 'existing']] as const))('for %s, mode %s', async (apiParadigm, mode) => {
     const root = folder();
-    const generator = new SpecGenerator(new TemplateEngine());
+    const generator = new SpecGenerator();
     await generator.generateSpecs({ projectName: 'p', language: 'typescript', targetDir: root, specsName: '.specs', apiParadigm: apiParadigm as 'rest', mode });
     const written = Object.keys(tree(root)).filter(p => p.startsWith('.specs/'));
     const listed = generator.targetsInSpecs(apiParadigm);
@@ -766,7 +765,7 @@ describe('targetsInSpecs() is what generateSpecs() writes under .specs/ (BL-PM-0
 });
 
 describe('the questions carry their step, whether they are required, and the files that will be written (BL-PM-004)', () => {
-  const generator = new SpecGenerator(new TemplateEngine());
+  const generator = new SpecGenerator();
   const files = {
     specs: Object.fromEntries(PARADIGMS.map(v => [v, generator.targetsInSpecs(v)])),
     outside: Object.fromEntries(IDES.map(v => [v, generator.targetsOutsideSpecs(v)])),

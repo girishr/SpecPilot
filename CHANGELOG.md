@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.0] - 2026-10-07
+
 ### Changed
 
 - **The spec templates and everything that renders them now live in a pure core** (`src/core/`: no file system, no Node API, checked by lint and a test), and `init`, `add-specs`, `refine --update` and `specpilot serve` write what it returns (BL-032, phase 1). Every file is byte for byte what 2.9.0 wrote, pinned by a test recorded on 2.9.0's generator. One difference in kind: every date in a generated project now comes from one value, where three separate clock reads could straddle midnight.

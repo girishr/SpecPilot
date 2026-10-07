@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-07 (BL-032 completed)
-version: 6.17
+lastUpdated: 2026-10-07 (v2.10.0 prepared)
+version: 6.18
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -103,3 +103,4 @@ Notes
 | 158 | [CD-girishr-067] [BL-PM-004] | `specpilot serve` guided setup as the init.specpilot.dev chat (REQ-002.H.27): Start a New Project (`#new`) and the setup of a folder without `.specs/` ask the questions `init` and `add-specs` ask, one at a time, with a friendly line per question and the CLI's own question under it, step dividers, a progress bar, chips or a field, editing from any bubble or recap row, and a recap of cards with the files to be written folded inside; the wording comes from the server and the page holds no question text. Replaces the setup form and the sheet's New tab. Brownfield new projects skip the context questions. Name and handle rules in `ui/route.js`, one copy. Same routes, byte-identical output, no drafts (BL-PM-004b). +39 tests (952 → 991); commit `e886da4`. Shipped in v2.9.0. |
 | 159 | [CD-girishr-068] | v2.9.0 shipped (BL-075, BL-PM-003, BL-PM-002, BL-PM-004): pushed, npm `specpilot@2.9.0` latest, GitHub release live (2026-10-06) |
 | 160 | [CD-girishr-069] [BL-032] [BL-084] [BL-085] | Spec core, phases 1 and 2 (REQ-002.I, ARCH-004.46): a pure `src/core/` with `render()`, `generateSpecs()` as the writer, output byte for byte 2.9.0's and pinned by a golden recording, 23 optional template fields rendered only when present, `yaml`/`yamlList` helpers, BL-084 (the hash script runs again across every tag) and BL-085 (`project.yaml` reads back as written) fixed; commit `ed78051` on `main` (2026-10-07) |
+| 161 | [CD-girishr-070] | v2.10.0 release prepared (BL-032 phases 1 and 2, BL-084, BL-085): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.10.0]`, annotated tag `v2.10.0`; not pushed or published |

@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-06 (BL-032 Spec Report)
-version: 1.31
+lastUpdated: 2026-10-07 (v2.10.0 prepared)
+version: 1.32
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -81,6 +81,7 @@ relatedFiles: [tasks.md, project.yaml, requirements.md]
 - 2026-10-03: v2.7.1 — Fixed: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` instead of replacing them, and the overwrite / append / skip question is gone (BL-073) (per CHANGELOG `[2.7.1]`)
 - 2026-10-04: v2.8.0 — Added: open another project from the `specpilot serve` page and have it remembered in `~/.specpilot/projects.json` (BL-067); a Home screen with Open a Project Folder and Recent projects (BL-PM-001) (per CHANGELOG `[2.8.0]`)
 - 2026-10-06: v2.9.0 — Added: guided setup as the init.specpilot.dev chat in `specpilot serve` (BL-PM-004); start a new project (BL-PM-003) and clone a repository (BL-PM-002) from the page; `init` shares its question lists with `add-specs` and the page (BL-075) (per CHANGELOG `[2.9.0]`)
+- 2026-10-07: v2.10.0 — Changed: the spec templates and their rendering in a pure `src/core/`, with `init`, `add-specs`, `refine --update` and `specpilot serve` writing what `render()` returns, byte for byte 2.9.0's output (BL-032 phase 1); Added: 23 optional template fields rendered only when given (BL-032 phase 2); Fixed: `project.yaml` reads back as written (BL-085) (per CHANGELOG `[2.10.0]`)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 
@@ -89,7 +90,7 @@ Priority: the complete UI and its features first. Order, one BL per branch and S
 1. v2.7.1 patch: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073) ✅ in v2.7.1
 2. Projects: remembered projects and the Open a Project sheet (BL-067) ✅ and the Home screen (BL-PM-001) ✅ in v2.8.0
 3. New projects: start a new project in a new or empty folder (BL-PM-003) ✅, clone a repository (BL-PM-002) ✅ and the guided setup as the init.specpilot.dev chat over the CLI's questions (BL-PM-004) ✅, all in v2.9.0
-4. Shared spec core (BL-032, Spec Report 2026-10-06 on `feat/bl-032-spec-core`): phase 1, a pure render core in this repo with `generateSpecs()` as a writer over it, no byte change; phase 2, the 23 optional template fields the chat needs, rendered only when present; phase 3 later and gated on its own, the published `@specpilot/spec-core`, precompiled templates and `SpecPilot.Init` adopting it (REQ-002.I). Then the rest of the init.specpilot.dev chat on top of phase 2: the remaining 23 questions, richer pickers, filled-in spec content and a preview from `render()`, with setup drafts (BL-PM-004b)
+4. Shared spec core (BL-032): phase 1, a pure render core in this repo with `generateSpecs()` as a writer over it, no byte change, and phase 2, the 23 optional template fields the chat needs, rendered only when present, with BL-084 and BL-085 ✅ in v2.10.0; phase 3 later and gated on its own, the published `@specpilot/spec-core`, precompiled templates and `SpecPilot.Init` adopting it (REQ-002.I.6). Then the rest of the init.specpilot.dev chat on top of phase 2: the remaining 23 questions, richer pickers, filled-in spec content and a preview from `render()`, with setup drafts (BL-PM-004b)
 5. Page actions: New Task (BL-PM-005), Commands and Skills split with Regenerate All (BL-PM-006), Open in VS Code (BL-PM-008)
 6. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007)
 7. Full release of SpecPilot Local

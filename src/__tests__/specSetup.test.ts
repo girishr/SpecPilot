@@ -953,7 +953,7 @@ describe('the setup chat\'s decisions (ui/route.js, BL-PM-004)', () => {
       'divider:Step 2 · Platform & IDE', 'bot:language',
     ]);
     expect(rows[0]).toEqual({ kind: 'user', key: 'name', text: 'demo', mono: true, skipped: false });
-    expect(rows[2]).toEqual({ kind: 'bot', key: 'parent', text: "Nice, demo. Where should it live? I'll create demo/ inside this folder.", cli: 'Parent folder' });
+    expect(rows[2]).toEqual({ kind: 'bot', key: 'parent', text: "Nice, demo. Where should it live? I'll create demo/ inside this folder.", cli: 'Parent folder', caption: '' });
     expect(rows[3]).toMatchObject({ text: '/tmp/x', mono: true, skipped: false });
     expect(rows[5]).toMatchObject({ text: 'Greenfield', mono: false }); // a choice's text up to its ' — ' part; the chips keep the whole
     expect(rows[7]).toMatchObject({ text: '<b>x</b>' }); // text; the page escapes it

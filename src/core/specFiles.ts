@@ -152,9 +152,9 @@ function requirementsMd(engine: TemplateEngine, context: TemplateContext): strin
     const content = `---
 title: Requirements
 description: Functional and non-functional requirements for the project
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+project: {{fm projectName}}
+language: {{fm language}}
+framework: {{fm framework}}
 lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
@@ -201,7 +201,7 @@ function apiYaml(engine: TemplateEngine, context: TemplateContext): string {
     const header = `# .specs/architecture/api.yaml
 # meta: project={{projectName}} language={{language}} framework={{framework}} updated={{currentDate}}
 
-project: "{{projectName}}"
+project: "{{dq projectName}}"
 version: "1.0.0"
 lastUpdated: "{{currentDate}}"
 `;
@@ -210,7 +210,7 @@ lastUpdated: "{{currentDate}}"
       rest: `
 openapi: "3.0.0"
 info:
-  title: "{{projectName}} API"
+  title: "{{dq projectName}} API"
   version: "1.0.0"
   description: "[TODO: Describe your API]"
 
@@ -228,7 +228,7 @@ paths:
 `,
       cli: `
 cli:
-  name: "{{projectName}}"
+  name: "{{dq projectName}}"
   version: "1.0.0"
   commands:
     - name: "[TODO: first-command]"
@@ -281,7 +281,7 @@ fileID: TASKS-001
 description: Sprint tracker with backlog, current sprint, and completed work
 lastUpdated: {{currentDate}}
 version: 1.0
-contributors: [{{author}}]
+contributors: [{{fm author}}]
 relatedFiles: [roadmap.md, project.yaml, requirements.md]
 ---
 
@@ -314,9 +314,9 @@ function roadmapMd(engine: TemplateEngine, context: TemplateContext): string {
     const content = `---
 title: Roadmap
 description: Release milestones, objectives, and delivery timeline
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+project: {{fm projectName}}
+language: {{fm language}}
+framework: {{fm framework}}
 lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
@@ -347,9 +347,9 @@ function contextMd(engine: TemplateEngine, context: TemplateContext): string {
     const content = `---
 title: Development Context
 description: Project memory, decisions, and implementation notes
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+project: {{fm projectName}}
+language: {{fm language}}
+framework: {{fm framework}}
 lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
@@ -371,9 +371,9 @@ function promptsMd(engine: TemplateEngine, context: TemplateContext): string {
     const content = `---
 title: Prompts Log
 description: AI interaction log for {{projectName}}
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+project: {{fm projectName}}
+language: {{fm language}}
+framework: {{fm framework}}
 lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
@@ -562,9 +562,9 @@ function testsMd(engine: TemplateEngine, context: TemplateContext): string {
     const content = `---
 title: Test Strategy
 description: Test strategy, coverage goals, and quality approach
-project: {{projectName}}
-language: {{language}}
-framework: {{framework}}
+project: {{fm projectName}}
+language: {{fm language}}
+framework: {{fm framework}}
 lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---
@@ -587,7 +587,7 @@ fileID: SEC-001
 description: Threat model and attack surface analysis
 lastUpdated: {{currentDate}}
 version: 1.0
-contributors: [{{author}}]
+contributors: [{{fm author}}]
 relatedFiles: [security/security-decisions.md, architecture/architecture.md, project/requirements.md]
 ---
 
@@ -632,7 +632,7 @@ fileID: SEC-002
 description: Security ADR log with decisions, rationale, and trade-offs
 lastUpdated: {{currentDate}}
 version: 1.0
-contributors: [{{author}}]
+contributors: [{{fm author}}]
 relatedFiles: [security/threat-model.md, architecture/architecture.md]
 ---
 

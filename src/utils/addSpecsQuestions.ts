@@ -1,5 +1,6 @@
 import { ProjectInfo } from './projectDetector';
 import { SpecGeneratorOptions } from './specGenerator';
+import { OptionalFields } from '../core/templateEngine';
 
 // What `specpilot add-specs` asks, and how its answers become generator options: one copy, used by
 // the command's inquirer prompts and by `specpilot serve`'s guided setup (BL-055, ARCH-003.19).
@@ -82,9 +83,11 @@ export function addSpecsOptions(
   projectInfo: ProjectInfo | null,
   answers: AddSpecsAnswers,
   analysis: SpecGeneratorOptions['analysis'] | null,
+  fields: OptionalFields = {},
 ): SpecGeneratorOptions {
   const { language, framework } = answers;
   return {
+    ...fields,
     projectName: projectInfo?.name || 'my-project',
     language,
     framework,

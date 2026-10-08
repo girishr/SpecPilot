@@ -13,6 +13,9 @@ import {
 } from './addSpecsQuestions';
 import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, InitAnswers, projectNameError } from './initQuestions';
 import { checkOpenPath, HOME_OR_ROOT_ERROR, pathShapeError } from './projectRegistry';
+import { render, RenderedFile } from '../core/render';
+import { OptionalFields } from '../core/templateEngine';
+import { INTEGRATION_CATEGORY_IDS, MAX_LIST_ITEMS, OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 
 // Guided setup behind `specpilot serve` (BL-055, ARCH-003.20, SEC-004.12): what `add-specs` does, in a
 // named folder that has no `.specs/`, generated into a staging folder inside it and then created in
@@ -148,11 +151,60 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
 const KEYS = ['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide'];
 const oneOf = (key: string, values: string[]) => `"${key}" must be one of: ${values.join(', ')}.`;
 
+/** The 23 optional template fields a setup body may also carry (BL-PM-004b, REQ-002.H.28). */
+const FIELD_KEYS = Object.keys(OPTIONAL_FIELD_LIMITS);
+// What one line typed at the CLI's prompt cannot hold: control characters and the two line separators.
+// eslint-disable-next-line no-control-regex
+const NOT_ONE_LINE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+
+/** The optional fields of a body: each a string, a list or the integration map, short, one line. Null when fine. */
+function fieldsShapeError(b: Record<string, unknown>): string | null {
+  // `name` is how the message names the value: "platforms", or "platforms" items.
+  const text = (name: string, v: unknown, max: number): string | null => {
+    if (typeof v !== 'string') return `${name} must be text.`;
+    if (v.length > max) return `${name} must be at most ${max} characters.`;
+    return NOT_ONE_LINE.test(v) ? `${name} must be one line of text, without control characters.` : null;
+  };
+  const items = (name: string, v: unknown, max: number): string | null => {
+    if (!Array.isArray(v)) return `${name} must be a list.`;
+    if (v.length > MAX_LIST_ITEMS) return `${name} must have at most ${MAX_LIST_ITEMS} items.`;
+    for (const item of v) {
+      const problem = text(`${name} items`, item, max);
+      if (problem) return problem;
+    }
+    return null;
+  };
+  for (const key of FIELD_KEYS) {
+    if (!(key in b)) continue;
+    const { kind, max } = OPTIONAL_FIELD_LIMITS[key];
+    const v = b[key];
+    let problem: string | null = null;
+    if (kind === 'text') problem = text(`"${key}"`, v, max);
+    else if (kind === 'list') problem = items(`"${key}"`, v, max);
+    else if (!v || typeof v !== 'object' || Array.isArray(v)) problem = `"${key}" must be an object of lists.`;
+    else {
+      for (const [category, vendors] of Object.entries(v)) {
+        problem = INTEGRATION_CATEGORY_IDS.includes(category)
+          ? items(`"${key}.${category}"`, vendors, max)
+          : `"${key}" keys must be one of: ${INTEGRATION_CATEGORY_IDS.join(', ')}.`;
+        if (problem) break;
+      }
+    }
+    if (problem) return problem;
+  }
+  return null;
+}
+
+/** The optional fields of a checked body, for the generator. */
+function fieldsOf(b: Record<string, unknown>): OptionalFields {
+  return Object.fromEntries(FIELD_KEYS.filter(key => key in b).map(key => [key, b[key]])) as OptionalFields;
+}
+
 /** Shape of a setup body, checked before the lock: keys, types, fixed choices, the handle. Null when fine. */
 export function answersShapeError(body: unknown): string | null {
   const b = body as Record<string, unknown> | null;
   if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with projectType, apiParadigm, handle, ide and, when asked, language and framework.';
-  for (const key of Object.keys(b)) if (!KEYS.includes(key)) return `Unexpected field "${key}".`;
+  for (const key of Object.keys(b)) if (!KEYS.includes(key) && !FIELD_KEYS.includes(key)) return `Unexpected field "${key}".`;
   for (const key of ['projectType', 'apiParadigm', 'handle', 'ide']) if (!(key in b)) return `"${key}" is missing.`;
   for (const key of KEYS) if (key in b && typeof b[key] !== 'string') return `"${key}" must be a string.`;
   const lists: [string, string[]][] = [
@@ -161,7 +213,7 @@ export function answersShapeError(body: unknown): string | null {
     ['ide', IDE_CHOICES.map(c => c.value)],
   ];
   for (const [key, values] of lists) if (!values.includes(b[key] as string)) return oneOf(key, values);
-  return handleError(b.handle as string);
+  return handleError(b.handle as string) ?? fieldsShapeError(b);
 }
 
 /** `language` and `framework` against what the detector found: required when asked, absent otherwise. */
@@ -198,8 +250,15 @@ function walk(dir: string, rel = ''): string[] {
  * Run `add-specs` for `root` with `answers` (shape already checked). Synchronous from the `.specs` re-check
  * to the staging folder's removal, so the caller's lock is the only serialisation needed.
  */
-export async function setupProject(root: string, answers: Record<string, string>): Promise<SetupOutcome> {
+export async function setupProject(root: string, answers: Record<string, unknown>): Promise<SetupOutcome> {
   if (!specsMissing(root)) return { status: 409, error: '.specs/ already exists in this folder, so there is nothing to set up.', specsExists: true };
+  const options = await setupOptions(root, answers);
+  return 'status' in options ? options : placeGenerated(root, options);
+}
+
+/** The generator options `add-specs` would use in `root` for `answers` (shape already checked), or a 422. */
+async function setupOptions(root: string, body: Record<string, unknown>): Promise<SpecGeneratorOptions | { status: 422; error: string }> {
+  const answers = body as Record<string, string>;
   let info: ProjectInfo | null;
   let username: string;
   try {
@@ -214,15 +273,44 @@ export async function setupProject(root: string, answers: Record<string, string>
   const framework = info?.framework ?? (answers.framework && answers.framework !== 'none' ? answers.framework : undefined);
   const handle = answers.handle.trim() || username;
   const analysis = await new CodeAnalyzer().analyzeCodebase(root);
-  return placeGenerated(
+  return addSpecsOptions(
     root,
-    addSpecsOptions(
-      root,
-      info,
-      { language, framework, projectType: answers.projectType as AddSpecsAnswers['projectType'], apiParadigm: answers.apiParadigm as AddSpecsAnswers['apiParadigm'], handle, ide: answers.ide },
-      analysis,
-    ),
+    info,
+    { language, framework, projectType: answers.projectType as AddSpecsAnswers['projectType'], apiParadigm: answers.apiParadigm as AddSpecsAnswers['apiParadigm'], handle, ide: answers.ide },
+    analysis,
+    fieldsOf(body),
   );
+}
+
+/** What a create would write, nothing written (BL-PM-004b `POST /api/preview`). */
+export interface Preview {
+  files: RenderedFile[];
+  kept: string[];
+  onboardingPrompt: string;
+}
+
+const previewOf = (options: SpecGeneratorOptions, kept: (path: string) => boolean): Preview => {
+  const out = render(options); // targetDir is the writer's; render() ignores it
+  return { files: out.files, kept: out.files.map(f => f.path).filter(p => !p.startsWith('.specs/') && kept(p)), onboardingPrompt: out.onboardingPrompt };
+};
+
+/** The guided-setup preview for `root` (shape already checked): what `setupProject()` would write. */
+export async function previewSetup(root: string, body: Record<string, unknown>): Promise<Preview | { status: 409 | 422; error: string }> {
+  if (!specsMissing(root)) return { status: 409, error: '.specs/ already exists in this folder, so there is nothing to set up.' };
+  const options = await setupOptions(root, body);
+  return 'status' in options ? options : previewOf(options, rel => exists(join(root, ...rel.split('/'))));
+}
+
+/** The new-project preview (shape already checked, `parent` not needed): what `createProject()` would write. */
+export function previewNewProject(body: Record<string, unknown>): Preview | { status: 422; error: string } {
+  const { name, ...answers } = body as Record<string, string>;
+  let handle = answers.handle.trim();
+  try {
+    handle = handle || os.userInfo().username;
+  } catch (err) {
+    return { status: 422, error: `The OS username could not be read: ${(err as Error).message}` };
+  }
+  return previewOf(newProjectOptions('', name, { ...answers, handle }, body), () => false);
 }
 
 /**
@@ -333,21 +421,18 @@ const CONTEXT_KEYS = CONTEXT_QUESTIONS.map(q => q.key as string);
 const NEW_KEYS = ['parent', 'name', ...KEYS, ...CONTEXT_KEYS];
 /** Longest project-context answer a request may send. */
 export const MAX_CONTEXT_LENGTH = 1000;
-// What one line typed at the CLI's prompt cannot hold: control characters and the two line separators.
-// eslint-disable-next-line no-control-regex
-const NOT_ONE_LINE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
-
-/** Shape of a new-project body, checked before the lock. Null when fine. */
-export function newProjectShapeError(body: unknown): string | null {
+/** Shape of a new-project body, checked before the lock (a preview's has no `parent`). Null when fine. */
+export function newProjectShapeError(body: unknown, preview = false): string | null {
   const b = body as Record<string, unknown> | null;
   if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with parent, name and the answers to the questions.';
-  for (const key of Object.keys(b)) if (!NEW_KEYS.includes(key)) return `Unexpected field "${key}".`;
+  const keys = preview ? NEW_KEYS.filter(k => k !== 'parent') : NEW_KEYS;
+  for (const key of Object.keys(b)) if (!keys.includes(key) && !FIELD_KEYS.includes(key)) return `Unexpected field "${key}".`;
   // The context answers are required for Greenfield only: `init` writes them nowhere for Brownfield (BL-PM-004).
-  const required = ['parent', 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', ...(b.projectType === 'brownfield' ? [] : ['whatItDoes'])];
+  const required = [...(preview ? [] : ['parent']), 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', ...(b.projectType === 'brownfield' ? [] : ['whatItDoes'])];
   for (const key of required) if (!(key in b)) return `"${key}" is missing.`;
-  for (const key of NEW_KEYS) if (key in b && typeof b[key] !== 'string') return `"${key}" must be a string.`;
+  for (const key of keys) if (key in b && typeof b[key] !== 'string') return `"${key}" must be a string.`;
   const s = b as Record<string, string>;
-  const parentProblem = pathShapeError({ path: s.parent });
+  const parentProblem = preview ? null : pathShapeError({ path: s.parent });
   if (parentProblem) return parentProblem.replace('"path"', '"parent"');
   const nameProblem = projectNameError(s.name);
   if (nameProblem) return `${nameProblem.message}.`;
@@ -371,7 +456,7 @@ export function newProjectShapeError(body: unknown): string | null {
     if (value.length > MAX_CONTEXT_LENGTH) return `"${key}" must be at most ${MAX_CONTEXT_LENGTH} characters.`;
     if (NOT_ONE_LINE.test(value)) return `"${key}" must be one line of text, without control characters.`;
   }
-  return null;
+  return fieldsShapeError(b);
 }
 
 export type NewProjectOutcome =
@@ -433,7 +518,8 @@ export function reserveTarget(parent: string, name: string, roots: string[], hom
  * folder, and write there what `init` writes (REQ-002.H.23 steps 2 to 5; body shape already checked).
  * No asynchronous I/O between the checks and the writes, like `setupProject()`. Nothing that exists is changed.
  */
-export async function createProject(parent: string, name: string, answers: Record<string, string>, roots: string[], home: string, cloning: string | null = null): Promise<NewProjectOutcome> {
+export async function createProject(parent: string, name: string, body: Record<string, unknown>, roots: string[], home: string, cloning: string | null = null): Promise<NewProjectOutcome> {
+  const answers = body as Record<string, string>;
   let handle = answers.handle.trim();
   try {
     handle = handle || os.userInfo().username;
@@ -444,23 +530,25 @@ export async function createProject(parent: string, name: string, answers: Recor
   if ('status' in reserved) return reserved.project === undefined ? { status: reserved.status, error: reserved.error } : { status: reserved.status, error: reserved.error, project: reserved.project };
   const { target, created } = reserved;
 
-  const framework = answers.framework && answers.framework !== 'none' ? answers.framework : undefined;
-  const context = Object.fromEntries(CONTEXT_KEYS.map(key => [key, (answers[key] ?? '').trim()])) as Pick<InitAnswers, 'whatItDoes' | 'targetUsers' | 'expectedScale' | 'constraints'>;
   let out: SetupOutcome | undefined;
   try {
-    out = await placeGenerated(
-      target,
-      initOptions(target, name, {
-        language: answers.language, framework, projectType: answers.projectType as InitAnswers['projectType'],
-        apiParadigm: answers.apiParadigm as InitAnswers['apiParadigm'], handle, ide: answers.ide, ...context,
-      }),
-    );
+    out = await placeGenerated(target, newProjectOptions(target, name, { ...answers, handle }, body));
   } finally {
     // Also when placeGenerated() itself throws: the folder this call made goes, if it is empty again.
     if (out?.status !== 200 && created) try { rmdirSync(target); } catch { /* something else put a file there: the folder stays */ }
   }
   if (out.status === 200) return { status: 200, root: target, kept: out.kept, notice: out.notice };
   return { status: out.status, error: out.error };
+}
+
+/** The generator options `init` uses for `answers` (shape checked, handle resolved), with the body's optional fields. */
+function newProjectOptions(target: string, name: string, answers: Record<string, string>, body: Record<string, unknown>): SpecGeneratorOptions {
+  const framework = answers.framework && answers.framework !== 'none' ? answers.framework : undefined;
+  const context = Object.fromEntries(CONTEXT_KEYS.map(key => [key, (answers[key] ?? '').trim()])) as Pick<InitAnswers, 'whatItDoes' | 'targetUsers' | 'expectedScale' | 'constraints'>;
+  return initOptions(target, name, {
+    language: answers.language, framework, projectType: answers.projectType as InitAnswers['projectType'],
+    apiParadigm: answers.apiParadigm as InitAnswers['apiParadigm'], handle: answers.handle, ide: answers.ide, ...context,
+  }, '.specs', fieldsOf(body));
 }
 
 /**

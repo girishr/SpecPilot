@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="/assets/app.css">
 <script src="/assets/md.js" defer></script>
 <script src="/assets/route.js" defer></script>
+<script src="/assets/chat-core.js" defer></script>
 <script src="/assets/app.js" defer></script>
 </head>
 <body>
@@ -111,7 +112,7 @@
     <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span><span id="chatSub" aria-live="polite" hidden></span></div></div>
     <div class="right">
       <div class="seg" id="modeSeg"><button class="on" data-m="list">List</button><button data-m="board">Board</button></div>
-      <button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>
+      <button type="button" class="btn" id="chatSetups" hidden aria-controls="setups">Setups</button><button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>
     </div>
   </div>
   <div class="content" id="content" tabindex="-1">
@@ -161,9 +162,15 @@
     <section class="view chat" id="v-chat">
       <div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>
       <p class="note" id="chatNote" hidden></p>
+      <div class="cbody" id="cbody" hidden>
+      <aside class="setups" id="setups" aria-label="Saved setups">
+        <div class="sh"><span>Setups</span><button type="button" class="btn sm" id="setupNew">New setup</button></div>
+        <div id="setupList"></div>
+      </aside>
+      <div class="cmain">
       <section class="intro" id="intro" hidden>
         <svg class="big" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
-        <div><h2>Hey, I'm SpecPilot</h2><p id="introText"></p><p class="note" id="introDetected" hidden translate="no"></p></div>
+        <div><h2 id="introH">Hey, I'm SpecPilot</h2><p id="introText"></p><p id="introText2" hidden></p><p class="note" id="introDetected" hidden translate="no"></p></div>
         <div class="fine">Runs on this machine. Nothing leaves it.</div>
         <form class="start" id="introForm" autocomplete="off">
           <div class="lbl" id="nameLbl">Name your project to start</div>
@@ -174,6 +181,8 @@
       </section>
       <section class="thread" id="thread" hidden><div class="col" id="msgs"></div></section>
       <section class="composer" id="composer" hidden><form class="col" id="comp" autocomplete="off"></form></section>
+      </div>
+      </div>
     </section>
 
     <!-- FILE: any .specs/ file, rendered as written -->

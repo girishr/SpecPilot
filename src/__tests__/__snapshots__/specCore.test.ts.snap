@@ -14,7 +14,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "e902111a80715628e91550d372313deb34c828c0dd845c40ec5053865786adcd",
-  ".specs/architecture/architecture.md": "d0d6f2daf2590ab13abc77a694d770b8ed4a26285029ebf76780b4f07a9760cc",
+  ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
   ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
   ".specs/development/onboarding.md": "0bdad383daf4d510536f5f741f82d034253bf765e165b4ac202cf5b41f5ff651",
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
@@ -43,7 +43,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".github/copilot-instructions.md": "b204c9b830126f920e3db041d8a43cc82580a077447ed98546f156d070c3939c",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
-  ".specs/architecture/architecture.md": "d0d6f2daf2590ab13abc77a694d770b8ed4a26285029ebf76780b4f07a9760cc",
+  ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
   ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
   ".specs/development/onboarding.md": "0bdad383daf4d510536f5f741f82d034253bf765e165b4ac202cf5b41f5ff651",
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
@@ -741,7 +741,7 @@ Other: Twilio for SMS
 [List security measures and considerations]
 
 ## Performance Considerations
-- **API response-time target**: &lt; 200 ms (p95)
+- **API response-time target**: < 200 ms (p95)
 - **Availability target**: 99.9%
 
 ## Monitoring and Observability

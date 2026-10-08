@@ -5,6 +5,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { presentFields, render, RenderOptions, targetsInSpecs, targetsOutsideSpecs } from '../core/render';
 import { OptionalFields, OPTIONAL_FIELDS, present, yamlScalar } from '../core/templateEngine';
+import { ALL_FIELDS } from './fixtures/allFields';
 import { SpecGenerator } from '../utils/specGenerator';
 import { API_PARADIGM_CHOICES, IDE_CHOICES } from '../utils/addSpecsQuestions';
 
@@ -113,7 +114,7 @@ describe('src/core is pure (REQ-002.I.2)', () => {
   const files = readdirSync(core).filter(f => f.endsWith('.ts'));
 
   test('has the expected modules', () => {
-    expect(files.sort()).toEqual(['agentConfig.ts', 'ideConfig.ts', 'index.ts', 'render.ts', 'slashCommands.ts', 'specFiles.ts', 'templateEngine.ts']);
+    expect(files.sort()).toEqual(['agentConfig.ts', 'chatFlow.ts', 'ideConfig.ts', 'index.ts', 'render.ts', 'slashCommands.ts', 'specFiles.ts', 'templateEngine.ts']);
   });
 
   test.each(files)('%s imports only handlebars and files beside it, and uses no Node global', file => {
@@ -121,37 +122,17 @@ describe('src/core is pure (REQ-002.I.2)', () => {
     const specifiers = [...source.matchAll(/^(?:import|export)\s[^'"]*from\s+'([^']+)'/gm)].map(m => m[1]);
     for (const s of specifiers) expect(s === 'handlebars' || /^\.\/[A-Za-z]+$/.test(s)).toBe(true);
     expect(source).not.toMatch(/\brequire\s*\(/);
-    expect(source).not.toMatch(/\b(process|Buffer|__dirname|__filename)\b/);
+    // A use of a Node global, not the word in a string ("review process" is fine).
+    expect(source).not.toMatch(/\b(process|Buffer)\s*[.[(]|\btypeof\s+(process|Buffer)\b|[=(,]\s*(process|Buffer)\s*[;,)\n]|\b(__dirname|__filename)\b/);
+  });
+
+  test('chatFlow.ts imports nothing at all, so its compiled file runs in the page alone (REQ-002.I.7)', () => {
+    expect(readFileSync(join(core, 'chatFlow.ts'), 'utf-8')).not.toMatch(/^\s*(import|export)\b[^\n]*\bfrom\s+['"]|\bimport\s*\(/m);
   });
 });
 
 // Phase 2 (REQ-002.I.4, I.5): every optional field set, recorded on the phase 2 code; the ten
 // recordings above, which set none, still hold, which is the byte-identity claim.
-const ALL_FIELDS: Required<OptionalFields> = {
-  platforms: ['iOS Native', 'Node.js / Express'],
-  accessControl: 'Role-based (admin, agent, customer)',
-  specialConsiderations: ['Accessibility (WCAG)', 'i18n'],
-  accessibilityNotes: 'Screen reader support and right-to-left layout.',
-  systemPattern: 'Modular monolith',
-  activeUsers: '1,000 - 10,000',
-  teamSize: '2-5 devs',
-  deploymentTargets: ['AWS', 'Vercel'],
-  localDatabases: ['SQLite'],
-  dataSyncStrategy: 'Last write wins',
-  integrations: { payments: ['Stripe'], ai: ['OpenAI', 'Anthropic'] },
-  otherApis: 'Twilio for SMS',
-  apiResponseTime: '< 200 ms (p95)',
-  availability: '99.9%',
-  databases: ['PostgreSQL', 'Redis'],
-  authStrategy: 'Clerk',
-  realtimeTypes: ['WebSockets'],
-  compliance: ['GDPR', 'SOC 2'],
-  cicd: ['GitHub Actions'],
-  securityConcerns: ['Rate limiting', 'Audit logging'],
-  buildTimeline: '3 months',
-  constraintDescription: 'Must run on the existing Postgres cluster.',
-  testingStrategy: ['Unit', 'E2E'],
-};
 const BASE: RenderOptions = { projectName: 'parcel-track', language: 'typescript', framework: 'express', specsName: '.specs', author: 'girishr', description: 'Tracks parcels for small couriers' };
 const file = (options: RenderOptions, path: string) => render({ ...options, date: DATE }).files.find(f => f.path === path)!.content;
 
@@ -191,7 +172,7 @@ describe('optional template fields (BL-032 phase 2)', () => {
     const arch = file(all, '.specs/architecture/architecture.md');
     expect(arch).toContain('- **Architecture Style**: Modular monolith\n');
     expect(arch).toContain('## Scale\n- Active users: 1,000 - 10,000\n- Team size: 2-5 devs\n\n## Deployment targets\n- AWS\n- Vercel\n\n## Data layer\n- **Offline support**: Yes\n- **Local database(s)**: SQLite\n- **Data sync strategy**: Last write wins\n\n## Integrations\n- **payments**: Stripe\n- **ai**: OpenAI, Anthropic\n\nOther: Twilio for SMS\n\n## Design Decisions\n');
-    expect(arch).toContain('## Performance Considerations\n- **API response-time target**: &lt; 200 ms (p95)\n- **Availability target**: 99.9%\n\n## Monitoring');
+    expect(arch).toContain('## Performance Considerations\n- **API response-time target**: < 200 ms (p95)\n- **Availability target**: 99.9%\n\n## Monitoring');
     expect(file({ ...BASE, teamSize: 'Solo' }, '.specs/architecture/architecture.md')).toContain('## Scale\n- Team size: Solo\n\n## Design Decisions');
     expect(file({ ...BASE, otherApis: 'Mapbox' }, '.specs/architecture/architecture.md')).toContain('## Integrations\nOther: Mapbox\n\n## Design Decisions');
     expect(file(all, '.specs/architecture/api.yaml')).toContain('          description: "Success"\n\ndatabases:\n  - PostgreSQL\n  - Redis\nauth_strategy: Clerk\nrealtime:\n  enabled: true\n  transports:\n  - WebSockets\n');
@@ -246,5 +227,46 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(file({ ...BASE, description: "Don't & <b>" }, '.specs/project/project.yaml')).toContain("description: Don't & <b>\n");
     expect(file({ ...BASE, platforms: ['a: b', 'true'] }, '.specs/project/project.yaml')).toContain('platforms:\n  - "a: b"\n  - "true"\n');
     expect(file({ ...BASE, authStrategy: 'OAuth 2.0: PKCE' }, '.specs/architecture/api.yaml')).toContain('auth_strategy: "OAuth 2.0: PKCE"\n');
+  });
+
+  test('no HTML escaping: the seven characters land as typed in markdown (BL-PM-004b)', () => {
+    const typed = `a&b <c> "d" 'e' \`f\` =g`;
+    const arch = file({ ...BASE, apiResponseTime: '< 100ms', otherApis: typed }, '.specs/architecture/architecture.md');
+    expect(arch).toContain('- **API response-time target**: < 100ms\n');
+    expect(arch).toContain(`Other: ${typed}\n`);
+    expect(arch).not.toMatch(/&(amp|lt|gt|quot|#x27|#x60|#x3D);/);
+    // a value is data to Handlebars, never template source (SEC-004.3)
+    expect(file({ ...BASE, otherApis: '{{projectName}} {{#if x}}' }, '.specs/architecture/architecture.md')).toContain('Other: {{projectName}} {{#if x}}\n');
+  });
+
+  test('a detected project name, --lang or --framework with a formerly escaped character still gives YAML that parses (BL-PM-004b)', () => {
+    const fronts = (files: { path: string; content: string }[]) => files
+      // onboarding.md and the report prompt hold text between --- lines that is not YAML, also on main
+      .filter(f => !/onboarding\.md$|specpilot-report/.test(f.path))
+      .map(f => (/\.ya?ml$/.test(f.path) ? [f.path, f.content] : f.content.startsWith('---\n') ? [f.path, f.content.split('---\n')[1]] : null))
+      .filter((x): x is string[] => x !== null);
+    for (const projectName of ['a"b', "'q", '>x', '`t', 'a&b', '=y']) {
+      for (const apiParadigm of ['rest', 'cli'] as const) {
+        const files = render({ ...BASE, projectName, framework: '"x', language: "o'k", apiParadigm, projectType: 'brownfield', mode: 'existing' }).files;
+        for (const [path, text] of fronts(files)) {
+          let doc: unknown;
+          expect(() => { doc = yaml.load(text); }).not.toThrow();
+          const d = (doc ?? {}) as { project?: unknown; framework?: unknown; language?: unknown; info?: { title?: string } };
+          if (typeof d.project === 'string' && !path.endsWith('project.yaml')) expect([path, d.project]).toEqual([path, projectName]);
+          if ('framework' in d && d.framework !== null) expect([path, d.framework]).toEqual([path, '"x']);
+          if (d.info?.title) expect(d.info.title).toBe(`${projectName} API`);
+        }
+      }
+    }
+  });
+
+  test('a handle typed at the terminal still gives YAML that reads back as typed (BL-PM-004b)', () => {
+    for (const author of ['jsmith', 'Your Name', 'a"b', "o'neil", 'back\\slash', '`tick', '&amp']) {
+      const project = yaml.load(file({ ...BASE, author }, '.specs/project/project.yaml')) as { team: { devPrefix: string } };
+      expect(project.team.devPrefix).toBe(author);
+      const tasks = file({ ...BASE, author }, '.specs/planning/tasks.md');
+      const front = yaml.load(tasks.split('---')[1]) as { contributors: string[] };
+      expect(front.contributors).toEqual([author]);
+    }
   });
 });

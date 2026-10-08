@@ -78,7 +78,7 @@ function go(v,keep,sub){
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+(v==='new'||v==='setup'?'chat':v))); // one chat section for both flows (BL-PM-004)
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?projectLabel(DATA.projects[PROJECT]):v==='new'?'New project':VIEWS[v];
-  $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=true;chat=null;}
+  $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=$('#chatSetups').hidden=true;chat=null;}
   $('#modeSeg').hidden=v!=='board';
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();
@@ -300,7 +300,7 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
-  if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;drawChat();}setNav(false);return}
+  if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;comp=null;drawChat();}setNav(false);return}
   if(inField||mod||e.altKey)return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}
@@ -382,38 +382,74 @@ async function getQuestions(url){
   try{const r=await fetch(url,{cache:'no-store'});if(r.ok)return await r.json();return r.status===404?null:{error:(await r.json().catch(()=>({}))).error||'HTTP '+r.status};}
   catch(e){return {error:'The server did not answer.'};}
 }
-/* The page's own question of a new project; every other one is the server's. */
+/* The page's own question of a new project; every other one is the server's or the chat core's. */
 const PARENT_Q={key:'parent',message:'Parent folder',label:'Folder',required:true,chat:"Nice, {name}. Where should it live? I'll create {name}/ inside this folder.",placeholder:'~/dev'};
-const chats={}; // the answers of each flow while the page is open: 'new', or 's<project index>'
-let chat=null,chatBusy=false;
+const CC=window.SpecPilotChat; // the chat core (BL-PM-004b): src/core/chatFlow.ts, served as /assets/chat-core.js
+/* Saved setups (BL-PM-004b): every setup the chat has started, kept in this browser under sp-setups. */
+let storeOk=true,setups=[];
+try{setups=setupsLoad(localStorage.getItem(SETUPS_KEY));}catch(e){storeOk=false;}
+function storeSetups(){try{localStorage.setItem(SETUPS_KEY,JSON.stringify(setups));}catch(e){storeOk=false;}}
+function saveSetup(st){if(!st.started)return;st.updatedAt=Date.now();setups=setupsPut(setups,setupRecord(st));storeSetups();}
+function dropSetup(id){setups=setupsRemove(setups,id);storeSetups();}
+const freshSetup=(kind,root,id)=>({id:id||(kind==='setup'?'s:'+root:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind,root,answers:{},editing:null,started:false,seeded:{},preview:{done:false,changed:false},finished:false});
+const restoreSetup=e=>({...JSON.parse(JSON.stringify(e)),editing:null});
+const live={}; // the setups open in this page, by id
+let curNew=null; // the new-project setup #new shows
+let chat=null,chatBusy=false,comp=null;
 /* Shown by go(): the chat for a new project, or for the project without .specs/. */
 async function renderChat(isNew){
-  const pj=PROJECT,id=isNew?'new':'s'+PROJECT,note=$('#chatNote');
-  $('#intro').hidden=$('#thread').hidden=$('#composer').hidden=note.hidden=true;$('#chatRestart').hidden=$('#chatClose').hidden=true;
-  chat=null;
+  const pj=PROJECT,note=$('#chatNote');
+  $('#intro').hidden=$('#thread').hidden=$('#composer').hidden=note.hidden=true;$('#chatRestart').hidden=$('#chatClose').hidden=$('#chatSetups').hidden=true;$('#cbody').hidden=true;
+  chat=null;comp=null;
   if(!TOKEN){note.textContent='Started with --read-only, so nothing can be set up here.';note.hidden=false;return;}
   const q=await getQuestions(isNew?'/api/projects/new':'/api/setup?project='+pj);
   if(PROJECT!==pj||curView!==(isNew?'new':'setup'))return;
   if(!q)return; // 404: not a folder named on the command line, so nothing to set up
   if(q.error){note.textContent=q.error;note.hidden=false;return;}
-  chat={id,isNew,project:pj,q,st:chats[id]||(chats[id]={answers:{},editing:null,started:false})};
+  let st;
+  if(isNew){
+    if(!curNew||!live[curNew]){const rec=curNew&&setups.find(e=>e.id===curNew);st=rec?restoreSetup(rec):freshSetup('new');curNew=st.id;live[st.id]=st;}
+    st=live[curNew];
+  }else{
+    const root=DATA.projects[pj].root,id='s:'+root,rec=setups.find(e=>e.id===id);
+    st=live[id]||(live[id]=rec?restoreSetup(rec):freshSetup('setup',root));
+  }
+  chat={id:st.id,isNew,project:pj,q,st};
+  $('#cbody').hidden=false;
   drawChat();
 }
-const chatList=()=>flowQuestions(chat.q,chat.st.answers,chat.isNew?[{...PARENT_Q,step:chat.q.steps[0]}]:[]);
+/* The questions to ask now: the server's (the CLI's) through flowQuestions(), placed and completed by the chat core. */
+function chatAsk(){
+  const st=chat.st,first=chat.isNew?[{...PARENT_Q,step:chat.q.steps[0]}]:[];
+  return CC.chatQuestions([...first,...chat.q.questions],flowQuestions(chat.q,st.answers,first),st.answers,chat.isNew?'new':'setup',chat.q.files.outside);
+}
 /* What fills {name} and {language} in the bot lines. */
 function chatCtx(){
   const a=chat.st.answers,lq=chat.q.questions.find(x=>x.key==='language'),c=lq&&lq.choices.find(x=>x.value===a.language);
   return {name:chat.isNew?a.name:projectLabel(DATA.projects[chat.project]),language:c?c.name:(chat.q.detected?chat.q.detected.language:'')};
 }
+/* The list of saved setups beside the thread. */
+function drawSetups(){
+  const el=$('#setupList');
+  if(!storeOk){el.innerHTML='<p class="note">Setups cannot be saved in this browser.</p>';return;}
+  const served=root=>DATA.projects.findIndex(p=>p.root===root);
+  el.innerHTML=setups.length?setups.map(e=>{
+    const off=e.kind==='setup'&&served(e.root)<0,t=setupTitle(e);
+    return `<div class="srow2${chat&&chat.st.id===e.id?' cur':''}"><button type="button" class="go" data-setup="${esc(e.id)}"${off?' disabled':''}><span class="t" translate="no">${esc(t)}</span><span class="d">${esc(off?`Open ${e.root} to resume`:`${setupStatus(e)} · ${when(new Date(e.updatedAt).toISOString())}`)}</span></button><button type="button" class="rm" data-rm-setup="${esc(e.id)}" aria-label="Remove ${esc(t)}">Remove</button></div>`;
+  }).join(''):'<p class="note">No saved setups yet.</p>';
+}
 function drawChat(){
   const st=chat.st,isNew=chat.isNew,ctx=chatCtx();
-  $('#chatRestart').hidden=!st.started;$('#chatClose').hidden=!isNew;
+  $('#chatRestart').hidden=!st.started;$('#chatClose').hidden=!isNew;$('#chatSetups').hidden=false;
   $('#title').textContent=isNew?(st.answers.name||'New project'):projectLabel(DATA.projects[chat.project]);
+  drawSetups();
   if(!st.started){ // the intro
     $('#intro').hidden=false;$('#thread').hidden=$('#composer').hidden=true;$('#chatSub').textContent='';$('#barI').style.width='0';$('#v-chat .bar').setAttribute('aria-valuenow','0');
     const mono=t=>`<span class="mono" translate="no">${esc(t)}</span>`;
-    $('#introText').innerHTML=isNew?`I'll ask the same questions as ${mono('specpilot init')}, one at a time, then write your ${mono('.specs/')} folder and the files for your AI IDE.`
+    $('#introH').textContent=isNew?"Hey, I'm SpecPilot 👋":"Hey, I'm SpecPilot";
+    $('#introText').innerHTML=isNew?'I turn your project requirements into a complete, structured spec suite - requirements, architecture, tests - and keep it in sync as you build.'
       :`There is no ${mono('.specs/')} folder in ${mono(DATA.projects[chat.project].root)} yet. I'll ask the same questions as ${mono('specpilot add-specs')}, one at a time, then write it and the files for your AI IDE. Existing files are never changed.`;
+    $('#introText2').hidden=!isNew;$('#introText2').innerHTML=`I write your ${mono('.specs/')} folder, filled in from your answers, plus the files that keep your AI IDE following it.`;
     const det=$('#introDetected');det.hidden=!(chat.q.detected);det.textContent=chat.q.detected?chat.q.detected.line:'';
     $('#nameLbl').hidden=$('#nameIn').parentElement.hidden=!isNew;$('#setupStart').hidden=isNew;$('#nameErr').textContent='';
     if(isNew){$('#nameIn').value=st.answers.name||'';$('#nameGo').disabled=!$('#nameIn').value.trim();}
@@ -421,50 +457,123 @@ function drawChat(){
     return;
   }
   $('#intro').hidden=true;$('#thread').hidden=$('#composer').hidden=false;
-  const list=chatList(),cur=nextQuestion(list,st.answers,st.editing),steps=[...new Set(list.map(x=>x.step))],done=list.filter(x=>answered(x,st.answers)).length;
+  const list=chatAsk(),cur=nextQuestion(list,st.answers,st.editing),steps=[...new Set(list.map(x=>x.step))],done=list.filter(x=>answered(x,st.answers)).length;
+  if(st.finished!==!cur){st.finished=!cur;saveSetup(st);drawSetups();}
   const bar=$('#v-chat .bar'),pct=Math.round(done/list.length*100);$('#barI').style.width=pct+'%';bar.setAttribute('aria-valuenow',pct);
   $('#chatSub').textContent=cur?`Step ${steps.indexOf(cur.step)+1} of ${steps.length} · ${cur.step}`:'Review';
   let html=threadRows(chat.q,list,st.answers,cur,ctx,isNew).map(r=>
     r.kind==='divider'?`<div class="divider"><span>${esc(r.text)}</span></div>`
-    :r.kind==='bot'?`<div class="bot"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="msg">${esc(r.text)}<span class="cli" translate="no">${esc(r.cli)}</span></div></div>`
+    :r.kind==='note'?`<p class="cnote">${esc(r.text)}</p>`
+    :r.kind==='bot'?`<div class="bot"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="msg">${esc(r.text)}${r.cli?`<span class="cli" translate="no">${esc(r.cli)}</span>`:''}${r.caption?`<span class="cap" translate="no">${esc(r.caption)}</span>`:''}</div></div>`
     :`<div class="me${r.skipped?' skipped':''}"><button type="button" class="b${r.mono?' mono':''}" data-k="${esc(r.key)}" aria-label="Your answer: ${esc(r.text)}. Edit">${esc(r.text)}</button><span class="ed" aria-hidden="true">✎ tap to edit</span></div>`).join('');
   if(!cur){
-    const files=previewFiles(chat.q,st.answers);
-    html+=`<div class="recap"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="card">That's everything I need. Here's a quick recap:<div class="pen">✎ Click any answer to change it. You come straight back here.</div><div class="grid">${recapCards(list,st.answers).map(c=>`<div class="rc"><div class="t">${esc(c.title)}</div>${c.rows.map(r=>`<button type="button" class="l" data-k="${esc(r.key)}"><span>${esc(r.label)}</span><span translate="no">${esc(r.value)}</span></button>`).join('')}</div>`).join('')}</div><details><summary>Files that will be written (${files.length})</summary><ul translate="no">${files.map(f=>`<li>${esc(f.path)}${f.kept?' <span class="kept">Already here, will be kept</span>':''}</li>`).join('')}</ul></details><button type="button" class="btn pri" id="chatCreate">${isNew?'Create Project':'Create .specs/'}</button><p class="err" id="chatErr" role="alert"></p></div></div>`;
+    const files=previewFiles(chat.q,st.answers),pv=st.preview,again=pv.done&&pv.changed;
+    html+=`<div class="recap"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="card">That's everything I need. Here's a quick recap:<div class="pen">✎ Click any answer to change it. You come straight back here.</div><div class="grid">${recapCards(list,st.answers).map(c=>`<div class="rc"><div class="t">${esc(c.title)}</div>${c.rows.map(r=>`<button type="button" class="l" data-k="${esc(r.key)}"><span>${esc(r.label)}</span><span translate="no">${esc(r.value)}</span></button>`).join('')}</div>`).join('')}</div>${again?'<p class="chg">Answers changed since the last preview. Preview again to see the new files.</p>':''}<details id="pv"><summary>${again?'Preview again':'Preview files'} (${files.length})</summary><ul translate="no" id="pvList">${files.map(f=>`<li>${esc(f.path)}${f.kept?' <span class="kept">Already here, will be kept</span>':''}</li>`).join('')}</ul></details><button type="button" class="btn pri" id="chatCreate">${isNew?'Create Project':'Create .specs/'}</button><p class="err" id="chatErr" role="alert"></p></div></div>`;
   }
   $('#msgs').innerHTML=html;
+  const pvEl=$('#pv');if(pvEl)pvEl.addEventListener('toggle',()=>{if(pvEl.open)loadPreview();});
   drawComposer(cur);
   const th=$('#thread');th.scrollTop=th.scrollHeight;
 }
+/* The request body of a create or a preview: the CLI's answers, the optional fields and the folded context answers. */
+function chatBody(){
+  const asked=chatAsk(),st=chat.st;
+  const body={...flowBody(asked.filter(x=>!x.core),st.answers),...CC.requestFields(asked,st.answers,chat.isNew?'new':'setup')};
+  if(chat.isNew)body.name=st.answers.name;
+  return body;
+}
+/* The recap's preview: POST /api/preview with the create body, each file then shown as render() gives it. */
+async function loadPreview(){
+  const c=chat,body=chatBody(),list=$('#pvList');if(!list)return;
+  if(c.isNew)delete body.parent;
+  let r,res={};
+  try{r=await fetch(c.isNew?'/api/preview':'/api/preview?project='+c.project,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});res=await r.json().catch(()=>({}));}
+  catch(e){r=null;}
+  if(chat!==c||!$('#pvList'))return;
+  if(!r||r.status!==200){$('#pvList').insertAdjacentHTML('beforebegin',`<p class="err">${esc(r?res.error||`The preview could not be made (HTTP ${r.status}).`:'The server did not answer.')}</p>`);return;}
+  const kept=new Set(res.kept||[]);
+  $('#pvList').outerHTML=`<div class="pvl" id="pvList" translate="no">${res.files.map(f=>`<details class="pf"><summary>${esc(f.path)}${kept.has(f.path)?' <span class="kept">Already here, will be kept</span>':''}</summary>${kept.has(f.path)?'':/\.md$/.test(f.path)?`<div class="md">${md(f.content)}</div>`:`<pre>${esc(f.content)}</pre>`}</details>`).join('')}</div>`;
+  if(c.st.preview.changed||!c.st.preview.done){c.st.preview={done:true,changed:false};saveSetup(c.st);}
+  const chg=$('#msgs .chg');if(chg)chg.remove();const sum=$('#pv summary');if(sum)sum.textContent=`Preview files (${res.files.length})`;
+}
+
+/* ---- the composer: one state per shown question (`comp`), drawn from the question and redrawn on every change */
+const isMulti=t=>t==='multi'||t==='grouped-multi'||t==='platform-grid';
+function initComp(cur){
+  const a=chat.st.answers,stored=cur.answered?a[cur.key]:undefined,seed=stored===undefined?cur.seed:stored;
+  const c={key:cur.key,tab:null,custom:'',showCustom:false};
+  if(cur.type==='categorized')c.v=JSON.parse(JSON.stringify(seed||{}));
+  else if(isMulti(cur.type))c.v=Array.isArray(seed)?[...seed]:[];
+  else if(cur.type==='text'||cur.type==='tabbed-chips')c.v=typeof stored==='string'&&stored!==cur.todo?stored:'';
+  else{c.v=typeof seed==='string'?seed:'';const ids=compOptions(cur).map(o=>o.id);if(cur.custom&&c.v&&!ids.includes(c.v)){c.custom=c.v;c.showCustom=true;c.v='';}}
+  const opts=compOptions(cur),sel=Array.isArray(c.v)?c.v:[c.v];
+  const withSel=opts.find(o=>o.group&&sel.includes(o.id))||opts.find(o=>o.group&&o.badge==='recommended')||opts.find(o=>o.group);
+  c.tab=cur.type==='categorized'?(cur.categories[0]&&cur.categories[0].id):withSel?withSel.group:null;
+  if(cur.type==='platform-grid'){const tabs=CC.platformGridGroups(a.projectCategory||null,c.v);c.tab=tabs.find(t=>c.v.some(id=>CC.PLATFORM_GROUPS.find(g=>g.group===t).items.some(i=>i.id===id)))||tabs[0];}
+  return c;
+}
+const compOptions=cur=>cur.core?(cur.options||[]):choiceOptions(cur);
 function drawComposer(cur){
   const st=chat.st,c=$('#comp'),editing=!!st.editing;
-  if(!cur){c.innerHTML=`<div class="act"><span class="hint">All answered. Review above, then ${chat.isNew?'Create Project':'Create .specs/'}.</span></div>`;return;}
-  const prev=st.answers[cur.key];
-  if(cur.choices){
-    const sel=cur.choices.some(x=>x.value===prev)?prev:null;
-    c.innerHTML=`<div class="chips" role="group" aria-label="${esc(cur.message)}">${cur.choices.map(o=>{const [b,small]=o.name.split(' — ');return `<button type="button" class="chip" aria-pressed="${o.value===sel}" data-v="${esc(o.value)}"><b>${esc(b)}</b>${small?`<small>${esc(small)}</small>`:''}</button>`;}).join('')}</div><div class="act"><span class="hint">${editing?'Changing an earlier answer':''}</span>${editing?'<button type="button" class="btn" id="chatCancel">Cancel</button>':''}<button type="submit" class="btn pri" id="chatGo"${sel?'':' disabled'}>Continue</button></div>`;
-    c.dataset.v=sel||'';
-    setTimeout(()=>{const el=$('#comp .chip[aria-pressed="true"]')||$('#comp .chip');if(chat&&el)el.focus();},50);
+  if(!cur){comp=null;c.innerHTML=`<div class="act"><span class="hint">All answered. Review above, then ${chat.isNew?'Create Project':'Create .specs/'}.</span></div>`;return;}
+  if(!comp||comp.key!==cur.key)comp=initComp(cur);
+  const label=esc(cur.message||cur.chat||cur.label),k=comp,acts=(extra,ok)=>`<div class="act"><span class="hint">${editing?'Changing an earlier answer':''}</span><span class="err" id="compErr" role="alert"></span>${editing?'<button type="button" class="btn" id="chatCancel">Cancel</button>':''}${extra||''}<button type="submit" class="btn pri" id="chatGo"${ok?'':' disabled'}>${isMulti(cur.type)&&k.v.length?`Continue (${k.v.length+(k.custom.trim()?1:0)})`:'Continue'}</button></div>`;
+  const skip=cur.required?'':'<button type="button" class="btn" id="chatSkip">Skip</button>';
+  const other=cur.custom?`<button type="button" class="chip other" id="chatOther" aria-pressed="${k.showCustom}"><b>${cur.type==='grouped-multi'?'Add custom user type':'Other: ___'}</b></button>`:'';
+  const customIn=k.showCustom?`<div class="crow"><input type="text" id="chatCustom" maxlength="100" placeholder="Type your own" aria-label="Your own answer" value="${esc(k.custom)}"></div>`:'';
+  const note=cur.note?`<p class="cnote">${esc(cur.note)}</p>`:'';
+  let h='';
+  if(cur.type==='text'){
+    const max=cur.key==='parent'?4096:cur.key==='handle'?39:cur.key==='nonGoals'?870:1000;
+    h=`<div class="crow"><input type="text" id="chatIn" class="${cur.key==='parent'||cur.key==='handle'?'mono':''}" placeholder="${esc(cur.placeholder||'')}" aria-label="${label}" aria-describedby="compErr" maxlength="${max}"${cur.required?' aria-required="true"':''} value="${esc(k.v)}"></div>`
+      +acts((cur.todo?'<button type="button" class="btn" id="chatTodo">Not sure - skip for now</button>':'')+skip,true);
+  }else if(cur.type==='tabbed-chips'){
+    const groups=[...new Set(cur.options.map(o=>o.group))],tab=k.tab||groups[0];
+    h=`<p class="lbl">Pick a starter project type from below</p>${tabsHtml(groups.map(g=>({id:g,label:g})),tab)}<div class="chips" role="group" aria-label="${label}">${cur.options.filter(o=>o.group===tab).map(o=>optionHtml(o,k.v===o.id)).join('')}</div><p class="lbl">Or describe your project idea in plain words below</p><div class="crow"><input type="text" id="chatIn" placeholder="${esc(cur.placeholder||'')}" aria-label="${label}" aria-describedby="compErr" maxlength="1000" aria-required="true" value="${esc(k.v)}"></div>`+acts('',true);
+  }else if(cur.type==='platform-grid'){
+    const tabs=CC.platformGridGroups(st.answers.projectCategory||null,k.v),tab=tabs.includes(k.tab)?k.tab:tabs[0],g=CC.PLATFORM_GROUPS.find(x=>x.group===tab);
+    const line=CC.bundleLine(k.v);
+    h=tabsHtml(tabs.map(t=>{const grp=CC.PLATFORM_GROUPS.find(x=>x.group===t);return {id:t,label:`${grp.emoji} ${t}`,count:k.v.filter(id=>grp.items.some(i=>i.id===id)).length};}),tab)
+      +`<div class="chips grid2" role="group" aria-label="${label}">${g?g.items.map(i=>optionHtml({id:i.id,label:i.label,emoji:i.emoji,description:`[${i.lang}]`},k.v.includes(i.id))).join(''):''}</div>${line?`<p class="cnote">${esc(line)}</p>`:''}`+acts('',k.v.length>0);
+  }else if(cur.type==='categorized'){
+    const cats=cur.categories,tab=cats.some(x=>x.id===k.tab)?k.tab:cats[0]&&cats[0].id,cat=cats.find(x=>x.id===tab);
+    h=tabsHtml(cats.map(x=>({id:x.id,label:`${x.emoji} ${x.label}`,count:(k.v[x.id]||[]).length})),tab)
+      +`<div class="chips" role="group" aria-label="${label}">${cat?cat.options.map(o=>optionHtml({id:o,label:o,emoji:o==='None'?'➖':''},(k.v[cat.id]||[]).includes(o))).join(''):''}</div>`+acts('<button type="button" class="btn" id="chatNone">None of these apply →</button>',true);
   }else{
-    c.innerHTML=`<div class="crow"><input type="text" id="chatIn" class="${cur.key==='parent'||cur.key==='handle'?'mono':''}" placeholder="${esc(cur.placeholder||'')}" aria-label="${esc(cur.message)}" aria-describedby="compErr" maxlength="${cur.key==='parent'?4096:cur.key==='handle'?39:1000}"${cur.required?' aria-required="true"':''} value="${esc(prev||'')}"></div><div class="act"><span class="hint">${editing?'Changing an earlier answer':''}</span><span class="err" id="compErr" role="alert"></span>${editing?'<button type="button" class="btn" id="chatCancel">Cancel</button>':''}${cur.required?'':'<button type="button" class="btn" id="chatSkip">Skip</button>'}<button type="submit" class="btn pri" id="chatGo">Continue</button></div>`;
-    setTimeout(()=>{const el=$('#chatIn');if(chat&&el)el.focus();},50);
+    const opts=compOptions(cur),sel=isMulti(cur.type)?k.v:[k.v],extra=isMulti(cur.type)?k.v.filter(v=>!opts.some(o=>o.id===v)).map(v=>({id:v,label:v})):[];
+    const grouped=cur.type!=='grouped-multi'&&opts.some(o=>o.group),groups=[...new Set(opts.filter(o=>o.group).map(o=>o.group))],tab=groups.includes(k.tab)?k.tab:groups[0];
+    let body;
+    if(cur.type==='grouped-multi')body=groups.map(g=>`<p class="lbl">${esc(g)}</p><div class="chips">${opts.filter(o=>o.group===g).map(o=>optionHtml(o,sel.includes(o.id))).join('')}</div>`).join('')
+      +`<div class="chips">${[...opts.filter(o=>!o.group),...extra].map(o=>optionHtml(o,sel.includes(o.id))).join('')}${other}</div>`;
+    else body=(grouped?tabsHtml(groups.map(g=>({id:g,label:g,count:opts.filter(o=>o.group===g&&sel.includes(o.id)).length})),tab):'')
+      +`<div class="chips${cur.type==='cards'||opts.some(o=>o.description)?' grid2':''}" role="group" aria-label="${label}">${opts.filter(o=>!grouped||o.group===tab).map(o=>optionHtml(o,sel.includes(o.id))).join('')}</div>`
+      +`<div class="chips">${(grouped?opts.filter(o=>!o.group):[]).concat(extra).map(o=>optionHtml(o,sel.includes(o.id))).join('')}${other}</div>`;
+    const any=isMulti(cur.type)?k.v.length>0||!!k.custom.trim():!!k.v||!!(k.showCustom&&k.custom.trim());
+    h=note+body+customIn+acts(isMulti(cur.type)?'':skip,any||isMulti(cur.type)&&!cur.required);
   }
+  c.innerHTML=h;
 }
-/* An answer: stored, and the chat moves on to the first question without one, or back to the recap. */
+/* An answer: stored, stale seeds replaced, the preview marked out of date, the setup saved, and the chat moves on. */
 function chatAnswer(cur,value){
-  chat.st.answers[cur.key]=value;chat.st.editing=null;drawChat();
+  const st=chat.st;
+  Object.assign(st.answers,cur.core?CC.answerPatch(cur.key,value,st.answers):{[cur.key]:value});
+  if(cur.seed!==undefined&&JSON.stringify(value)===JSON.stringify(cur.seed))st.seeded[cur.key]=value;else delete st.seeded[cur.key];
+  const r=CC.reseed(chatAsk(),st.answers,st.seeded);st.answers=r.answers;st.seeded=r.seeded;
+  if(st.preview.done)st.preview.changed=true;
+  st.editing=null;comp=null;saveSetup(st);drawChat();
 }
 function chatEdit(key){
   if(chatBusy)return;
+  comp=null;
   if(key==='name'){chat.st.started=false;drawChat();return;}
   chat.st.editing=key;drawChat();
 }
 /* The same POST the forms sent: /api/setup for a folder without .specs/, /api/projects/new for a new project. */
 async function chatCreate(){
   if(chatBusy)return;
-  const c=chat,st=c.st,root=DATA.projects[c.project].root,btn=$('#chatCreate'),err=$('#chatErr');
+  const c=chat,root=DATA.projects[c.project].root,btn=$('#chatCreate'),err=$('#chatErr');
   chatBusy=true;btn.disabled=true;err.textContent='';
-  const body=flowBody(chatList(),st.answers);if(c.isNew)body.name=st.answers.name;
+  const body=chatBody();
   let r,res={};
   try{
     r=await fetch(c.isNew?'/api/projects/new':'/api/setup?project='+c.project,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});
@@ -474,16 +583,17 @@ async function chatCreate(){
   if(chat!==c)return; // the view changed meanwhile
   btn.disabled=false;
   if(!r){err.textContent=c.isNew?'The server did not answer.':'The server did not answer. Nothing was set up.';return;}
+  const done=()=>{dropSetup(c.st.id);delete live[c.st.id];if(curNew===c.st.id)curNew=null;};
   if(c.isNew){
     const o=openOutcome(r.status,res,true);
-    if(o.project===null){err.textContent=o.toast;return;}
-    if(r.status===200)delete chats[c.id];
+    if(o.project===null){err.textContent=r.status===413?'The answers are too long to send. Shorten the longest ones and try again.':o.toast;return;}
+    if(r.status===200)done();
     await showOutcome(o);
     if(r.status===200)noteCreated(res);
     return;
   }
   if(r.status!==200&&!(r.status===409&&res.specs)){err.textContent=res.error||`Nothing was set up (HTTP ${r.status}).`;return;}
-  delete chats[c.id];
+  done();
   if(PROJECT!==c.project)return;
   await apply(res.specs,null);
   if(r.status!==200){toast(res.error||`Nothing was set up (HTTP ${r.status}).`);return;}
@@ -498,30 +608,76 @@ $('#introForm').onsubmit=e=>{
     if(problem){$('#nameErr').textContent=problem;$('#nameIn').focus();return;}
     chat.st.answers.name=v;
   }
-  chat.st.started=true;chat.st.editing=null;drawChat();
+  chat.st.started=true;chat.st.editing=null;saveSetup(chat.st);drawChat();
 };
 $('#nameIn').addEventListener('input',()=>{$('#nameGo').disabled=!$('#nameIn').value.trim();$('#nameErr').textContent='';});
 $('#setupStart').onclick=()=>$('#introForm').requestSubmit();
+const curQuestion=()=>chat&&nextQuestion(chatAsk(),chat.st.answers,chat.st.editing);
 $('#comp').onsubmit=e=>{
-  e.preventDefault();if(!chat||chatBusy)return;
-  const cur=nextQuestion(chatList(),chat.st.answers,chat.st.editing);if(!cur)return;
-  if(cur.choices){if($('#comp').dataset.v)chatAnswer(cur,$('#comp').dataset.v);return;}
-  const v=$('#chatIn').value,problem=answerError(cur,v);
-  if(problem){$('#compErr').textContent=problem;$('#chatIn').setAttribute('aria-invalid','true');$('#chatIn').focus();return;}
-  chatAnswer(cur,v.trim());
+  e.preventDefault();if(!chat||chatBusy||!comp)return;
+  const cur=curQuestion();if(!cur||cur.key!==comp.key)return;
+  const fail=m=>{$('#compErr').textContent=m;const i=$('#chatIn');if(i){i.setAttribute('aria-invalid','true');i.focus();}};
+  if(cur.type==='text'||cur.type==='tabbed-chips'){
+    const v=$('#chatIn').value,problem=answerError(cur,v);
+    if(problem)return fail(problem);
+    return chatAnswer(cur,v.trim());
+  }
+  const custom=comp.custom.trim();
+  if(cur.type==='categorized')return chatAnswer(cur,comp.v);
+  if(isMulti(cur.type)){
+    const v=custom&&!comp.v.includes(custom)?[...comp.v,custom]:comp.v;
+    if(cur.required&&!v.length)return;
+    return chatAnswer(cur,v);
+  }
+  const v=comp.showCustom&&custom?custom:comp.v;
+  if(v)chatAnswer(cur,v);
 };
 $('#comp').addEventListener('click',e=>{
-  const chip=e.target.closest('.chip');
-  if(chip){$$('#comp .chip').forEach(x=>x.setAttribute('aria-pressed',x===chip));$('#comp').dataset.v=chip.dataset.v;$('#chatGo').disabled=false;return;}
-  if(e.target.id==='chatSkip'){const cur=nextQuestion(chatList(),chat.st.answers,chat.st.editing);if(cur&&!cur.required)chatAnswer(cur,'');return;}
-  if(e.target.id==='chatCancel'){const k=chat.st.editing;chat.st.editing=null;drawChat();const b=$(`#msgs [data-k="${k}"]`);if(b)b.focus();}
+  if(!chat||!comp)return;
+  const cur=curQuestion();if(!cur)return;
+  const t=e.target.closest('button');if(!t)return;
+  const redraw=sel=>{drawComposer(cur);const el=sel&&$(`#comp ${sel}`);if(el)el.focus();};
+  if(t.dataset.tab!==undefined){comp.tab=t.dataset.tab;return redraw(`.tab[data-tab="${CSS.escape(t.dataset.tab)}"]`);}
+  if(t.id==='chatOther'){comp.showCustom=!comp.showCustom;if(!isMulti(cur.type)&&comp.showCustom)comp.v='';return redraw(comp.showCustom?'#chatCustom':'#chatOther');}
+  if(t.id==='chatSkip'){if(!cur.required)chatAnswer(cur,isMulti(cur.type)?[]:'');return;}
+  if(t.id==='chatTodo'){chatAnswer(cur,cur.todo);return;}
+  if(t.id==='chatNone'){chatAnswer(cur,CC.noneOfThese(comp.v,CC.visibleCategories(chat.st.answers.projectCategory||null,CC.hasMobilePlatform(chat.st.answers.platforms||[]))));return;}
+  if(t.id==='chatCancel'){const k=chat.st.editing;chat.st.editing=null;comp=null;drawChat();const b=$(`#msgs [data-k="${k}"]`);if(b)b.focus();return;}
+  const v=t.dataset.v;if(v===undefined)return;
+  if(cur.type==='tabbed-chips'){comp.v=v;$('#chatIn').value=v;}
+  else if(cur.type==='platform-grid')comp.v=CC.togglePlatform(comp.v,v);
+  else if(cur.type==='categorized')comp.v=CC.toggleIntegration(comp.v,comp.tab||cur.categories[0].id,v);
+  else if(isMulti(cur.type))comp.v=comp.v.includes(v)?comp.v.filter(x=>x!==v):[...comp.v,v];
+  else{comp.v=v;comp.showCustom=false;}
+  redraw(`.chip[data-v="${CSS.escape(v)}"]`);
 });
-$('#comp').addEventListener('input',e=>{if(e.target.id==='chatIn'){$('#compErr').textContent='';e.target.removeAttribute('aria-invalid');}});
+$('#comp').addEventListener('input',e=>{
+  if(!comp)return;
+  if(e.target.id==='chatIn'){$('#compErr').textContent='';e.target.removeAttribute('aria-invalid');comp.v=e.target.value;}
+  if(e.target.id==='chatCustom'){comp.custom=e.target.value;const go=$('#chatGo');if(go&&comp.custom.trim())go.disabled=false;}
+});
 $('#msgs').addEventListener('click',e=>{
   if(e.target.id==='chatCreate'){chatCreate();return;}
   const b=e.target.closest('[data-k]');if(b)chatEdit(b.dataset.k);
 });
-$('#chatRestart').onclick=()=>{if(!chat||chatBusy)return;chats[chat.id]=chat.st={answers:{},editing:null,started:false};drawChat();};
+$('#setupList').addEventListener('click',e=>{
+  if(chatBusy)return;
+  const rm=e.target.closest('[data-rm-setup]');
+  if(rm){
+    if(!confirm('Remove this setup?'))return;
+    const id=rm.dataset.rmSetup;dropSetup(id);delete live[id];
+    if(chat&&chat.st.id===id){if(curNew===id)curNew=null;renderChat(chat.isNew);}else drawSetups();
+    return;
+  }
+  const b=e.target.closest('[data-setup]');if(!b)return;
+  const s=setups.find(x=>x.id===b.dataset.setup);if(!s)return;
+  $('#cbody').classList.remove('lst');
+  if(s.kind==='new'){curNew=s.id;if(curView==='new')renderChat(true);else go('new');return;}
+  const i=DATA.projects.findIndex(p=>p.root===s.root);if(i>=0)location.hash='#'+i+'/board';
+});
+$('#setupNew').onclick=()=>{if(chatBusy)return;curNew=null;$('#cbody').classList.remove('lst');if(curView==='new')renderChat(true);else go('new');};
+$('#chatSetups').onclick=()=>$('#cbody').classList.toggle('lst');
+$('#chatRestart').onclick=()=>{if(!chat||chatBusy)return;dropSetup(chat.st.id);chat.st=live[chat.st.id]=freshSetup(chat.st.kind,chat.st.root,chat.st.id);comp=null;drawChat();};
 $('#chatClose').onclick=()=>{if(!chatBusy)go('home');};
 
 /* ---------------- live reload (BL-052) ----------------

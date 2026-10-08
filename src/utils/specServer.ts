@@ -9,7 +9,7 @@ import { readSpecs } from './specReader';
 import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
-import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, previewNewProject, previewSetup, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 
@@ -20,6 +20,13 @@ import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, Reg
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
+/** The chat core's compiled file, which the page runs as /assets/chat-core.js (BL-PM-004b, REQ-002.I.7). */
+const CHAT_CORE = join(__dirname, '..', 'core', 'chatFlow.js');
+
+/** tsc's CommonJS output of `src/core/chatFlow.ts` as a page script: `exports` supplied, the source map line dropped. */
+export function chatCoreScript(compiled: string): string {
+  return `(function (exports) {\n${compiled.replace(/^\/\/# sourceMappingURL=.*$/m, '')}\n})(window.SpecPilotChat = {});\n`;
+}
 
 const UI_ROUTES: Record<string, [file: string, type: string]> = {
   '/': ['index.html', 'text/html; charset=utf-8'],
@@ -180,8 +187,10 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   send(res, status, 'application/json; charset=utf-8', JSON.stringify(body));
 }
 
-/** Largest accepted request body for a move (BL-053) or a setup (BL-055). */
+/** Largest accepted request body for a move (BL-053) and the other write routes. */
 export const MAX_MOVE_BODY = 16 * 1024;
+/** Largest accepted body for a setup, a new project or a preview, which carry the 23 optional fields (BL-PM-004b). */
+export const MAX_SETUP_BODY = 64 * 1024;
 
 /** Where index.html receives the per-start CSRF token (nothing with --read-only). */
 const TOKEN_SLOT = '<!-- specpilot-token -->';
@@ -271,7 +280,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   };
 
   /** The checks every write shares (SEC-004.10): Origin, token, content type, size. False = already answered. */
-  const writeAllowed = (req: IncomingMessage, res: ServerResponse): boolean => {
+  const writeAllowed = (req: IncomingMessage, res: ServerResponse, limit = MAX_MOVE_BODY): boolean => {
     // Host was checked already; the page's own origin is exactly "http://" + that Host.
     if (req.headers.origin !== `http://${req.headers.host}`) {
       sendJson(res, 403, { error: 'This request did not come from the SpecPilot page, so it was refused.' });
@@ -287,20 +296,20 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       sendJson(res, 415, { error: 'Requests that change files must be sent as JSON.' });
       return false;
     }
-    if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) {
+    if (Number(req.headers['content-length'] ?? 0) > limit) {
       sendJson(res, 413, { error: 'The request is too large.' });
       return false;
     }
     return true;
   };
 
-  /** Read a JSON body of at most MAX_MOVE_BODY bytes; answers 413 or 400 itself and then does not call back. */
-  const readJson = (req: IncomingMessage, res: ServerResponse, then: (body: unknown) => void) => {
+  /** Read a JSON body of at most `limit` bytes; answers 413 or 400 itself and then does not call back. */
+  const readJson = (req: IncomingMessage, res: ServerResponse, then: (body: unknown) => void, limit = MAX_MOVE_BODY) => {
     const chunks: Buffer[] = [];
     let size = 0;
     req.on('data', (c: Buffer) => {
       size += c.length;
-      if (size > MAX_MOVE_BODY) {
+      if (size > limit) {
         if (!res.headersSent) sendJson(res, 413, { error: 'The request is too large.' });
       } else chunks.push(c);
     });
@@ -357,14 +366,14 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   };
 
   const handleSetupPost = (req: IncomingMessage, res: ServerResponse, url: URL) => {
-    if (!writeAllowed(req, res)) return;
+    if (!writeAllowed(req, res, MAX_SETUP_BODY)) return;
     const i = projectIndex(url, roots.length);
     if (i === null || !named(i)) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       const problem = answersShapeError(body);
       if (problem) return sendJson(res, 422, { error: problem });
       writeLock = writeLock
-        .then(() => setupProject(roots[i], body as Record<string, string>))
+        .then(() => setupProject(roots[i], body as Record<string, unknown>))
         .then(out => {
           if (out.status === 200) return sendJson(res, 200, { specs: payload(i), kept: out.kept, notice: out.notice });
           if (out.status === 409 && out.specsExists) return sendJson(res, 409, { error: out.error, specs: payload(i) });
@@ -373,7 +382,25 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         .catch(() => {
           if (!res.headersSent) sendJson(res, 500, { error: 'Setup could not finish.' });
         });
-    });
+    }, MAX_SETUP_BODY);
+  };
+
+  // ---- preview (BL-PM-004b): what a create would write, rendered and returned; no lock, nothing written
+  const handlePreview = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res, MAX_SETUP_BODY)) return;
+    const guided = url.searchParams.has('project');
+    const i = guided ? projectIndex(url, roots.length) : null;
+    if (guided && (i === null || !named(i))) return send(res, 404, TEXT, 'Not Found\n');
+    if (!guided && !registry) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      const problem = guided ? answersShapeError(body) : newProjectShapeError(body, true);
+      if (problem) return sendJson(res, 422, { error: problem });
+      const b = body as Record<string, unknown>;
+      Promise.resolve(guided ? previewSetup(roots[i!], b) : previewNewProject(b)).then(
+        out => ('status' in out ? sendJson(res, out.status, { error: out.error }) : sendJson(res, 200, out)),
+        () => sendJson(res, 500, { error: 'The preview could not be made.' }),
+      );
+    }, MAX_SETUP_BODY);
   };
 
   // ---- project registry (BL-067): list, open a folder, forget an entry; all absent with --read-only
@@ -461,11 +488,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   };
 
   const handleProjectNew = (req: IncomingMessage, res: ServerResponse) => {
-    if (!writeAllowed(req, res)) return;
+    if (!writeAllowed(req, res, MAX_SETUP_BODY)) return;
     readJson(req, res, body => {
       const problem = newProjectShapeError(body);
       if (problem) return sendJson(res, 422, { error: problem });
-      const { parent, name, ...answers } = body as Record<string, string>;
+      const { parent, name, ...answers } = body as Record<string, unknown> as { parent: string; name: string } & Record<string, unknown>;
       underLock(res, async () => {
         if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS }); // before anything is created
         const out = await createProject(parent, name, answers, roots, home, cloningTarget);
@@ -473,7 +500,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         const body200 = serveRoot(res, out.root);
         if (body200) sendJson(res, 200, { ...body200, kept: out.kept, notice: out.notice });
       });
-    });
+    }, MAX_SETUP_BODY);
   };
 
   // ---- clone a repository (BL-PM-002): the user's git fills <parent>/<name>, then served like an opened folder.
@@ -592,6 +619,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
+      if (url.pathname === '/api/preview') {
+        if (token && req.method === 'POST') return handlePreview(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
       if (url.pathname === '/api/setup') {
         if (token && req.method === 'GET') return handleSetupGet(res, url);
         if (token && req.method === 'POST') return handleSetupPost(req, res, url);
@@ -606,6 +638,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         const page = readFileSync(join(UI_DIR, 'index.html'), 'utf-8');
         return send(res, 200, UI_ROUTES['/'][1], page.replace(TOKEN_SLOT, token ? `<meta name="specpilot-token" content="${token}">` : ''));
       }
+      if (url.pathname === '/assets/chat-core.js') return send(res, 200, 'text/javascript; charset=utf-8', chatCoreScript(readFileSync(CHAT_CORE, 'utf-8')));
       const ui = UI_ROUTES[url.pathname];
       if (ui) return send(res, 200, ui[1], readFileSync(join(UI_DIR, ui[0])));
       if (url.pathname !== '/api/specs' && url.pathname !== '/api/file' && url.pathname !== '/api/events') return send(res, 404, TEXT, 'Not Found\n');

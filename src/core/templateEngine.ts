@@ -118,10 +118,21 @@ export class TemplateEngine {
     Handlebars.registerHelper('yamlList', (items: unknown) =>
       new Handlebars.SafeString(Array.isArray(items) ? items.map(item => `  - ${yamlScalar(String(item))}`).join('\n') : '  []')
     );
+    // Without HTML escaping (BL-PM-004b) a free value reaches YAML as typed: a handle typed at the terminal, a
+    // project name detected from package.json, --lang or --framework. `dq` keeps one inside the template's double
+    // quotes (`\\` and `"` escaped); `fm` quotes a front-matter value through `yamlScalar` only when it holds one of
+    // the seven characters HTML escaping used to cover, so every value it never touched keeps its bytes.
+    Handlebars.registerHelper('dq', (value: unknown) => String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"'));
+    Handlebars.registerHelper('fm', (value: unknown) => {
+      const s = String(value ?? '');
+      return /[&<>"'`=]/.test(s) ? yamlScalar(s) : s;
+    });
   }
   
   renderFromString(templateString: string, context: TemplateContext): string {
-    const template = Handlebars.compile(templateString);
+    // No HTML escaping (BL-PM-004b): the output is Markdown and YAML, never HTML, so `< 100ms` is written as
+    // typed. Values are data to Handlebars, never template source, so `{{` in an answer stays text (SEC-004.3).
+    const template = Handlebars.compile(templateString, { noEscape: true });
     return template(context);
   }
   
@@ -191,7 +202,7 @@ description: {{yaml description}}
 
 # Team Guidelines
 team:
-  devPrefix: "{{author}}"
+  devPrefix: "{{dq author}}"
   code_review_required: true
   testing_required: true
   documentation_required: true
@@ -326,9 +337,9 @@ ${this.getDependencySection(language, framework)}`;
     return `---
 title: Architecture
 description: System design, components, data flow, and architecture decisions
-project: {{projectName}}
+project: {{fm projectName}}
 language: ${language}
-framework: {{framework}}
+framework: {{fm framework}}
 lastUpdated: {{currentDate}}
 sourceOfTruth: project/project.yaml
 ---

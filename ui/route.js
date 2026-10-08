@@ -116,6 +116,7 @@ function flowValue(qu,answers){
 /* Whether a question has been answered: its key is there and, for a choice, the answer is one of the
    choices now offered (a framework kept from another language is asked again). An empty optional answer counts. */
 function answered(qu,answers){
+  if(typeof qu.answered==='boolean')return qu.answered; // a question from the chat core (BL-PM-004b) knows
   if(!(qu.key in answers))return false;
   return !qu.choices||qu.choices.some(c=>c.value===answers[qu.key]);
 }
@@ -161,22 +162,29 @@ function chatText(qu,ctx){return String(qu.chat||'').replace(/\{name\}/g,ctx.nam
 /* The answer as a bubble or a recap row shows it: the choice's own text up to its " — " part (the chips
    keep the whole), the typed text, or Skipped. */
 function answerText(qu,answers){
+  if(typeof qu.text==='string')return qu.text; // the chat core's own (BL-PM-004b)
   const v=answers[qu.key];
   if(qu.choices){const c=qu.choices.find(x=>x.value===v);return c?c.name.split(' — ')[0]:'';}
   return String(v===undefined?'':v).trim()||'Skipped';
 }
 
 /* The thread up to the current question: the name bubble (a new project only: `named`), a divider per step,
-   a bot row per asked question and an answer row per answered one; after the last answer a Review divider. */
+   the skip notes before a question (BL-PM-004b), a bot row per asked question (with its file caption) and an
+   answer row per answered one, then the note after it; after the last answer a Review divider. */
 function threadRows(q,list,answers,cur,ctx,named){
   const steps=[...new Set(list.map(x=>x.step))],rows=[];
   if(named)rows.push({kind:'user',key:'name',text:ctx.name,mono:true,skipped:false});
   let last=null;
   for(const qu of list){
     if(qu.step!==last){rows.push({kind:'divider',text:`Step ${steps.indexOf(qu.step)+1} · ${qu.step}`});last=qu.step;}
-    rows.push({kind:'bot',key:qu.key,text:chatText(qu,ctx),cli:qu.message});
+    for(const n of qu.notesBefore||[])rows.push({kind:'note',text:n});
+    rows.push({kind:'bot',key:qu.key,text:chatText(qu,ctx),cli:qu.message,caption:qu.caption||''});
     if(cur&&qu.key===cur.key)break;
-    if(answered(qu,answers))rows.push({kind:'user',key:qu.key,text:answerText(qu,answers),mono:qu.key==='parent'||qu.key==='handle',skipped:!qu.choices&&!String(answers[qu.key]).trim()});
+    if(answered(qu,answers)){
+      const text=answerText(qu,answers);
+      rows.push({kind:'user',key:qu.key,text,mono:qu.key==='parent'||qu.key==='handle',skipped:text==='Skipped'||text==='None'&&!qu.choices});
+      if(qu.noteAfter)rows.push({kind:'note',text:qu.noteAfter});
+    }
   }
   if(!cur)rows.push({kind:'divider',text:'Review'});
   return rows;
@@ -203,7 +211,48 @@ function previewFiles(q,answers){
   return [...(q.files.specs[pick('apiParadigm')]||[]),...(q.files.outside[ide]||[])].map(path=>({path,kept:keep.includes(path)}));
 }
 
-const api={resolveRoute,goneHtml,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
-  projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles};
+/* ---- the full chat (BL-PM-004b): one renderer for every option, tabs, and the saved setups ---- */
+
+/* One option as a chip, or a card when it has a description: emoji, label, a Recommended or Check this badge,
+   the description and a warning line. `pressed` is its state; `data-v` its value. */
+function optionHtml(o,pressed){
+  const badge=o.badge==='recommended'?'<span class="bdg">Recommended</span>':o.badge==='flagged'?'<span class="bdg fl">Check this</span>':'';
+  return `<button type="button" class="chip${o.description?' card':''}${o.todo?' todo':''}" aria-pressed="${!!pressed}" data-v="${esc(o.id)}"><b>${o.emoji?`<span class="em" aria-hidden="true">${esc(o.emoji)}</span>`:''}${esc(o.label)}${badge}</b>${o.description?`<small>${esc(o.description)}</small>`:''}${o.warning?`<small class="wn">⚠ ${esc(o.warning)}</small>`:''}</button>`;
+}
+
+/* A tab strip: `tabs` as [{id, label, count}], the active one selected. */
+function tabsHtml(tabs,active){
+  return `<div class="ctabs" role="tablist">${tabs.map(t=>`<button type="button" role="tab" class="tab" aria-selected="${t.id===active}" data-tab="${esc(t.id)}">${esc(t.label)}${t.count?` <span class="cnt">${t.count}</span>`:''}</button>`).join('')}</div>`;
+}
+
+/* A CLI question's choices as options: the text up to " — " as the label, the rest as the description,
+   with the chat core's badges. */
+function choiceOptions(qu){
+  return (qu.choices||[]).map(c=>{const [label,description]=c.name.split(' — ');return {id:c.value,label,description,badge:qu.badges&&qu.badges[c.value]};});
+}
+
+/* Saved setups (REQ-002.H.28), kept by the page in localStorage under sp-setups: the list as stored, newest first. */
+const SETUPS_KEY='sp-setups',MAX_SETUPS=50;
+function setupsLoad(raw){
+  let v;try{v=JSON.parse(raw||'[]');}catch(e){return [];}
+  if(!Array.isArray(v))return [];
+  return v.filter(e=>e&&typeof e==='object'&&typeof e.id==='string'&&(e.kind==='new'||e.kind==='setup')&&e.answers&&typeof e.answers==='object')
+    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+}
+/* The list with `entry` saved (replaced by id, else added), newest first, at most 50. */
+function setupsPut(list,entry){return [entry,...list.filter(e=>e.id!==entry.id)].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,MAX_SETUPS);}
+function setupsRemove(list,id){return list.filter(e=>e.id!==id);}
+/* What is stored for a setup: never the token, only what the chat needs to resume. */
+function setupRecord(st){
+  return {id:st.id,kind:st.kind,root:st.root,name:st.kind==='new'?String(st.answers.name||''):st.name||'',answers:st.answers,editing:null,started:!!st.started,
+    seeded:st.seeded||{},updatedAt:st.updatedAt||0,finished:!!st.finished,preview:st.preview||{done:false,changed:false}};
+}
+/* A row of the list: its title, `In progress` or `Ready to create`. */
+function setupTitle(e){return e.kind==='setup'?(e.name||String(e.root||'').split(/[/\\]/).filter(Boolean).pop()||'Untitled setup'):(e.name||'Untitled setup');}
+function setupStatus(e){return e.finished?'Ready to create':'In progress';}
+
+const api={resolveRoute,goneHtml,when,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
+  projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
+  optionHtml,tabsHtml,choiceOptions,SETUPS_KEY,setupsLoad,setupsPut,setupsRemove,setupRecord,setupTitle,setupStatus};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);
 })(this);

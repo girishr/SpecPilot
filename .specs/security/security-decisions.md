@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-06 (BL-032 Spec Report)
-version: 1.12
+lastUpdated: 2026-10-08 (BL-PM-004b, no HTML escaping)
+version: 1.13
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -35,7 +35,9 @@ This file records security-related architectural and implementation decisions ma
   - Optional telemetry — rejected to keep the tool fully offline and trust-transparent.
 - **Reference**: ARCH-007.3
 
-### [SEC-004.3] Handlebars auto-escaping relied on for template safety
+### [SEC-004.3] Handlebars auto-escaping relied on for template safety (revised 2026-10-08, BL-PM-004b: no HTML escaping)
+
+- **Revision (2026-10-08, BL-PM-004b, the developer's direction)**: the engine compiles with `noEscape`: values land as typed, because the output is Markdown and YAML, never HTML, and the escaping turned answers such as `< 100ms` into `&lt; 100ms` in every file. Template safety never rested on the escaping: Handlebars treats a value as data, never as template source, so `{{` in a value is text (pinned by a test), and the project name of `init` and a new project keeps its allowlist (SEC-004.1). YAML values go through `yaml`/`yamlList`; the free values written into YAML outside them (the terminal-typed handle; `--lang` and `--framework`; and the project name of `add-specs`, which comes from the folder's `package.json` or build file, also in a repository cloned from the page, so the allowlist does not cover it) go through `dq` inside a template's double quotes (`devPrefix`, api.yaml's `project`, `title`, `name`) and `fm` in front matter (`project`, `language`, `framework`, `contributors`), which quotes a value only when it holds one of the seven characters HTML escaping covered, so every other value keeps its bytes (found by spec-reviewer B, 2026-10-08). Any page that shows these files as HTML escapes them itself (the serve UI does, SEC-002.5 d). The original decision follows.
 
 - **Date**: 2026-02-28
 - **Decision**: Use only double-brace `{{ }}` interpolation (which HTML-escapes output). Never use triple-brace `{{{ }}}` (unescaped) in any template.
@@ -200,15 +202,26 @@ This file records security-related architectural and implementation decisions ma
 - **Alternatives considered**:
   - A comment stating the purity rule, as `specReader.ts` has (ARCH-003.13) — rejected: a comment is not checked, and the folder will grow.
   - Validating values inside the core (lengths, character sets) — rejected: the core would then refuse what a caller allowed, in two places; validation stays at the entry points (the prompts, the serve routes, REQ-002.H.16).
-  - Escaping markdown values differently from `description` (no HTML escaping) — deferred: it would change the bytes of today's output for the same input, which phases 1 and 2 must not; revisit with SEC-005's open question on `description` and `author`.
+  - Escaping markdown values differently from `description` (no HTML escaping) — deferred: it would change the bytes of today's output for the same input, which phases 1 and 2 must not; revisit with SEC-005's open question on `description` and `author`. (Taken in BL-PM-004b for every value, SEC-004.3 revised.)
 - **Reference**: SEC-002.2, SEC-002.7
+
+### [SEC-004.17] Full setup chat: the 23 fields checked at the route, setups in the browser and never the token, one compiled rule script
+
+- **Date**: 2026-10-07 (BL-PM-004b Spec Report)
+- **Decision**: The 23 optional fields enter only through `POST /api/projects/new`, `POST /api/setup` and the read-only `POST /api/preview`, each checked before the lock (type, length, list size, the eight integration keys, one line, no control characters), not against the option lists, since `Other: ___` is free text; escaping stays the core's (SEC-004.16). The three routes take bodies up to 64 KB (bytes): every ASCII body that passes the field checks fits (about 55 KB at most); a body of mostly non-ASCII text at the character limits can exceed it and gets 413, whose message the page shows under the button, accepted rather than sizing the limit for three bytes per character. Unfinished setups are kept in the page's `localStorage` (`sp-setups`) with answers only; the token is never stored. The chat's rules run in the page from `/assets/chat-core.js`, the compiled `src/core/chatFlow.ts`, which imports nothing.
+- **Rationale**: The route is where answers enter, as for the context answers (SEC-004.12); restricting values to the offered options would forbid the web's free entries and add a second copy of every list on the server. Browser storage keeps the registry the one file SpecPilot writes outside a project (SEC-002.5 k) and is the developer's decision; what it exposes is what the user typed for a project not yet created. Serving the compiled core file keeps one copy of the rules without a bundler or a new dependency.
+- **Alternatives considered**:
+  - Drafts in `~/.specpilot/drafts` (the backlog row's first plan) — rejected by the developer (2026-10-07): a second file outside a project, with its own folder, mode and atomic-write rules.
+  - Accepting only listed option labels — rejected: breaks `Other: ___`, and the templates escape any string anyway.
+  - Keeping the 16 KB limit — rejected: 23 fields with free entries can exceed it (18 lists of up to 25 entries: 10 list fields and 8 integration categories).
+- **Reference**: SEC-002.8, SEC-002.5, REQ-002.H.28, REQ-002.I.7
 
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
-- Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged. Since BL-PM-003 the project-context answers sent over HTTP are limited to one line of 1000 characters without control characters, SEC-004.14.)
+- Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Since BL-PM-004b there is no HTML escaping; the handle is quoted for YAML by `dq` and `yaml`, SEC-004.3.) (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged. Since BL-PM-003 the project-context answers sent over HTTP are limited to one line of 1000 characters without control characters, SEC-004.14.)
 - Should the `build:plugin` generator's own dependency chain be pinned/audited separately, given it now sits in the plugin's trusted computing base (SEC-002.4)?
 
 ---
 
-_Last updated: 2026-10-06_
+_Last updated: 2026-10-07_

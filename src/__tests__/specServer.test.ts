@@ -16,6 +16,9 @@ import * as specSetup from '../utils/specSetup';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
 import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
+import { initOptions, InitAnswers } from '../utils/initQuestions';
+import { render } from '../core/render';
+import { ALL_FIELDS } from './fixtures/allFields';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -864,7 +867,7 @@ describe('UI routing (ui/route.js)', () => {
       // BL-PM-004: the setup chat, with only its own strings in the markup (the questions, their chat lines and choices come from the server)
       const chat = page.slice(page.indexOf('<section class="view chat" id="v-chat">'), page.indexOf('<!-- FILE: any .specs/ file'));
       expect(chat).toContain('<div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>');
-      expect(chat).toContain("<h2>Hey, I'm SpecPilot</h2>");
+      expect(chat).toContain('<h2 id="introH">Hey, I\'m SpecPilot</h2>');
       expect(chat).toContain('<div class="fine">Runs on this machine. Nothing leaves it.</div>');
       expect(chat).toContain('<div class="lbl" id="nameLbl">Name your project to start</div>');
       expect(chat).toContain('<input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button>');
@@ -1504,9 +1507,11 @@ describe('guided setup over HTTP', () => {
     expect(snapshot(e.root)).toEqual(before);
   });
 
-  it('refuses a 17 KB body (413), a bad project with a bad token (403, not 404), a bad project (404), and a project with .specs/ (409)', async () => {
+  it('refuses a body over 64 KB (413), a bad project with a bad token (403, not 404), a bad project (404), and a project with .specs/ (409)', async () => {
     const before = snapshot(e.root);
-    expect((await post(port, JSON.stringify({ projectType: 'x'.repeat(17 * 1024) }), good(), '/api/setup?project=0')).status).toBe(413);
+    expect((await post(port, JSON.stringify({ projectType: 'x'.repeat(65 * 1024) }), good(), '/api/setup?project=0')).status).toBe(413);
+    // up to 64 KB is read (BL-PM-004b): a 17 KB body now reaches the shape check
+    expect((await post(port, JSON.stringify({ projectType: 'x'.repeat(17 * 1024) }), good(), '/api/setup?project=0')).status).toBe(422);
     expect((await post(port, ANSWERS, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }), '/api/setup?project=9')).status).toBe(403);
     expect((await post(port, ANSWERS, good(), '/api/setup?project=9')).status).toBe(404);
     expect((await post(port, ANSWERS, good(), '/api/setup?project=01')).status).toBe(404);
@@ -2137,7 +2142,9 @@ describe('a new project over HTTP (BL-PM-003)', () => {
     expect((await create({}, good({ 'X-SpecPilot-Token': undefined }))).status).toBe(403);
     expect((await create({}, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }))).status).toBe(403);
     expect((await create({}, good({ 'Content-Type': 'text/plain' }))).status).toBe(415);
-    expect((await create({ constraints: 'x'.repeat(16 * 1024) })).status).toBe(413);
+    expect((await create({ constraints: 'x'.repeat(65 * 1024) })).status).toBe(413);
+    // 16 KB fits the 64 KB limit since BL-PM-004b, and is refused for its length instead
+    expect((await create({ constraints: 'x'.repeat(16 * 1024) })).status).toBe(422);
     expect((await post(port, '{not json', good(), '/api/projects/new')).status).toBe(400);
     expect(readdirSync(base)).toEqual([]);
     expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
@@ -2441,5 +2448,110 @@ describe('serveCommand and the registry (BL-067)', () => {
     } finally {
       process.chdir(cwd);
     }
+  });
+});
+
+describe('the full chat\'s answers over HTTP (BL-PM-004b)', () => {
+  let e: ReturnType<typeof makeEmpty>;
+  let base: string;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token, ...over,
+  });
+  const create = (over: Record<string, unknown> = {}) =>
+    post(port, JSON.stringify({ parent: base, name: 'demo', ...NEW_ANSWERS, ...over }), good(), '/api/projects/new');
+  const preview = (body: Record<string, unknown>, path = '/api/preview', headers = good()) => post(port, JSON.stringify(body), headers, path);
+
+  beforeEach(async () => {
+    e = makeEmpty();
+    base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-chat-')));
+    spec = await startSpecServer([e.root], 0, '0.0.0-test', { registry: regFile() });
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    e.cleanup();
+    rmSync(base, { recursive: true, force: true });
+  });
+
+  it('a new project with every optional field writes what render() gives for them: the phase 2 recording\'s content', async () => {
+    const r = await create(ALL_FIELDS);
+    expect(r.status).toBe(200);
+    const target = join(base, 'demo');
+    for (const f of render(initOptions(target, 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', ALL_FIELDS)).files) expect([f.path, readFileSync(join(target, ...f.path.split('/')), 'utf-8')]).toEqual([f.path, f.content]);
+    expect(readFileSync(join(target, '.specs', 'project', 'project.yaml'), 'utf-8')).toContain('platforms:\n  - iOS Native\n  - Node.js / Express\n');
+  });
+
+  it('refuses each optional field of the wrong shape with 422 naming it, creating nothing', async () => {
+    for (const [over, error] of [
+      [{ platforms: 'iOS' }, '"platforms" must be a list.'],
+      [{ platforms: Array(26).fill('a') }, '"platforms" must have at most 25 items.'],
+      [{ platforms: ['a'.repeat(101)] }, '"platforms" items must be at most 100 characters.'],
+      [{ platforms: [1] }, '"platforms" items must be text.'],
+      [{ accessControl: ['a'] }, '"accessControl" must be text.'],
+      [{ accessControl: 'a'.repeat(101) }, '"accessControl" must be at most 100 characters.'],
+      [{ otherApis: 'a'.repeat(1001) }, '"otherApis" must be at most 1000 characters.'],
+      [{ otherApis: 'two\nlines' }, '"otherApis" must be one line of text, without control characters.'],
+      [{ otherApis: 'a b' }, '"otherApis" must be one line of text, without control characters.'],
+      [{ databases: ['a b'] }, '"databases" items must be one line of text, without control characters.'],
+      [{ integrations: ['Stripe'] }, '"integrations" must be an object of lists.'],
+      [{ integrations: { crm: ['HubSpot'] } }, '"integrations" keys must be one of: payments, email, storage, analytics, errors, push, maps, ai.'],
+      [{ integrations: { payments: 'Stripe' } }, '"integrations.payments" must be a list.'],
+      [{ languageOverride: 'Dart' }, 'Unexpected field "languageOverride".'],
+    ] as [Record<string, unknown>, string][]) {
+      const r = await create(over);
+      expect([over, r.status, r.json.error]).toEqual([over, 422, error]);
+    }
+    expect(readdirSync(base)).toEqual([]);
+  });
+
+  it('accepts a body up to 64 KB on the setup routes, and keeps 16 KB on the others', async () => {
+    // about 34 KB, over the old 16 KB, within every field limit: eight full lists and a two-byte character in each item
+    const list = Array(25).fill('é' + 'a'.repeat(99));
+    const big = { otherApis: 'a'.repeat(1000), platforms: list, specialConsiderations: list, deploymentTargets: list, localDatabases: list, databases: list, compliance: list, cicd: list, securityConcerns: list };
+    expect(Buffer.byteLength(JSON.stringify(big))).toBeGreaterThan(16 * 1024);
+    expect((await preview({ name: 'demo', ...NEW_ANSWERS, ...big })).status).toBe(200);
+    expect((await create(big)).status).toBe(200);
+    expect((await post(port, JSON.stringify({ path: '/' + 'a'.repeat(17 * 1024) }), good(), '/api/projects')).status).toBe(413);
+    expect((await preview({ name: 'p', ...NEW_ANSWERS, pad: 'x'.repeat(65 * 1024) })).status).toBe(413);
+  });
+
+  it('POST /api/preview renders a new project without writing, taking no parent', async () => {
+    const r = await preview({ name: 'demo', ...NEW_ANSWERS, ...ALL_FIELDS });
+    expect(r.status).toBe(200);
+    const out = r.json;
+    expect(out.files).toEqual(render(initOptions('', 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', ALL_FIELDS)).files);
+    expect(out.kept).toEqual([]);
+    expect(readdirSync(base)).toEqual([]);
+    expect((await preview({ name: 'demo', parent: base, ...NEW_ANSWERS })).status).toBe(422); // no parent in a preview
+    expect((await preview({ name: '../x', ...NEW_ANSWERS })).status).toBe(422);
+    expect((await preview({ name: 'demo', ...NEW_ANSWERS }, '/api/preview', good({ 'X-SpecPilot-Token': 'f'.repeat(64) }))).status).toBe(403);
+    expect((await hit(port, '/api/preview')).status).toBe(405);
+  });
+
+  it('guided setup: the fields reach the files, and its preview lists what would be kept', async () => {
+    writeFileSync(join(e.root, 'CLAUDE.md'), 'mine\n');
+    const body = { ...JSON.parse(ANSWERS), ide: 'claude-code', platforms: ['iOS Native'], integrations: { payments: ['Stripe'] } };
+    const pv = await preview(body, '/api/preview?project=0');
+    expect(pv.status).toBe(200);
+    expect(pv.json.kept).toEqual(['CLAUDE.md']);
+    expect(existsSync(join(e.root, '.specs'))).toBe(false);
+    expect((await preview(body, '/api/preview?project=9')).status).toBe(404);
+    const r = await post(port, JSON.stringify(body), good(), '/api/setup?project=0');
+    expect(r.status).toBe(200);
+    expect(readFileSync(join(e.root, '.specs', 'project', 'project.yaml'), 'utf-8')).toContain('platforms:\n  - iOS Native\n');
+    expect(readFileSync(join(e.root, '.specs', 'architecture', 'architecture.md'), 'utf-8')).toContain('- **payments**: Stripe');
+    expect(readFileSync(join(e.root, 'CLAUDE.md'), 'utf-8')).toBe('mine\n');
+    expect((await preview(body, '/api/preview?project=0')).status).toBe(409); // .specs/ exists now
+  });
+
+  it('with --read-only there is no preview route', async () => {
+    await spec.close();
+    spec = await startSpecServer([e.root], 0, '0.0.0-test', { readOnly: true });
+    port = (spec.server.address() as AddressInfo).port;
+    expect((await post(port, '{}', good(), '/api/preview')).status).toBe(405);
   });
 });

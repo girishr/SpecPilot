@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The whole init.specpilot.dev setup chat in the `specpilot serve` page** (BL-PM-004b): Start a New Project and the setup of a folder without `.specs/` ask the web chat's questions in its order and eight steps, with its pickers (platform tabs, starter chips, cards, grouped and categorized choices, `Other` entries), its recommendations and warnings, a note under each question naming the files it fills, and the language and framework suggested from the platforms you pick. The extra answers fill the matching sections of the spec files; a setup that answers only the questions `specpilot init` asks writes the same files as before. Unfinished setups are kept in your browser and listed beside the chat until you create the project, and the recap can preview every file before anything is written.
+
+### Fixed
+
+- **Answers are written into the spec files as typed**: `< 100ms`, `Q&A` or `"quoted"` used to land as `&lt; 100ms`, `Q&amp;A` and `&quot;quoted&quot;`, because the templates HTML-escaped every value although the files are Markdown and YAML. A handle, `--lang` or `--framework` typed at the terminal, or a project name `add-specs` reads from `package.json`, that holds one of those characters is now quoted where it goes into YAML, so the files still read back. Output is otherwise byte for byte the same.
+
 ## [2.10.0] - 2026-10-07
 
 ### Changed

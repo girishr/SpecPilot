@@ -1,5 +1,6 @@
 import { AddSpecsAnswers, PROJECT_TYPE_CHOICES } from './addSpecsQuestions';
 import { SpecGeneratorOptions } from './specGenerator';
+import { OptionalFields } from '../core/templateEngine';
 
 // What only `specpilot init` asks, and how its answers become generator options: one copy, used by the
 // command's inquirer prompts and by `specpilot serve`'s new-project route (BL-075, BL-PM-003,
@@ -37,8 +38,9 @@ export interface InitAnswers extends AddSpecsAnswers {
 }
 
 /** The `generateSpecs()` options `init` builds from the project name and the answers. */
-export function initOptions(targetDir: string, projectName: string, answers: InitAnswers, specsName = '.specs'): SpecGeneratorOptions {
+export function initOptions(targetDir: string, projectName: string, answers: InitAnswers, specsName = '.specs', fields: OptionalFields = {}): SpecGeneratorOptions {
   return {
+    ...fields,
     projectName,
     language: answers.language,
     framework: answers.framework,

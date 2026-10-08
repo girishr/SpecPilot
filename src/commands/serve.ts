@@ -125,8 +125,8 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
       options.readOnly
         ? 'Read-only: nothing will be written. Open pages update when a spec file changes. Press Ctrl+C to stop.'
         : empty.length
-          ? 'Tasks can be moved in the page (only .specs/planning/tasks.md is written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.'
-          : 'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+          ? 'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.'
+          : 'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ),
   );
   if (registry) console.log(chalk.gray(`Folders opened in the page are remembered in ${displayRoot(registry, home)}.`));

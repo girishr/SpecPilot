@@ -122,6 +122,8 @@ a{color:var(--accent);text-decoration:none}
 .gl .gh .cnt{color:var(--label-3);font-weight:500;font-variant-numeric:tabular-nums;text-transform:none;letter-spacing:0}
 .gl .gh .more{margin-left:auto;color:var(--green-ink);font-weight:500;font-size:12.5px;text-transform:none;letter-spacing:0}
 .gl .gh .more:hover{text-decoration:underline}
+.gl .gh .more:disabled{opacity:.6;cursor:default;text-decoration:none}
+#regenNote .note{margin:0 0 6px;overflow-wrap:anywhere}
 .gl .gh .disc{width:20px;height:20px;display:grid;place-items:center;color:var(--label-3);transition:transform .18s;transform-origin:center}
 .gl.closed .gh .disc{transform:rotate(-90deg)}
 .gl.closed .box{display:none}

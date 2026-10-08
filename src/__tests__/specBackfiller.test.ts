@@ -1,7 +1,7 @@
 import { SpecBackfiller } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
 
 // ---------------------------------------------------------------------------
@@ -1218,6 +1218,25 @@ rules:
       const text = out.join('\n');
       expect(text).toContain('kept: modified  .claude/commands/specpilot-status.md');
       expect(text).toContain('delete it and re-run specpilot backfill to get the latest version');
+    });
+
+    (process.platform === 'win32' ? it.skip : it)('`specpilot backfill` writes no command file through a linked .claude folder and says so (BL-PM-006)', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n', 'utf-8');
+      const outside = makeTmpDir();
+      symlinkSync(outside, join(testDir, '.claude'));
+      const out: string[] = [];
+      const log = jest.spyOn(console, 'log').mockImplementation((m?: unknown) => {
+        out.push(String(m));
+      });
+      try {
+        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+      } finally {
+        log.mockRestore();
+      }
+      expect(readdirSync(outside)).toEqual([]);
+      expect(out.join('\n')).toContain('kept: folder is a symbolic link or not a folder  .claude/commands/specpilot-status.md');
+      rmSync(outside, { recursive: true, force: true });
     });
   });
 });

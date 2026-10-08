@@ -267,7 +267,7 @@ export class SpecBackfiller {
    * Reuses `SlashCommandGenerator`'s per-IDE routing so CLI-side backfill and
    * web-app-side generation (`slashCommandGenerator.ts`) never drift apart.
    */
-  private backfillSlashCommands(projectDir: string, dryRun: boolean): SlashCommandBackfillResult[] {
+  backfillSlashCommands(projectDir: string, dryRun: boolean): SlashCommandBackfillResult[] {
     const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
       { ide: 'claude-code', signalFile: 'CLAUDE.md' },
       { ide: 'cursor', signalFile: '.cursor/rules/specpilot.mdc' },

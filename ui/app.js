@@ -258,12 +258,32 @@ function fileRows(list){
     return `<button type="button" class="row act" data-open="${esc(f.path)}"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span>${fm['argument-hint']!==undefined?`<span class="id" translate="no">${esc(fm['argument-hint'])}</span>`:''}</div>${fm.description!==undefined?`<div class="det">${esc(fm.description)}</div>`:''}</div><div class="trail">${fm['allowed-tools']!==undefined?`<span class="pill gray" translate="no">${esc(fm['allowed-tools'])}</span>`:''}${chev}</div></button>`;}).join('')
     :'<div class="empty">No files here.</div>';
 }
+/* From SpecPilot / Yours (BL-PM-006): the server's `generated` flag decides; rows keep their full path. */
+function fileGroup(list,box,cnt,ours){const l=list.filter(f=>!!f.generated===ours);$(box).innerHTML=fileRows(l);$(cnt).textContent=l.length;}
 function renderAgentFiles(){
-  const N=DATA.nav;
-  $('#cmdBox').innerHTML=fileRows(N.commands);$('#cmdCnt').textContent=N.commands.length;
-  $('#prmBox').innerHTML=fileRows(N.prompts);$('#prmCnt').textContent=N.prompts.length;
-  $('#sklBox').innerHTML=fileRows(N.skills);$('#sklCnt').textContent=N.skills.length;
+  const N=DATA.nav,cmds=[...N.commands,...N.prompts];
+  fileGroup(cmds,'#cmdBox','#cmdSpCnt',true);fileGroup(cmds,'#cmdMine','#cmdYouCnt',false);
+  fileGroup(N.skills,'#sklBox','#sklSpCnt',true);fileGroup(N.skills,'#sklMine','#sklYouCnt',false);
 }
+/* Regenerate All (BL-PM-006): the server runs specpilot backfill's command step; its result lines are shown as sent,
+   until the next run or a project switch. */
+function setRegenNote(lines){const n=$('#regenNote');n.innerHTML=lines.map(l=>`<p class="note" translate="no">${esc(l)}</p>`).join('');n.hidden=!lines.length;}
+async function regenerate(){
+  const b=$('#cmdRegen'),p=PROJECT,had=document.activeElement===b;if(b.disabled)return;
+  b.disabled=true; // drops focus; given back below
+  let r,body={};
+  try{
+    r=await fetch('/api/commands/regenerate?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:'{}'});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  b.disabled=false;
+  if(p!==PROJECT)return;
+  if(!r)setRegenNote(['The server did not answer. Command files may have been partly written.']);
+  else if(r.status===200){await apply(body.specs,null);setRegenNote(body.message);}
+  else setRegenNote([(body.error||`Regenerate All did not run (HTTP ${r.status}).`)+(r.status===500?' Command files may have been partly written.':'')]);
+  if(had&&document.activeElement===document.body)b.focus();
+}
+$('#cmdRegen').onclick=regenerate;
 /* Inspector for a generated file: its front matter raw, its body rendered. */
 /* Is this generated file in the latest /api/specs listing? */
 function listed(path){const N=DATA.nav;return N.instructions.some(f=>f.exists&&f.path===path)||[N.commands,N.prompts,N.skills].some(l=>l.some(f=>f.path===path));}
@@ -801,7 +821,7 @@ async function switchProject(n,keepRoute){
 /* Draw project PROJECT from payload d: the tail of a switch, also used with the payload an open returns (BL-067). */
 function showProject(d,keepRoute){
   Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
-  DATA=d;selected=null;
+  DATA=d;selected=null;setRegenNote([]);
   renderProject();renderTasks();renderIde();renderAgentFiles();listen();
   if(keepRoute)route();else go('board');
 }
@@ -818,7 +838,7 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
 let openBusy=false,sheetFrom=addBtn,sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null;
-if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
+if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 function openSheet(from,tab){
   hideTip();sheetFrom=from;openVeil.classList.add('open');
   $$('#openForm .field input').forEach(el=>{el.value='';});cloneNamed=false;

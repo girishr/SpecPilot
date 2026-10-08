@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-08 (BL-PM-005 Spec Report)
-version: 1.18
+lastUpdated: 2026-10-08 (BL-PM-006 Spec Report)
+version: 1.19
 contributors: [girishr]
 relatedFiles:
   [
@@ -83,16 +83,16 @@ An HTTP server on `127.0.0.1` that shows the `.specs/` and a few generated files
 
 ### Command File Refresh: `specpilot backfill` [SEC-002.6]
 
-`specpilot backfill` replaces existing `specpilot-*` command files in the project when their bytes match a version SpecPilot generated (BL-058).
+`specpilot backfill` replaces existing `specpilot-*` command files in the project when their bytes match a version SpecPilot generated (BL-058). Since BL-PM-006 the `specpilot serve` page runs the same step through `POST /api/commands/regenerate` (SEC-004.19).
 
 | Field             | Detail |
 | ----------------- | ------ |
-| **Description**   | (a) **Lost user edits**: a file the user changed is replaced. (b) **Write through a link**: a command file path that is a symbolic link, so the write lands outside the project (e.g. `~/.bashrc`). (c) **Torn write**: a crash, or an editor saving at the same moment, leaves a truncated or mixed file. (d) **Writes outside the project**: e.g. the user's `~/.codex/prompts/`. |
+| **Description**   | (a) **Lost user edits**: a file the user changed is replaced. (b) **Write through a link**: a command file path that is a symbolic link, so the write lands outside the project (e.g. `~/.bashrc`). (c) **Torn write**: a crash, or an editor saving at the same moment, leaves a truncated or mixed file. (d) **Writes outside the project**: e.g. the user's `~/.codex/prompts/`, or through a folder on the way that is a symbolic link (`.claude` → elsewhere). (e) **Forged request** (BL-PM-006): a hostile page makes the browser run the refresh. |
 | **Impact**        | Medium for (a) and (c): lost or corrupted local work. High for (b): overwrite of an arbitrary user-writable file. |
 | **Likelihood**    | Low: (b) needs a planted link in a project the user then runs `specpilot backfill` on. |
 | **Entry point**   | Files under `.claude/commands/`, `.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/`, `.github/prompts/`, `.codex/prompts/` in the project. |
-| **Mitigation**    | (1) Replace only when the raw bytes hash (SHA-256) to an entry in `KNOWN_COMMAND_HASHES` for that exact target path; anything else is kept and reported (a). (2) `lstat` first: a symbolic link or other non-regular file is kept, never followed; new files are created with `wx` so an existing path or link is never written through (b). (3) Temp file in the same folder, fsync, keep mode, re-check the hash just before `rename` (c). (4) Targets are fixed relative paths under the project directory; `~/.codex` and every other path outside it are never read or written (d). |
-| **Residual risk** | Low. A file edited back to exactly a released version's bytes is indistinguishable from an unedited one and is replaced; its content was SpecPilot's own text. |
+| **Mitigation**    | (1) Replace only when the raw bytes hash (SHA-256) to an entry in `KNOWN_COMMAND_HASHES` for that exact target path; anything else is kept and reported (a). (2) `lstat` first: a symbolic link or other non-regular file is kept, never followed; new files are created with `wx` so an existing path or link is never written through (b). (3) Temp file in the same folder, fsync, keep mode, re-check the hash just before `rename` (c). (4) Targets are fixed relative paths under the project directory; `~/.codex` and every other path outside it are never read or written; since BL-PM-006 folders on the way are checked with `lstat` and created one level at a time without `recursive`, and a level that is a link or not a folder keeps the file; a local process racing a folder swap between check and write is the residual (d). (5) The page route has every layer of SEC-004.10, takes no text or path, and is absent with `--read-only` (e). |
+| **Residual risk** | Low. A folder swapped for a link by another local process between the `lstat` and the write can redirect one write; that process already has write access to the project. A file edited back to exactly a released version's bytes is indistinguishable from an unedited one and is replaced; its content was SpecPilot's own text. |
 
 ### Shared Spec Core [SEC-002.7]
 
@@ -139,6 +139,7 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g)  |
 | `POST /api/tasks/move`               | JSON `{id, toSection, toIndex}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, If-Match, row lookup | One line moved in `tasks.md` (SEC-002.5 f, h) |
 | `POST /api/tasks/new` (BL-PM-005)   | JSON `{description, section}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; description one line of at most 4000 code points, no control character, no unpaired surrogate, no `|`, no trailing `\`, not empty; section `backlog` or `currentSprint`; ID computed by the server | One line appended to Backlog or Current Sprint in `tasks.md`; `tasks-archive.md` read for IDs (SEC-004.18) |
+| `POST /api/commands/regenerate` (BL-PM-006) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; body must be `{}`; targets fixed by `KNOWN_COMMAND_HASHES` and IDE signal files | Adds missing and replaces byte-exact known `specpilot-*` command files of detected IDEs; links on the way kept (SEC-004.19) |
 | `GET /api/setup`                     | `project` index      | ✅ Host check; 404 unless a named folder without `.specs`; 405 with `--read-only` | Questions, detector result and the kept list, read-only (SEC-002.5 j) |
 | `POST /api/setup`                    | JSON `{projectType, language?, framework?, apiParadigm, handle, ide}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, fixed keys, fixed choices, handle allowlist | New files only, staged then created exclusively; existing files kept (SEC-002.5 j) |
 | `.specpilot-setup-*` folders at `serve` startup | Disk read (`lstat`, marker file) | ✅ exact name pattern, real folder, marker present as a regular file; skipped with `--read-only` | Removed with contents; nothing else touched (SEC-002.5 j) |

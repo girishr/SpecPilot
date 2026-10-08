@@ -200,13 +200,15 @@
 
     <!-- COMMANDS -->
     <section class="view" id="v-commands">
-      <div class="gl"><div class="gh"><span translate="no">.claude/commands/</span> <span class="cnt" id="cmdCnt"></span></div><div class="box" id="cmdBox"></div></div>
-      <div class="gl"><div class="gh"><span translate="no">.github/prompts/</span> <span class="cnt" id="prmCnt"></span></div><div class="box" id="prmBox"></div></div>
+      <div class="gl" id="regenNote" role="status" hidden></div>
+      <div class="gl"><div class="gh">From SpecPilot <span class="cnt" id="cmdSpCnt"></span><button type="button" class="more" id="cmdRegen" hidden>Regenerate All</button></div><div class="box" id="cmdBox"></div></div>
+      <div class="gl"><div class="gh">Yours <span class="cnt" id="cmdYouCnt"></span></div><div class="box" id="cmdMine"></div></div>
     </section>
 
     <!-- SKILLS -->
     <section class="view" id="v-skills">
-      <div class="gl"><div class="gh"><span translate="no">.claude/skills/</span> <span class="cnt" id="sklCnt"></span></div><div class="box" id="sklBox"></div></div>
+      <div class="gl"><div class="gh">From SpecPilot <span class="cnt" id="sklSpCnt"></span></div><div class="box" id="sklBox"></div></div>
+      <div class="gl"><div class="gh">Yours <span class="cnt" id="sklYouCnt"></span></div><div class="box" id="sklMine"></div></div>
     </section>
 
   </div>

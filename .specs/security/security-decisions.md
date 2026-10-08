@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-08 (BL-PM-005 Spec Report)
-version: 1.14
+lastUpdated: 2026-10-08 (BL-PM-006 Spec Report)
+version: 1.15
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -226,6 +226,17 @@ This file records security-related architectural and implementation decisions ma
   - Accepting the ID from the page — rejected: two pages could send the same ID, and the request would choose what lands in the ID cell.
   - Numbering from every `BL-`/`CS-` string in both files — rejected: the files name other repositories' IDs in running text (`CS-096` in BL-049), which would skip numbers for no reason.
 - **Reference**: SEC-004.10, SEC-002.5, REQ-002.H.29, ARCH-004.48
+
+### [SEC-004.19] Regenerate All: backfill's command refresh from the page, links on the way refused
+
+- **Date**: 2026-10-08 (BL-PM-006 Spec Report)
+- **Decision**: `POST /api/commands/regenerate` runs `refreshCommands()` (SEC-002.6) for the IDEs detected in the named project, behind every guard of the move route (SEC-004.10): Host, exact `Origin`, the per-start token, `application/json` only, 16 KB, the one in-process lock, no route with `--read-only`. The request carries no text and no path: the body must be `{}`; the files it can write are the fixed `KNOWN_COMMAND_HASHES` target paths under the project root, chosen by signal files on disk. A file is replaced only when its bytes hash to a released SpecPilot version for that path, through temp file + `fsync` + mode + a last byte comparison + `rename`; a missing one is created with `wx`; a file that is a link or not a regular file is kept. New in the shared function, so also for `specpilot backfill`: folders on the way (`.claude`, `.claude/commands`, `.github`, `.github/prompts`, …) are checked with `lstat` one level at a time and created without `recursive`, each re-checked; a level that is a symbolic link or not a folder makes that file kept. A per-file write error is recorded as kept (`could not be written: <code>`) and the run continues. Residual: a local process that swaps a checked folder for a link between the `lstat` and the write can still redirect it; that needs write access to the project, which the threat model already treats as trusted (SEC-002.5 residual risk). Instruction files, `SKILL.md` and `.specs/` are not written.
+- **Rationale**: Until now a project with `.specs/` had one writable file. This adds up to 48 fixed paths, but no request-chosen content: what lands there is SpecPilot's own current text, and what it replaces is SpecPilot's own older text, so a forged request that passed every layer could at worst update unedited command files or add missing ones, which `specpilot backfill` would do anyway and git shows. Without the folder check, a `.claude` link already in the repository (e.g. from a cloned project) would let `mkdir -p` and the create land outside it; `wx` alone guards only the file name.
+- **Alternatives considered**:
+  - All of `specpilot backfill` from the page — rejected by default: it appends text into `CLAUDE.md` and four other rule files the user edits, and writes `project.yaml` and `tasks.md` without the hash check the task writer has (open question 1).
+  - `If-Match` over the command files — rejected: each replace already compares the file's bytes immediately before `rename`, which is the check that matters per file.
+  - The folder check in the route only — rejected: the same write runs from the CLI; one guard in the shared function.
+- **Reference**: SEC-002.6, SEC-004.10, REQ-002.H.30, ARCH-004.49
 
 ## Open Questions [SEC-005]
 

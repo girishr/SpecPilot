@@ -1,7 +1,7 @@
 ---
 fileID: CTX-001
-lastUpdated: 2026-10-07 (BL-PM-004b built)
-version: 2.33
+lastUpdated: 2026-10-08 (v2.11.0 prepared)
+version: 2.34
 contributors: [girishr]
 relatedFiles: [planning/roadmap.md, project/project.yaml]
 ---
@@ -10,7 +10,7 @@ relatedFiles: [planning/roadmap.md, project/project.yaml]
 
 ## Current State [CTX-002]
 
-- **Phase**: Active Development (current version v2.10.0: the spec templates in a pure, fs-free core with `render()` and 23 optional template fields, output byte for byte 2.9.0's (BL-032 phases 1 and 2), the hash script repaired (BL-084) and `project.yaml` quoted when YAML needs it (BL-085); v2.9.0: `specpilot serve` starts a new project (BL-PM-003), clones a repository (BL-PM-002) and runs guided setup as the init.specpilot.dev chat (BL-PM-004); v2.8.0: `specpilot serve` remembers projects and opens folders from the page (BL-067) and has a Home screen (BL-PM-001); v2.7.1: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073); v2.7.0 brought `specpilot serve` guided setup of a named folder without `.specs/` (BL-055); v2.6.0 brought multiple projects (BL-054) and the `backfill`/`validate` fixes (BL-066, BL-069))
+- **Phase**: Active Development (current version v2.11.0: the whole init.specpilot.dev setup chat in `specpilot serve`, its rules in the spec core and its extra answers written into the spec files, with saved setups and a preview (BL-PM-004b), and answers written as typed, no longer HTML-escaped; v2.10.0: the spec templates in a pure, fs-free core with `render()` and 23 optional template fields, output byte for byte 2.9.0's (BL-032 phases 1 and 2), the hash script repaired (BL-084) and `project.yaml` quoted when YAML needs it (BL-085); v2.9.0: `specpilot serve` starts a new project (BL-PM-003), clones a repository (BL-PM-002) and runs guided setup as the init.specpilot.dev chat (BL-PM-004); v2.8.0: `specpilot serve` remembers projects and opens folders from the page (BL-067) and has a Home screen (BL-PM-001); v2.7.1: `init`, `add-specs` and `refine --update` keep existing files outside `.specs/` (BL-073); v2.7.0 brought `specpilot serve` guided setup of a named folder without `.specs/` (BL-055); v2.6.0 brought multiple projects (BL-054) and the `backfill`/`validate` fixes (BL-066, BL-069))
 - **Status**: Production-ready with continuous enhancements
 - **Recent Implementations**: Kotlin/Swift language support, conditional api.yaml generation, onboarding.md split from prompts.md, mandatory devPrefix ID conventions, terse spec templates, Code Philosophy + Code Rules in generated AI instruction files (CS-074), Cursor output renamed to `specpilot.mdc`, 8 `specpilot-*` slash commands + CLI-side backfill (v2.2.0), validator/archiver/backfiller audit fixes (v2.2.1), terse-mandate backfill fingerprints (v2.2.2), `init` read-pause gates (v2.2.3), table-shaped `## Completed` archiving with a validator/archiver shared planner and the `specpilot-archive` bash fix (v2.2.4), `specpilot serve` read-only local UI with live reload (v2.3.0), task moves in `specpilot serve` and a `prompts.md` archive that keeps the newest entries (v2.4.0)
 - **Next Steps**: See tasks.md Current Sprint

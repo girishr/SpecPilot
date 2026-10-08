@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-08 (BL-PM-004b completed)
-version: 6.20
+lastUpdated: 2026-10-08 (v2.11.0 prepared)
+version: 6.21
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -105,3 +105,4 @@ Notes
 | 160 | [CD-girishr-069] [BL-032] [BL-084] [BL-085] | Spec core, phases 1 and 2 (REQ-002.I, ARCH-004.46): a pure `src/core/` with `render()`, `generateSpecs()` as the writer, output byte for byte 2.9.0's and pinned by a golden recording, 23 optional template fields rendered only when present, `yaml`/`yamlList` helpers, BL-084 (the hash script runs again across every tag) and BL-085 (`project.yaml` reads back as written) fixed; commit `ed78051` on `main` (2026-10-07) |
 | 161 | [CD-girishr-070] | v2.10.0 shipped (BL-032 phases 1 and 2, BL-084, BL-085): pushed, npm `specpilot@2.10.0` latest, GitHub release live (2026-10-07) |
 | 162 | [CD-girishr-071] [BL-PM-004b] | `specpilot serve` full chat (REQ-002.H.28, REQ-002.I.7, ARCH-004.47): init.specpilot.dev's 33 questions and pickers over the CLI's, rules ported to `src/core/chatFlow.ts` and served to the page, the 23 fields written through both create routes, saved setups in the browser, read-only preview; answers no longer HTML-escaped (SEC-004.3 revised); +198 tests (1019 → 1217); commit `2b5f49d` (2026-10-08) |
+| 163 | [CD-girishr-072] | v2.11.0 release prepared (BL-PM-004b, answers no longer HTML-escaped): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.11.0]`, annotated tag `v2.11.0`; not pushed or published |

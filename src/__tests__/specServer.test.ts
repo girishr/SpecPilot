@@ -1095,6 +1095,139 @@ describe('--read-only', () => {
   });
 });
 
+// ─── New Task (BL-PM-005) ────────────────────────────────────────────────────
+
+describe('new tasks over HTTP (BL-PM-005)', () => {
+  let a: ReturnType<typeof makeProject>;
+  let b: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const tasks = (p: { root: string }) => join(p.root, '.specs/planning/tasks.md');
+  const hashOf = (p: { root: string }) => createHash('sha256').update(readFileSync(tasks(p))).digest('hex');
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    'If-Match': hashOf(a),
+    ...over,
+  });
+  const add = (description: string, section = 'backlog') => JSON.stringify({ description, section });
+  const NEW = '/api/tasks/new';
+
+  beforeEach(async () => {
+    [a, b] = [makeProject(), makeProject()];
+    for (const p of [a, b]) writeFileSync(tasks(p), MOVE_TASKS);
+    spec = await startSpecServer([a.root, b.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    a.cleanup();
+    b.cleanup();
+  });
+
+  it('appends one row with the next ID and answers {sha256, id, section, index, specs}', async () => {
+    const res = await post(port, add('  Write the `serve` docs, see [the spec](x.md)  '), good(), NEW);
+    expect(res.status).toBe(200);
+    expect(res.json).toMatchObject({ sha256: hashOf(a), id: 'BL-003', section: 'backlog', index: 2 });
+    expect(res.json.specs.tasks.sha256).toBe(res.json.sha256);
+    expect(res.json.specs.tasks.backlog[2]).toEqual({ id: 'BL-003', description: 'Write the `serve` docs, see [the spec](x.md)' });
+    const after = readFileSync(tasks(a), 'utf-8').split('\n');
+    const before = MOVE_TASKS.split('\n');
+    expect(after).toHaveLength(before.length + 1);
+    expect(after[before.indexOf('| BL-002 | Two |') + 1]).toBe('| BL-003 | Write the `serve` docs, see [the spec](x.md) |');
+    expect(after.filter((_, k) => k !== before.indexOf('| BL-002 | Two |') + 1)).toEqual(before);
+  });
+
+  it('adds to Current Sprint with a CS ID', async () => {
+    const res = await post(port, add('Sprint work', 'currentSprint'), good(), NEW);
+    expect(res.json).toMatchObject({ id: 'CS-002', section: 'currentSprint', index: 1 });
+  });
+
+  it('writes only the project the request names', async () => {
+    const res = await post(port, add('In B'), good({ 'If-Match': hashOf(b) }), `${NEW}?project=1`);
+    expect(res.status).toBe(200);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);
+    expect(readFileSync(tasks(b), 'utf-8')).toContain('| BL-003 | In B |');
+  });
+
+  it.each<[string, Record<string, string | undefined>, number]>([
+    ['no token', { 'X-SpecPilot-Token': undefined }, 403],
+    ['a wrong token', { 'X-SpecPilot-Token': 'f'.repeat(64) }, 403],
+    ['a foreign Origin', { Origin: 'http://evil.com' }, 403],
+    ['no Origin', { Origin: undefined }, 403],
+    ['a foreign Host', { Host: 'evil.com' }, 403],
+    ['a form content type', { 'Content-Type': 'application/x-www-form-urlencoded' }, 415],
+  ])('rejects %s before the project is resolved, writing nothing', async (_n, over, status) => {
+    for (const path of [NEW, `${NEW}?project=9`]) {
+      expect((await post(port, add('x'), good(over), path)).status).toBe(status);
+    }
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('404s on a project that is not served, after the checks pass', async () => {
+    expect((await post(port, add('x'), good(), `${NEW}?project=9`)).status).toBe(404);
+  });
+
+  it('413 over 16 KB, 400 not JSON, 428 without If-Match, 405 on GET; nothing written', async () => {
+    expect((await post(port, add('x'.repeat(17 * 1024)), good(), NEW)).status).toBe(413);
+    expect((await post(port, '{not json', good(), NEW)).status).toBe(400);
+    expect((await post(port, add('x'), good({ 'If-Match': undefined }), NEW)).status).toBe(428);
+    const get = await hit(port, NEW);
+    expect([get.status, get.headers['allow']]).toEqual([405, 'POST']);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it.each([
+    ['', 'Type a description for the task.'],
+    ['two\nlines', 'The description must be one line: a table row cannot hold a line break.'],
+    ['a | b', 'The description cannot contain |, because it would split the table cell. Write it another way, e.g. "or".'],
+  ])('422s on %j with the reason and no write', async (description, error) => {
+    const res = await post(port, add(description), good(), NEW);
+    expect([res.status, res.json.error]).toEqual([422, error]);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('422s on a section other than Backlog or Current Sprint', async () => {
+    const res = await post(port, add('x', 'completed'), good(), NEW);
+    expect([res.status, res.json.error]).toEqual([422, 'New tasks can only go to Backlog or Current Sprint.']);
+  });
+
+  it('409s on a stale If-Match with the fresh payload and a reload hint', async () => {
+    const res = await post(port, add('x'), good({ 'If-Match': 'a'.repeat(64) }), NEW);
+    expect(res.status).toBe(409);
+    expect(res.json.error).toContain('press Add Task again');
+    expect(res.json.specs.tasks.sha256).toBe(hashOf(a));
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('two adds with the same If-Match at once: one 200, one 409, the file gains one row', async () => {
+    const h = hashOf(a);
+    const [x, y] = await Promise.all([post(port, add('First'), good({ 'If-Match': h }), NEW), post(port, add('Second'), good({ 'If-Match': h }), NEW)]);
+    expect([x.status, y.status].sort()).toEqual([200, 409]);
+    expect(readFileSync(tasks(a), 'utf-8').split('\n')).toHaveLength(MOVE_TASKS.split('\n').length + 1);
+    expect(hashOf(a)).toBe((x.status === 200 ? x : y).json.sha256);
+  });
+
+  it('is absent with --read-only: 405 and the button never shown', async () => {
+    const ro = await startSpecServer([a.root], 0, 'x', { readOnly: true });
+    try {
+      const roPort = (ro.server.address() as AddressInfo).port;
+      const page = (await hit(roPort, '/')).body;
+      expect(page).not.toContain('specpilot-token');
+      expect(page).toContain('id="newTask" hidden'); // app.js shows it only when the page has a token
+      const res = await post(roPort, add('x'), { ...good(), Host: `127.0.0.1:${roPort}`, Origin: `http://127.0.0.1:${roPort}` }, NEW);
+      expect(res.status).toBe(405);
+      expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);
+    } finally {
+      await ro.close();
+    }
+  });
+});
+
 // ─── Multiple projects (BL-054) ──────────────────────────────────────────────
 
 describe('displayRoot', () => {

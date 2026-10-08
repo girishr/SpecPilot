@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-08 (v2.11.0 prepared)
-version: 6.21
+lastUpdated: 2026-10-08 (BL-PM-005 built)
+version: 6.22
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -59,13 +59,14 @@ Notes
 | BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
 | BL-086 | Remove `SlashCommandGenerator.generate()` and `targets()` from `src/utils/slashCommandGenerator.ts`: since BL-032 the writer goes through `render()` and `writeNew()`, so neither has a caller outside `src/__tests__/` (15 call sites in `slashCommandGenerator.test.ts`, which test the per-IDE routing on disk); move those tests to `render()` or `commandFiles()`. Found by spec-reviewer on the BL-032 build (2026-10-06). |
 | BL-087 | `npm run build` does not clean `dist/`, so a build after a file is deleted or renamed keeps its old compiled output, and a publish from that tree would ship it (seen in BL-032: `dist/utils/specFileGenerator.js`, `agentConfigGenerator.js` and `templateEngine.js` survived the move until `npm run clean`). Run `clean` before every build, as a `prebuild` script or at the start of `prepublishOnly`, so a publish never carries stale files. Found during the v2.10.0 release (2026-10-07). |
-| BL-PM-005 | New Task button: add a row to `## Backlog` in `tasks.md` from the page with the next free BL ID; the only change is one appended line, behind the move route's Origin, token, JSON, size and If-Match checks. New write path. |
+| BL-PM-005 | New Task button: add a row to `## Backlog` (BL ID) or `## Current Sprint` (CS ID) in `tasks.md` from the page with the next free ID, counting `tasks-archive.md`; the only change is one appended line, behind the move route's Host, Origin, token, JSON, size, If-Match, lock and atomic-write checks (REQ-002.H.29, SEC-004.18). New write path. **Built on `feat/bl-pm-005-new-task` after the developer's `yes, proceed` (2026-10-08; the eight defaults); +70 tests (1217 → 1287); browser-checked (both sections, a refusal in the form, 409 with a reload hint, `--read-only`, live reload, light and dark, 420px); README updated; not committed.** |
 | BL-PM-006 | Commands and Skills split into "From SpecPilot" and "Yours" using `KNOWN_COMMAND_HASHES` (BL-058), plus Regenerate All, which refreshes only byte-exact known versions as `specpilot backfill` does and keeps the rest. New write path. |
 | BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. |
 | BL-PM-008 | Open in VS Code button for the shown project. Architectural: starts a local process from a browser request. |
 | BL-PM-009 | Real clone progress: a percentage on the Clone tab, from `git clone --progress` output streamed to the page while the clone runs. BL-PM-002 shows an indeterminate bar and the elapsed time only. |
 | BL-PM-010 | On `development/onboarding.md`: an "Open in <selected AI IDE>" button that passes the onboarding prompt through that IDE's deep link where one exists (Cursor, Claude Code; research Copilot, Windsurf, Antigravity, Codex), plus a "Copy prompt" button for all. Relates to BL-PM-008. |
 | BL-PM-011 | A "Browse…" button next to every folder field that opens the system folder picker through the server (`osascript` on macOS, `zenity` / `kdialog` on Linux, PowerShell on Windows), as in the mockup and LOCAL-APP.md. Architectural: starts a process from a browser request. |
+| BL-088 | dsddsfds |
 
 ## Current Sprint
 

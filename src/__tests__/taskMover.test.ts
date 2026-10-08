@@ -2,7 +2,21 @@ import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, s
 import { execFileSync } from 'child_process';
 import { join } from 'path';
 import * as os from 'os';
-import { moveShapeError, moveTask, planMove, sha256, STALE_ERROR, TaskMove } from '../utils/taskMover';
+import {
+  moveShapeError,
+  moveTask,
+  NEW_STALE_ERROR,
+  newTask,
+  NewTask,
+  newTaskShapeError,
+  nextTaskId,
+  planMove,
+  planNewTask,
+  sha256,
+  STALE_ERROR,
+  TaskMove,
+} from '../utils/taskMover';
+import * as validator from '../utils/specValidator';
 import { tasksChecks } from '../utils/specValidator';
 
 // Fault injection for the crash test: the real fs, with writeSync/renameSync routed through hooks.
@@ -258,5 +272,239 @@ describe('moveTask: the write on disk', () => {
   it('says so when tasks.md does not exist', () => {
     rmSync(file);
     expect(moveTask(root, move, 'x')).toEqual({ status: 422, error: 'planning/tasks.md does not exist.' });
+  });
+});
+
+// ─── New Task (BL-PM-005) ────────────────────────────────────────────────────
+
+describe('nextTaskId: the highest number in ID positions, plus one', () => {
+  const backlog = (...ids: string[]) => ['## Backlog', '', '| ID | Description |', '|---|---|', ...ids.map(id => `| ${id} | x |`), ''].join('\n');
+
+  it('takes the highest and never fills a gap', () => {
+    expect(nextTaskId('BL', [backlog('BL-001', 'BL-005', 'BL-003')])).toBe('BL-006');
+  });
+
+  it('counts the archive, whose highest can win', () => {
+    expect(nextTaskId('CS', [backlog('CS-078'), '| 9 | [CD-120] [CS-091] | Done |'])).toBe('CS-092');
+  });
+
+  it('ignores IDs in running text, bare or bracketed, and BL-PM-### rows: still BL-088', () => {
+    const tasks = backlog('BL-086', 'BL-PM-100', 'BL-087') + '| BL-PM-099 | follow-up to [BL-500], see BL-600 and CS-096 |\n\nNotes name BL-700 and [BL-800].\n';
+    expect(nextTaskId('BL', [tasks, ''])).toBe('BL-088');
+    expect(nextTaskId('CS', [tasks, ''])).toBe('CS-001');
+  });
+
+  it('BL-090 in tasks-archive.md makes the next BL-091', () => {
+    const tasks = backlog('BL-086', 'BL-PM-100', 'BL-087');
+    const archive = '## Archived Completed Items\n\n1. [CD-001] [BL-090] Done long ago\n';
+    expect(nextTaskId('BL', [tasks, archive])).toBe('BL-091');
+  });
+
+  it('reads the second cell of Completed and archived tables, and the leading tags of a list item', () => {
+    expect(nextTaskId('BL', ['| # | ID | Description |\n|---|---|---|\n| 126 | [CD-girishr-035] [BL-041] [REQ-002.B.9] | mentions [BL-999] |\n'])).toBe('BL-042');
+    expect(nextTaskId('CS', ['28. [CD-067] [CS-014] text naming [CS-999]\n'])).toBe('CS-015');
+  });
+
+  it('keeps BL and CS apart, starts at 001 and grows past three digits', () => {
+    expect(nextTaskId('BL', [backlog('CS-050')])).toBe('BL-001');
+    expect(nextTaskId('CS', [backlog('BL-050')])).toBe('CS-001');
+    expect(nextTaskId('BL', [backlog('BL-999')])).toBe('BL-1000');
+  });
+
+  it('gives BL-088 and CS-092 on this repository\'s own files', () => {
+    const own = ['tasks.md', 'tasks-archive.md'].map(f => readFileSync(join(__dirname, '../../.specs/planning', f), 'utf-8'));
+    // The build adds no row to tasks.md; if one is added later, this pins the rule, not the number.
+    expect(Number(nextTaskId('BL', own).slice(3))).toBeGreaterThanOrEqual(88);
+    expect(Number(nextTaskId('CS', own).slice(3))).toBeGreaterThanOrEqual(92);
+  });
+});
+
+describe('planNewTask: one line inserted, every other byte kept', () => {
+  const plan = (content: string, task: NewTask, archive = '') => planNewTask(content, archive, task);
+
+  it('appends after Backlog\'s last row: git sees one insertion and nothing else', () => {
+    const out = plan(TASKS, { description: 'Fourth', section: 'backlog' });
+    expect(out).toEqual({ ok: true, content: expect.any(String), id: 'BL-005', index: 3 });
+    if (!out.ok) return;
+    const lines = out.content.split('\n');
+    expect(lines[16]).toBe('| BL-005 | Fourth |');
+    expect([...lines.slice(0, 16), ...lines.slice(17)]).toEqual(TASKS.split('\n'));
+    expect(gitNumstat(TASKS, out.content).trim()).toBe('1\t0\ta.md => b.md');
+  });
+
+  it('puts the first row of an empty table right after its separator', () => {
+    const empty = TASKS.replace('| CS-001 | Sprint one |\n| BL-004 | Sprint two |\n', '');
+    const out = plan(empty, { description: 'First in sprint', section: 'currentSprint' });
+    expect(out.ok && out.content).toBe(empty.replace('## Current Sprint\n\n| ID | Description |\n|---|---|\n', '## Current Sprint\n\n| ID | Description |\n|---|---|\n| CS-001 | First in sprint |\n'));
+    expect(out.ok && out.index).toBe(0);
+    expect(out.ok && gitNumstat(empty, out.content).trim()).toBe('1\t0\ta.md => b.md');
+  });
+
+  it('keeps a CRLF file CRLF', () => {
+    const crlf = TASKS.replace(/\n/g, '\r\n');
+    const out = plan(crlf, { description: 'Fourth', section: 'backlog' });
+    expect(out.ok && out.content).toBe(crlf.replace('| BL-003 | Third |\r\n', '| BL-003 | Third |\r\n| BL-005 | Fourth |\r\n'));
+    expect(out.ok && gitNumstat(crlf, out.content).trim()).toBe('1\t0\ta.md => b.md');
+  });
+
+  it('writes the description as typed: markdown kept, surrounding white space removed, nothing added', () => {
+    const out = plan(TASKS, { description: '  Fix `serve` **now**, see [docs](README.md)  ', section: 'backlog' });
+    expect(out.ok && out.content.split('\n')[16]).toBe('| BL-005 | Fix `serve` **now**, see [docs](README.md) |');
+  });
+
+  it.each<[string, string, NewTask, string]>([
+    ['no ## Current Sprint', TASKS.replace('## Current Sprint', '## Later'), { description: 'x', section: 'currentSprint' }, 'planning/tasks.md has no ## Current Sprint section.'],
+    ['a section without a table', TASKS.replace('| ID | Description |\n|---|---|\n| CS-001 | Sprint one |\n| BL-004 | Sprint two |', '[TODO]'), { description: 'x', section: 'currentSprint' }, 'Current Sprint has no table yet.'],
+    ['a last row with no line break after it', TASKS.slice(0, TASKS.indexOf('\n## Completed')).replace(/\n+$/, ''), { description: 'x', section: 'currentSprint' }, 'The new row would become the last line of planning/tasks.md, which has no line break after its last line. Add one and try again.'],
+  ])('refuses %s', (_n, content, task, error) => {
+    expect(plan(content, task)).toEqual({ ok: false, error });
+  });
+});
+
+describe('newTaskShapeError: what a table cell can hold as typed', () => {
+  const ok = (description: unknown, section: unknown = 'backlog') => newTaskShapeError({ description, section });
+  it.each([
+    ['empty', ''],
+    ['spaces only', '   '],
+    ['LF', 'a\nb'],
+    ['CR', 'a\rb'],
+    ['U+2028', 'a b'],
+    ['U+2029', 'a b'],
+    ['a tab', 'a\tb'],
+    ['another C0 control', 'a\u0001b'],
+    ['DEL', 'a\u007fb'],
+    ['U+0085 (C1)', 'a\u0085b'],
+    ['an unpaired surrogate', 'a\ud800b'],
+    ['a lone low surrogate', 'a\udc00b'],
+    ['|', 'a | b'],
+    ['a trailing backslash', 'path\\'],
+    ['4001 characters', 'x'.repeat(4001)],
+    ['4001 emoji', '😀'.repeat(4001)],
+    ['not a string', 42],
+  ])('refuses %s', (_n, d) => {
+    expect(ok(d)).not.toBeNull();
+  });
+
+  it.each([
+    ['4000 characters', 'x'.repeat(4000)],
+    ['4000 emoji (the cap counts code points)', '😀'.repeat(4000)],
+    ['a paired surrogate', '😀 done'],
+    ['markdown', '`a` [b](c) **d**'],
+    ['a backslash inside', 'a\\b'],
+  ])('accepts %s', (_n, d) => {
+    expect(ok(d)).toBeNull();
+  });
+
+  it.each([['completed'], ['Backlog'], [null]])('refuses section %j', section => {
+    expect(ok('x', section)).toBe('New tasks can only go to Backlog or Current Sprint.');
+  });
+
+  it('refuses a body that is not an object', () => {
+    expect(newTaskShapeError(null)).toBe('The request must be a JSON object with description and section.');
+  });
+});
+
+describe('newTask: the write on disk', () => {
+  let root: string;
+  let file: string;
+  let archive: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(os.tmpdir(), 'specpilot-new-'));
+    mkdirSync(join(root, '.specs', 'planning'), { recursive: true });
+    file = join(root, '.specs', 'planning', 'tasks.md');
+    archive = join(root, '.specs', 'planning', 'tasks-archive.md');
+    writeFileSync(file, TASKS);
+  });
+  afterEach(() => {
+    mockFs.beforeRename = undefined;
+    mockFs.onRead = undefined;
+    jest.restoreAllMocks();
+    rmSync(root, { recursive: true, force: true });
+  });
+  const leftovers = () => readdirSync(join(root, '.specs', 'planning')).filter(f => f !== 'tasks.md' && f !== 'tasks-archive.md');
+  const task: NewTask = { description: 'Fourth', section: 'backlog' };
+  const untouched = () => {
+    expect(readFileSync(file, 'utf-8')).toBe(TASKS);
+    expect(leftovers()).toEqual([]);
+  };
+
+  it('writes one line, returns hash, ID, section and index, keeps the mode, leaves no temp file', () => {
+    chmodSync(file, 0o640);
+    const out = newTask(root, task, sha256(TASKS));
+    const after = readFileSync(file, 'utf-8');
+    expect(out).toEqual({ status: 200, sha256: sha256(after), id: 'BL-005', section: 'backlog', index: 3 });
+    expect(gitNumstat(TASKS, after).trim()).toBe('1\t0\ta.md => b.md');
+    expect(statSync(file).mode & 0o777).toBe(0o640);
+    expect(leftovers()).toEqual([]);
+  });
+
+  it('numbers past the highest ID in tasks-archive.md', () => {
+    writeFileSync(archive, '# Task Archive\n\n1. [CD-001] [BL-090] Old\n');
+    expect(newTask(root, task, sha256(TASKS))).toMatchObject({ status: 200, id: 'BL-091' });
+    expect(readFileSync(archive, 'utf-8')).toBe('# Task Archive\n\n1. [CD-001] [BL-090] Old\n'); // only read
+  });
+
+  it('409s on a stale hash, with a reload hint, and writes nothing', () => {
+    expect(newTask(root, task, sha256('else'))).toEqual({ status: 409, error: NEW_STALE_ERROR });
+    expect(NEW_STALE_ERROR).toContain('press Add Task again');
+    untouched();
+  });
+
+  it('409s when an editor saves before the rename (the last look)', () => {
+    const edited = TASKS.replace('Intro text stays put.', 'Edited.');
+    let reads = 0;
+    mockFs.onRead = p => {
+      if (p === file && ++reads === 2) writeFileSync(file, edited);
+    };
+    expect(newTask(root, task, sha256(TASKS))).toEqual({ status: 409, error: NEW_STALE_ERROR });
+    expect(readFileSync(file, 'utf-8')).toBe(edited);
+    expect(leftovers()).toEqual([]);
+  });
+
+  it('will not replace a symlinked tasks.md', () => {
+    writeFileSync(join(root, 'real.md'), TASKS);
+    rmSync(file);
+    symlinkSync(join(root, 'real.md'), file);
+    expect(newTask(root, task, sha256(TASKS))).toEqual({ status: 422, error: expect.stringContaining('symbolic link') });
+    expect(readFileSync(join(root, 'real.md'), 'utf-8')).toBe(TASKS);
+  });
+
+  it('refuses a tasks.md that is not valid UTF-8', () => {
+    const bytes = Buffer.concat([Buffer.from(TASKS), Buffer.from([0xff])]);
+    writeFileSync(file, bytes);
+    expect(newTask(root, task, sha256(bytes))).toEqual({ status: 422, error: expect.stringContaining('not valid UTF-8') });
+    expect(readFileSync(file).equals(bytes)).toBe(true);
+  });
+
+  it.each<[string, () => void, string]>([
+    ['a symlinked archive', () => { writeFileSync(join(root, 'a.md'), ''); symlinkSync(join(root, 'a.md'), archive); }, 'symbolic link'],
+    ['an archive that is a directory', () => mkdirSync(archive), 'not a regular file'],
+    ['an archive that is not valid UTF-8', () => writeFileSync(archive, Buffer.from([0x31, 0xff])), 'not valid UTF-8'],
+  ])('refuses %s', (_n, setup, error) => {
+    setup();
+    expect(newTask(root, task, sha256(TASKS))).toEqual({ status: 422, error: expect.stringContaining(error) });
+    untouched();
+  });
+
+  it('refuses a row after which `specpilot validate` would report something new', () => {
+    jest.spyOn(validator, 'tasksChecks').mockImplementation(c => (c.includes('Fourth') ? ['planted warning'] : []));
+    expect(newTask(root, task, sha256(TASKS))).toEqual({ status: 422, error: expect.stringContaining('planted warning') });
+    untouched();
+  });
+
+  it('refuses a plan the file cannot take, with nothing written', () => {
+    expect(newTask(root, { description: 'x', section: 'currentSprint' }, sha256(TASKS)).status).toBe(200);
+    const noTable = TASKS.replace('| ID | Description |\n|---|---|\n| CS-001 | Sprint one |\n| BL-004 | Sprint two |', '[TODO]');
+    writeFileSync(file, noTable);
+    expect(newTask(root, { description: 'x', section: 'currentSprint' }, sha256(noTable))).toEqual({ status: 422, error: 'Current Sprint has no table yet.' });
+    expect(readFileSync(file, 'utf-8')).toBe(noTable);
+  });
+
+  it('a crash just before the rename leaves the original whole and no temp file', () => {
+    mockFs.beforeRename = () => {
+      throw new Error('disk full');
+    };
+    expect(() => newTask(root, task, sha256(TASKS))).toThrow('disk full');
+    untouched();
   });
 });

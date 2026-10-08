@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-08 (BL-PM-004b, no HTML escaping)
-version: 1.13
+lastUpdated: 2026-10-08 (BL-PM-005 Spec Report)
+version: 1.14
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -112,7 +112,7 @@ This file records security-related architectural and implementation decisions ma
 
 - **Date**: 2026-09-29
 - **Decision**: `POST /api/tasks/move` is the only write route (until BL-055; see SEC-004.12). It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3.
-- **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable.
+- **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable. (Since BL-PM-005, `POST /api/tasks/new` writes request text into `tasks.md`, one row; see SEC-004.18.)
 - **Alternatives considered**:
   - SameSite cookies — rejected: localhost cookies are shared across ports and the page has no login; a header token is simpler and not sent automatically.
   - Accepting a full new `tasks.md` from the client — rejected: turns the endpoint into an arbitrary-text writer.
@@ -216,6 +216,17 @@ This file records security-related architectural and implementation decisions ma
   - Keeping the 16 KB limit — rejected: 23 fields with free entries can exceed it (18 lists of up to 25 entries: 10 list fields and 8 integration categories).
 - **Reference**: SEC-002.8, SEC-002.5, REQ-002.H.28, REQ-002.I.7
 
+### [SEC-004.18] New Task: the first route that writes request text into an existing file of a project
+
+- **Date**: 2026-10-08 (BL-PM-005 Spec Report)
+- **Decision**: `POST /api/tasks/new` appends one row, `| <ID> | <description> |`, to Backlog or Current Sprint in `.specs/planning/tasks.md`, the description being text from the request. It sits behind every guard of the move route (SEC-004.10): Host, exact `Origin`, the per-start token, `application/json` only, 16 KB, `If-Match` on the file's sha256, the one in-process lock, temp file + `fsync` + `rename` keeping the mode, no write through a symbolic link, the validator's `tasks.md` checks in memory, and no route with `--read-only`. It writes the same one file (the write allowlist is unchanged); `tasks-archive.md` is only read, for IDs, and refused when it is a symbolic link or not a regular file. The ID is computed by the server, never taken from the request. The description must be one line of at most 4000 Unicode code points (the longest row today is 1631) with no control character (U+0000–U+001F, U+007F–U+009F), no unpaired surrogate, no `|` and no trailing `\`, so it cannot add a second row, end the table, or start a heading or front matter: whatever it holds stays inside one cell of one line. It is written as typed (surrounding white space removed), not escaped; the page renders it with `md()` as every row (escaped HTML, links drawn as text, not followed).
+- **Rationale**: Until now a forged request against `tasks.md` could at worst reorder tasks (SEC-004.10); request text reached a project only in the files a new project or setup creates (BL-PM-003, SEC-004.14). With this route the same forgery, if it passed every layer, could add a task row with text of its choice, which an AI agent reading `tasks.md` would see. The layers that stop a forged move stop this one, and nothing new is reachable: the token is in the page only, the row is one visible line in a file under git, and the developer can already type anything into it. A one-line, pipe-free cell is the narrowest shape that still holds what a person types.
+- **Alternatives considered**:
+  - Escaping `|` as `\|` — rejected: it writes text the user did not type, the page's reader would show the backslash, and the file has no escaped pipe today.
+  - Accepting the ID from the page — rejected: two pages could send the same ID, and the request would choose what lands in the ID cell.
+  - Numbering from every `BL-`/`CS-` string in both files — rejected: the files name other repositories' IDs in running text (`CS-096` in BL-049), which would skip numbers for no reason.
+- **Reference**: SEC-004.10, SEC-002.5, REQ-002.H.29, ARCH-004.48
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
@@ -224,4 +235,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-10-07_
+_Last updated: 2026-10-08_

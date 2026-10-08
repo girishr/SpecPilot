@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { moveShapeError, moveTask, sha256, TaskMove } from './taskMover';
+import { moveShapeError, moveTask, newTask, NewTask, newTaskShapeError, sha256, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, previewNewProject, previewSetup, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -267,7 +267,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     if (!heartbeat) heartbeat = setInterval(() => allStreams().forEach(s => s.write(': heartbeat\n\n')), opts.heartbeatMs ?? 25000);
   };
 
-  // ---- task moves (BL-053): the only write route, absent with --read-only
+  // ---- task moves (BL-053) and new tasks (BL-PM-005): absent with --read-only
   const token = opts.readOnly ? null : randomBytes(32).toString('hex');
   let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
   const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
@@ -343,6 +343,31 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
           return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
         }
         if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, from: out.from, fromIndex: out.fromIndex, specs: payload(i) });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
+        return sendJson(res, 422, { error: out.error });
+      });
+    });
+  };
+
+  /** New Task (BL-PM-005): the move route's checks, then one line appended under the same lock. */
+  const handleNewTask = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      const problem = newTaskShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
+      if (!ifMatch) return sendJson(res, 428, { error: 'A new task needs an If-Match header with the file hash the page last loaded.' });
+      const { description, section } = body as NewTask;
+      underLock(res, () => {
+        let out;
+        try {
+          out = newTask(roots[i], { description, section }, ifMatch);
+        } catch {
+          return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
+        }
+        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, id: out.id, section: out.section, index: out.index, specs: payload(i) });
         if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
         return sendJson(res, 422, { error: out.error });
       });
@@ -616,6 +641,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/api/tasks/move') {
         if (req.method === 'POST' && token) return handleMove(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/tasks/new') {
+        if (req.method === 'POST' && token) return handleNewTask(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

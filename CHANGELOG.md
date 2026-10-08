@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **New Task in the `specpilot serve` page** (BL-PM-005): a New Task button on the Tasks view opens a small form for a description and a section (Backlog by default, or Current Sprint). SpecPilot adds one row to that section's table in `planning/tasks.md` with the next free ID (BL-### or CS-###, counting the IDs in `tasks-archive.md` too), writes the description as you typed it, and changes nothing else in the file. The new row is selected and opened in the details panel. A description with a line break or a `|` is refused with the reason. Not available with `--read-only`.
+
 ## [2.11.0] - 2026-10-08
 
 ### Added

@@ -65,7 +65,6 @@ Notes
 | BL-PM-009 | Real clone progress: a percentage on the Clone tab, from `git clone --progress` output streamed to the page while the clone runs. BL-PM-002 shows an indeterminate bar and the elapsed time only. |
 | BL-PM-010 | On `development/onboarding.md`: an "Open in <selected AI IDE>" button that passes the onboarding prompt through that IDE's deep link where one exists (Cursor, Claude Code; research Copilot, Windsurf, Antigravity, Codex), plus a "Copy prompt" button for all. Relates to BL-PM-008. |
 | BL-PM-011 | A "Browse…" button next to every folder field that opens the system folder picker through the server (`osascript` on macOS, `zenity` / `kdialog` on Linux, PowerShell on Windows), as in the mockup and LOCAL-APP.md. Architectural: starts a process from a browser request. |
-| BL-088 | dsddsfds |
 
 ## Current Sprint
 

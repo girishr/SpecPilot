@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-08 (v2.11.0 prepared)
-version: 6.21
+lastUpdated: 2026-10-08 (BL-PM-005 completed)
+version: 6.22
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -59,13 +59,13 @@ Notes
 | BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
 | BL-086 | Remove `SlashCommandGenerator.generate()` and `targets()` from `src/utils/slashCommandGenerator.ts`: since BL-032 the writer goes through `render()` and `writeNew()`, so neither has a caller outside `src/__tests__/` (15 call sites in `slashCommandGenerator.test.ts`, which test the per-IDE routing on disk); move those tests to `render()` or `commandFiles()`. Found by spec-reviewer on the BL-032 build (2026-10-06). |
 | BL-087 | `npm run build` does not clean `dist/`, so a build after a file is deleted or renamed keeps its old compiled output, and a publish from that tree would ship it (seen in BL-032: `dist/utils/specFileGenerator.js`, `agentConfigGenerator.js` and `templateEngine.js` survived the move until `npm run clean`). Run `clean` before every build, as a `prebuild` script or at the start of `prepublishOnly`, so a publish never carries stale files. Found during the v2.10.0 release (2026-10-07). |
-| BL-PM-005 | New Task button: add a row to `## Backlog` in `tasks.md` from the page with the next free BL ID; the only change is one appended line, behind the move route's Origin, token, JSON, size and If-Match checks. New write path. |
 | BL-PM-006 | Commands and Skills split into "From SpecPilot" and "Yours" using `KNOWN_COMMAND_HASHES` (BL-058), plus Regenerate All, which refreshes only byte-exact known versions as `specpilot backfill` does and keeps the rest. New write path. |
 | BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. |
 | BL-PM-008 | Open in VS Code button for the shown project. Architectural: starts a local process from a browser request. |
 | BL-PM-009 | Real clone progress: a percentage on the Clone tab, from `git clone --progress` output streamed to the page while the clone runs. BL-PM-002 shows an indeterminate bar and the elapsed time only. |
 | BL-PM-010 | On `development/onboarding.md`: an "Open in <selected AI IDE>" button that passes the onboarding prompt through that IDE's deep link where one exists (Cursor, Claude Code; research Copilot, Windsurf, Antigravity, Codex), plus a "Copy prompt" button for all. Relates to BL-PM-008. |
 | BL-PM-011 | A "Browse…" button next to every folder field that opens the system folder picker through the server (`osascript` on macOS, `zenity` / `kdialog` on Linux, PowerShell on Windows), as in the mockup and LOCAL-APP.md. Architectural: starts a process from a browser request. |
+| BL-088 | dsddsfds |
 
 ## Current Sprint
 
@@ -106,3 +106,4 @@ Notes
 | 161 | [CD-girishr-070] | v2.10.0 shipped (BL-032 phases 1 and 2, BL-084, BL-085): pushed, npm `specpilot@2.10.0` latest, GitHub release live (2026-10-07) |
 | 162 | [CD-girishr-071] [BL-PM-004b] | `specpilot serve` full chat (REQ-002.H.28, REQ-002.I.7, ARCH-004.47): init.specpilot.dev's 33 questions and pickers over the CLI's, rules ported to `src/core/chatFlow.ts` and served to the page, the 23 fields written through both create routes, saved setups in the browser, read-only preview; answers no longer HTML-escaped (SEC-004.3 revised); +198 tests (1019 → 1217); commit `2b5f49d` (2026-10-08) |
 | 163 | [CD-girishr-072] | v2.11.0 release prepared (BL-PM-004b, answers no longer HTML-escaped): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.11.0]`, annotated tag `v2.11.0`; not pushed or published |
+| 164 | [CD-girishr-073] [BL-PM-005] | `specpilot serve` New Task (REQ-002.H.29, ARCH-004.48, SEC-004.18): a button and form on the Tasks view; `POST /api/tasks/new` appends one row (ID and description) to Backlog (BL) or Current Sprint (CS), the ID one past the highest in an ID position of `tasks.md` and `tasks-archive.md`, the description as typed; the move route's guards; off with `--read-only`; +70 tests (1217 → 1287); commit `200c2af` (2026-10-08) |

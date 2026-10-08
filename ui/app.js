@@ -79,7 +79,7 @@ function go(v,keep,sub){
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?projectLabel(DATA.projects[PROJECT]):v==='new'?'New project':VIEWS[v];
   $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=$('#chatSetups').hidden=true;chat=null;}
-  $('#modeSeg').hidden=v!=='board';
+  $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();
   if(v==='home')loadRecent();
@@ -300,8 +300,8 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
-  if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;comp=null;drawChat();}setNav(false);return}
-  if(inField||mod||e.altKey)return;
+  if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();closeNewTask();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;comp=null;drawChat();}setNav(false);return}
+  if(inField||mod||e.altKey||taskVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$((mode==='board'?'#boardMode':'#listMode')+' .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
@@ -361,6 +361,47 @@ async function move(col,i,toSection,toIndex,isUndo){
     toast(body.error||'planning/tasks.md changed on disk since this page loaded. The move was not made.');
   }else toast(body.error||`The move was not made (HTTP ${r.status}).`);
 }
+
+/* ---------------- new task (BL-PM-005) ----------------
+   The server appends one row, `| <ID> | <description> |`, to the chosen section and picks the ID.
+   The description goes as typed; a refusal is shown in the form with what was typed kept. */
+const taskVeil=$('#taskVeil'),taskIn=$('#taskIn');
+let taskSection='backlog',adding=false;
+function setTaskSection(s){taskSection=s;$$('#taskSec button').forEach(b=>{const on=b.dataset.s===s;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});}
+function taskError(m){const e=$('#taskErr');e.textContent=m||'';e.hidden=!m;}
+function openNewTask(){if(!TOKEN||!DATA||!DATA.tasks)return;hideTip();taskIn.value='';taskError('');setTaskSection('backlog');taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
+function closeNewTask(){if(!taskVeil.classList.contains('open')||adding)return;taskVeil.classList.remove('open');$('#newTask').focus();}
+async function addTask(){
+  if(adding)return;
+  if(!taskIn.value.trim()){taskError('Type a description for the task.');taskIn.focus();return;}
+  const p=PROJECT,section=taskSection;
+  adding=true;$('#taskGo').disabled=true;taskError('');
+  let r,body={};
+  try{
+    r=await fetch('/api/tasks/new?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({description:taskIn.value,section})});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  adding=false;$('#taskGo').disabled=false;
+  if(!r){taskError('The server did not answer. Nothing was added.');return;}
+  if(p!==PROJECT)return;
+  if(r.status===200){
+    if(section==='backlog'&&body.index>=6)showAllBacklog=true;
+    taskVeil.classList.remove('open');
+    await apply(body.specs,['.specs/planning/tasks.md']);
+    $('#newTask').focus(); // what closing the inspector returns to
+    openTask(section,body.index);
+    const el=$(`${mode==='board'?'#boardMode':'#listMode'} .row[data-col="${section}"][data-i="${body.index}"]`);if(el)el.scrollIntoView({block:'nearest'});
+    toast(`${body.id} added to ## ${COLS[section]} in planning/tasks.md`);
+    return;
+  }
+  if(r.status===409&&body.specs)await apply(body.specs,null);
+  taskError(body.error||`The task was not added (HTTP ${r.status}).`);taskIn.focus();
+}
+$('#newTask').onclick=openNewTask;
+$$('#taskSec button').forEach(b=>b.onclick=()=>setTaskSection(b.dataset.s));
+$('#taskCancel').onclick=closeNewTask;
+taskVeil.onclick=e=>{if(e.target===taskVeil)closeNewTask();};
+$('#taskForm').onsubmit=e=>{e.preventDefault();addTask();};
 
 /* ---------------- setup chat (BL-055, BL-PM-004) ----------------
    The init.specpilot.dev chat over the CLI's own questions: for a new project (#new) and for a named

@@ -12,11 +12,16 @@ import { createPoller } from './specPoller';
 import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, previewNewProject, previewSetup, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
+import { SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
+import { isSpecPilotCommand } from './slashCommandGenerator';
+import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
+import { agentTargets } from '../core/agentConfig';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
 // guided setup and new projects through specSetup.ts (BL-055, BL-PM-003), the project registry through
-// projectRegistry.ts (BL-067) and a clone through gitClone.ts, which runs the user's git (BL-PM-002).
+// projectRegistry.ts (BL-067), a clone through gitClone.ts, which runs the user's git (BL-PM-002), and
+// Regenerate All through specBackfiller.ts's command step (BL-PM-006).
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
@@ -140,11 +145,36 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
         const real = resolveAllowedPath(root, path);
         return { path, exists: real !== null, bytes: real ? statSync(real).size : 0 };
       }),
-      commands: navFiles(root, scanned, '.claude/commands', p => p.endsWith('.md')),
-      skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')),
-      prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')),
+      // generated: the page's "From SpecPilot" group, else "Yours" (BL-PM-006)
+      commands: navFiles(root, scanned, '.claude/commands', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
+      skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) })),
+      prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
     },
   };
+}
+
+/** The command folders the Commands view lists; the result names any other folder Regenerate touched. */
+const LISTED_COMMAND_FOLDERS = ['.claude/commands/', '.github/prompts/'];
+
+/** What Regenerate All did, as project-relative paths, and the lines the page shows verbatim (BL-PM-006, REQ-002.H.30). */
+export function regenerateReport(results: SlashCommandBackfillResult[]) {
+  const pathOf = (ide: string, name: string) => {
+    const target = resolveTarget(ide, SLASH_COMMANDS.find(c => c.name === name)!);
+    return `${target.dir}/${target.fileName}`;
+  };
+  const added = results.flatMap(r => r.added.map(name => pathOf(r.ide, name)));
+  const updated = results.flatMap(r => r.updated.map(name => pathOf(r.ide, name)));
+  const kept = results.flatMap(r => r.kept.map(k => ({ path: k.path, reason: k.reason })));
+  const message: string[] = [];
+  if (!results.length) message.push('No IDE instruction file found, so no command files were written.');
+  else if (!added.length && !updated.length && !kept.length) message.push('Every SpecPilot command file is current.');
+  if (updated.length) message.push(`Updated: ${updated.join(', ')}.`);
+  if (added.length) message.push(`Added: ${added.join(', ')}.`);
+  if (kept.length) message.push(`Kept as they were: ${kept.map(k => `${k.path} (${k.reason})`).join(', ')}.`);
+  const folders = [...new Set([...updated, ...added, ...kept.map(k => k.path)].map(p => p.slice(0, p.lastIndexOf('/') + 1)))];
+  const unlisted = folders.filter(f => !LISTED_COMMAND_FOLDERS.includes(f));
+  if (unlisted.length) message.push(`Not listed on this page: ${unlisted.join(', ')}.`);
+  return { added, updated, kept, message };
 }
 
 /** `~` or `~/…` for the home directory and anything under it, else the path as given (BL-054). */
@@ -267,7 +297,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     if (!heartbeat) heartbeat = setInterval(() => allStreams().forEach(s => s.write(': heartbeat\n\n')), opts.heartbeatMs ?? 25000);
   };
 
-  // ---- task moves (BL-053) and new tasks (BL-PM-005): absent with --read-only
+  // ---- task moves (BL-053), new tasks (BL-PM-005) and Regenerate All (BL-PM-006): absent with --read-only
   const token = opts.readOnly ? null : randomBytes(32).toString('hex');
   let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
   const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
@@ -370,6 +400,23 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, id: out.id, section: out.section, index: out.index, specs: payload(i) });
         if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
         return sendJson(res, 422, { error: out.error });
+      });
+    });
+  };
+
+  /** Regenerate All (BL-PM-006): `specpilot backfill`'s command step for the named project, under the write lock. */
+  const handleRegenerate = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      if (body === null || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) {
+        return sendJson(res, 422, { error: 'Regenerate All takes an empty JSON object, {}.' });
+      }
+      underLock(res, () => {
+        if (specsMissing(roots[i])) return sendJson(res, 422, { error: `No .specs/ folder in ${displayRoot(roots[i])}.` });
+        const report = regenerateReport(new SpecBackfiller().backfillSlashCommands(roots[i], false));
+        sendJson(res, 200, { ...report, specs: payload(i) });
       });
     });
   };
@@ -646,6 +693,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/api/tasks/new') {
         if (req.method === 'POST' && token) return handleNewTask(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/commands/regenerate') {
+        if (req.method === 'POST' && token) return handleRegenerate(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

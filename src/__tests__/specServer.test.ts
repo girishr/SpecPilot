@@ -19,6 +19,7 @@ import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry 
 import { initOptions, InitAnswers } from '../utils/initQuestions';
 import { render } from '../core/render';
 import { ALL_FIELDS } from './fixtures/allFields';
+import { SpecBackfiller } from '../utils/specBackfiller';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -1230,6 +1231,232 @@ describe('new tasks over HTTP (BL-PM-005)', () => {
 
 // ─── Multiple projects (BL-054) ──────────────────────────────────────────────
 
+// ─── Regenerate All (BL-PM-006) ──────────────────────────────────────────────
+
+describe('Regenerate All over HTTP (BL-PM-006)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const REGEN = '/api/commands/regenerate';
+  const STATUS = '.claude/commands/specpilot-status.md';
+  const SYNC = '.claude/commands/specpilot-sync.md';
+  const at = (rel: string) => join(p.root, rel);
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    ...over,
+  });
+  const regen = (body = '{}', headers = good(), query = '?project=0') => post(port, body, headers, REGEN + query);
+  const specs = async () => JSON.parse((await hit(port, '/api/specs')).body);
+  const flag = (list: { path: string; generated: boolean }[], path: string) => list.find(f => f.path === path)?.generated;
+
+  beforeEach(async () => {
+    p = makeProject(); // has CLAUDE.md, so Claude Code is detected
+    spec = await startSpecServer([p.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it('adds the missing Claude Code commands, lists them under From SpecPilot and reports their paths', async () => {
+    const res = await regen();
+    expect(res.status).toBe(200);
+    expect(res.json.added).toHaveLength(8);
+    expect(res.json.added.every((f: string) => f.startsWith('.claude/commands/specpilot-'))).toBe(true);
+    expect(res.json.updated).toEqual([]);
+    expect(res.json.kept).toEqual([]);
+    expect(res.json.message).toEqual([`Added: ${res.json.added.join(', ')}.`]);
+    expect(res.json.specs.nav.commands.map((f: { generated: boolean }) => f.generated)).toEqual(Array(8).fill(true));
+    expect((await regen()).json.message).toEqual(['Every SpecPilot command file is current.']);
+  });
+
+  it('restores a stale known version, keeps an edited one, and moves the split accordingly', async () => {
+    const stale = '---\ndescription: an older release\n---\n\nOld body.\n';
+    const hashes = specSlash.KNOWN_COMMAND_HASHES[STATUS];
+    hashes.push(createHash('sha256').update(stale).digest('hex'));
+    try {
+      await regen();
+      const current = readFileSync(at(STATUS), 'utf-8');
+      const edited = readFileSync(at(SYNC), 'utf-8') + '\nMy own line.\n';
+      writeFileSync(at(STATUS), stale);
+      writeFileSync(at(SYNC), edited);
+      const before = (await specs()).nav.commands;
+      expect(flag(before, STATUS)).toBe(true);
+      expect(flag(before, SYNC)).toBe(false);
+      const res = await regen();
+      expect(res.status).toBe(200);
+      expect(res.json.updated).toEqual([STATUS]);
+      expect(res.json.kept).toEqual([{ path: SYNC, reason: 'modified' }]);
+      expect(res.json.message).toEqual([`Updated: ${STATUS}.`, `Kept as they were: ${SYNC} (modified).`]);
+      expect(readFileSync(at(STATUS), 'utf-8')).toBe(current);
+      expect(readFileSync(at(SYNC), 'utf-8')).toBe(edited);
+      expect(flag(res.json.specs.nav.commands, STATUS)).toBe(true);
+      expect(flag(res.json.specs.nav.commands, SYNC)).toBe(false);
+    } finally {
+      hashes.pop();
+    }
+  });
+
+  it('leaves a command file of the user\'s alone and lists it under Yours', async () => {
+    write(p.root, '.claude/commands/mine.md', '---\ndescription: mine\n---\nMine.\n');
+    const res = await regen();
+    expect(readFileSync(at('.claude/commands/mine.md'), 'utf-8')).toBe('---\ndescription: mine\n---\nMine.\n');
+    expect(flag(res.json.specs.nav.commands, '.claude/commands/mine.md')).toBe(false);
+  });
+
+  it('splits skills by path and never writes one', async () => {
+    write(p.root, '.claude/skills/specpilot-project/SKILL.md', '---\nname: specpilot-project\n---\nEdited.\n');
+    write(p.root, '.claude/skills/mine/SKILL.md', '---\nname: mine\n---\nMine.\n');
+    const res = await regen();
+    const skills = res.json.specs.nav.skills;
+    expect(flag(skills, '.claude/skills/specpilot-project/SKILL.md')).toBe(true);
+    expect(flag(skills, '.claude/skills/mine/SKILL.md')).toBe(false);
+    expect(readFileSync(at('.claude/skills/specpilot-project/SKILL.md'), 'utf-8')).toBe('---\nname: specpilot-project\n---\nEdited.\n');
+  });
+
+  it('names the command folders the page does not list', async () => {
+    write(p.root, '.cursor/rules/specpilot.mdc', 'rules\n');
+    const res = await regen();
+    expect(res.json.added.filter((f: string) => f.startsWith('.cursor/commands/'))).toHaveLength(8);
+    expect(res.json.message[res.json.message.length - 1]).toBe('Not listed on this page: .cursor/commands/.');
+  });
+
+  it('says so when no IDE instruction file is there, writing nothing', async () => {
+    rmSync(at('CLAUDE.md'));
+    const res = await regen();
+    expect(res.status).toBe(200);
+    expect(res.json).toMatchObject({ added: [], updated: [], kept: [], message: ['No IDE instruction file found, so no command files were written.'] });
+    expect(existsSync(at('.claude'))).toBe(false);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('skips and reports every file under a linked .github/prompts, writing nothing outside', async () => {
+    write(p.root, '.github/copilot-instructions.md', '# Copilot\n');
+    symlinkSync(p.outside, at('.github/prompts'));
+    const res = await regen();
+    expect(res.status).toBe(200);
+    const linked = res.json.kept.filter((k: { path: string }) => k.path.startsWith('.github/prompts/'));
+    expect(linked).toHaveLength(8);
+    expect(linked.every((k: { reason: string }) => k.reason === 'folder is a symbolic link or not a folder')).toBe(true);
+    expect(res.json.message.some((l: string) => l.startsWith('Kept as they were: .github/prompts/specpilot-'))).toBe(true);
+    expect(readdirSync(p.outside)).toEqual(['secret.txt']);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('skips every file under a linked .github, writing nothing outside', async () => {
+    writeFileSync(join(p.outside, 'copilot-instructions.md'), '# Copilot\n'); // the signal file, read through the link
+    symlinkSync(p.outside, at('.github'));
+    const res = await regen();
+    const linked = res.json.kept.filter((k: { path: string }) => k.path.startsWith('.github/prompts/'));
+    expect(linked).toHaveLength(8);
+    expect(linked.every((k: { reason: string }) => k.reason === 'folder is a symbolic link or not a folder')).toBe(true);
+    expect(readdirSync(p.outside).sort()).toEqual(['copilot-instructions.md', 'secret.txt']);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('skips a linked .claude folder', async () => {
+    symlinkSync(p.outside, at('.claude'));
+    const res = await regen();
+    expect(res.json.kept).toHaveLength(8);
+    expect(res.json.added).toEqual([]);
+    expect(readdirSync(p.outside)).toEqual(['secret.txt']);
+  });
+
+  it.each([
+    ['another origin', '{}', { Origin: 'http://evil.example' }, 403],
+    ['no token', '{}', { 'X-SpecPilot-Token': undefined }, 403],
+    ['a form post', '{}', { 'Content-Type': 'application/x-www-form-urlencoded' }, 415],
+    ['a body over 16 KB', 'x'.repeat(17 * 1024), {}, 413],
+    ['a body that is not JSON', '{', {}, 400],
+    ['a body with a key', '{"all":true}', {}, 422],
+    ['an array', '[]', {}, 422],
+    ['null', 'null', {}, 422],
+  ] as [string, string, Record<string, string | undefined>, number][])('refuses %s and writes nothing', async (_name, body, over, status) => {
+    const res = await regen(body, good(over));
+    expect(res.status).toBe(status);
+    expect(existsSync(at('.claude'))).toBe(false);
+  });
+
+  it('answers 404 for a project that is not served, 405 for GET, and 422 without .specs/', async () => {
+    expect((await regen('{}', good(), '?project=7')).status).toBe(404);
+    const get = await hit(port, REGEN);
+    expect(get.status).toBe(405);
+    expect(get.headers.allow).toBe('POST');
+    rmSync(at('.specs'), { recursive: true });
+    const res = await regen();
+    expect(res.status).toBe(422);
+    expect(res.json.error).toMatch(/^No \.specs\/ folder in /);
+    expect(existsSync(at('.claude'))).toBe(false);
+  });
+
+  it('runs under the write lock with a new task, both finishing', async () => {
+    writeFileSync(at('.specs/planning/tasks.md'), MOVE_TASKS);
+    const ifMatch = createHash('sha256').update(MOVE_TASKS).digest('hex');
+    const [a, b] = await Promise.all([
+      regen(),
+      post(port, JSON.stringify({ description: 'Added beside a regenerate', section: 'backlog' }), good({ 'If-Match': ifMatch }), '/api/tasks/new'),
+    ]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(readFileSync(at('.specs/planning/tasks.md'), 'utf-8')).toContain('Added beside a regenerate');
+  });
+
+  it('runs under the write lock with a task move, both finishing', async () => {
+    writeFileSync(at('.specs/planning/tasks.md'), MOVE_TASKS);
+    const ifMatch = createHash('sha256').update(MOVE_TASKS).digest('hex');
+    const [a, b] = await Promise.all([
+      regen(),
+      post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': ifMatch })),
+    ]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(a.json.added).toHaveLength(8);
+  });
+
+  it('answers 500 when the run throws, and the page adds that files may be partly written', async () => {
+    const boom = jest.spyOn(SpecBackfiller.prototype, 'backfillSlashCommands').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    try {
+      expect((await regen()).status).toBe(500);
+    } finally {
+      boom.mockRestore();
+    }
+    expect(readFileSync(join(__dirname, '../../ui/app.js'), 'utf-8')).toContain("r.status===500?' Command files may have been partly written.'");
+  });
+
+  it('ui/app.js declares no function name twice (a second one silently replaces the first)', () => {
+    const names = [...readFileSync(join(__dirname, '../../ui/app.js'), 'utf-8').matchAll(/^(?:async )?function ([\w$]+)\(/gm)].map(m => m[1]);
+    expect(names.filter((n, i) => names.indexOf(n) !== i)).toEqual([]);
+  });
+
+  it('ships the button hidden, for app.js to show only with the token', async () => {
+    expect((await hit(port, '/')).body).toContain('<button type="button" class="more" id="cmdRegen" hidden>Regenerate All</button>');
+  });
+});
+
+describe('Regenerate All with --read-only (BL-PM-006)', () => {
+  it('has no route and writes nothing', async () => {
+    const p = makeProject();
+    const spec = await startSpecServer([p.root], 0, 'x', { readOnly: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const res = await post(port, '{}', {
+        Host: `127.0.0.1:${port}`,
+        Origin: `http://127.0.0.1:${port}`,
+        'Content-Type': 'application/json',
+        'X-SpecPilot-Token': 'f'.repeat(64),
+      }, '/api/commands/regenerate');
+      expect(res.status).toBe(405);
+      expect(existsSync(join(p.root, '.claude'))).toBe(false);
+    } finally {
+      await spec.close();
+      p.cleanup();
+    }
+  });
+});
+
 describe('displayRoot', () => {
   it.each([
     ['/home/u', '~'],
@@ -1800,7 +2027,7 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
       `  0  ${realpathSync(a.root)}`,
       `  1  ${real}`,
       `No .specs/ in ${real} yet. Open the page to set it up.`,
-      'Tasks can be moved in the page (only .specs/planning/tasks.md is written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ]);
   });
 
@@ -1818,7 +2045,7 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
     const { port, out } = await serveAndStop([a.root]);
     expect(out.slice(0, 2)).toEqual([
       `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
-      'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ]);
   });
 
@@ -2536,7 +2763,7 @@ describe('serveCommand and the registry (BL-067)', () => {
     expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
     expect(out.slice(0, 3)).toEqual([
       `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
-      'Tasks can be moved in the page (only .specs/planning/tasks.md is written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
       'Folders opened in the page are remembered in ~/.specpilot/projects.json.',
     ]);
   });

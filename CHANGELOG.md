@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Commands and Skills split, and Regenerate All, in the `specpilot serve` page** (BL-PM-006): the Commands and Skills views group their files under From SpecPilot (`specpilot-*` commands whose bytes match a released SpecPilot version; the `specpilot-project` skill) and Yours (everything else, including an edited `specpilot-*` command). Regenerate All runs `specpilot backfill`'s command step for the shown project: it adds missing `specpilot-*` commands and updates unedited ones for each IDE in use, keeps everything else, and shows what it did, including kept files and the command folders the page does not list. Skills, instruction files and `.specs/` are not written. Not with `--read-only`. The startup line says command files can be written too.
 - **New Task in the `specpilot serve` page** (BL-PM-005): a New Task button on the Tasks view opens a small form for a description and a section (Backlog by default, or Current Sprint). SpecPilot adds one row to that section's table in `planning/tasks.md` with the next free ID (BL-### or CS-###, counting the IDs in `tasks-archive.md` too), writes the description as you typed it, and changes nothing else in the file. The new row is selected and opened in the details panel. A description with a line break or a `|` is refused with the reason. Not available with `--read-only`.
+
+### Changed
+
+- **`specpilot backfill` writes no command file through a linked folder** (BL-PM-006): when `.claude`, `.claude/commands`, `.github`, `.github/prompts` or another folder on the way is a symbolic link or not a folder, the command file is kept and listed (`kept: folder is a symbolic link or not a folder`) instead of being created through it. A command file that cannot be written is listed (`kept: could not be written: <code>`) and the other files are still handled, where before the run stopped with an error.
 
 ## [2.11.0] - 2026-10-08
 

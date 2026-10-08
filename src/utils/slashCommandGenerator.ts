@@ -12,7 +12,13 @@ export type { SlashCommand };
 export interface KeptCommand {
   name: string;
   path: string;
-  reason: 'modified' | 'CRLF line endings' | 'symbolic link' | 'not a regular file';
+  reason:
+    | 'modified'
+    | 'CRLF line endings'
+    | 'symbolic link'
+    | 'not a regular file'
+    | 'folder is a symbolic link or not a folder'
+    | `could not be written: ${string}`;
 }
 
 /** What `refreshCommands()` did (or, in dry-run, would do) for one IDE. */
@@ -253,36 +259,55 @@ export class SlashCommandGenerator {
       const target = resolveTarget(key, command);
       const path = `${target.dir}/${target.fileName}`;
       const filePath = join(projectDir, ...target.dir.split('/'), target.fileName);
-      let st;
+      const linkedFolder = () => result.kept.push({ name: command.name, path, reason: 'folder is a symbolic link or not a folder' });
+      // One file failing to write is reported and the rest go on (BL-PM-006).
       try {
-        st = lstatSync(filePath);
-      } catch {
-        result.added.push(command.name);
-        if (!dryRun) {
-          mkdirSync(dirname(filePath), { recursive: true });
-          writeFileSync(filePath, target.content, { flag: 'wx' });
+        const folders = checkFolders(projectDir, target.dir, false);
+        if (folders === 'bad') {
+          linkedFolder();
+          continue;
         }
-        continue;
-      }
-      if (!st.isFile()) {
-        result.kept.push({ name: command.name, path, reason: st.isSymbolicLink() ? 'symbolic link' : 'not a regular file' });
-        continue;
-      }
-      const bytes = readFileSync(filePath);
-      if (bytes.equals(Buffer.from(target.content, 'utf-8'))) continue;
-      const hashes = known[path] ?? [];
-      if (hashes.includes(sha256(bytes))) {
-        if (dryRun || this.replace(filePath, st.mode, bytes, target.content)) {
-          result.updated.push(command.name);
-        } else {
-          result.kept.push({ name: command.name, path, reason: 'modified' });
+        let st = null;
+        if (folders === 'ok') {
+          try {
+            st = lstatSync(filePath);
+          } catch (err) {
+            if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+          }
         }
-        continue;
+        if (!st) {
+          if (!dryRun) {
+            if (checkFolders(projectDir, target.dir, true) !== 'ok') {
+              linkedFolder();
+              continue;
+            }
+            writeFileSync(filePath, target.content, { flag: 'wx' });
+          }
+          result.added.push(command.name);
+          continue;
+        }
+        if (!st.isFile()) {
+          result.kept.push({ name: command.name, path, reason: st.isSymbolicLink() ? 'symbolic link' : 'not a regular file' });
+          continue;
+        }
+        const bytes = readFileSync(filePath);
+        if (bytes.equals(Buffer.from(target.content, 'utf-8'))) continue;
+        const hashes = known[path] ?? [];
+        if (hashes.includes(sha256(bytes))) {
+          if (dryRun || this.replace(filePath, st.mode, bytes, target.content)) {
+            result.updated.push(command.name);
+          } else {
+            result.kept.push({ name: command.name, path, reason: 'modified' });
+          }
+          continue;
+        }
+        // latin1 maps each byte to one char, so only CR LF pairs change
+        const lf = Buffer.from(bytes.toString('latin1').replace(/\r\n/g, '\n'), 'latin1');
+        const crlf = !lf.equals(bytes) && hashes.includes(sha256(lf));
+        result.kept.push({ name: command.name, path, reason: crlf ? 'CRLF line endings' : 'modified' });
+      } catch (err) {
+        result.kept.push({ name: command.name, path, reason: `could not be written: ${(err as NodeJS.ErrnoException).code ?? 'unknown error'}` });
       }
-      // latin1 maps each byte to one char, so only CR LF pairs change
-      const lf = Buffer.from(bytes.toString('latin1').replace(/\r\n/g, '\n'), 'latin1');
-      const crlf = !lf.equals(bytes) && hashes.includes(sha256(lf));
-      result.kept.push({ name: command.name, path, reason: crlf ? 'CRLF line endings' : 'modified' });
     }
     return result;
   }
@@ -327,4 +352,44 @@ export class SlashCommandGenerator {
 
 function sha256(bytes: Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
+}
+
+/**
+ * Walks the folders from `projectDir` down to `dir` (project-relative, `/`-joined) with `lstat`, one level
+ * at a time: 'bad' at a symbolic link or a non-folder, 'missing' at the first absent level, else 'ok'.
+ * With `create`, an absent level is made with a non-recursive `mkdir` and checked again (BL-PM-006).
+ */
+function checkFolders(projectDir: string, dir: string, create: boolean): 'ok' | 'missing' | 'bad' {
+  let at = projectDir;
+  for (const segment of dir.split('/')) {
+    at = join(at, segment);
+    let st;
+    try {
+      st = lstatSync(at);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+      if (!create) return 'missing';
+      mkdirSync(at);
+      st = lstatSync(at);
+    }
+    if (st.isSymbolicLink() || !st.isDirectory()) return 'bad';
+  }
+  return 'ok';
+}
+
+/**
+ * Whether `path` (project-relative) is a command file `refreshCommands()` leaves current or may replace:
+ * no linked folder on the way, a regular file, bytes hashing to a known version for that path. The serve
+ * page's "From SpecPilot" group (BL-PM-006); everything else there is "Yours".
+ */
+export function isSpecPilotCommand(projectDir: string, path: string, known: Record<string, string[]> = KNOWN_COMMAND_HASHES): boolean {
+  const hashes = known[path];
+  if (!hashes) return false;
+  try {
+    if (checkFolders(projectDir, path.slice(0, path.lastIndexOf('/')), false) !== 'ok') return false;
+    const file = join(projectDir, ...path.split('/'));
+    return lstatSync(file).isFile() && hashes.includes(sha256(readFileSync(file)));
+  } catch {
+    return false;
+  }
 }

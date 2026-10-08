@@ -372,6 +372,8 @@ Running `specpilot backfill` on an existing project generates the command files 
 - `kept: modified`: you changed it. Delete it and re-run `specpilot backfill` to get the latest version.
 - `kept: CRLF line endings`: a known version saved with Windows line endings.
 - `kept: symbolic link`: links are never written through.
+- `kept: folder is a symbolic link or not a folder`: a folder on the way (`.claude`, `.claude/commands`, `.github`, …) is a link or a file, so nothing is created or replaced through it.
+- `kept: could not be written: <code>`: the write failed (e.g. `EACCES`); the other files are still handled.
 
 For Codex, the in-repo copies in `.codex/prompts/` are handled the same way when `CODEX_INSTRUCTIONS.md` exists; copy them to `~/.codex/prompts/` yourself.
 

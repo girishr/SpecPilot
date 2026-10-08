@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-08 (BL-PM-004b, no HTML escaping)
+lastUpdated: 2026-10-08 (BL-PM-004b completed)
 version: 6.20
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -71,7 +71,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-PM-004b | **Built on `feat/bl-pm-004b-full-chat` after the developer's `yes, proceed` (2026-10-07; open question 1: two languages pre-select by tab priority, Backend > Full stack > Web > Mobile, both badged; 2 to 6 the defaults, incl. the read-only preview route); +198 tests (1019 → 1217); before the commit, on the developer's direction (2026-10-08), the engine stopped HTML-escaping (`noEscape`; SEC-004.3 revised; free values in YAML quoted by `dq` and `fm` only when they hold a formerly escaped character); not committed.** The rest of the init.specpilot.dev chat in `specpilot serve` on the BL-032 core (REQ-002.H.28, REQ-002.I.7, ARCH-004.47, SEC-002.8, SEC-004.17): its 33 questions in 8 steps in the web's order (description before new/existing), with the CLI's six in their places and the language and framework seeded from the platforms; the platform grid, tabbed starters, cards, grouped and categorized pickers and toggle lists through one option renderer; the web's badges, warnings, seeds and notes ported to `src/core/chatFlow.ts` and served to the page as `/assets/chat-core.js`; a per-question file caption from a field-to-file table checked against `render()`; the web's intro and a solid blue answer bubble; saved setups in the browser's `localStorage` (not `~/.specpilot/drafts`, the developer's decision 2026-10-07), removed after a create; a read-only preview route and `Answers changed since the last preview` (proposed). The 23 fields reach the files through the two create routes (checked, 64 KB bodies); 11 CLI answers alone stay byte for byte. Left out: ZIP download, feedback widget, activation tracking, brand icons. Built without the proposed `field`/`type` on the GET routes (the core holds them); no caption for handle, language and framework (their files depend on the IDE). Split from BL-PM-004 on 2026-10-05; depends on BL-032 (done, v2.10.0). |
 
 ## Completed
 
@@ -105,3 +104,4 @@ Notes
 | 159 | [CD-girishr-068] | v2.9.0 shipped (BL-075, BL-PM-003, BL-PM-002, BL-PM-004): pushed, npm `specpilot@2.9.0` latest, GitHub release live (2026-10-06) |
 | 160 | [CD-girishr-069] [BL-032] [BL-084] [BL-085] | Spec core, phases 1 and 2 (REQ-002.I, ARCH-004.46): a pure `src/core/` with `render()`, `generateSpecs()` as the writer, output byte for byte 2.9.0's and pinned by a golden recording, 23 optional template fields rendered only when present, `yaml`/`yamlList` helpers, BL-084 (the hash script runs again across every tag) and BL-085 (`project.yaml` reads back as written) fixed; commit `ed78051` on `main` (2026-10-07) |
 | 161 | [CD-girishr-070] | v2.10.0 shipped (BL-032 phases 1 and 2, BL-084, BL-085): pushed, npm `specpilot@2.10.0` latest, GitHub release live (2026-10-07) |
+| 162 | [CD-girishr-071] [BL-PM-004b] | `specpilot serve` full chat (REQ-002.H.28, REQ-002.I.7, ARCH-004.47): init.specpilot.dev's 33 questions and pickers over the CLI's, rules ported to `src/core/chatFlow.ts` and served to the page, the 23 fields written through both create routes, saved setups in the browser, read-only preview; answers no longer HTML-escaped (SEC-004.3 revised); +198 tests (1019 → 1217); commit `2b5f49d` (2026-10-08) |

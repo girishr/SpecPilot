@@ -25,7 +25,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".specs/quality/tests.md": "76c290435c40b48ea0fb429e2b63812ab102806824855b982a29d31b918cee23",
   ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
   ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
-  "CLAUDE.md": "ae3bcbd5f33427cac1b90047e3799c8a7458a2f4ab05dfdb9ebb6e958f90ff6f",
+  "CLAUDE.md": "c8db5dd2a7103dc3188eb869b66bd47eb269ff9487211c609de22d689651a316",
 }
 `;
 
@@ -40,7 +40,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "b204c9b830126f920e3db041d8a43cc82580a077447ed98546f156d070c3939c",
+  ".github/copilot-instructions.md": "88adcd2f940376abe66cb41a74ac33c0cd47a54d36f1e8d4df0913a5cce9bf1c",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
   ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
@@ -97,6 +97,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format.
 
 ## Context — read on demand by task type
 
@@ -1145,7 +1146,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
   ".agent/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".agent/workflows/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
   ".antigravity/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".antigravity/rules.md": "23e05672a0a081155eaa7c388919b570885cd6c2b602df6ef6a6caff99ac9978",
+  ".antigravity/rules.md": "01262d5df5bdeedbf9ee1a9645122215d516b143a80b899a0f829690248030f9",
   ".antigravity/settings.json": "abfe0583c667af7f587b3f37d40226e79a577ae59ddb9405a533754984e46f42",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
@@ -1189,7 +1190,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
   ".specs/quality/tests.md": "c259ce6b0adb6ac3d1cf2564a61191b9a60447b10622894f3d131a4205e1f050",
   ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
   ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
-  "CLAUDE.md": "c73969b00d384b7e7bf42d39a8a0cd7293512bfd9e2c852eb07b160d968b0aa7",
+  "CLAUDE.md": "0b550054b1664f13892ee513bd7913b97596eeac07e1102b509ddfd6cb3a59b9",
 }
 `;
 
@@ -1204,7 +1205,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "c8a10963765a58896cae541cbf6f928e68c92d26162e4b5c754c85befc597553",
+  ".github/copilot-instructions.md": "a64b5a89d93dc79a0367ff79926293d36afb0a60251c718c85dd757f00801cc4",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "8fa3ff6fdc5c8269285007fa754fcae14f39ac543a682bb2a1a58988e6def0c8",
   ".specs/architecture/architecture.md": "3e14693f91a127e70d1c57432a284a35317e173b646a940870a3a903d06068d5",
@@ -1233,7 +1234,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
   ".cursor/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".cursor/commands/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
   ".cursor/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".cursor/rules/specpilot.mdc": "cdfb404e54f7fee84d77b119849bc94b0037354dcad8dae23bf67e2bbe689c4c",
+  ".cursor/rules/specpilot.mdc": "3b486cfe72bca7fdef374561c527a46d6cdf167e1b4715c883084917cf9bf3d3",
   ".cursor/settings.json": "040a19c3ec92aa93f255ee9d3c1b1c8f0c1e4991508d01bfb22421c84f72677d",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
@@ -1255,7 +1256,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
 exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "61bb5366fe8c9d4ffcd9fcc0484d0b5f72a9d40d6822cebe8d523ceb7b84a062",
+  ".github/copilot-instructions.md": "1ba19f0128232b688644fdfb455bd27a8dba5037b33447b2286ba890da42986f",
   ".github/prompts/specpilot-archive.prompt.md": "d04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2",
   ".github/prompts/specpilot-backfill.prompt.md": "df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -1285,7 +1286,7 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
 exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "ee2ed779168df6734925e43d5f50e8648bf81369d29eb01a6952af86362c96fb",
+  ".github/copilot-instructions.md": "ae4a372061f20f82477748a85327a1448cfacf7d2efc9a94daf33ca03649138d",
   ".github/prompts/specpilot-archive.prompt.md": "d04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2",
   ".github/prompts/specpilot-backfill.prompt.md": "df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -1351,6 +1352,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format.
 
 ## Context — read on demand by task type
 
@@ -2369,6 +2371,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format.
 
 ## Context — read on demand by task type
 
@@ -3337,7 +3340,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 exports[`spec core golden recording (BL-032) vscode typescript/react none inferred 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "509a78ae48832c3cf644d5b0ac53e6d1002ea3f17cea8b3f98fdee81ac9641bd",
+  ".github/copilot-instructions.md": "20d8190d69cadcb155fdc59ba346802e01db4c12db1f324bb2875dc1ff9dde6b",
   ".github/prompts/specpilot-archive.prompt.md": "d04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2",
   ".github/prompts/specpilot-backfill.prompt.md": "df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -3389,6 +3392,6 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".windsurf/workflows/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
   ".windsurf/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".windsurf/workflows/specpilot-validate.md": "13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721",
-  ".windsurfrules": "4a7644d187a2102784ae9844263717ccfce8719cb172ce576fbe7c2fcd18258a",
+  ".windsurfrules": "040ce6fcf3c38b3a809690437552857b2489abe2617cec4915771bd4e6ac2ae9",
 }
 `;

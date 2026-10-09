@@ -6,6 +6,7 @@
 <title>SpecPilot Local</title>
 <meta name="theme-color" content="#0f172a">
 <!-- specpilot-token -->
+<!-- specpilot-mcp -->
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/assets/app.css">
 <script src="/assets/md.js" defer></script>
@@ -136,6 +137,8 @@
         <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? The guided setup writes one for you.</div></div></div>
       </div></div>
       <div class="gl recents"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
+      <!-- BL-PM-007: only with specpilot serve --mcp -->
+      <div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional, one line</span></div><div class="box"><div class="mcp"><code class="v" id="mcpLine" translate="no"></code><button type="button" class="btn sm" id="mcpCopy">Copy</button></div></div><p class="note" id="mcpNote"></p></div>
       <div class="fine"><i aria-hidden="true"></i><span>Server running on <span class="mono" id="homeAddr" translate="no"></span> · <span id="homeVer" translate="no"></span></span></div>
     </section>
 

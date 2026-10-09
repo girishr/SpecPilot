@@ -265,7 +265,12 @@ function setupRecord(st){
 function setupTitle(e){return e.kind==='setup'?(e.name||String(e.root||'').split(/[/\\]/).filter(Boolean).pop()||'Untitled setup'):(e.name||'Untitled setup');}
 function setupStatus(e){return e.finished?'Ready to create':'In progress';}
 
-const api={resolveRoute,goneHtml,when,editorUrl,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
+/* The one line an IDE's MCP settings take (BL-PM-007); serve.ts prints the same line. */
+function mcpConfigLine(host,token){
+  return JSON.stringify({mcpServers:{'specpilot-local':{type:'http',url:`http://${host}/mcp`,headers:{'X-SpecPilot-Token':token}}}});
+}
+
+const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
   projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
   optionHtml,tabsHtml,choiceOptions,SETUPS_KEY,setupsLoad,setupsPut,setupsRemove,setupRecord,setupTitle,setupStatus};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);

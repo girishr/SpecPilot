@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { moveShapeError, moveTask, newTask, NewTask, newTaskShapeError, sha256, TaskMove } from './taskMover';
+import { moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, previewNewProject, previewSetup, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -16,12 +16,15 @@ import { SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
 import { isSpecPilotCommand } from './slashCommandGenerator';
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
 import { agentTargets } from '../core/agentConfig';
+import { SpecValidator } from './specValidator';
+import { answerMcp, MCP_TOOLS, rpcError, ToolRefusal } from './mcpLocal';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
 // guided setup and new projects through specSetup.ts (BL-055, BL-PM-003), the project registry through
 // projectRegistry.ts (BL-067), a clone through gitClone.ts, which runs the user's git (BL-PM-002), and
-// Regenerate All through specBackfiller.ts's command step (BL-PM-006).
+// Regenerate All through specBackfiller.ts's command step (BL-PM-006). With --mcp, POST /mcp runs the same
+// functions for an AI IDE on this machine (BL-PM-007, mcpLocal.ts).
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
@@ -224,6 +227,8 @@ export const MAX_SETUP_BODY = 64 * 1024;
 
 /** Where index.html receives the per-start CSRF token (nothing with --read-only). */
 const TOKEN_SLOT = '<!-- specpilot-token -->';
+/** Where index.html learns that /mcp is on, and whose token it takes: `page` or `env` (BL-PM-007). */
+const MCP_SLOT = '<!-- specpilot-mcp -->';
 
 /** Most `/api/events` streams open at once; the next one gets 503 (SEC-004.9). */
 export const MAX_EVENT_STREAMS = 8;
@@ -245,10 +250,16 @@ export interface SpecServerOptions {
   registry?: string;
   /** Time limit of a clone in ms (tests shorten it; default `CLONE_TIMEOUT_MS`). */
   cloneTimeoutMs?: number;
+  /** `--mcp`: serve POST /mcp (BL-PM-007). */
+  mcp?: boolean;
+  /** `SPECPILOT_MCP_TOKEN`, already checked by the command: /mcp's token instead of a per-start one. */
+  mcpToken?: string;
 }
 
 export interface SpecServer {
   server: Server;
+  /** The token POST /mcp takes, or null without --mcp (BL-PM-007). */
+  mcpToken: string | null;
   /** Open event streams right now. */
   streams(): number;
   /** Kill a running clone and remove what it downloaded (BL-PM-002); resolves when that is done. */
@@ -299,15 +310,24 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
 
   // ---- task moves (BL-053), new tasks (BL-PM-005) and Regenerate All (BL-PM-006): absent with --read-only
   const token = opts.readOnly ? null : randomBytes(32).toString('hex');
+  // /mcp's token (BL-PM-007): its own variable, because a null `token` is what turns the page's writes off.
+  const mcpToken = !opts.mcp ? null : (opts.mcpToken ?? token ?? randomBytes(32).toString('hex'));
   let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
   const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
-  /** Run `fn` under the write lock; a throw answers 500 (when nothing was sent) and never breaks the chain for later writes. */
-  const underLock = (res: ServerResponse, fn: () => void | Promise<void>) => {
-    writeLock = writeLock.then(fn).catch(() => {
+  /** Run `fn` under the write lock and settle with its outcome; a throw never breaks the chain for later writes. */
+  const locked = <T>(fn: () => T | Promise<T>): Promise<T> => {
+    const run = writeLock.then(fn);
+    writeLock = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  };
+  /** `locked()` for a route: a throw answers 500 when nothing was sent. */
+  const underLock = (res: ServerResponse, fn: () => void | Promise<void>) =>
+    locked(fn).catch(() => {
       if (!res.headersSent) sendJson(res, 500, { error: 'The server could not finish this request.' });
     });
-    return writeLock;
-  };
 
   /** The checks every write shares (SEC-004.10): Origin, token, content type, size. False = already answered. */
   const writeAllowed = (req: IncomingMessage, res: ServerResponse, limit = MAX_MOVE_BODY): boolean => {
@@ -334,7 +354,13 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   };
 
   /** Read a JSON body of at most `limit` bytes; answers 413 or 400 itself and then does not call back. */
-  const readJson = (req: IncomingMessage, res: ServerResponse, then: (body: unknown) => void, limit = MAX_MOVE_BODY) => {
+  const readJson = (
+    req: IncomingMessage,
+    res: ServerResponse,
+    then: (body: unknown) => void,
+    limit = MAX_MOVE_BODY,
+    invalid = () => sendJson(res, 400, { error: 'The request body is not valid JSON.' }),
+  ) => {
     const chunks: Buffer[] = [];
     let size = 0;
     req.on('data', (c: Buffer) => {
@@ -349,7 +375,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       try {
         body = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
       } catch {
-        return sendJson(res, 400, { error: 'The request body is not valid JSON.' });
+        return invalid();
       }
       then(body);
     });
@@ -659,11 +685,128 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     });
   };
 
+  // ---- local MCP endpoint (BL-PM-007): the functions above, for an AI IDE on this machine; only with --mcp
+  const MCP_STALE: Record<string, string> = {
+    [STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it. The move was not made.',
+    [NEW_STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it, so the task was not added. Call specpilot_list_tasks for the current sha256, then try again.',
+  };
+  const mcpTools = MCP_TOOLS.filter(t => token || !t.writes); // --read-only: no write tools
+  const mcpProject = (args: Record<string, unknown>): number => {
+    const n = args.project ?? 0;
+    if (!Number.isInteger(n) || (n as number) < 0 || (n as number) >= roots.length) throw new ToolRefusal(`No project ${String(n)} is served. specpilot_list_projects lists them.`);
+    return n as number;
+  };
+  const mcpHash = (args: Record<string, unknown>): string => {
+    if (typeof args.sha256 !== 'string' || !args.sha256.trim()) throw new ToolRefusal('sha256 is required: the hash specpilot_list_tasks returned.');
+    return args.sha256.trim();
+  };
+  const asJson = (data: Record<string, unknown>) => ({ text: JSON.stringify(data, null, 2), data });
+  /** A task write's outcome as the tool's answer: the page's refusals, with the stale one worded for an agent. */
+  const taskWrite = async <T extends { status: number }>(write: () => T): Promise<T & { status: 200 }> => {
+    let out: T;
+    try {
+      out = await locked(write);
+    } catch {
+      throw new ToolRefusal('planning/tasks.md could not be written. Nothing was changed.');
+    }
+    if (out.status !== 200) {
+      const error = (out as unknown as { error: string }).error;
+      throw new ToolRefusal(MCP_STALE[error] ?? error);
+    }
+    return out as T & { status: 200 };
+  };
+  const callTool = async (name: string, args: Record<string, unknown>) => {
+    if (name === 'specpilot_list_projects') {
+      return asJson({
+        projects: roots.map((root, n) => {
+          const p = buildSpecsPayload(root, specpilotVersion);
+          return { project: n, name: p.project.name, root: displayRoot(root), branch: p.project.branch, specs: p.project.specs, files: p.nav.specs.map(f => '.specs/' + f) };
+        }),
+      });
+    }
+    const i = mcpProject(args);
+    if (name === 'specpilot_read_spec') {
+      const file = typeof args.path === 'string' ? resolveAllowedPath(roots[i], args.path) : null;
+      if (!file) throw new ToolRefusal(`Not found, or not a file SpecPilot shows: ${String(args.path)}`);
+      return { text: readFileSync(file, 'utf-8') };
+    }
+    if (name === 'specpilot_list_tasks') {
+      const tasks = buildSpecsPayload(roots[i], specpilotVersion).tasks;
+      if (!tasks) throw new ToolRefusal(`No .specs/planning/tasks.md in ${displayRoot(roots[i])}.`);
+      return asJson(tasks);
+    }
+    if (name === 'specpilot_new_task') {
+      const task = { description: args.description, section: args.section };
+      const problem = newTaskShapeError(task);
+      if (problem) throw new ToolRefusal(problem);
+      const hash = mcpHash(args);
+      const out = await taskWrite(() => newTask(roots[i], task as NewTask, hash));
+      return asJson({ id: out.id, section: out.section, index: out.index, sha256: out.sha256 });
+    }
+    if (name === 'specpilot_move_task') {
+      const move = { id: args.id, toSection: args.toSection, toIndex: args.toIndex };
+      const problem = moveShapeError(move);
+      if (problem) throw new ToolRefusal(problem);
+      const hash = mcpHash(args);
+      const out = await taskWrite(() => moveTask(roots[i], move as TaskMove, hash));
+      return asJson({ from: out.from, fromIndex: out.fromIndex, sha256: out.sha256 });
+    }
+    if (name === 'specpilot_validate_specs') {
+      const r = await new SpecValidator().validate(roots[i], { fix: false, verbose: false });
+      return asJson({ isValid: r.isValid, errors: r.errors, warnings: r.warnings });
+    }
+    // specpilot_regenerate_commands: listed only when the page could do it too
+    return asJson(
+      await locked(() => {
+        if (specsMissing(roots[i])) throw new ToolRefusal(`No .specs/ folder in ${displayRoot(roots[i])}.`);
+        return regenerateReport(new SpecBackfiller().backfillSlashCommands(roots[i], false));
+      }),
+    );
+  };
+
+  /** POST /mcp: the page's write checks in the same order, but Origin may be absent. A bad token is 403 too, never 401,
+   * which Claude Code takes for an OAuth challenge (SEC-004.20). */
+  const handleMcp = (req: IncomingMessage, res: ServerResponse) => {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return send(res, 405, TEXT, 'Method Not Allowed\n');
+    }
+    if (req.headers.origin !== undefined && req.headers.origin !== `http://${req.headers.host}`) {
+      return sendJson(res, 403, rpcError(null, -32000, 'This request came from a web page, so it was refused.'));
+    }
+    const given = Buffer.from(String(req.headers['x-specpilot-token'] ?? ''));
+    const expected = Buffer.from(mcpToken!);
+    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
+      return sendJson(res, 403, rpcError(null, -32000, 'This request did not carry a valid X-SpecPilot-Token header, so it was refused. Copy the config line again from the page or the terminal.'));
+    }
+    if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) return sendJson(res, 415, rpcError(null, -32000, 'Send JSON-RPC as application/json.'));
+    if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) return sendJson(res, 413, rpcError(null, -32000, 'The request is too large.'));
+    const header = req.headers['mcp-protocol-version'];
+    readJson(
+      req,
+      res,
+      body =>
+        answerMcp(body, Array.isArray(header) ? header[0] : header, mcpTools, specpilotVersion, callTool).then(
+          reply => {
+            if (reply.status !== 202) return sendJson(res, reply.status, reply.body);
+            res.writeHead(202, SECURITY_HEADERS);
+            res.end();
+          },
+          () => {
+            if (!res.headersSent) sendJson(res, 500, rpcError(null, -32603, 'The server could not finish this request.'));
+          },
+        ),
+      MAX_MOVE_BODY,
+      () => sendJson(res, 400, rpcError(null, -32700, 'Parse error: the body is not valid JSON.')),
+    );
+  };
+
   const server = createServer((req, res) => {
     try {
       const { port } = server.address() as AddressInfo;
       if (!isAllowedHost(req.headers.host, port)) return send(res, 403, TEXT, 'Forbidden: unexpected Host header\n');
       const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      if (mcpToken && url.pathname === '/mcp') return handleMcp(req, res);
       if (url.pathname === '/api/projects') {
         if (registry && req.method === 'GET') return sendJson(res, 200, registryBody());
         if (registry && req.method === 'POST') return handleProjectAdd(req, res);
@@ -718,7 +861,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/') {
         const page = readFileSync(join(UI_DIR, 'index.html'), 'utf-8');
-        return send(res, 200, UI_ROUTES['/'][1], page.replace(TOKEN_SLOT, token ? `<meta name="specpilot-token" content="${token}">` : ''));
+        const mcpMeta = token && mcpToken ? `<meta name="specpilot-mcp" content="${opts.mcpToken ? 'env' : 'page'}">` : '';
+        return send(res, 200, UI_ROUTES['/'][1], page.replace(TOKEN_SLOT, token ? `<meta name="specpilot-token" content="${token}">` : '').replace(MCP_SLOT, mcpMeta));
       }
       if (url.pathname === '/assets/chat-core.js') return send(res, 200, 'text/javascript; charset=utf-8', chatCoreScript(readFileSync(CHAT_CORE, 'utf-8')));
       const ui = UI_ROUTES[url.pathname];
@@ -745,6 +889,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
 
   return {
     server,
+    mcpToken,
     streams: () => allStreams().length,
     stopClone,
     close: async () => {

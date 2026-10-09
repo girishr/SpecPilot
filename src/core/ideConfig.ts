@@ -211,7 +211,8 @@ export function buildContextRoutingTable(): string {
 export function buildProcessMandatesMarkdown(): string {
     return `- **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
-- **Document decisions** in \`.specs/development/context.md\`.`;
+- **Document decisions** in \`.specs/development/context.md\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format.`;
   }
 
 export function buildCodePhilosophyMarkdown(): string {

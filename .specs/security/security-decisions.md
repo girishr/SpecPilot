@@ -238,6 +238,18 @@ This file records security-related architectural and implementation decisions ma
   - The folder check in the route only — rejected: the same write runs from the CLI; one guard in the shared function.
 - **Reference**: SEC-002.6, SEC-004.10, REQ-002.H.30, ARCH-004.49
 
+### [SEC-004.20] Local MCP endpoint: off by default, the page's guards with Origin optional, the page's functions only
+
+- **Date**: 2026-10-09 (BL-PM-007 Spec Report)
+- **Decision**: `specpilot serve --mcp` adds `POST /mcp`. Guards in order: Host (as every route), `Origin` absent or the page's own, the per-start token in `X-SpecPilot-Token`, `application/json`, 16 KB. Seven tools, each a call to a function a page route already uses; the three write tools take `sha256` as `If-Match` and run under the one write lock; `--read-only` removes them. No new dependency: the protocol is written by hand (stateless, JSON responses only). With `--read-only --mcp` the `/mcp` token is a separate value from the page's (which stays absent), so no page write route appears. The page's write routes keep the exact-`Origin` rule. The token is not stored anywhere: it lives as long as the server and is shown only in the page's card and the terminal. The developer added `SPECPILOT_MCP_TOKEN` at build: when set (at least 32 visible ASCII characters, else `serve --mcp` refuses to start), it is `/mcp`'s token, read from the environment and never written, and the card and terminal name the variable instead of showing it; a missing or wrong token answers 403 with a JSON-RPC error that names the `X-SpecPilot-Token` header. Why not 401, the status an HTTP API gives a missing credential: Claude Code 2.1.286 reads a 401 from an MCP server as an OAuth challenge, tries Dynamic Client Registration on this server, gets 405 and shows `Dynamic Client Registration rejected (HTTP 405)`, which says nothing about the token (seen in the BL-PM-007 check; the build had 401 and the developer changed it at review). So `/mcp` answers a bad credential with 403, as the page routes do, and sends no `WWW-Authenticate`; what still differs from the page routes is the body (JSON-RPC, naming the header) and that `Origin` may be absent.
+- **Rationale**: The page's guards exist against browsers, not local processes (any local process can read the token from `GET /`). An IDE is a local process that sends no `Origin`, so the one guard that must change is `Origin`, from "exactly ours" to "ours or none"; every browser request from another site still carries an `Origin` and is refused before the token check. Reusing the page's functions keeps one write allowlist, one lock and one set of refusals.
+- **Alternatives considered**:
+  - `@modelcontextprotocol/sdk` (as `SpecPilot.Init` uses, with zod) — rejected by default: two new runtime dependencies (SEC-004.4) for four methods (the developer's choice (b) at build).
+  - A token kept in `~/.specpilot/` so the config survives restarts — rejected: a new write path outside the project and a long-lived secret that a committed `.mcp.json` would leak. The developer chose the environment variable instead, which the user owns.
+  - No token, Host and Origin only — rejected: the developer's brief keeps the token check.
+  - A stdio server started by the IDE — rejected in the brief: a second process.
+- **Reference**: SEC-002.9, SEC-004.10, SEC-004.18, SEC-004.19, REQ-002.H.33, ARCH-004.50
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)

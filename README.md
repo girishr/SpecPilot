@@ -35,6 +35,8 @@ For Cursor, VS Code and other clients, add it as an HTTP (streamable) server:
 
 No install, no API key. Full setup notes: <https://specpilot.dev/mcp-setup>
 
+To let your AI IDE read this machine's specs and add or move tasks, start `specpilot serve --mcp`: see [Local MCP endpoint](#local-mcp-endpoint-specpilot-serve---mcp) below.
+
 ## Quick Start
 
 ```bash
@@ -94,7 +96,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`   | `--dry-run` · `--force`                                                             |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
-| `serve`     | `--port` · `--poll` · `--read-only` · `--open`                                      |
+| `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--mcp`                            |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 
@@ -131,6 +133,7 @@ specpilot serve ../new-project   # no .specs/ there yet: the page sets it up (or
 | `--poll <ms>` | `1000`  | Change-detection interval in ms (minimum 250); polling runs only while a page is open    |
 | `--read-only` |        | No task moves, no new tasks, no guided setup, no opening folders and no registry: the UI only reads, with no drag handles, no New Task button and no write routes |
 | `--open`      |         | Open the UI in the default browser                                                       |
+| `--mcp`       |         | Also serve a local MCP endpoint at `/mcp` for your AI IDE, and show the Connect Your AI IDE card on Home (below) |
 
 - **Several projects**: name any folders; one without `.specs/` is served too and offers guided setup (below). They are numbered in command-line order from 0 (`../api` is project 0, `../web` is project 1), and that number is the `?project=<n>` on the server's `/api/` routes and the `#1/...` at the start of a page link for any project after the first (no number means project 0). Each project keeps its own tasks, files and live reload; a move changes only that project's `tasks.md`. Folders opened from the page (below) get the next numbers; a number never changes while the server runs, and one server holds at most 20 projects.
 - **Task moves**: drag a row, or use `Alt+Up/Down` to reorder and `Alt+Left/Right` to move between Backlog and Current Sprint. A move changes exactly one line of `.specs/planning/tasks.md` and nothing else, and offers Undo; Completed rows do not move. If the file changed on disk since the page loaded, the move is refused and the page redraws. Start with `--read-only` to turn moves off.
@@ -147,6 +150,25 @@ specpilot serve ../new-project   # no .specs/ there yet: the page sets it up (or
 - **Live reload**: polls allowlisted files with `stat()` every `--poll` ms while a page is open, and pushes changed paths on `/api/events`; open pages update in place.
 - **What it shows**: `.specs/`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.claude/commands/`, `.claude/skills/` and `.github/prompts/`, as the files' own text.
 - **Limits**: paths through symlinked folders, hidden files and `node_modules` are not shown. Task moves and new tasks are refused, not approximated, when they cannot change exactly one line: a section with no table yet (a fresh project's `[TODO]`), a move involving the file's last line when it has no trailing newline, and a `tasks.md` that is not valid UTF-8. If an editor saves `tasks.md` in the same instant the server writes it, that save can be overwritten; git keeps it recoverable. VS Code reads a path ending in `:<number>` as a line number, so a project folder whose name ends that way (`notes:12`) may not open as a folder from Open in VS Code. Windows paths (`C:\…`) in that link are untested.
+
+### Local MCP endpoint (`specpilot serve --mcp`)
+
+With `--mcp`, the server also answers MCP at `http://127.0.0.1:<port>/mcp`, so Claude Code, Cursor and other AI IDEs on this machine can read the specs and add or move tasks through the same checks as the page. It is off by default; without the flag nothing changes.
+
+```bash
+specpilot serve --mcp
+# MCP endpoint: http://127.0.0.1:4321/mcp
+# Add to your IDE's MCP settings: {"mcpServers":{"specpilot-local":{"type":"http","url":"http://127.0.0.1:4321/mcp","headers":{"X-SpecPilot-Token":"<token>"}}}}
+```
+
+Copy that line from the terminal or from the **Connect Your AI IDE** card on Home (Copy button) into your IDE's MCP settings, or into `.mcp.json` in your project if that file stays out of git.
+
+- **Tools**: `specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs` (no `--fix`, writes nothing) and `specpilot_regenerate_commands`. Each takes an optional `project` index. The two task writes need the `sha256` that `specpilot_list_tasks` returned; if `tasks.md` changed since, the write is refused ("since you last read it") and nothing is written. Open pages show the change through live reload.
+- **Same guards as the page**: loopback only, the Host check, the token (a wrong or missing `X-SpecPilot-Token` gets 403), JSON only, 16 KB, the page's read allowlist, the page's write allowlist and one write lock for page and IDE. A request from a web page (any other `Origin`) is refused with 403; IDEs send none. Setup, new projects, clones and the project list are not tools.
+- **Token**: a new one each time `serve` starts, so the line needs copying again after a restart. To keep one line, set `SPECPILOT_MCP_TOKEN` (at least 32 characters, no spaces) in the environment of `serve` and of your IDE; the line then says `${SPECPILOT_MCP_TOKEN}`, which Claude Code fills in from the environment (other IDEs: put the token in its place). SpecPilot never writes the token anywhere.
+- **`--read-only --mcp`**: only the four read tools; the endpoint gets its own token and the page stays read-only.
+- **Protocol**: Streamable HTTP, POST only, JSON answers, no sessions; revisions `2025-11-25` and `2025-06-18`. A client that tries the newer `2026-07-28` first (Claude Code does) is told so and falls back.
+- **Instruction files**: files generated by `init`, `add-specs` and the page's setup carry one more process mandate: use the SpecPilot MCP tools for tasks when they are connected, otherwise edit `.specs/planning/tasks.md` and keep its table format. `specpilot backfill` does not add it to existing files yet.
 
 ## Supported Languages & Frameworks
 

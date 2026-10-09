@@ -840,6 +840,19 @@ const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
 let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
+/* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, only with --mcp. No status:
+   the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
+const MCP=(document.querySelector('meta[name="specpilot-mcp"]')||{}).content||null;
+if(TOKEN&&MCP){
+  const env=MCP==='env';
+  $('#mcpLine').textContent=mcpConfigLine(location.host,env?'${SPECPILOT_MCP_TOKEN}':TOKEN);
+  $('#mcpNote').textContent=env
+    ?'Add this to your IDE\u2019s MCP settings or to .mcp.json in your project. Claude Code fills in ${SPECPILOT_MCP_TOKEN} from the environment; for other IDEs, put the token in its place.'
+    :'Add this to your IDE\u2019s MCP settings, or to .mcp.json in your project if that file stays out of git. The token changes each time specpilot serve starts.';
+  $('#homeMcp').hidden=false;
+  $('#mcpCopy').onclick=()=>(navigator.clipboard?navigator.clipboard.writeText($('#mcpLine').textContent):Promise.reject())
+    .then(()=>toast('Copied.'),()=>toast('Could not copy. Select the line and copy it.'));
+}
 function openSheet(from,tab){
   hideTip();sheetFrom=from;openVeil.classList.add('open');
   $$('#openForm .field input').forEach(el=>{el.value='';});cloneNamed=false;

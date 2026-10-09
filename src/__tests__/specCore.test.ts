@@ -109,6 +109,15 @@ describe('spec core golden recording (BL-032)', () => {
   });
 });
 
+describe('the Tasks line in every instruction file (BL-PM-007)', () => {
+  it.each(IDE_CHOICES.map(c => [c.value]))('%s', ide => {
+    const { aiContextFile } = require('../core/ideConfig') as typeof import('../core/ideConfig');
+    const { content } = aiContextFile({ projectName: 'p', language: 'typescript', framework: '' } as never, ide);
+    const line = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format.';
+    expect(content.split('\n').filter(l => l === line)).toHaveLength(1);
+  });
+});
+
 describe('src/core is pure (REQ-002.I.2)', () => {
   const core = join(__dirname, '..', 'core');
   const files = readdirSync(core).filter(f => f.endsWith('.ts'));

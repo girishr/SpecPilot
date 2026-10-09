@@ -341,6 +341,32 @@ specpilot backfill --dry-run
 - Adding specs to a project that has none (use `add-specs` instead)
 - Converting an old folder structure (use `migrate` instead)
 
+#### `specpilot serve [folders...] [options]`
+
+Serve a local web UI over the `.specs/` of this project (or of each folder named) at `http://127.0.0.1:4321`: tasks, spec files, instruction files, commands and skills, updated live as files change. Task moves, new tasks and Regenerate All write `.specs/planning/tasks.md` and `specpilot-*` command files only. See the README's `specpilot serve` section for everything the page does.
+
+```bash
+specpilot serve                 # this project
+specpilot serve ../api ../web   # two projects on one server
+specpilot serve --mcp           # also a local MCP endpoint for your AI IDE
+```
+
+**Options:**
+
+- `--port, -p <number>`: Port to listen on (127.0.0.1 only) · default: `4321`
+- `--poll <ms>`: Change-detection interval, 250 or more · default: `1000`
+- `--read-only`: The page only reads: no task moves, new tasks, setup, opening folders or registry
+- `--open`: Open the UI in the default browser
+- `--mcp`: Also serve MCP at `/mcp` (below)
+
+**Connecting your AI IDE (`--mcp`):** the terminal prints, and the Connect Your AI IDE card on Home shows, one line such as
+
+```json
+{"mcpServers":{"specpilot-local":{"type":"http","url":"http://127.0.0.1:4321/mcp","headers":{"X-SpecPilot-Token":"<token>"}}}}
+```
+
+Put it in your IDE's MCP settings (or a `.mcp.json` you keep out of git). The IDE then has seven tools: `specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs` and `specpilot_regenerate_commands`. They run the page's own code behind the page's own checks; the task writes need the `sha256` from `specpilot_list_tasks` and are refused when the file changed since. The token is new on every start; set `SPECPILOT_MCP_TOKEN` (32 characters or more) in the environment of `serve` and of your IDE to keep it, and the line then reads `${SPECPILOT_MCP_TOKEN}`. With `--read-only` only the four read tools are offered.
+
 ### Generated Slash Commands
 
 Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-*` slash/workflow commands for your selected IDE/Agent, mirroring key CLI operations as in-editor commands that work even without the CLI installed:

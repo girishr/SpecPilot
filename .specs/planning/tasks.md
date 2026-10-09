@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-09 (v2.11.0 and v2.12.0 shipped)
+lastUpdated: 2026-10-09 (BL-PM-007 completed)
 version: 6.28
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -71,7 +71,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. (Spec Report on branch feat/bl-pm-007-local-mcp, 2026-10-09: `specpilot serve --mcp`, `POST /mcp`, seven tools, Home card, one instruction line; REQ-002.H.33, ARCH-004.50, SEC-002.9, SEC-004.20; built after the developer's `yes proceed`, not committed) |
 
 ## Completed
 
@@ -114,3 +113,4 @@ Notes
 | 168 | [CD-girishr-077] | v2.12.0 release prepared and shipped (BL-PM-005, BL-PM-006, BL-PM-008, BL-PM-014): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.12.0]`, annotated tag `v2.12.0`; pushed and published (row 170) |
 | 169 | [CD-girishr-078] | v2.11.0 shipped (BL-PM-004b, answers no longer HTML-escaped): pushed, npm `specpilot@2.11.0` published, GitHub release live (2026-10-08) |
 | 170 | [CD-girishr-079] | v2.12.0 shipped (BL-PM-005, BL-PM-006, BL-PM-008, BL-PM-014): pushed, npm `specpilot@2.12.0` latest, GitHub release live (2026-10-09) |
+| 171 | [CD-girishr-080] [BL-PM-007] | `specpilot serve --mcp`, a local MCP endpoint (REQ-002.H.33, ARCH-004.50, SEC-002.9, SEC-004.20, Architectural): `POST /mcp` on the serve port, stateless Streamable HTTP written by hand (revisions `2025-11-25`, `2025-06-18`; no new dependency), seven tools that run the page's own functions behind its checks and one write lock (`specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs`, `specpilot_regenerate_commands`); task writes take `sha256` as If-Match and a stale one is refused "since you last read it"; Origin may be absent, a bad `X-SpecPilot-Token` is 403 (not 401, which starts an OAuth flow in Claude Code); per-start token or `SPECPILOT_MCP_TOKEN` (32+ characters, never written); `--read-only` keeps the four read tools with a token of its own; a Connect Your AI IDE card on Home with the one-line config and Copy, only with `--mcp`; one Tasks process mandate in generated instruction files. Checked with Claude Code 2.1.286 (it probes `2026-07-28`, falls back to `2025-11-25`) and in a browser. +83 tests (1333 → 1416). Follow-ups BL-088, BL-089. Commit `3067545`. |

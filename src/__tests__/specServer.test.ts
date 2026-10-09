@@ -293,6 +293,7 @@ describe('spec server over HTTP (port 0)', () => {
     ['/api/file?p=.git/HEAD', 404, 'text/plain; charset=utf-8'],
     ['/api/file', 404, 'text/plain; charset=utf-8'],
     ['/assets/secret.ts', 404, 'text/plain; charset=utf-8'],
+    ['/assets/OFL-Sixtyfour.txt', 404, 'text/plain; charset=utf-8'], // shipped in ui/ for the wordmark's licence, never served (BL-PM-014)
     ['/nope', 404, 'text/plain; charset=utf-8'],
   ])('GET %s → %i with security headers and no CORS', async (path, status, type) => {
     const res = await hit(port, path);
@@ -349,6 +350,17 @@ describe('spec server over HTTP (port 0)', () => {
     expect(page).not.toMatch(/\sstyle="/);
     expect(page).not.toMatch(/\son[a-z]+="/);
     expect(page).not.toMatch(/(src|href)="https?:/);
+  });
+
+  it('loads no font: the wordmark is outlines, and its OFL licence ships in ui/ (BL-PM-014)', () => {
+    const ui = join(__dirname, '../../ui');
+    for (const f of readdirSync(ui)) {
+      expect(f).not.toMatch(/\.(woff2?|ttf|otf|eot)$/i);
+      expect(readFileSync(join(ui, f), 'utf-8')).not.toMatch(/@font-face|fonts\.googleapis|fonts\.gstatic/);
+    }
+    const ofl = readFileSync(join(ui, 'OFL-Sixtyfour.txt'), 'utf-8');
+    expect(ofl.startsWith('Copyright 2021 The Sixtyfour Project Authors (https://github.com/jenskutilek/homecomputer-fonts)\n')).toBe(true);
+    expect(ofl).toContain('SIL OPEN FONT LICENSE Version 1.1');
   });
 });
 
@@ -751,7 +763,7 @@ describe('UI routing (ui/route.js)', () => {
     expect(rows[2]).toContain(' · folder not found</div>');
     for (const r of rows) {
       expect(r).toMatch(/^<button type="button" class="act" data-path="[^"]*"><div class="body">.*<\/div><\/button>/); // the row's button opens the folder, as before BL-PM-008
-      expect(r).not.toMatch(/Remove from list|disabled|pinned|badge|pill/);
+      expect(r).not.toMatch(/disabled|pinned|badge|pill/);
     }
   });
 
@@ -782,14 +794,26 @@ describe('UI routing (ui/route.js)', () => {
 
   it('gives a Home row whose folder exists the Open in VS Code link beside its button, and none when the folder is gone', () => {
     const rows = recentHtml(REG, true, SERVED, '').split('<div class="row hrow">').filter(Boolean);
-    expect(rows[0]).toContain('</button><a class="ib" href="vscode://file/h/old" aria-label="Open ~/old in VS Code" title="Open in VS Code"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg></a></div>');
+    expect(rows[0]).toContain('</button><a class="ib" href="vscode://file/h/old" aria-label="Open ~/old in VS Code" title="Open in VS Code"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg></a><button type="button" class="ib" data-remove="/h/old"');
     expect(rows[1]).toContain('href="vscode://file/h/api" aria-label="Open ~/api in VS Code"');
     expect(rows[2]).not.toContain('<a ');
     expect(rows[2]).not.toContain('VS Code');
-    expect(rows[2]).toMatch(/<\/button><\/div>$/);
+    expect(rows[2]).toMatch(/<\/button><button type="button" class="ib" data-remove="[^"]*"[^>]*>.*<\/button><\/div>$/);
     for (const r of rows) expect(r.split('</button>')[0]).not.toContain('<a '); // never inside the button
     const odd = recentHtml({ path: 'p', error: null, entries: [{ ...REG.entries[0], path: '/h/a "b" <c> & d', root: '~/a "b" <c> & d' }] }, true, SERVED, '');
     expect(odd).toContain('href="vscode://file/h/a%20%22b%22%20%3Cc%3E%20%26%20d" aria-label="Open ~/a &quot;b&quot; &lt;c&gt; &amp; d in VS Code"');
+  });
+
+  it('ends every Home row with a Remove icon button for its path, after the link and outside the open button (BL-PM-014)', () => {
+    const rows = recentHtml(REG, true, SERVED, '').split('<div class="row hrow">').filter(Boolean);
+    expect(rows[0]).toMatch(/<\/a><button type="button" class="ib" data-remove="\/h\/old" aria-label="Remove ~\/old from list" title="Remove from list"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"\/><\/svg><\/button><\/div>$/);
+    expect(rows[2]).toContain('data-remove="/h/&lt;gone&gt;" aria-label="Remove ~/&lt;gone&gt; from list"'); // folder not found: still removable
+    for (const r of rows) {
+      expect(r.match(/data-remove=/g)).toHaveLength(1);
+      expect(r.split('</button>')[0]).not.toContain('data-remove'); // not inside the open button, so a click on it never opens the folder
+    }
+    const odd = recentHtml({ path: 'p', error: null, entries: [{ ...REG.entries[0], path: '/h/a "b" <c> & d', root: '~/a "b" <c> & d' }] }, true, SERVED, '');
+    expect(odd).toContain('data-remove="/h/a &quot;b&quot; &lt;c&gt; &amp; d" aria-label="Remove ~/a &quot;b&quot; &lt;c&gt; &amp; d from list"');
   });
 
   it('gives the sheet\'s list no Open in VS Code link (BL-PM-008 default 9)', () => {
@@ -884,7 +908,11 @@ describe('UI routing (ui/route.js)', () => {
       const page = (await hit(port, '/')).body;
       expect(page).toMatch(/<button class="tile home" id="homeBtn" aria-label="Home" aria-keyshortcuts="h" data-tip="Home" hidden>/);
       const home = page.slice(page.indexOf('<section class="view welcome" id="v-home"'), page.indexOf('<!-- TASKS'));
-      expect(home).toMatch(/^<section class="view welcome" id="v-home" aria-labelledby="wTitle">\s*<svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"\/><\/svg>/);
+      expect(home).toMatch(/^<section class="view welcome" id="v-home" aria-labelledby="wTitle">\s*<div class="brand"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"\/><\/svg><svg class="wordmark" role="img" aria-label="SpecPilot" focusable="false"><use href="#wordmark"\/><\/svg><\/div>/);
+      // BL-PM-014: the wordmark is Sixtyfour's outlines with its copyright and licence, and no font is loaded
+      expect(page).toMatch(/<symbol id="wordmark" viewBox="0 0 9216 1024" preserveAspectRatio="xMinYMid meet"><!-- wordmark \(BL-PM-014\)[^>]*Copyright 2021 The Sixtyfour Project Authors \(https:\/\/github\.com\/jenskutilek\/homecomputer-fonts\)\.\n\s*Licensed under the SIL Open Font License, Version 1\.1: ui\/OFL-Sixtyfour\.txt --><path fill="currentColor" d="M[^"]+"\/><\/symbol>/);
+      expect(page).toMatch(/<button class="tile act" id="addBtn" aria-label="Add a project" data-tip="Add a project" hidden>/); // shown by the script only with the token
+
       expect(home).toContain('<h1 id="wTitle">Your specs, as a board.</h1>');
       expect(home).toContain(
         '<p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p>',

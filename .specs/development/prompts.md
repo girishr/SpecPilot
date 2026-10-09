@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-08 (BL-PM-008 Spec Report)
-version: 2.82
+lastUpdated: 2026-10-09 (BL-PM-014 built)
+version: 2.83
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,9 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-09: BL-PM-014 accepted on the developer's `yes proceed` after spec-reviewer's build PASS (FIX rounds: comment inside the symbol; archive-at-merge recorded): feature commit `065a51f` (no co-author trailer), completion commit (Completed row 167 / CD-girishr-076), `--no-ff` merge into `main`, then `specpilot archive` on `main`; not pushed.
+- 2026-10-09: BL-PM-014 built after spec-reviewer's PASS (one FIX round: architecture.md and README lines, CHANGELOG, tests.md, the no-answer fallback, the font's OFL notice and `ui/OFL-Sixtyfour.txt`): `+` → Home and focus, Remove on Home rows, the wordmark symbol; +3 tests (1330 → 1333); browser-checked headless; no commit.
+- 2026-10-09: BL-PM-014 from a discussion of the three ways into the Open a Project sheet: the developer wants every new project to start from Home and the sheet kept. Agreed: `+` stays (the logo is not an obvious way Home) and shows Home with focus on `Open a Project Folder`; the Home tile stays; only Home's two buttons open the sheet; Home rows get Remove and the sheet keeps its list and Remove (the developer's "Option 1 and 2", after Claude found that dropping the sheet's list would drop the only Remove); the specpilot.dev nav wordmark beside Home's logo, scaled to the 56px logo. Specs first on `feat/bl-pm-014-home-single-entry`; no commit.
 - 2026-10-09: BL-PM-008 accepted on the developer's `yes proceed`: feature commit `0c63606` on `feat/bl-pm-008-open-in-vscode` (no co-author trailer), completion commit (BL-PM-008 out of Backlog, Completed row 166 / CD-girishr-075), `--no-ff` merge into `main`; not pushed; no bump, tag or publish.
 - 2026-10-08: task inspector link built in BL-PM-008 after reviewer A's PASS (one FIX round: build file list, the tests `line` breaks, "naming the path"): `line` on `readSpecs()` task rows, `editorUrl(path, line)`, the `.actions` link; +3 tests (1327 → 1330), the whole-row assertions pinned with lines; README, CHANGELOG, tests.md; browser check incl. live reload; reviewer B next; no commit.
 - 2026-10-08: asked whether the IDE can open the file in context, then "can you do that for tasks?"; folded into BL-PM-008 on the developer's choice: the task inspector's `Open tasks.md in VS Code` at the row's line, `line` on each `readSpecs()` task row; BL-PM-013 narrowed; specs first, reviewer A, then build, reviewer B and a browser check; no commit.

@@ -485,5 +485,9 @@ input.txt{width:100%}
 .welcome .ic2 svg{width:15px;height:15px;stroke:var(--green-ink)}
 .welcome .recents .row{text-align:left}
 .welcome .recents .row .ttl{white-space:normal;overflow-wrap:anywhere}
+.welcome .recents .hrow{padding:0 8px 0 0;gap:4px}
+.welcome .recents .hrow:hover{background:var(--hover)}
+.hrow>.act{display:flex;align-items:center;gap:12px;flex:1;min-width:0;align-self:stretch;padding:0 6px 0 14px;font:inherit;text-align:left;color:inherit}
+.hrow>.act:last-child{padding-right:40px} /* no link (folder not found): the chevron stays in line with the others */
 .welcome .fine{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--label-3);font-size:13px}
 .welcome .fine i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}

@@ -105,14 +105,34 @@ describe('readSpecs', () => {
     const tasks = readSpecs({ 'planning/tasks.md': TASKS_MD }).tasks!;
     expect(tasks.backlog.map(r => r.id)).toEqual(['BL-009', 'BL-032']);
     expect(tasks.currentSprint).toEqual([
-      { id: 'CS-078', description: 'Force AI to write tests for every feature — two-part enforcement, not text-only' },
+      { id: 'CS-078', description: 'Force AI to write tests for every feature — two-part enforcement, not text-only', line: 22 },
     ]);
     expect(tasks.completed[0]).toEqual({
       num: '95',
       id: '[CD-girishr-013] [CS-070] [BL-036]',
       description: "Conditional `api.yaml` — `apiParadigm: 'rest' | 'cli' | 'graphql' | 'none'` added",
+      line: 32,
     });
     expect(tasks.malformed).toEqual([]);
+  });
+
+  it('gives every row its 1-based line in the file, front matter counted, the same with CRLF (BL-PM-008)', () => {
+    const lines = (md: string) => {
+      const t = readSpecs({ 'planning/tasks.md': md }).tasks!;
+      return [t.backlog, t.currentSprint, t.completed].map(rows => rows.map(r => r.line));
+    };
+    expect(lines(TASKS_MD)).toEqual([[15, 16], [22], [32, 33]]);
+    expect(lines(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual([[15, 16], [22], [32, 33]]);
+    const all = TASKS_MD.split('\n');
+    const t = readSpecs({ 'planning/tasks.md': TASKS_MD }).tasks!;
+    for (const r of [...t.backlog, ...t.currentSprint, ...t.completed]) expect(all[r.line - 1]).toContain(`| ${r.id} |`); // the line holds that row
+  });
+
+  it('keeps the lines right after a header row and after a malformed row (BL-PM-008)', () => {
+    const md = ['## Backlog', '| ID | Description |', '|---|---|', '| BL-001 | One |', '| broken', '| BL-002 | Two |', '## Current Sprint', '| ID | Description |', '|---|---|'].join('\n');
+    const t = readSpecs({ 'planning/tasks.md': md }).tasks!;
+    expect(t.backlog).toEqual([{ id: 'BL-001', description: 'One', line: 4 }, { id: 'BL-002', description: 'Two', line: 6 }]);
+    expect(t.malformed).toEqual(['| broken']);
   });
 
   it('round-trips every cell byte for byte', () => {
@@ -142,8 +162,8 @@ describe('readSpecs', () => {
       '| BL-001 | Later |',
     ].join('\n');
     const tasks = readSpecs({ 'planning/tasks.md': md }).tasks!;
-    expect(tasks.completed).toEqual([{ num: '1', id: '[CD-001]', description: 'Done' }]);
-    expect(tasks.backlog).toEqual([{ id: 'BL-001', description: 'Later' }]);
+    expect(tasks.completed).toEqual([{ num: '1', id: '[CD-001]', description: 'Done', line: 4 }]);
+    expect(tasks.backlog).toEqual([{ id: 'BL-001', description: 'Later', line: 8 }]);
   });
 
   it('returns an empty list for a missing section', () => {

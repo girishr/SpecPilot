@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-08 (BL-PM-006 completed)
-version: 6.23
+lastUpdated: 2026-10-08 (BL-PM-008 built)
+version: 6.24
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -60,7 +60,8 @@ Notes
 | BL-086 | Remove `SlashCommandGenerator.generate()` and `targets()` from `src/utils/slashCommandGenerator.ts`: since BL-032 the writer goes through `render()` and `writeNew()`, so neither has a caller outside `src/__tests__/` (15 call sites in `slashCommandGenerator.test.ts`, which test the per-IDE routing on disk); move those tests to `render()` or `commandFiles()`. Found by spec-reviewer on the BL-032 build (2026-10-06). |
 | BL-087 | `npm run build` does not clean `dist/`, so a build after a file is deleted or renamed keeps its old compiled output, and a publish from that tree would ship it (seen in BL-032: `dist/utils/specFileGenerator.js`, `agentConfigGenerator.js` and `templateEngine.js` survived the move until `npm run clean`). Run `clean` before every build, as a `prebuild` script or at the start of `prepublishOnly`, so a publish never carries stale files. Found during the v2.10.0 release (2026-10-07). |
 | BL-PM-007 | MCP endpoint on the serve port (`http://localhost:4321/mcp`) and a "Connect your AI IDE" card with Copy Endpoint, so Claude Code, Cursor and Codex can read the specs locally. Architectural: new route surface; the hosted MCP server lives in the private SpecPilot.Init repo. |
-| BL-PM-008 | Open in VS Code button for the shown project. Architectural: starts a local process from a browser request. |
+| BL-PM-008 | Open in VS Code button for the shown project. Architectural: starts a local process from a browser request. Spec Report 2026-10-08: built instead as a `vscode://file/` link in the page, on the project page and the Home rows, no route and no process, so Feature (REQ-002.H.31), on the developer's option (a); also the task inspector's `Open tasks.md in VS Code` at the row's line, folded in on the developer's word. |
+| BL-PM-013 | The mockup's per-file "Open in Your Editor": a `vscode://file/` link for the file shown in the file view and in the Instructions, Commands and Skills inspectors, through BL-PM-008's `editorUrl()` (REQ-002.H.31). Left out of BL-PM-008 by its default 7; the task inspector's link is in BL-PM-008. |
 | BL-PM-009 | Real clone progress: a percentage on the Clone tab, from `git clone --progress` output streamed to the page while the clone runs. BL-PM-002 shows an indeterminate bar and the elapsed time only. |
 | BL-PM-010 | On `development/onboarding.md`: an "Open in <selected AI IDE>" button that passes the onboarding prompt through that IDE's deep link where one exists (Cursor, Claude Code; research Copilot, Windsurf, Antigravity, Codex), plus a "Copy prompt" button for all. Relates to BL-PM-008. |
 | BL-PM-012 | Regenerate skills from project context: `.claude/skills/specpilot-project/SKILL.md` is rendered from the project's specs, so no hash list can say whether it is unedited, and `specpilot backfill` only reports it stale while `add-specs` keeps an existing file (BL-073), so nothing rewrites it. Design a refresh (e.g. render it with `render()` from `project.yaml` and replace it only when it equals what an earlier render of the same project would give, or offer it as a reviewed diff) for the CLI and the `specpilot serve` Skills view's From SpecPilot group. Left out of BL-PM-006 by the developer's scope choice (a). |

@@ -14,12 +14,16 @@ export interface SpecMeta {
 export interface TaskRow {
   id: string;
   description: string;
+  /** The row's 1-based line in tasks.md, as an editor shows it (BL-PM-008). */
+  line: number;
 }
 
 export interface CompletedRow {
   num: string;
   id: string;
   description: string;
+  /** The row's 1-based line in tasks.md, as an editor shows it (BL-PM-008). */
+  line: number;
 }
 
 export interface TasksData {
@@ -107,14 +111,14 @@ type TaskSection = keyof typeof TASK_SECTIONS;
 
 function parseTasks(lines: string[]): TasksData {
   const malformed: string[] = [];
-  const rows = (heading: string, cols: number): string[][] => {
+  const rows = (heading: string, cols: number): { cells: string[]; line: number }[] => {
     const b = findSectionBounds(lines, heading);
-    return b ? tableRows(lines, b, cols, malformed).rows.map(r => r.cells) : [];
+    return b ? tableRows(lines, b, cols, malformed).rows : [];
   };
   return {
-    backlog: rows('## Backlog', 2).map(([id, description]) => ({ id, description })),
-    currentSprint: rows('## Current Sprint', 2).map(([id, description]) => ({ id, description })),
-    completed: rows('## Completed', 3).map(([num, id, description]) => ({ num, id, description })),
+    backlog: rows('## Backlog', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
+    currentSprint: rows('## Current Sprint', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
+    completed: rows('## Completed', 3).map(({ cells: [num, id, description], line }) => ({ num, id, description, line: line + 1 })),
     malformed,
   };
 }

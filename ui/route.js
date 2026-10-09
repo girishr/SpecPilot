@@ -41,9 +41,19 @@ function when(iso){
   return isNaN(d.getTime())?iso:`${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+/* The vscode://file/ link for an absolute folder path (BL-PM-008): `\` as `/`, each segment
+   percent-encoded, but a drive's `:` (`C:`) kept, so `C:\a b` gives `vscode://file/C:/a%20b`.
+   With a `line`, `:<line>` is appended as is, so VS Code opens the file at that line. */
+function editorUrl(path,line){
+  const segs=String(path).replace(/\\/g,'/').split('/').map((s,i)=>i===0&&/^[A-Za-z]:$/.test(s)?s:encodeURIComponent(s));
+  return 'vscode://file'+(segs[0]===''?'':'/')+segs.join('/')+(line?':'+line:'');
+}
+const EDITOR_ICON='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg>';
+
 /* The registry as GET /api/projects sends it (BL-067): the rows of the sheet's list, or of Home's
    (BL-PM-001), where a row is one button that opens its folder, has no Remove, and a project that
-   is open also shows the branch /api/specs gives for it (`projects`, as the rail tooltip does). */
+   is open also shows the branch /api/specs gives for it (`projects`, as the rail tooltip does);
+   beside the button, a row whose folder exists has the Open in VS Code link (BL-PM-008). */
 function recentHtml(reg,home,projects,chev){
   if(reg.error)return `<p class="note">${esc(reg.error)}</p>`;
   if(!reg.entries.length)return '<div class="empty">No projects remembered yet.</div>';
@@ -52,7 +62,8 @@ function recentHtml(reg,home,projects,chev){
     if(e.project!==null)det.push('open as project '+e.project);
     if(!e.exists)det.push('folder not found');
     if(home){const q=e.project!==null&&projects?projects[e.project]:null;
-      return `<button type="button" class="row act" data-path="${esc(e.path)}"><div class="body"><div class="ttl" translate="no">${esc(e.root+(q&&q.branch?' · '+q.branch:''))}</div><div class="det">${esc(det.join(' · '))}</div></div><div class="trail">${chev||''}</div></button>`;}
+      return `<div class="row hrow"><button type="button" class="act" data-path="${esc(e.path)}"><div class="body"><div class="ttl" translate="no">${esc(e.root+(q&&q.branch?' · '+q.branch:''))}</div><div class="det">${esc(det.join(' · '))}</div></div><div class="trail">${chev||''}</div></button>`
+        +(e.exists?`<a class="ib" href="${esc(editorUrl(e.path))}" aria-label="${esc(`Open ${e.root} in VS Code`)}" title="Open in VS Code">${EDITOR_ICON}</a>`:'')+'</div>';}
     return `<div class="row recent"><div class="body" data-path="${esc(e.path)}" role="button" tabindex="0"><div class="ttl" translate="no">${esc(e.root)}</div><div class="det">${esc(det.join(' · '))}</div></div><button type="button" class="btn sm" data-remove="${esc(e.path)}">Remove from list</button></div>`;
   }).join('');
 }
@@ -251,7 +262,7 @@ function setupRecord(st){
 function setupTitle(e){return e.kind==='setup'?(e.name||String(e.root||'').split(/[/\\]/).filter(Boolean).pop()||'Untitled setup'):(e.name||'Untitled setup');}
 function setupStatus(e){return e.finished?'Ready to create':'In progress';}
 
-const api={resolveRoute,goneHtml,when,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
+const api={resolveRoute,goneHtml,when,editorUrl,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
   projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
   optionHtml,tabsHtml,choiceOptions,SETUPS_KEY,setupsLoad,setupsPut,setupsRemove,setupRecord,setupTitle,setupStatus};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);

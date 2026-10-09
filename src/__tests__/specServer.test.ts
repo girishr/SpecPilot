@@ -653,7 +653,8 @@ describe('the poller watches exactly what /api/file serves', () => {
 
 describe('UI routing (ui/route.js)', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { resolveRoute, goneHtml, recentHtml, openOutcome, reloadView, repoNameFromUrl, projectLabel } = require('../../ui/route.js') as {
+  const { resolveRoute, goneHtml, editorUrl, recentHtml, openOutcome, reloadView, repoNameFromUrl, projectLabel } = require('../../ui/route.js') as {
+    editorUrl: (path: string, line?: number) => string;
     repoNameFromUrl: (url: string) => string;
     projectLabel: (p: { name: string | null; root: string }) => string;
     resolveRoute: (hash: string, files: Record<string, unknown>, count?: number, home?: boolean) => { project: number; view: string; sub: string; missing: boolean };
@@ -738,7 +739,7 @@ describe('UI routing (ui/route.js)', () => {
   const SERVED = [{ name: 'a', root: '~/a', branch: 'main' }, { name: 'api', root: '~/api', branch: 'feat/x' }];
 
   it('draws a Home row per entry in the order sent: root, the branch only of an open project, the time, and "folder not found" (BL-PM-001)', () => {
-    const rows = recentHtml(REG, true, SERVED, '').split('</button>').filter(Boolean);
+    const rows = recentHtml(REG, true, SERVED, '').split('<div class="row hrow">').filter(Boolean);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toContain('data-path="/h/old"');
     expect(rows[0]).toContain('<div class="ttl" translate="no">~/old</div>'); // not open: no branch
@@ -749,9 +750,50 @@ describe('UI routing (ui/route.js)', () => {
     expect(rows[2]).toContain('<div class="ttl" translate="no">~/&lt;gone&gt;</div>');
     expect(rows[2]).toContain(' · folder not found</div>');
     for (const r of rows) {
-      expect(r).toMatch(/^<button type="button" class="row act" data-path=/); // the whole row opens the folder
+      expect(r).toMatch(/^<button type="button" class="act" data-path="[^"]*"><div class="body">.*<\/div><\/button>/); // the row's button opens the folder, as before BL-PM-008
       expect(r).not.toMatch(/Remove from list|disabled|pinned|badge|pill/);
     }
+  });
+
+  it('builds the vscode://file/ link from an absolute path, each segment encoded (BL-PM-008)', () => {
+    expect(editorUrl('/Users/me/dev/SpecPilot')).toBe('vscode://file/Users/me/dev/SpecPilot');
+    expect(editorUrl('/Users/me/My Projects/a#b?c%d')).toBe('vscode://file/Users/me/My%20Projects/a%23b%3Fc%25d');
+    expect(editorUrl('/Users/me/Développement/日本')).toBe('vscode://file/Users/me/D%C3%A9veloppement/%E6%97%A5%E6%9C%AC');
+    expect(editorUrl('/Users/me/a"<b>&c')).toBe('vscode://file/Users/me/a%22%3Cb%3E%26c');
+  });
+
+  it('keeps a drive letter\'s ":" and turns "\\" into "/" (Windows, unverified on Windows)', () => {
+    expect(editorUrl('C:\\Users\\me\\My Project')).toBe('vscode://file/C:/Users/me/My%20Project');
+    expect(editorUrl('d:/work')).toBe('vscode://file/d:/work');
+    expect(editorUrl('/srv/C:')).toBe('vscode://file/srv/C%3A'); // only a leading drive segment keeps its ':'
+  });
+
+  it('encodes a folder ending in ":12" like any other; VS Code may still read it as a line (README Limits)', () => {
+    expect(editorUrl('/Users/me/notes:12')).toBe('vscode://file/Users/me/notes%3A12');
+    expect(editorUrl('/Users/me/notes:12:3')).toBe('vscode://file/Users/me/notes%3A12%3A3');
+  });
+
+  it('appends a line as ":<line>", not encoded, for the task inspector (BL-PM-008)', () => {
+    expect(editorUrl('/Users/me/My Project/.specs/planning/tasks.md', 63)).toBe('vscode://file/Users/me/My%20Project/.specs/planning/tasks.md:63');
+    expect(editorUrl('C:\\dev\\p/.specs/planning/tasks.md', 7)).toBe('vscode://file/C:/dev/p/.specs/planning/tasks.md:7');
+    expect(editorUrl('/Users/me/notes:12/.specs/planning/tasks.md', 1)).toBe('vscode://file/Users/me/notes%3A12/.specs/planning/tasks.md:1');
+    expect(editorUrl('/Users/me/p')).toBe('vscode://file/Users/me/p'); // no line: the folder, as before
+  });
+
+  it('gives a Home row whose folder exists the Open in VS Code link beside its button, and none when the folder is gone', () => {
+    const rows = recentHtml(REG, true, SERVED, '').split('<div class="row hrow">').filter(Boolean);
+    expect(rows[0]).toContain('</button><a class="ib" href="vscode://file/h/old" aria-label="Open ~/old in VS Code" title="Open in VS Code"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg></a></div>');
+    expect(rows[1]).toContain('href="vscode://file/h/api" aria-label="Open ~/api in VS Code"');
+    expect(rows[2]).not.toContain('<a ');
+    expect(rows[2]).not.toContain('VS Code');
+    expect(rows[2]).toMatch(/<\/button><\/div>$/);
+    for (const r of rows) expect(r.split('</button>')[0]).not.toContain('<a '); // never inside the button
+    const odd = recentHtml({ path: 'p', error: null, entries: [{ ...REG.entries[0], path: '/h/a "b" <c> & d', root: '~/a "b" <c> & d' }] }, true, SERVED, '');
+    expect(odd).toContain('href="vscode://file/h/a%20%22b%22%20%3Cc%3E%20%26%20d" aria-label="Open ~/a &quot;b&quot; &lt;c&gt; &amp; d in VS Code"');
+  });
+
+  it('gives the sheet\'s list no Open in VS Code link (BL-PM-008 default 9)', () => {
+    expect(recentHtml(REG, false, SERVED, '')).not.toMatch(/vscode:|VS Code/);
   });
 
   it('keeps the sheet\'s list as it was: a Remove button per row and no branch', () => {
@@ -1135,7 +1177,7 @@ describe('new tasks over HTTP (BL-PM-005)', () => {
     expect(res.status).toBe(200);
     expect(res.json).toMatchObject({ sha256: hashOf(a), id: 'BL-003', section: 'backlog', index: 2 });
     expect(res.json.specs.tasks.sha256).toBe(res.json.sha256);
-    expect(res.json.specs.tasks.backlog[2]).toEqual({ id: 'BL-003', description: 'Write the `serve` docs, see [the spec](x.md)' });
+    expect(res.json.specs.tasks.backlog[2]).toEqual({ id: 'BL-003', description: 'Write the `serve` docs, see [the spec](x.md)', line: 14 }); // the new row's line, right after BL-002 (BL-PM-008)
     const after = readFileSync(tasks(a), 'utf-8').split('\n');
     const before = MOVE_TASKS.split('\n');
     expect(after).toHaveLength(before.length + 1);

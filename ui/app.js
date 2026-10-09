@@ -838,7 +838,7 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
    file content; the strings are the ones REQ-002.H.21, H.24 and H.26 list. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
-let openBusy=false,sheetFrom=addBtn,sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null;
+let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 function openSheet(from,tab){
   hideTip();sheetFrom=from;openVeil.classList.add('open');
@@ -854,7 +854,7 @@ function setTab(t){
 }
 function closeSheet(){if(!openVeil.classList.contains('open'))return;if(cloneCtl)cloneCtl.abort();openVeil.classList.remove('open');sheetFrom.focus();}
 /* The registry as GET /api/projects sends it: in the sheet, or on Home (BL-PM-001), where a row opens
-   its folder at once, has no Remove, and a served project also shows the branch the rail tooltip shows. */
+   its folder at once and a served project also shows the branch the rail tooltip shows. */
 function drawRecent(reg,home){
   $(home?'#homePath':'#recentPath').textContent=reg.path||'';
   $(home?'#homeBox':'#recentBox').innerHTML=recentHtml(reg,home,DATA?DATA.projects:[],chev);
@@ -920,7 +920,7 @@ async function removeRecent(path){
   try{out=await postPath(path,'/api/projects/remove');}catch(e){toast('The server did not answer.');return;}
   if(out.r.status===200){drawRecent(out.res);if(curView==='home')drawRecent(out.res,true);}else toast(out.res.error||`Nothing was removed (HTTP ${out.r.status}).`);
 }
-addBtn.onclick=()=>openSheet(addBtn);
+addBtn.onclick=()=>{go('home');$('#homeOpen').focus();}; // every new project starts from Home (BL-PM-014); only Home's buttons open the sheet
 homeBtn.onclick=()=>go('home');
 $('#homeOpen').onclick=e=>openSheet(e.currentTarget);
 $('#homeNew').onclick=()=>go('new');
@@ -934,7 +934,10 @@ $('#openTabs').addEventListener('keydown',e=>{
   e.preventDefault();const n=TABS.length,i=TABS.indexOf(sheetTab),t=TABS[e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowLeft'?n-1:1))%n];
   setTab(t);$(`#openTabs [data-t="${t}"]`).focus();
 });
-$('#homeBox').addEventListener('click',e=>{const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);});
+$('#homeBox').addEventListener('click',e=>{
+  const rm=e.target.closest('[data-remove]');if(rm){removeRecent(rm.dataset.remove);return;}
+  const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);
+});
 $('#openCancel').onclick=closeSheet;
 openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
 $('#openForm').onsubmit=e=>{e.preventDefault();if(sheetTab==='clone')cloneRepo();else openPath(pathIn.value.trim());};

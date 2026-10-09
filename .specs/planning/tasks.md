@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-09 (BL-PM-008 completed)
-version: 6.24
+lastUpdated: 2026-10-09 (BL-PM-014 built)
+version: 6.25
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -70,6 +70,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-PM-014 | `specpilot serve` Home is the one way in (REQ-002.H.32, Feature): the rail's `+` shows Home and focuses `Open a Project Folder` instead of opening the sheet, so only Home's two buttons open it; the Home tile stays; Home rows get a `Remove from list` icon button (the sheet keeps its list and Remove); the `SpecPilot` wordmark beside Home's 56px logo as specpilot.dev's nav brand (Sixtyfour outlines inlined as an SVG symbol, no font file or network request). Built on `feat/bl-pm-014-home-single-entry` (+3 tests, 1330 → 1333; browser-checked); not committed; archive at merge (developer's choice): `specpilot archive` on `main` after the merge, before any push. |
 
 ## Completed
 

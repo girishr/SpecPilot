@@ -49,11 +49,13 @@ function editorUrl(path,line){
   return 'vscode://file'+(segs[0]===''?'':'/')+segs.join('/')+(line?':'+line:'');
 }
 const EDITOR_ICON='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg>';
+const REMOVE_ICON='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>';
 
 /* The registry as GET /api/projects sends it (BL-067): the rows of the sheet's list, or of Home's
-   (BL-PM-001), where a row is one button that opens its folder, has no Remove, and a project that
+   (BL-PM-001), where a row is one button that opens its folder, and a project that
    is open also shows the branch /api/specs gives for it (`projects`, as the rail tooltip does);
-   beside the button, a row whose folder exists has the Open in VS Code link (BL-PM-008). */
+   beside the button, a row whose folder exists has the Open in VS Code link (BL-PM-008), and
+   every row a Remove icon (BL-PM-014). */
 function recentHtml(reg,home,projects,chev){
   if(reg.error)return `<p class="note">${esc(reg.error)}</p>`;
   if(!reg.entries.length)return '<div class="empty">No projects remembered yet.</div>';
@@ -63,7 +65,8 @@ function recentHtml(reg,home,projects,chev){
     if(!e.exists)det.push('folder not found');
     if(home){const q=e.project!==null&&projects?projects[e.project]:null;
       return `<div class="row hrow"><button type="button" class="act" data-path="${esc(e.path)}"><div class="body"><div class="ttl" translate="no">${esc(e.root+(q&&q.branch?' · '+q.branch:''))}</div><div class="det">${esc(det.join(' · '))}</div></div><div class="trail">${chev||''}</div></button>`
-        +(e.exists?`<a class="ib" href="${esc(editorUrl(e.path))}" aria-label="${esc(`Open ${e.root} in VS Code`)}" title="Open in VS Code">${EDITOR_ICON}</a>`:'')+'</div>';}
+        +(e.exists?`<a class="ib" href="${esc(editorUrl(e.path))}" aria-label="${esc(`Open ${e.root} in VS Code`)}" title="Open in VS Code">${EDITOR_ICON}</a>`:'')
+        +`<button type="button" class="ib" data-remove="${esc(e.path)}" aria-label="${esc(`Remove ${e.root} from list`)}" title="Remove from list">${REMOVE_ICON}</button></div>`;}
     return `<div class="row recent"><div class="body" data-path="${esc(e.path)}" role="button" tabindex="0"><div class="ttl" translate="no">${esc(e.root)}</div><div class="det">${esc(det.join(' · '))}</div></div><button type="button" class="btn sm" data-remove="${esc(e.path)}">Remove from list</button></div>`;
   }).join('');
 }

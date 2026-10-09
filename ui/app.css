@@ -9,6 +9,7 @@
   --orange:#f59e0b;--orange-soft:rgba(245,158,11,.14);--orange-ink:#fbbf24;
   --red:#ef4444;--red-soft:rgba(239,68,68,.14);--red-ink:#f87171;
   --violet:#8b5cf6;--violet-soft:rgba(139,92,246,.16);--violet-ink:#c4b5fd;
+  --brand-ink:#79b8ff; /* specpilot.dev's nav wordmark, dark (BL-PM-014) */
   --blue:#3b82f6;--blue-soft:rgba(59,130,246,.16);--blue-ink:#93c5fd;
   --hover:rgba(148,163,184,.08);--press:rgba(148,163,184,.14);--sel:rgba(96,165,250,.14);--sel-line:#60a5fa;
   --shadow:none;
@@ -28,6 +29,7 @@
   --orange:#d97706;--orange-soft:rgba(217,119,6,.12);--orange-ink:#b45309;
   --red:#dc2626;--red-soft:rgba(220,38,38,.12);--red-ink:#b91c1c;
   --violet:#7c3aed;--violet-soft:rgba(124,58,237,.12);--violet-ink:#6d28d9;
+  --brand-ink:#0058be;
   --blue:#2563eb;--blue-soft:rgba(37,99,235,.12);--blue-ink:#1d4ed8;
   --hover:rgba(15,23,42,.05);--press:rgba(15,23,42,.09);--sel:rgba(37,99,235,.12);--sel-line:#2563eb;
   color-scheme:light;
@@ -471,7 +473,10 @@ input.txt{width:100%}
 .tile.home .logo{width:26px;height:26px;margin:0}
 #content:focus{outline:0}
 .content>.welcome{width:100%;max-width:560px;margin:0 auto;gap:22px;padding:clamp(28px,8vh,72px) 0 48px}
-.welcome .logo{width:56px;height:56px;border-radius:12px}
+.welcome .logo{width:56px;height:56px;border-radius:12px;flex:none}
+/* the wordmark as specpilot.dev's nav (32px logo, 20px text, 10px gap) scaled to the 56px logo; it shrinks first in a narrow window */
+.welcome .brand{display:flex;align-items:center;gap:17.5px;min-width:0}
+.welcome .wordmark{width:315px;height:35px;min-width:0;color:var(--brand-ink)}
 .welcome h1{font-size:clamp(26px,4vw,32px);font-weight:600;letter-spacing:-.02em;line-height:1.15;margin:0;text-wrap:balance}
 .welcome .lead{font-size:16px;line-height:1.55;color:var(--label-2);margin:0;max-width:52ch}
 .welcome .cta{display:flex;flex-direction:column;gap:10px}
@@ -488,6 +493,6 @@ input.txt{width:100%}
 .welcome .recents .hrow{padding:0 8px 0 0;gap:4px}
 .welcome .recents .hrow:hover{background:var(--hover)}
 .hrow>.act{display:flex;align-items:center;gap:12px;flex:1;min-width:0;align-self:stretch;padding:0 6px 0 14px;font:inherit;text-align:left;color:inherit}
-.hrow>.act:last-child{padding-right:40px} /* no link (folder not found): the chevron stays in line with the others */
+.hrow>.act+[data-remove]{margin-left:34px} /* no link (folder not found): the chevron and Remove stay in line with the others */
 .welcome .fine{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--label-3);font-size:13px}
 .welcome .fine i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}

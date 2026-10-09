@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.0] - 2026-10-09
+
 ### Added
 
 - **Remove from list on Home, and the SpecPilot wordmark** (BL-PM-014): each Recent project on the `specpilot serve` Home screen has a Remove from list button, as the Open a Project sheet does (the folder is not touched), and the SpecPilot name now sits beside Home's logo as on specpilot.dev, drawn from the Sixtyfour font's outlines inside the page, so nothing is downloaded (the font's SIL Open Font License ships as `ui/OFL-Sixtyfour.txt`).

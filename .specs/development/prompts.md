@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-09 (BL-PM-014 built)
-version: 2.83
+lastUpdated: 2026-10-09 (v2.12.0 prepared)
+version: 2.84
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-09: v2.12.0 release prepared on `main` (`47f8fce`) after the developer's typed "Yes proceed" (instructions pasted; push, publish and GitHub release left to the developer): version 2.11.0 → 2.12.0 in `package.json`/`package-lock.json`, `project.yaml`, `api.yaml`; CHANGELOG `[Unreleased]` → `[2.12.0] - 2026-10-09` with a new empty `[Unreleased]`; roadmap step 5 ticked and the Timeline line; release row 168; annotated tag `v2.12.0`; not pushed. No "v2.11.0 shipped" row (not confirmed).
 - 2026-10-09: BL-PM-014 accepted on the developer's `yes proceed` after spec-reviewer's build PASS (FIX rounds: comment inside the symbol; archive-at-merge recorded): feature commit `065a51f` (no co-author trailer), completion commit (Completed row 167 / CD-girishr-076), `--no-ff` merge into `main`, then `specpilot archive` on `main`; not pushed.
 - 2026-10-09: BL-PM-014 built after spec-reviewer's PASS (one FIX round: architecture.md and README lines, CHANGELOG, tests.md, the no-answer fallback, the font's OFL notice and `ui/OFL-Sixtyfour.txt`): `+` → Home and focus, Remove on Home rows, the wordmark symbol; +3 tests (1330 → 1333); browser-checked headless; no commit.
 - 2026-10-09: BL-PM-014 from a discussion of the three ways into the Open a Project sheet: the developer wants every new project to start from Home and the sheet kept. Agreed: `+` stays (the logo is not an obvious way Home) and shows Home with focus on `Open a Project Folder`; the Home tile stays; only Home's two buttons open the sheet; Home rows get Remove and the sheet keeps its list and Remove (the developer's "Option 1 and 2", after Claude found that dropping the sheet's list would drop the only Remove); the specpilot.dev nav wordmark beside Home's logo, scaled to the 56px logo. Specs first on `feat/bl-pm-014-home-single-entry`; no commit.

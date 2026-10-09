@@ -494,5 +494,7 @@ input.txt{width:100%}
 .welcome .recents .hrow:hover{background:var(--hover)}
 .hrow>.act{display:flex;align-items:center;gap:12px;flex:1;min-width:0;align-self:stretch;padding:0 6px 0 14px;font:inherit;text-align:left;color:inherit}
 .hrow>.act+[data-remove]{margin-left:34px} /* no link (folder not found): the chevron and Remove stay in line with the others */
+.welcome .mcp{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;min-height:48px}
+.welcome .mcp .v{font-family:var(--mono);font-size:12.5px;line-height:1.5;color:var(--label-2);flex:1;min-width:0;overflow-wrap:anywhere;user-select:all}
 .welcome .fine{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--label-3);font-size:13px}
 .welcome .fine i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}

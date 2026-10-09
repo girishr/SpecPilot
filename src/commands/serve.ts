@@ -14,6 +14,7 @@ export interface ServeOptions {
   poll?: string;
   readOnly?: boolean;
   open?: boolean;
+  mcp?: boolean;
 }
 
 const DEFAULT_PORT = 4321;
@@ -21,6 +22,14 @@ const DEFAULT_POLL_MS = 1000;
 /** Longest a stop signal waits for a running clone to be killed and cleaned up. */
 export const STOP_CLONE_MS = 5000;
 const MIN_POLL_MS = 250;
+
+/** `SPECPILOT_MCP_TOKEN` (BL-PM-007): at least 32 visible ASCII characters, so it is hard to guess and fits in a header. */
+export const MCP_TOKEN_PATTERN = /^[\x21-\x7e]{32,}$/;
+
+/** The one line an IDE's MCP settings take (the page's card builds the same line, ui/route.js). */
+export function mcpConfigLine(host: string, token: string): string {
+  return JSON.stringify({ mcpServers: { 'specpilot-local': { type: 'http', url: `http://${host}/mcp`, headers: { 'X-SpecPilot-Token': token } } } });
+}
 
 /** Open `url` in the default browser. The URL is built here, never taken from input. */
 function openBrowser(url: string, logger: Logger): void {
@@ -78,6 +87,13 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
     return process.exit(1);
   }
 
+  // Read here, never written anywhere: with it the IDE's config line survives restarts (BL-PM-007).
+  const envToken = options.mcp ? process.env.SPECPILOT_MCP_TOKEN : undefined;
+  if (envToken !== undefined && !MCP_TOKEN_PATTERN.test(envToken)) {
+    logger.error('SPECPILOT_MCP_TOKEN must be at least 32 characters, with no spaces or other invisible characters. Set a longer one, or unset it to get a new token each run.');
+    return process.exit(1);
+  }
+
   // What an interrupted setup left behind (marked staging folders only); a delete, so never with --read-only.
   if (!options.readOnly) {
     for (const root of roots) for (const dir of removeStaleStaging(root)) console.log(`Removed ${dir}/, left by an interrupted setup.`);
@@ -102,7 +118,7 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
 
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, log: m => logger.warn(m) });
+    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, mcp: !!options.mcp, mcpToken: envToken, log: m => logger.warn(m) });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -131,6 +147,10 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
   );
   if (registry) console.log(chalk.gray(`Folders opened in the page are remembered in ${displayRoot(registry, home)}.`));
   if (registryNote) console.log(registryNote);
+  if (options.mcp) {
+    console.log(`MCP endpoint: ${url}/mcp${options.readOnly ? ' (read tools only)' : ''}`);
+    console.log(`Add to your IDE's MCP settings: ${mcpConfigLine(`127.0.0.1:${port}`, envToken !== undefined ? '${SPECPILOT_MCP_TOKEN}' : handle.mcpToken!)}`);
+  }
   if (options.open) openBrowser(url, logger);
 
   // Ctrl+C, `kill` and a closed terminal end the same way. A clone runs in its own session and would

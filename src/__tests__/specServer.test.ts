@@ -435,6 +435,74 @@ describe('serveCommand', () => {
     expect(await exitCode).toBe(0);
   });
 
+  /** Start serveCommand on a free port with `opts`, stop it with Ctrl+C, and return what it printed. */
+  const runAndStop = async (opts: Record<string, unknown>) => {
+    const probe = await startSpecServer([p.root], 0, 'x');
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+    let exited: (code: number) => void;
+    const exitCode = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
+    await serveCommand([], { port: String(port), ...opts });
+    process.emit('SIGINT');
+    expect(await exitCode).toBe(0);
+    return { port, out: logs.join('\n') };
+  };
+
+  it.each([
+    ['31 characters', 'a'.repeat(31)],
+    ['a space', 'a'.repeat(20) + ' ' + 'a'.repeat(20)],
+    ['a non-ASCII character', 'é'.repeat(40)],
+    ['empty', ''],
+  ])('refuses to start with --mcp and a SPECPILOT_MCP_TOKEN of %s (BL-PM-007)', async (_why, value) => {
+    process.env.SPECPILOT_MCP_TOKEN = value;
+    try {
+      await expect(serveCommand([], { mcp: true })).rejects.toThrow('exit 1');
+      expect(errors.join('\n')).toContain('SPECPILOT_MCP_TOKEN must be at least 32 characters, with no spaces or other invisible characters.');
+    } finally {
+      delete process.env.SPECPILOT_MCP_TOKEN;
+    }
+  });
+
+  it('ignores SPECPILOT_MCP_TOKEN without --mcp and prints nothing about MCP (BL-PM-007)', async () => {
+    process.env.SPECPILOT_MCP_TOKEN = 'short';
+    try {
+      const { out } = await runAndStop({});
+      expect(out).not.toMatch(/MCP/);
+    } finally {
+      delete process.env.SPECPILOT_MCP_TOKEN;
+    }
+  });
+
+  it('prints the endpoint and the config line with a per-start token (BL-PM-007)', async () => {
+    const { port, out } = await runAndStop({ mcp: true });
+    expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp\n`);
+    const line = /Add to your IDE's MCP settings: (\{.*\})$/m.exec(out)![1];
+    const cfg = JSON.parse(line).mcpServers['specpilot-local'];
+    expect(cfg.type).toBe('http');
+    expect(cfg.url).toBe(`http://127.0.0.1:${port}/mcp`);
+    expect(cfg.headers['X-SpecPilot-Token']).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('names ${SPECPILOT_MCP_TOKEN} in the config line instead of printing a token from the environment (BL-PM-007)', async () => {
+    process.env.SPECPILOT_MCP_TOKEN = 'x'.repeat(32);
+    try {
+      const { out } = await runAndStop({ mcp: true });
+      expect(out).toContain('"X-SpecPilot-Token":"${SPECPILOT_MCP_TOKEN}"');
+      expect(out).not.toContain('x'.repeat(32));
+    } finally {
+      delete process.env.SPECPILOT_MCP_TOKEN;
+    }
+  });
+
+  it('says read tools only with --read-only --mcp (BL-PM-007)', async () => {
+    const { port, out } = await runAndStop({ mcp: true, readOnly: true });
+    expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp (read tools only)`);
+  });
+
   it.each(['SIGINT', 'SIGTERM', 'SIGHUP'] as const)('closes and exits 0 on %s, and then handles none of the three (BL-PM-002)', async signal => {
     const probe = await startSpecServer([p.root], 0, 'x');
     const port = (probe.server.address() as AddressInfo).port;
@@ -460,7 +528,7 @@ describe('serveCommand', () => {
 
   it(`waits at most ${STOP_CLONE_MS / 1000} seconds for a clone's clean-up, ignoring further signals meanwhile, then exits anyway`, async () => {
     const close = jest.fn(async () => {});
-    jest.spyOn(specServerModule, 'startSpecServer').mockResolvedValue({ server: {} as never, streams: () => 0, stopClone: () => new Promise<void>(() => {}), close });
+    jest.spyOn(specServerModule, 'startSpecServer').mockResolvedValue({ server: {} as never, mcpToken: null, streams: () => 0, stopClone: () => new Promise<void>(() => {}), close });
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     let exited: (code: number) => void;
     const exitCode = new Promise<number>(r => (exited = r));
@@ -676,6 +744,15 @@ describe('UI routing (ui/route.js)', () => {
     reloadView: (curView: string, hadSpecs: boolean, hasSpecs: boolean) => string | null;
   };
   const files = { 'quality/tests.md': {}, 'planning/roadmap.md': {} };
+
+  it('builds the card config line exactly as serve prints it (BL-PM-007)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { mcpConfigLine } = require('../../ui/route.js') as { mcpConfigLine: (host: string, token: string) => string };
+    const line = mcpConfigLine('localhost:4400', 'abc');
+    expect(line).toBe('{"mcpServers":{"specpilot-local":{"type":"http","url":"http://localhost:4400/mcp","headers":{"X-SpecPilot-Token":"abc"}}}}');
+    expect(line).toBe(require('../commands/serve').mcpConfigLine('localhost:4400', 'abc'));
+    expect(mcpConfigLine('127.0.0.1:4321', '${SPECPILOT_MCP_TOKEN}')).toContain('"X-SpecPilot-Token":"${SPECPILOT_MCP_TOKEN}"');
+  });
 
   it('opens a listed file', () => {
     expect(resolveRoute('#file/quality/tests.md', files)).toEqual({ project: 0, view: 'file', sub: 'quality/tests.md', missing: false });
@@ -958,7 +1035,10 @@ describe('UI routing (ui/route.js)', () => {
       expect(sheet.indexOf('id="cloneIn"')).toBeLessThan(sheet.indexOf('id="cloneParentIn"'));
       expect(sheet.indexOf('id="cloneParentIn"')).toBeLessThan(sheet.indexOf('id="cloneNameIn"'));
       expect(sheet.indexOf('id="recentBox"')).toBeLessThan(sheet.indexOf('id="paneClone"'));
-      for (const left of ['Browse', 'Connect Your AI IDE', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
+      for (const left of ['Browse', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
+      // BL-PM-007: the card is in the markup but hidden, and without --mcp nothing tells the script to show it
+      expect(page).toContain('<div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional, one line</span></div>');
+      expect(page).not.toContain('specpilot-mcp');
       expect(page.includes('specpilot-token" content=')).toBe(!readOnly); // no token, so the script never shows the tile
     } finally {
       await s.close();
@@ -2983,5 +3063,270 @@ describe('the full chat\'s answers over HTTP (BL-PM-004b)', () => {
     spec = await startSpecServer([e.root], 0, '0.0.0-test', { readOnly: true });
     port = (spec.server.address() as AddressInfo).port;
     expect((await post(port, '{}', good(), '/api/preview')).status).toBe(405);
+  });
+});
+
+describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
+  let a: ReturnType<typeof makeProject>;
+  let b: ReturnType<typeof makeProject>;
+  let spec: SpecServer | null = null;
+  let port: number;
+  let token: string;
+  const fileOf = (root: string) => join(root, '.specs/planning/tasks.md');
+  const hashOf = (root: string) => createHash('sha256').update(readFileSync(fileOf(root))).digest('hex');
+  const start = async (opts: Parameters<typeof startSpecServer>[3] = {}) => {
+    spec = await startSpecServer([a.root, b.root], 0, '0.0.0-test', { mcp: true, ...opts });
+    port = (spec.server.address() as AddressInfo).port;
+    token = spec.mcpToken!;
+  };
+  const headers = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+    'X-SpecPilot-Token': token,
+    'MCP-Protocol-Version': '2025-11-25',
+    ...over,
+  });
+  const rpc = (method: string, params?: unknown, over: Record<string, string | undefined> = {}) =>
+    post(port, JSON.stringify({ jsonrpc: '2.0', id: 7, method, ...(params === undefined ? {} : { params }) }), headers(over), '/mcp');
+  const tool = async (name: string, args: Record<string, unknown> = {}) => {
+    const r = await rpc('tools/call', { name, arguments: args });
+    expect(r.status).toBe(200);
+    return r.json.result as { content: Array<{ text: string }>; structuredContent?: any; isError?: boolean };
+  };
+  const pageWrite = (path: string, body: unknown, root: string, project: number, over: Record<string, string | undefined> = {}) =>
+    post(port, JSON.stringify(body), {
+      Host: `127.0.0.1:${port}`,
+      Origin: `http://127.0.0.1:${port}`,
+      'Content-Type': 'application/json',
+      'X-SpecPilot-Token': token,
+      'If-Match': hashOf(root),
+      ...over,
+    }, `${path}?project=${project}`);
+
+  beforeEach(() => {
+    a = makeProject();
+    b = makeProject();
+    writeFileSync(fileOf(a.root), MOVE_TASKS);
+    writeFileSync(fileOf(b.root), MOVE_TASKS);
+  });
+  afterEach(async () => {
+    await spec?.close();
+    spec = null;
+    a.cleanup();
+    b.cleanup();
+  });
+
+  it('is off without --mcp: /mcp answers as any unknown path and the page has no card meta', async () => {
+    spec = await startSpecServer([a.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    expect(spec.mcpToken).toBeNull();
+    expect((await hit(port, '/mcp')).status).toBe(404);
+    expect((await hit(port, '/mcp', { method: 'POST' })).status).toBe(405);
+    expect((await hit(port, '/')).body).not.toContain('specpilot-mcp');
+  });
+
+  it('takes the page token and tells the page to show the card with it', async () => {
+    await start();
+    const page = (await hit(port, '/')).body;
+    expect(page).toContain(`<meta name="specpilot-token" content="${token}">`);
+    expect(page).toContain('<meta name="specpilot-mcp" content="page">');
+  });
+
+  it('runs the initialize handshake: JSON answers to a client that also accepts SSE, 202 with no body for notifications', async () => {
+    await start();
+    const init = await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } }, { 'MCP-Protocol-Version': undefined });
+    expect(init.status).toBe(200);
+    expect(init.headers['content-type']).toBe('application/json; charset=utf-8');
+    expect(init.json.result).toEqual({ protocolVersion: '2025-11-25', capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '0.0.0-test' } });
+    for (const method of ['notifications/initialized', 'notifications/cancelled']) {
+      const n = await post(port, JSON.stringify({ jsonrpc: '2.0', method }), headers(), '/mcp');
+      expect(n.status).toBe(202);
+      expect(n.json).toBe('');
+    }
+    expect((await rpc('ping')).json.result).toEqual({});
+  });
+
+  it('refuses a protocol version header it does not serve with 400', async () => {
+    await start();
+    const r = await rpc('tools/list', undefined, { 'MCP-Protocol-Version': '2026-07-28' });
+    expect(r.status).toBe(400);
+    expect(r.json.error.message).toBe('Bad Request: Unsupported protocol version: 2026-07-28 (supported versions: 2025-11-25, 2025-06-18)');
+  });
+
+  it.each([['GET'], ['DELETE'], ['PUT']])('answers %s with 405 and Allow: POST', async method => {
+    await start();
+    const r = await hit(port, '/mcp', { method });
+    expect(r.status).toBe(405);
+    expect(r.headers.allow).toBe('POST');
+  });
+
+  it('refuses a foreign Host with 403', async () => {
+    await start();
+    expect((await rpc('ping', undefined, { Host: `evil.com:${port}` })).status).toBe(403);
+  });
+
+  it('takes no Origin and the page own, and refuses any other with 403 before the token is looked at', async () => {
+    await start();
+    expect((await rpc('ping')).status).toBe(200);
+    expect((await rpc('ping', undefined, { Origin: `http://127.0.0.1:${port}` })).status).toBe(200);
+    for (const origin of ['https://evil.com', 'null', `http://localhost:${port}`]) {
+      const r = await rpc('ping', undefined, { Origin: origin, 'X-SpecPilot-Token': 'wrong' });
+      expect(r.status).toBe(403);
+      expect(r.json.error.message).toBe('This request came from a web page, so it was refused.');
+    }
+  });
+
+  it.each([['missing', undefined], ['wrong', 'f'.repeat(64)], ['short', 'abc']])('refuses a %s token with 403 and names the header, not 401 (an OAuth challenge to Claude Code)', async (_why, value) => {
+    await start();
+    const r = await rpc('ping', undefined, { 'X-SpecPilot-Token': value });
+    expect(r.status).toBe(403);
+    expect(r.headers['www-authenticate']).toBeUndefined();
+    expect(r.json).toEqual({ jsonrpc: '2.0', id: null, error: { code: -32000, message: 'This request did not carry a valid X-SpecPilot-Token header, so it was refused. Copy the config line again from the page or the terminal.' } });
+  });
+
+  it('refuses another content type (415), a body over 16 KB (413) and a body that is not JSON (400, -32700)', async () => {
+    await start();
+    expect((await rpc('ping', undefined, { 'Content-Type': 'text/plain' })).status).toBe(415);
+    const big = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping', params: { pad: 'x'.repeat(17 * 1024) } }), headers(), '/mcp');
+    expect(big.status).toBe(413);
+    const bad = await post(port, '{nope', headers(), '/mcp');
+    expect(bad.status).toBe(400);
+    expect(bad.json.error.code).toBe(-32700);
+  });
+
+  it('lists seven tools', async () => {
+    await start();
+    expect((await rpc('tools/list')).json.result.tools.map((t: any) => t.name)).toHaveLength(7);
+  });
+
+  it('lists projects and tasks as /api/specs gives them', async () => {
+    await start();
+    const specs = JSON.parse((await hit(port, '/api/specs?project=1')).body);
+    const projects = (await tool('specpilot_list_projects')).structuredContent.projects;
+    expect(projects).toHaveLength(2);
+    expect(projects[1]).toEqual({ project: 1, name: 'Fixture Project', root: specs.projects[1].root, branch: 'main', specs: true, files: specs.nav.specs.map((f: string) => '.specs/' + f) });
+    expect((await tool('specpilot_list_tasks', { project: 1 })).structuredContent).toEqual(specs.tasks);
+  });
+
+  it('reads an allowlisted file verbatim and refuses everything /api/file refuses', async () => {
+    await start();
+    expect((await tool('specpilot_read_spec', { path: '.specs/planning/tasks.md' })).content[0].text).toBe(MOVE_TASKS);
+    symlinkSync(join(a.outside, 'secret.txt'), join(a.root, '.specs', 'leak.md'));
+    for (const path of ['src/secret.ts', '.specs/../src/secret.ts', '../outside/secret.txt', '/etc/passwd', '.specs/planning/tasks.md\0', '.specs/leak.md', '', 5]) {
+      const r = await tool('specpilot_read_spec', { path });
+      expect(r.isError).toBe(true);
+      expect(r.content[0].text).toMatch(/^Not found, or not a file SpecPilot shows: /);
+    }
+  });
+
+  it.each([[2], [-1], [1.5], ['0']])('refuses project %j as a tool error', async project => {
+    await start();
+    const r = await tool('specpilot_list_tasks', { project });
+    expect(r).toEqual({ content: [{ type: 'text', text: `No project ${String(project)} is served. specpilot_list_projects lists them.` }], isError: true });
+  });
+
+  it('adds a task with the same bytes the page route writes', async () => {
+    await start();
+    const r = await tool('specpilot_new_task', { project: 0, description: ' Ship the MCP card ', section: 'currentSprint', sha256: hashOf(a.root) });
+    expect(r.isError).toBeUndefined();
+    expect(r.structuredContent).toEqual({ id: 'CS-002', section: 'currentSprint', index: 1, sha256: hashOf(a.root) });
+    expect((await pageWrite('/api/tasks/new', { description: ' Ship the MCP card ', section: 'currentSprint' }, b.root, 1)).status).toBe(200);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
+  });
+
+  it('moves a task with the same bytes the page route writes', async () => {
+    await start();
+    const r = await tool('specpilot_move_task', { id: 'BL-002', toSection: 'currentSprint', toIndex: 0, sha256: hashOf(a.root) });
+    expect(r.structuredContent).toEqual({ from: 'backlog', fromIndex: 1, sha256: hashOf(a.root) });
+    expect((await pageWrite('/api/tasks/move', { id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }, b.root, 1)).status).toBe(200);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
+  });
+
+  it('refuses a stale sha256 with "since you last read it" and writes nothing', async () => {
+    await start();
+    const stale = 'f'.repeat(64);
+    const move = await tool('specpilot_move_task', { id: 'BL-002', toSection: 'currentSprint', toIndex: 0, sha256: stale });
+    expect(move).toEqual({ content: [{ type: 'text', text: 'planning/tasks.md changed on disk since you last read it. The move was not made.' }], isError: true });
+    const add = await tool('specpilot_new_task', { description: 'x', section: 'backlog', sha256: stale });
+    expect(add.content[0].text).toBe('planning/tasks.md changed on disk since you last read it, so the task was not added. Call specpilot_list_tasks for the current sha256, then try again.');
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('refuses what the page refuses, with the page text, and a missing sha256', async () => {
+    await start();
+    const sha256 = hashOf(a.root);
+    expect((await tool('specpilot_new_task', { description: 'a | b', section: 'backlog', sha256 })).content[0].text).toContain('cannot contain |');
+    expect((await tool('specpilot_new_task', { description: 'x', section: 'completed', sha256 })).content[0].text).toBe('New tasks can only go to Backlog or Current Sprint.');
+    expect((await tool('specpilot_move_task', { id: 'BL-002', toSection: 'currentSprint', toIndex: -1, sha256 })).content[0].text).toBe('The position must be a whole number, 0 or more.');
+    expect((await tool('specpilot_move_task', { id: 'BL-404', toSection: 'currentSprint', toIndex: 0, sha256 })).isError).toBe(true);
+    expect((await tool('specpilot_new_task', { description: 'x', section: 'backlog' })).content[0].text).toBe('sha256 is required: the hash specpilot_list_tasks returned.');
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('runs a page move and a tool move one after the other under the one lock', async () => {
+    await start();
+    const sha256 = hashOf(a.root);
+    const [page, mcp] = await Promise.all([
+      pageWrite('/api/tasks/move', { id: 'BL-001', toSection: 'currentSprint', toIndex: 0 }, a.root, 0),
+      rpc('tools/call', { name: 'specpilot_move_task', arguments: { id: 'BL-002', toSection: 'currentSprint', toIndex: 0, sha256 } }),
+    ]);
+    // Same starting hash: whichever takes the lock first wins, the other then finds the file changed.
+    const pageWon = page.status === 200;
+    expect(pageWon ? mcp.json.result.isError : page.status === 409).toBe(true);
+    expect(pageWon ? page.status : mcp.json.result.isError).toBe(pageWon ? 200 : undefined);
+    const rows = readFileSync(fileOf(a.root), 'utf-8').split('\n').filter(l => /^\| (BL|CS)-/.test(l));
+    expect(rows).toEqual(pageWon ? ['| BL-002 | Two |', '| BL-001 | One |', '| CS-001 | Sprint |'] : ['| BL-001 | One |', '| BL-002 | Two |', '| CS-001 | Sprint |']);
+  });
+
+  it('validates without writing anything', async () => {
+    await start();
+    const before = snapshot(a.root);
+    const r = (await tool('specpilot_validate_specs')).structuredContent;
+    expect(r.isValid).toBe(false);
+    expect(r.errors).toContain('Missing required file: architecture/architecture.md');
+    expect(snapshot(a.root)).toEqual(before);
+  });
+
+  it('regenerates commands as the page route does', async () => {
+    await start();
+    const r = (await tool('specpilot_regenerate_commands', { project: 0 })).structuredContent;
+    const page = (await pageWrite('/api/commands/regenerate', {}, b.root, 1)).json;
+    expect(r).toEqual({ added: page.added, updated: page.updated, kept: page.kept, message: page.message });
+    expect(r.added.length).toBeGreaterThan(0);
+  });
+
+  it('keeps the page write routes exact about Origin when --mcp is on', async () => {
+    await start();
+    expect((await pageWrite('/api/tasks/move', { id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }, a.root, 0, { Origin: undefined })).status).toBe(403);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('with --read-only: a token for /mcp only, read tools only, and the page as read-only as before', async () => {
+    await start({ readOnly: true });
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
+    const page = (await hit(port, '/')).body;
+    expect(page).not.toContain('specpilot-token');
+    expect(page).not.toContain('specpilot-mcp');
+    expect(page).not.toContain(token);
+    expect((await rpc('tools/list')).json.result.tools.map((t: any) => t.name)).toEqual(['specpilot_list_projects', 'specpilot_read_spec', 'specpilot_list_tasks', 'specpilot_validate_specs']);
+    const write = await rpc('tools/call', { name: 'specpilot_move_task', arguments: { id: 'BL-002', toSection: 'currentSprint', toIndex: 0, sha256: hashOf(a.root) } });
+    expect(write.json.error).toEqual({ code: -32602, message: 'Unknown tool: specpilot_move_task' });
+    expect((await tool('specpilot_list_tasks')).structuredContent.sha256).toBe(hashOf(a.root));
+    for (const path of ['/api/tasks/move', '/api/tasks/new', '/api/commands/regenerate', '/api/projects']) expect((await pageWrite(path, {}, a.root, 0)).status).toBe(405);
+    expect((await hit(port, '/api/projects')).status).toBe(405);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('with SPECPILOT_MCP_TOKEN: takes that token only, and the page names it instead of carrying it', async () => {
+    const env = 'e'.repeat(40);
+    await start({ mcpToken: env });
+    expect(token).toBe(env);
+    const page = (await hit(port, '/')).body;
+    expect(page).toContain('<meta name="specpilot-mcp" content="env">');
+    expect(page).not.toContain(env);
+    const pageToken = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec(page)![1];
+    expect((await rpc('ping', undefined, { 'X-SpecPilot-Token': pageToken })).status).toBe(403);
+    expect((await rpc('ping')).status).toBe(200);
   });
 });

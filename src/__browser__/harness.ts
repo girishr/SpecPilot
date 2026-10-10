@@ -130,7 +130,8 @@ export interface Tracked {
 /**
  * One browser test: `fn` gets `open()` for pages on `served`. After `fn`, every page must have had no page
  * error, no console error other than those matching `allow`, and no request to another host. On any
- * failure each page's screenshot and HTML are written to a folder kept on disk, and the paths printed.
+ * failure the error's message and stack, and each page's screenshot and HTML, are written to a folder kept
+ * on disk, and the paths printed.
  */
 export function browserTest(
   name: string,
@@ -175,6 +176,9 @@ export function browserTest(
       const dir = mkdtempSync(join(os.tmpdir(), 'specpilot-browser-failure-'));
       const slug = name.replace(/[^a-z0-9]+/gi, '-').slice(0, 60);
       const saved: string[] = [];
+      const errorFile = join(dir, `${slug}-error.txt`);
+      writeFileSync(errorFile, err instanceof Error ? `${err.message}\n\n${err.stack ?? ''}\n` : `${String(err)}\n`);
+      saved.push(errorFile);
       for (const [i, t] of pages.entries()) {
         try {
           const png = join(dir, `${slug}-${i}.png`);
@@ -186,7 +190,7 @@ export function browserTest(
           // the page may be gone; the error below still says what failed
         }
       }
-      console.error(`Browser test failed: ${name}\n${saved.map(p => '  ' + p).join('\n') || '  (no page to save)'}`);
+      console.error(`Browser test failed: ${name}\n${saved.map(p => '  ' + p).join('\n')}${pages.length ? '' : '\n  (no page to save)'}`);
       throw err;
     } finally {
       for (const c of contexts) await c.close();

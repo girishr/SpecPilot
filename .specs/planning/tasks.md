@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (BL-PM-009 built)
-version: 6.35
+lastUpdated: 2026-10-10 (BL-PM-009 completed)
+version: 6.36
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -70,7 +70,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-PM-009 | Clone progress in the Clone a Repository sheet (REQ-002.H.25, H.26, H.8): git runs with a fixed `--progress`; `cloneRepository()` reads `Receiving objects`, `Resolving deltas` and `Updating files` percentages from stderr (never `remote:` lines) and the server writes `event: clone` `{stage, percent}` to every open `/api/events` stream when either changes; the clone answer is unchanged; `gitErrorLine()` leaves progress lines out. Page: an indeterminate bar and `Cloning… <m:ss>` until the first event (also all it shows when git gives no percentage or the page has no stream), then a determinate bar with `<Stage> <n>% · <m:ss>`. Jest for the parser, the events and the error line; a browser test with a stub `git` first on `PATH` (part of BL-091's harness). Architectural (the developer's decision, 2026-10-10): amends SEC-004.9 and SEC-004.15 and the argument array of the one process a request starts; the clone event carries only stage and percent, never the URL or the target path. |
 
 ## Completed
 
@@ -108,3 +107,4 @@ Notes
 | 178 | [CD-girishr-087] [BL-PM-010] | `specpilot serve` Open in AI IDE (REQ-002.H.34, SEC-004.8 revision): a menu beside Open in VS Code on every project view (guided setup and `--read-only` included, not Home or its rows) with `Open in Cursor` (`cursor://file/<root>`) when `project.cursor` (`.cursor/rules/specpilot.mdc`, checked through `resolveAllowedPath()` with that one path as its allowed set, never served), and while `development/onboarding.md` exists `Send onboarding prompt to Cursor` (app-scheme prompt link; copies instead over 10,000 characters) and `Copy onboarding prompt` (Claude Code has no URL scheme). Cursor links unverified on the build machine; Windsurf is BL-PM-015. Jest 1454 → 1461 (with BL-PM-013), browser 26 → 29. Commit `214e481`. |
 | 179 | [CD-girishr-088] [BL-PM-013] | `specpilot serve` per-file Open in VS Code (REQ-002.H.31): the file view of every `.specs/` file (in the front-matter header, or a header line with the path for a file without one) and the Instructions, Commands and Skills inspectors, through `editorUrl()`, with no `:<line>`; none in Explorer or Security or for a gone file. Commit `214e481`. |
 | 180 | [CD-girishr-089] [BL-PM-010] | Trivial: the Open in AI IDE browser test raced live reload on `main` (1 of 29 failed once: it opened the menu while a redraw closed it). `redraw()` now counts drawn live reloads on `<html data-rev>` (one line in `ui/app.js`), and the test waits for that count to rise after each file change before opening the menu once, with no retry loop; the two project switches in it wait for `#editorBtn` to show the new project's folder. The other browser tests already wait on a DOM change after writing a file. `npm run test:browser` 29/29 five times in a row. |
+| 181 | [CD-girishr-090] [BL-PM-009] | `specpilot serve` clone progress (REQ-002.H.25, H.26, H.8; SEC-004.9 revision, SEC-004.15; Architectural): git runs with a fixed `--progress`; `cloneRepository()` reads `Receiving objects`, `Resolving deltas` and `Updating files` percentages from stderr (never `remote:` lines; a 300-character carry) and the server writes `event: clone` `{stage, percent}` to every open `/api/events` stream on each change, never the URL or the target path; the clone answer is unchanged; `gitErrorLine()` leaves out every line of git's progress shape. The sheet shows the moving bar and `Cloning… <m:ss>` until the first event, then `<Stage> <n>% · <m:ss>` with a determinate bar. +11 Jest tests (1461 → 1472), browser 29 → 31. Also archived 22 `prompts.md` entries by hand with the CLI's rule and added BL-092, BL-093. Commit `4d457d0`. |

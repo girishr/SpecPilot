@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (BL-089/BL-087 Spec Report)
-version: 6.29
+lastUpdated: 2026-10-10 (BL-089, BL-087 completed)
+version: 6.30
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -70,8 +70,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-089 | `specpilot serve --mcp` speaks the initialize-based MCP revisions (`2025-11-25`, `2025-06-18`) only. The current revision, `2026-07-28`, has no handshake: every request carries its version in `_meta` and the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers, which the server must check against the body (400, -32020 HeaderMismatch), `server/discover` is mandatory, an unsupported version answers 400 with -32022 and the supported list, and an unknown method 404 with -32601. Dual-era clients (Claude Code 2.1.286) fall back today; a modern-only client fails. Serve `2026-07-28` alongside. Found during BL-PM-007's build; not part of it. |
-| BL-087 | `npm run build` does not clean `dist/`, so a build after a file is deleted or renamed keeps its old compiled output, and a publish from that tree would ship it (seen in BL-032: `dist/utils/specFileGenerator.js`, `agentConfigGenerator.js` and `templateEngine.js` survived the move until `npm run clean`). Run `clean` before every build, as a `prebuild` script or at the start of `prepublishOnly`, so a publish never carries stale files. Found during the v2.10.0 release (2026-10-07). |
 
 ## Completed
 
@@ -103,3 +101,5 @@ Notes
 | 172 | [CD-girishr-081] [BL-079] | Browser tests for the `specpilot serve` page (REQ-003.5, ARCH-004.51, TESTS-002.4, Feature): `npm run test:browser` builds, then runs 26 tests in `src/__browser__/` in headless Chromium through `playwright-core` 1.63.0 (exact devDependency, the cached browser build, no download) against the built server, on scratch copies of `.specs/` under a temp `HOME`; Home and opening folders, task moves with Undo and drag, New Task with its refusals and the stale case, guided setup, Commands and Regenerate All, Open in VS Code on every view, the Connect Your AI IDE card, live reload, light and dark, 420px. No fixed sleeps; page errors, unexpected console errors and off-host requests fail a test; failures keep a screenshot and the HTML. Not in `npm test` (1416), not built or packed. Three timed runs 26/26 (about 11 s). No `ui/` change. Follow-ups BL-090, BL-091. Commit `763cfc4`. |
 | 173 | [CD-girishr-082] [BL-079] | Trivial, test-only: the drag test of `npm run test:browser` failed on `main` after BL-079's merge, because the suite copies this repo's live `.specs/` and completing BL-079 left its Current Sprint empty, so there was no row to drag (it passed on the branch only while BL-079 itself sat in Current Sprint). The Tasks tests now add a fixture row to Current Sprint (`CS-901`) and to Backlog (`BL-901`) before serving, so none depends on what this repo's `tasks.md` holds that day. `c6966c8` had been pushed with the failing test: the push was chained after a `grep` of the result instead of the suite's exit code. Three runs after the fix 26/26. Branch `fix/bl-079-fixture-rows`. |
 | 174 | [CD-girishr-083] | Trivial: `.gitignore` ignores `.mcp.json`, which holds a live `X-SpecPilot-Token` once an IDE is connected to `specpilot serve --mcp` (BL-PM-007), so the token cannot be committed by accident. The developer's edit. |
+| 175 | [CD-girishr-084] [BL-089] | `specpilot serve --mcp` also serves MCP revision `2026-07-28` (REQ-002.H.33, ARCH-004.50, SEC-004.21, Architectural): the era is chosen per request from `params._meta`; version (-32022), mirrored headers against the body (-32020, repeats from `rawHeaders`, `Mcp-Name` base64 decoded) and client capabilities (-32602) are checked before any tool runs; `server/discover`; `resultType`, `ttlMs` 0, `cacheScope` private and `serverInfo` on results; other methods 404/-32601; initialize-based answers unchanged. Claude Code 2.1.286 checked live: it now stays on `2026-07-28`. Jest 1416 → 1454 (with BL-087). Commit `6942bec`. |
+| 176 | [CD-girishr-085] [BL-087] | `npm run build` cleans `dist/` first (`prebuild`), so `prepare`, `prepublishOnly` and `test:browser` never ship or test stale output; `clean` is a Node `fs.rmSync` one-liner, since `prepare` now runs it on every install from git (Windows `cmd`). With it, the Connect Your AI IDE note says to add `.mcp.json` to `.gitignore`. Commit `6942bec`. |

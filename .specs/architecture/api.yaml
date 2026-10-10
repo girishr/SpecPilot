@@ -1,14 +1,14 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-10-10 (BL-PM-016 Spec Report)
-# version: 2.35
+# lastUpdated: 2026-10-10 (v2.13.0)
+# version: 2.36
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
 
 cli:
   binary: specpilot
-  version: 2.12.0
+  version: 2.13.0
   runtime: Node.js >= 16
   install: npm install -g specpilot
 

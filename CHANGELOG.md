@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.13.0] - 2026-10-10
+
 ### Added
 
 - **Local MCP endpoint in `specpilot serve`** (BL-PM-007): `specpilot serve --mcp` also answers MCP at `http://127.0.0.1:<port>/mcp`, so Claude Code, Cursor and other AI IDEs on this machine can list projects and tasks, read spec files, add and move tasks, run `specpilot validate`'s checks and regenerate command files. The tools run the page's own code behind the page's checks (loopback, Host, the token, JSON only, the read and write allowlists, one write lock); a task write needs the `sha256` it last read and is refused when `tasks.md` changed since. Requests from web pages are refused. Off by default; with `--read-only` only the read tools. The token is new on each start, or `SPECPILOT_MCP_TOKEN` (32 characters or more) when set; SpecPilot never writes it anywhere. Home shows a Connect Your AI IDE card with the one-line config and a Copy button when `--mcp` is on; if you put the line in `.mcp.json`, the card says to add that file to `.gitignore`, since it then holds the token.

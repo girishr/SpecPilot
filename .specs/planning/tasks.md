@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-09 (BL-PM-007 completed)
+lastUpdated: 2026-10-10 (BL-079 completed)
 version: 6.28
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -72,7 +72,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-079 | No automated test covers the wiring in `ui/app.js` (clicks, keys, fetches, focus); Jest has no DOM, so only the DOM-free decisions in `ui/route.js` are tested and the rest is checked by hand. Add a headless browser smoke test (Playwright with the preinstalled Chromium) for: open a folder from the sheet, Home (tile, `h`, a row click), a task move, and guided setup. Found during BL-PM-001. (Spec Report on branch feat/bl-079-browser-tests, 2026-10-09: `npm run test:browser`, `playwright-core` devDependency, the cases of TESTS-002.4; REQ-003.5, ARCH-004.51; built after the developer's `yes proceed`, not committed) |
 
 ## Completed
 
@@ -101,3 +100,4 @@ Notes
 | 169 | [CD-girishr-078] | v2.11.0 shipped (BL-PM-004b, answers no longer HTML-escaped): pushed, npm `specpilot@2.11.0` published, GitHub release live (2026-10-08) |
 | 170 | [CD-girishr-079] | v2.12.0 shipped (BL-PM-005, BL-PM-006, BL-PM-008, BL-PM-014): pushed, npm `specpilot@2.12.0` latest, GitHub release live (2026-10-09) |
 | 171 | [CD-girishr-080] [BL-PM-007] | `specpilot serve --mcp`, a local MCP endpoint (REQ-002.H.33, ARCH-004.50, SEC-002.9, SEC-004.20, Architectural): `POST /mcp` on the serve port, stateless Streamable HTTP written by hand (revisions `2025-11-25`, `2025-06-18`; no new dependency), seven tools that run the page's own functions behind its checks and one write lock (`specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs`, `specpilot_regenerate_commands`); task writes take `sha256` as If-Match and a stale one is refused "since you last read it"; Origin may be absent, a bad `X-SpecPilot-Token` is 403 (not 401, which starts an OAuth flow in Claude Code); per-start token or `SPECPILOT_MCP_TOKEN` (32+ characters, never written); `--read-only` keeps the four read tools with a token of its own; a Connect Your AI IDE card on Home with the one-line config and Copy, only with `--mcp`; one Tasks process mandate in generated instruction files. Checked with Claude Code 2.1.286 (it probes `2026-07-28`, falls back to `2025-11-25`) and in a browser. +83 tests (1333 → 1416). Follow-ups BL-088, BL-089. Commit `3067545`. |
+| 172 | [CD-girishr-081] [BL-079] | Browser tests for the `specpilot serve` page (REQ-003.5, ARCH-004.51, TESTS-002.4, Feature): `npm run test:browser` builds, then runs 26 tests in `src/__browser__/` in headless Chromium through `playwright-core` 1.63.0 (exact devDependency, the cached browser build, no download) against the built server, on scratch copies of `.specs/` under a temp `HOME`; Home and opening folders, task moves with Undo and drag, New Task with its refusals and the stale case, guided setup, Commands and Regenerate All, Open in VS Code on every view, the Connect Your AI IDE card, live reload, light and dark, 420px. No fixed sleeps; page errors, unexpected console errors and off-host requests fail a test; failures keep a screenshot and the HTML. Not in `npm test` (1416), not built or packed. Three timed runs 26/26 (about 11 s). No `ui/` change. Follow-ups BL-090, BL-091. Commit `763cfc4`. |

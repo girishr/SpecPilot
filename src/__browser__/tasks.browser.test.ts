@@ -11,6 +11,14 @@ beforeAll(async () => (browser = await launch()));
 afterAll(async () => browser.close());
 beforeEach(async () => {
   env = makeEnv();
+  // A known row at the top of each movable section, so no test depends on what this repo's own tasks.md
+  // holds today (its Current Sprint is empty whenever no item is in progress).
+  const lines = read(env.tasks()).split('\n');
+  for (const [heading, line] of [['Current Sprint', '| CS-901 | Fixture sprint row |'], ['Backlog', '| BL-901 | Fixture backlog row |']]) {
+    const at = lines.findIndex(l => l.trim() === `## ${heading}`);
+    lines.splice(lines.findIndex((l, i) => i > at && /^\|---/.test(l)) + 1, 0, line);
+  }
+  writeFileSync(env.tasks(), lines.join('\n'));
   srv = await serve(env, [env.project]);
 });
 afterEach(async () => {

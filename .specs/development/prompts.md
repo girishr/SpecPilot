@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-09 (v2.12.0 prepared)
-version: 2.84
+lastUpdated: 2026-10-10 (BL-089/BL-087 Spec Report)
+version: 2.85
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,9 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-10: BL-089 and BL-087 built on `feat/bl-089-087-mcp-2026-07-28` after the developer's typed `yes proceed`, taken as accepting SpecPilot's recommendations (Architectural; defaults 2 to 16; 17 amends BL-PM-007's Added entry). Jest 1454/1454, browser 26/26, tsc clean, lint errors only the two already on `main`; Claude Code 2.1.286 checked live through a logging proxy (stays on `2026-07-28`). Not committed.
+- 2026-10-10: BL-089/BL-087 Spec Report follow-up; brief ("go ahead with this"): add the BL-089 decision to `security-decisions.md` (protocol version check, header and body must match, the new error codes, checks run before any tool is called), re-run spec-reviewer A, leave the other out-of-sync findings for one chore branch after this item merges, then wait for `yes, proceed`. spec-reviewer A's first pass was ESCALATE (Feature vs Architectural, defaults to accept); its spec fixes were applied (repeated headers via `rawHeaders`, `tools/call` without a name -32020, check-order and status tests, `api.yaml`/`requirements.md` version bumps). Added SEC-004.21.
+- 2026-10-10: BL-089 and BL-087 Spec-First gate, specs only, on `feat/bl-089-087-mcp-2026-07-28` from `main` (`b8b5e84`); the brief ("go ahead with this") asked for MCP revision `2026-07-28` on `/mcp` beside `2025-11-25` and `2025-06-18` (read the published spec and BL-PM-007's notes on Claude Code), the Connect Your AI IDE note to say "add .mcp.json to .gitignore", `npm run build` to clean `dist/` first, one Spec Report with defaults, spec-reviewer A, and a stop. Read the two rows, BL-PM-007's context entries, `mcpLocal.ts`, `handleMcp()`, the card code, README, `package.json`, and modelcontextprotocol.io's `2026-07-28` pages. Updated: REQ-002.H.33, ARCH-004.50, `api.yaml`, the threat-model `/mcp` row, TESTS-002.2 (planned), `tasks.md` (BL-089 and BL-087 Backlog → Current Sprint, rows unchanged), `context.md` (17 defaults). No code.
 - 2026-10-10: the developer added `.mcp.json` to `.gitignore` (the file holds the live MCP token) and asked, with a typed `Yes proceed`, to commit it: branch `chore/gitignore-mcp-json`, trivial row 174 in `tasks.md`, `--no-ff` merge into `main`, push.
 - 2026-10-10: BL-079 follow-up on the developer's typed `yes proceed`: the browser suite failed once on `main` after the merge (the drag test found no Current Sprint row in the copied `.specs/`), and `c6966c8` had been pushed regardless because the push was chained after a `grep` of the result, not the suite's exit code. Fixed on `fix/bl-079-fixture-rows`: fixture rows `CS-901` and `BL-901` in the Tasks tests; trivial row 173 in `tasks.md`; `--no-ff` merge into `main`; the push only after `npm run test:browser` exits 0 on its own.
 - 2026-10-10: BL-079 accepted as built on the developer's typed `yes proceed`: feature commit on `feat/bl-079-browser-tests`, completion commit (BL-079 to Completed citing it), tasks.md diff read line by line before each, `--no-ff` merge into `main`, push `origin main`, local branch deleted; no bump, tag or publish. Also asked (not committed): `CLAUDE.local.md` gains that a branch touching `ui/` runs `npm run test:browser` before the build report and new UI behaviour gets a browser test in the same branch.

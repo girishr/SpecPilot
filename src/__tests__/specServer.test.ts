@@ -1071,9 +1071,9 @@ const MOVE_TASKS = [
 ].join('\n');
 
 /** POST /api/tasks/move with full control over the headers that the security checks read. */
-function post(port: number, body: string, headers: Record<string, string | undefined>, path = '/api/tasks/move') {
+function post(port: number, body: string, headers: Record<string, string | string[] | undefined>, path = '/api/tasks/move') {
   return new Promise<{ status: number; headers: Record<string, unknown>; json: any }>((resolve, reject) => {
-    const h: Record<string, string> = {};
+    const h: Record<string, string | string[]> = {};
     for (const [k, v] of Object.entries(headers)) if (v !== undefined) h[k] = v;
     const req = request({ host: '127.0.0.1', port, path, method: 'POST', headers: h }, res => {
       let text = '';
@@ -3079,7 +3079,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     port = (spec.server.address() as AddressInfo).port;
     token = spec.mcpToken!;
   };
-  const headers = (over: Record<string, string | undefined> = {}) => ({
+  const headers = (over: Record<string, string | string[] | undefined> = {}) => ({
     Host: `127.0.0.1:${port}`,
     'Content-Type': 'application/json',
     Accept: 'application/json, text/event-stream',
@@ -3087,7 +3087,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     'MCP-Protocol-Version': '2025-11-25',
     ...over,
   });
-  const rpc = (method: string, params?: unknown, over: Record<string, string | undefined> = {}) =>
+  const rpc = (method: string, params?: unknown, over: Record<string, string | string[] | undefined> = {}) =>
     post(port, JSON.stringify({ jsonrpc: '2.0', id: 7, method, ...(params === undefined ? {} : { params }) }), headers(over), '/mcp');
   const tool = async (name: string, args: Record<string, unknown> = {}) => {
     const r = await rpc('tools/call', { name, arguments: args });
@@ -3328,5 +3328,80 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     const pageToken = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec(page)![1];
     expect((await rpc('ping', undefined, { 'X-SpecPilot-Token': pageToken })).status).toBe(403);
     expect((await rpc('ping')).status).toBe(200);
+  });
+
+  // BL-089 (REQ-002.H.33, SEC-004.21): revision 2026-07-28 over HTTP, with the headers a conforming client sends.
+  const META = { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientInfo': { name: 't', version: '1' }, 'io.modelcontextprotocol/clientCapabilities': {} };
+  const modern = (method: string, params: Record<string, unknown> = {}, over: Record<string, string | string[] | undefined> = {}) =>
+    post(
+      port,
+      JSON.stringify({ jsonrpc: '2.0', id: 9, method, params: { ...params, _meta: META } }),
+      { ...headers(), 'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': method, ...(method === 'tools/call' ? { 'Mcp-Name': String(params.name) } : {}), ...over },
+      '/mcp',
+    );
+
+  it('serves 2026-07-28: discover, list, and a task write with the same bytes as the page route', async () => {
+    await start();
+    const d = await modern('server/discover');
+    expect(d.status).toBe(200);
+    expect(d.json.result).toEqual({
+      resultType: 'complete',
+      supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'],
+      capabilities: { tools: {} },
+      ttlMs: 0,
+      cacheScope: 'private',
+      _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'specpilot-local', version: '0.0.0-test' } },
+    });
+    expect((await modern('tools/list')).json.result.tools).toHaveLength(7);
+    const add = await modern('tools/call', { name: 'specpilot_new_task', arguments: { description: ' Ship the MCP card ', section: 'currentSprint', sha256: hashOf(a.root) } });
+    expect(add.status).toBe(200);
+    expect(add.json.result.resultType).toBe('complete');
+    expect(add.json.result.structuredContent.id).toBe('CS-002');
+    expect((await pageWrite('/api/tasks/new', { description: ' Ship the MCP card ', section: 'currentSprint' }, b.root, 1)).status).toBe(200);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
+  });
+
+  it('refuses repeated mirrored headers sent as separate lines with -32020, and writes nothing', async () => {
+    await start();
+    const args = { name: 'specpilot_move_task', arguments: { id: 'BL-002', toSection: 'currentSprint', toIndex: 0, sha256: hashOf(a.root) } };
+    for (const over of [{ 'Mcp-Method': ['tools/call', 'tools/call'] }, { 'MCP-Protocol-Version': ['2026-07-28', '2026-07-28'] }, { 'Mcp-Name': ['specpilot_move_task', 'specpilot_move_task'] }]) {
+      const r = await modern('tools/call', args, over);
+      expect(r.status).toBe(400);
+      expect(r.json.error.code).toBe(-32020);
+      expect(r.json.error.message).toMatch(/header was sent 2 times$/);
+    }
+    expect((await modern('tools/call', args, { 'Mcp-Name': 'specpilot_list_tasks' })).json.error.code).toBe(-32020);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('answers -32022 for another version and 404 for ping, and the guards still answer first', async () => {
+    await start();
+    const v = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 9, method: 'tools/list', params: { _meta: { ...META, 'io.modelcontextprotocol/protocolVersion': '2027-01-01' } } }), { ...headers(), 'MCP-Protocol-Version': '2027-01-01', 'Mcp-Method': 'tools/list' }, '/mcp');
+    expect(v.status).toBe(400);
+    expect(v.json.error).toEqual({ code: -32022, message: 'Unsupported protocol version', data: { supported: ['2026-07-28', '2025-11-25', '2025-06-18'], requested: '2027-01-01' } });
+    const ping = await modern('ping');
+    expect(ping.status).toBe(404);
+    expect(ping.json.error.code).toBe(-32601);
+    expect((await modern('tools/list', {}, { 'X-SpecPilot-Token': 'x'.repeat(64) })).status).toBe(403);
+    expect((await modern('tools/list', {}, { Origin: 'https://evil.com' })).status).toBe(403);
+    expect((await modern('tools/list', {}, { 'Content-Type': 'text/plain' })).status).toBe(415);
+    expect((await modern('tools/list', {}, { Host: 'evil.com' })).status).toBe(403);
+    expect((await modern('tools/list', { pad: 'x'.repeat(17 * 1024) })).status).toBe(413);
+  });
+
+  it('with --read-only lists four tools on 2026-07-28 and refuses a write tool with -32602 and HTTP 200', async () => {
+    await start({ readOnly: true });
+    expect((await modern('tools/list')).json.result.tools).toHaveLength(4);
+    const w = await modern('tools/call', { name: 'specpilot_move_task', arguments: { id: 'BL-002', toSection: 'currentSprint', toIndex: 0, sha256: hashOf(a.root) } });
+    expect(w.status).toBe(200);
+    expect(w.json.error).toEqual({ code: -32602, message: 'Unknown tool: specpilot_move_task' });
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(MOVE_TASKS);
+  });
+
+  it('still joins a repeated version header on the initialize-based path, as Node did before BL-089', async () => {
+    await start();
+    const r = await rpc('ping', undefined, { 'MCP-Protocol-Version': ['2025-11-25', '2025-11-25'] });
+    expect(r.status).toBe(400);
+    expect(r.json.error.message).toBe('Bad Request: Unsupported protocol version: 2025-11-25, 2025-11-25 (supported versions: 2025-11-25, 2025-06-18)');
   });
 });

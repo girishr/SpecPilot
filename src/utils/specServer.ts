@@ -17,7 +17,7 @@ import { isSpecPilotCommand } from './slashCommandGenerator';
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
 import { agentTargets } from '../core/agentConfig';
 import { SpecValidator } from './specValidator';
-import { answerMcp, MCP_TOOLS, rpcError, ToolRefusal } from './mcpLocal';
+import { answerMcp, MCP_TOOLS, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
@@ -781,12 +781,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     }
     if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) return sendJson(res, 415, rpcError(null, -32000, 'Send JSON-RPC as application/json.'));
     if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) return sendJson(res, 413, rpcError(null, -32000, 'The request is too large.'));
-    const header = req.headers['mcp-protocol-version'];
     readJson(
       req,
       res,
       body =>
-        answerMcp(body, Array.isArray(header) ? header[0] : header, mcpTools, specpilotVersion, callTool).then(
+        answerMcp(body, mirroredHeaders(req.rawHeaders), mcpTools, specpilotVersion, callTool).then(
           reply => {
             if (reply.status !== 202) return sendJson(res, reply.status, reply.body);
             res.writeHead(202, SECURITY_HEADERS);

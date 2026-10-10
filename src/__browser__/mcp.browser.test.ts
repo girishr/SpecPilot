@@ -31,6 +31,9 @@ for (const light of [false, true]) {
         await page.locator('#homeMcp').waitFor({ state: 'visible' });
         const line = routeJs.mcpConfigLine(srv.host, srv.handle.mcpToken!);
         expect(await page.locator('#mcpLine').textContent()).toBe(line);
+        expect(await page.locator('#mcpNote').textContent()).toBe(
+          'Add this to your IDE\u2019s MCP settings, or to .mcp.json in your project and add .mcp.json to .gitignore. The token changes each time specpilot serve starts.',
+        );
         await page.click('#mcpCopy');
         await waitToast(page, /^Copied\.$/);
         expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(line);
@@ -49,6 +52,10 @@ browserTest('with SPECPILOT_MCP_TOKEN the line names the variable and the page n
     const { page } = await open(srv, '#home');
     await page.locator('#homeMcp').waitFor({ state: 'visible' });
     expect(await page.locator('#mcpLine').textContent()).toBe(routeJs.mcpConfigLine(srv.host, '${SPECPILOT_MCP_TOKEN}'));
+    // The file then holds the variable's name, not a secret, so this note does not ask for .gitignore (BL-089/BL-087 default 15).
+    expect(await page.locator('#mcpNote').textContent()).toBe(
+      'Add this to your IDE\u2019s MCP settings or to .mcp.json in your project. Claude Code fills in ${SPECPILOT_MCP_TOKEN} from the environment; for other IDEs, put the token in its place.',
+    );
     expect(await page.content()).not.toContain(value);
   } finally {
     await srv.close();

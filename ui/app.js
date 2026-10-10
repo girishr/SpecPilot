@@ -848,7 +848,7 @@ if(TOKEN&&MCP){
   $('#mcpLine').textContent=mcpConfigLine(location.host,env?'${SPECPILOT_MCP_TOKEN}':TOKEN);
   $('#mcpNote').textContent=env
     ?'Add this to your IDE\u2019s MCP settings or to .mcp.json in your project. Claude Code fills in ${SPECPILOT_MCP_TOKEN} from the environment; for other IDEs, put the token in its place.'
-    :'Add this to your IDE\u2019s MCP settings, or to .mcp.json in your project if that file stays out of git. The token changes each time specpilot serve starts.';
+    :'Add this to your IDE\u2019s MCP settings, or to .mcp.json in your project and add .mcp.json to .gitignore. The token changes each time specpilot serve starts.';
   $('#homeMcp').hidden=false;
   $('#mcpCopy').onclick=()=>(navigator.clipboard?navigator.clipboard.writeText($('#mcpLine').textContent):Promise.reject())
     .then(()=>toast('Copied.'),()=>toast('Could not copy. Select the line and copy it.'));

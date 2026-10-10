@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-08 (BL-PM-008 Spec Report)
-version: 1.20
+lastUpdated: 2026-10-10 (BL-089/BL-087 Spec Report)
+version: 1.21
 contributors: [girishr]
 relatedFiles:
   [
@@ -153,7 +153,7 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | `POST /api/tasks/move`               | JSON `{id, toSection, toIndex}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, If-Match, row lookup | One line moved in `tasks.md` (SEC-002.5 f, h) |
 | `POST /api/tasks/new` (BL-PM-005)   | JSON `{description, section}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; description one line of at most 4000 code points, no control character, no unpaired surrogate, no `|`, no trailing `\`, not empty; section `backlog` or `currentSprint`; ID computed by the server | One line appended to Backlog or Current Sprint in `tasks.md`; `tasks-archive.md` read for IDs (SEC-004.18) |
 | `POST /api/commands/regenerate` (BL-PM-006) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; body must be `{}`; targets fixed by `KNOWN_COMMAND_HASHES` and IDE signal files | Adds missing and replaces byte-exact known `specpilot-*` command files of detected IDEs; links on the way kept (SEC-004.19) |
-| `POST /mcp` (BL-PM-007, only with `--mcp`) | JSON-RPC (one message), `X-SpecPilot-Token`, `Origin` absent or the page's own | ✅ Host, Origin, token, JSON only, ≤ 16 KB; tool arguments through the page routes' shape checks; `sha256` as If-Match | The page's read and write functions under the one lock (SEC-002.9) |
+| `POST /mcp` (BL-PM-007, only with `--mcp`) | JSON-RPC (one message), `X-SpecPilot-Token`, `Origin` absent or the page's own | ✅ Host, Origin, token, JSON only, ≤ 16 KB; tool arguments through the page routes' shape checks; `sha256` as If-Match; on revision `2026-07-28` (BL-089) the mirrored `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers must equal the body (-32020), and nothing is routed on a header | The page's read and write functions under the one lock (SEC-002.9) |
 | `GET /api/setup`                     | `project` index      | ✅ Host check; 404 unless a named folder without `.specs`; 405 with `--read-only` | Questions, detector result and the kept list, read-only (SEC-002.5 j) |
 | `POST /api/setup`                    | JSON `{projectType, language?, framework?, apiParadigm, handle, ide}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, fixed keys, fixed choices, handle allowlist | New files only, staged then created exclusively; existing files kept (SEC-002.5 j) |
 | `.specpilot-setup-*` folders at `serve` startup | Disk read (`lstat`, marker file) | ✅ exact name pattern, real folder, marker present as a regular file; skipped with `--read-only` | Removed with contents; nothing else touched (SEC-002.5 j) |

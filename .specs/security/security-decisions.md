@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-08 (BL-PM-006 Spec Report)
-version: 1.15
+lastUpdated: 2026-10-10 (BL-089 Spec Report)
+version: 1.16
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -251,6 +251,17 @@ This file records security-related architectural and implementation decisions ma
   - A stdio server started by the IDE — rejected in the brief: a second process.
 - **Reference**: SEC-002.9, SEC-004.10, SEC-004.18, SEC-004.19, REQ-002.H.33, ARCH-004.50
 
+### [SEC-004.21] MCP revision `2026-07-28` on `/mcp`: version checked, headers equal to the body, every check before any tool runs
+
+- **Date**: 2026-10-10 (BL-089 Spec Report)
+- **Decision**: `POST /mcp` also serves revision `2026-07-28` beside `2025-11-25` and `2025-06-18`, chosen per request from the body (`params._meta` carrying `io.modelcontextprotocol/protocolVersion`); nothing is kept between requests. SEC-004.20's guards (Host, `Origin` absent or the page's own, the token, `application/json`, 16 KB) run first and are unchanged. Then, for a modern request and in this order, each answering HTTP 400 with no tool called and nothing read or written: (1) **protocol version**: the `_meta` version must be `2026-07-28`, else `-32022` (UnsupportedProtocolVersion) with `data.supported` and `data.requested`; (2) **header and body must match**: `MCP-Protocol-Version` equal to the `_meta` version, `Mcp-Method` equal to `method`, and on `tools/call` `Mcp-Name` equal to `params.name` (a `=?base64?…?=` value decoded first); missing, repeated (read from `req.rawHeaders`), different or undecodable → `-32020` (HeaderMismatch); (3) `_meta` `io.modelcontextprotocol/clientCapabilities` must be an object, else `-32602`. Only then is the method dispatched: an unknown method is 404 with `-32601`, and a tool runs through the same `call`, shape checks, `sha256`-as-`If-Match` and write lock as under SEC-004.20. On the modern path the body is the only source of truth: no decision is taken from a header (the initialize-based path keeps its `MCP-Protocol-Version` check and -32000 answer), and `Mcp-Param-*` headers are ignored (no tool declares `x-mcp-header`). The new codes `-32020` and `-32022` are sent only on the modern path; the initialize-based path keeps its answers, including the `-32000` unsupported-version answer dual-era clients fall back on. A notification (no `id`) carrying `_meta` gets 202 with no body and none of these checks; without `_meta` it is answered as before SEC-004.21; in neither case does it dispatch a tool.
+- **Rationale**: The specification requires the version check and the header-and-body match; the match keeps a proxy or logger that reads the headers from seeing a different call than the one the server runs. Running all three checks before dispatch means a malformed or mismatched request can never reach a write tool, so the new revision adds a protocol entry to the write tools but no new way past their guards. Choosing the era from the body, not a header or earlier request, keeps the endpoint stateless and lets an older client keep falling back exactly as before.
+- **Alternatives considered**:
+  - Modern revision only (drop `initialize`) — rejected: Claude Code 2.1.286 is dual-era and older clients would fail.
+  - Era from the `MCP-Protocol-Version` header — rejected: the header is a mirror, the spec makes the body the source of truth, and a `2026-07-28` header without `_meta` would stop a dual-era client's fallback.
+  - The SDK (`@modelcontextprotocol/sdk`) for the new revision — rejected as in SEC-004.20 (SEC-004.4).
+- **Reference**: SEC-004.20, SEC-002.9, REQ-002.H.33, ARCH-004.50
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
@@ -259,4 +270,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-10-08_
+_Last updated: 2026-10-10_

@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 built)
-version: 1.22
+lastUpdated: 2026-10-10 (BL-PM-009 Spec Report)
+version: 1.23
 contributors: [girishr]
 relatedFiles:
   [
@@ -149,7 +149,7 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | `?project=<n>` on `/api/` routes     | Integer index        | ✅ one value, decimal digits only, no sign or leading zero, naming a served project, else 404 | Picks one root; then single-project guards (SEC-002.5 i) |
 | `specpilot serve --port`             | Integer              | ✅ 1–65535 integer             | `server.listen()` on 127.0.0.1           |
 | `specpilot serve --poll`             | Integer (ms)         | ✅ whole number ≥ 250          | Poller interval (SEC-002.5 g)            |
-| `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g)  |
+| `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g); clone progress: a stage key and a percentage (BL-PM-009) |
 | `POST /api/tasks/move`               | JSON `{id, toSection, toIndex}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, If-Match, row lookup | One line moved in `tasks.md` (SEC-002.5 f, h) |
 | `POST /api/tasks/new` (BL-PM-005)   | JSON `{description, section}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; description one line of at most 4000 code points, no control character, no unpaired surrogate, no `|`, no trailing `\`, not empty; section `backlog` or `currentSprint`; ID computed by the server | One line appended to Backlog or Current Sprint in `tasks.md`; `tasks-archive.md` read for IDs (SEC-004.18) |
 | `POST /api/commands/regenerate` (BL-PM-006) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; body must be `{}`; targets fixed by `KNOWN_COMMAND_HASHES` and IDE signal files | Adds missing and replaces byte-exact known `specpilot-*` command files of detected IDEs; links on the way kept (SEC-004.19) |
@@ -161,7 +161,7 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | `GET /api/projects`, `POST /api/projects/remove` | none / JSON `{path}` + token + `Origin` | ✅ Host (and the write checks on remove); remove matches the stored string only | Registry listed or one entry removed; no folder touched (SEC-002.5 k) |
 | `GET /api/projects/new`              | none                 | ✅ Host check; 405 with `--read-only` | `init`'s questions; reads no folder, writes nothing (SEC-002.5 l) |
 | `POST /api/projects/new`             | JSON `{parent, name, projectType, language, framework?, apiParadigm, handle, ide, whatItDoes, targetUsers?, expectedScale?, constraints?}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; fixed keys and choices; parent through `checkOpenPath()`, no `.specs` segment; name allowlist, ≤ 214; handle allowlist; context answers single-line, ≤ 1000, no control characters or U+2028 / U+2029; 405 with `--read-only` | One new folder (or an existing empty one) with the files `init` writes, staged then created exclusively; then one more served root and one registry entry (SEC-002.5 l) |
-| `POST /api/projects/clone`           | JSON `{url, parent, name}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; three string keys; URL allowlist (https, `ssh://`, `user@host:path`; ≤ 2048, no whitespace or control character, no leading `-`, no credentials); parent and name as `POST /api/projects/new`; target missing or empty; one clone at a time; 405 with `--read-only` | One `git clone` started without a shell (https or ssh only, no submodules, no prompt, 10 minutes at most) into one new or empty folder, cleaned up on failure; then one more served root and one registry entry (SEC-002.5 m) |
+| `POST /api/projects/clone`           | JSON `{url, parent, name}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; three string keys; URL allowlist (https, `ssh://`, `user@host:path`; ≤ 2048, no whitespace or control character, no leading `-`, no credentials); parent and name as `POST /api/projects/new`; target missing or empty; one clone at a time; 405 with `--read-only` | One `git clone --progress` started without a shell (stderr read for a stage and a percentage only, BL-PM-009; https or ssh only, no submodules, no prompt, 10 minutes at most) into one new or empty folder, cleaned up on failure; then one more served root and one registry entry (SEC-002.5 m) |
 | `~/.specpilot/projects.json`         | Disk read (JSON, `lstat`) | ✅ `.specpilot` a real folder, file a regular file, valid JSON of the one shape, absolute paths; anything else → refused for the run, never rewritten | Recent projects list; never a served root by itself (SEC-002.5 k) |
 | Existing `specpilot-*` command files (`backfill`) | Disk read (bytes, `lstat`) | ✅ Exact SHA-256 match per target path, regular files only | Replaced or kept (SEC-002.6) |
 | Optional template fields (REQ-002.I.4) | Strings, lists, a map of lists | ⚠️ As typed in markdown (no HTML escaping since BL-PM-004b), `yaml`/`yamlList` in YAML; from BL-PM-004b also checked at the two create routes (type, length, list size, category keys, one line; SEC-002.8) | The phase 2 sections of `.specs/` files (SEC-002.2, SEC-002.7) |

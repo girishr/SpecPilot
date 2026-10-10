@@ -1,5 +1,6 @@
 // Home and opening projects (BL-079 row, BL-PM-001, BL-PM-014, BL-PM-008's Home links), TESTS-002.4.
 import { Browser } from 'playwright-core';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, remember, routeJs, serve, Served, until, waitToast, waitView } from './harness';
 
@@ -116,4 +117,103 @@ browserTest('both network checks every test ends with: a cross-host fetch is a c
   expect(t.offHost).toEqual(['https://example.com/']);
   t.offHost.length = 0;
   t.errors.length = 0;
+});
+
+// Clone progress (BL-PM-009, TESTS-002.4): a stub `git` first on PATH (a shell script, so POSIX only),
+// so nothing touches the network. It waits for files the test creates (go1, go2, go3) before each step,
+// so every stage is reached when the test says, with no fixed sleep in the test.
+(process.platform === 'win32' ? describe.skip : describe)('Clone a Repository progress (BL-PM-009)', () => {
+  let bin: string;
+  let realPath: string | undefined;
+  const go = (step: string) => writeFileSync(join(bin, step), '');
+  beforeEach(() => {
+    bin = join(env.base, 'bin');
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, 'git'),
+      `#!/bin/sh
+if [ "$1" = config ]; then exit 1; fi
+for target; do :; done
+step() { while [ ! -e "${bin}/$1" ]; do sleep 0.05; done; }
+if [ "$STUB_MODE" != quiet ]; then
+  step go1; printf 'remote: Counting objects: 100%% (9/9), done.\\nReceiving objects:  42%% (42/100)\\r' >&2
+  step go2; printf 'Receiving objects: 100%% (100/100), done.\\nResolving deltas:  50%% (1/2)\\r' >&2
+fi
+step go3
+mkdir -p "$target/.git" "$target/.specs/planning"; echo 'ref: refs/heads/main' > "$target/.git/HEAD"
+printf '%s\\n' '# Tasks' '' '## Backlog' '' '| ID | Description |' '|---|---|' '| BL-001 | From the clone |' > "$target/.specs/planning/tasks.md"
+`,
+      { mode: 0o755 },
+    );
+    realPath = process.env.PATH;
+    process.env.PATH = `${bin}:/usr/bin:/bin`;
+  });
+  afterEach(() => {
+    process.env.PATH = realPath;
+    delete process.env.STUB_MODE;
+  });
+
+  const bar = (page: import('playwright-core').Page) =>
+    page.evaluate(() => {
+      const el = document.querySelector('#cloneStatus .bar')!;
+      const after = getComputedStyle(el, '::after');
+      return { now: el.getAttribute('aria-valuenow'), text: el.getAttribute('aria-valuetext'), det: el.classList.contains('det'), status: document.querySelector('#cloneTime')!.textContent, animation: after.animationName, transition: after.transitionDuration };
+    });
+  const startClone = async (page: import('playwright-core').Page, url: string) => {
+    await page.click('#homeBtn');
+    await waitView(page, 'v-home');
+    await page.click('#homeClone');
+    await page.waitForFunction(() => document.querySelector('#openVeil')!.classList.contains('open'));
+    await page.fill('#cloneIn', url);
+    await page.fill('#cloneParentIn', '~/dev');
+    await page.click('#openGo');
+    await page.waitForFunction(() => !document.querySelector<HTMLElement>('#cloneStatus')!.hidden);
+  };
+  const waitStatus = (page: import('playwright-core').Page, re: RegExp) => page.waitForFunction(src => new RegExp(src).test(document.querySelector('#cloneTime')!.textContent ?? ''), re.source);
+
+  browserTest("shows git's stage and percentage once it gives one; another tab is not touched; the next clone starts indeterminate; Cancel removes it", b, async open => {
+    const { page } = await open(srv, '#home');
+    const other = await open(srv, '#home');
+    await startClone(page, 'https://example.com/owner/demo.git');
+    expect(await bar(page)).toMatchObject({ now: null, text: null, det: false });
+    expect((await bar(page)).status).toMatch(/^Cloning… 0:0\d$/);
+    go('go1');
+    await waitStatus(page, /^Receiving objects 42% · \d:\d\d$/);
+    expect(await bar(page)).toMatchObject({ now: '42', text: 'Receiving objects 42%', det: true, animation: 'none', transition: '0.2s' });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect((await bar(page)).transition).toBe('0s');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    go('go2');
+    await waitStatus(page, /^Resolving deltas 50% · \d:\d\d$/);
+    expect(await bar(page)).toMatchObject({ now: '50', text: 'Resolving deltas 50%' });
+    // the other tab got the same events but is not cloning: its sheet is closed and its bar untouched
+    expect(await other.page.evaluate(() => document.querySelector<HTMLElement>('#cloneStatus')!.hidden)).toBe(true);
+    expect(await bar(other.page)).toMatchObject({ now: null, det: false, status: 'Cloning… 0:00' });
+    go('go3');
+    await waitToast(page, /cloned and opened as project 1/);
+    expect(existsSync(join(env.home, 'dev', 'demo', '.specs'))).toBe(true);
+
+    for (const step of ['go1', 'go2', 'go3']) rmSync(join(bin, step));
+    await startClone(page, 'https://example.com/owner/second.git');
+    expect(await bar(page)).toMatchObject({ now: null, text: null, det: false });
+    expect((await bar(page)).status).toMatch(/^Cloning… 0:0\d$/);
+    go('go1');
+    await waitStatus(page, /^Receiving objects 42%/);
+    await page.click('#openCancel');
+    await page.waitForFunction(() => !document.querySelector('#openVeil')!.classList.contains('open'));
+    await until(() => !existsSync(join(env.home, 'dev', 'second')), 'the cancelled clone to be removed');
+  });
+
+  browserTest('a clone whose git prints no percentage keeps the indeterminate bar and the elapsed time, still under reduced motion', b, async open => {
+    process.env.STUB_MODE = 'quiet';
+    const { page } = await open(srv, '#home');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await startClone(page, 'https://example.com/owner/quiet.git');
+    await waitStatus(page, /^Cloning… 0:0[1-9]$/); // the timer ticks
+    expect(await bar(page)).toMatchObject({ now: null, text: null, det: false, animation: 'none' });
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    expect((await bar(page)).animation).toBe('cloning');
+    go('go3');
+    await waitToast(page, /cloned and opened as project 1/);
+  });
 });

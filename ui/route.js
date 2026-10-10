@@ -111,6 +111,18 @@ function reloadView(curView,hadSpecs,hasSpecs){
    of the rule: the Clone tab fills Folder name with it and the server uses it for an empty name (BL-PM-002). */
 function repoNameFromUrl(url){return String(url).replace(/\/+$/,'').replace(/\.git$/,'').split(/[/:]/).pop()||'';}
 
+/* The Clone sheet's status (BL-PM-009): `Cloning… 0:42` until git gives a percentage, then git's stage and it. */
+const CLONE_STAGES={receiving:'Receiving objects',resolving:'Resolving deltas',updating:'Updating files'};
+function cloneStatus(seconds,progress){
+  const t=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;
+  return progress?`${CLONE_STAGES[progress.stage]} ${progress.percent}% · ${t}`:`Cloning… ${t}`;
+}
+/* A `clone` event's data as {stage, percent}, or null for anything else. */
+function cloneProgress(data){
+  let p;try{p=JSON.parse(data);}catch(_){return null;}
+  return p&&typeof p==='object'&&Object.prototype.hasOwnProperty.call(CLONE_STAGES,p.stage)&&Number.isInteger(p.percent)&&p.percent>=0&&p.percent<=100?{stage:p.stage,percent:p.percent}:null;
+}
+
 /* The name a project is shown under: the one in its project.yaml, else its folder's own name (the last
    segment of its root), never the whole path, which stays in the tooltip and the sub-line. */
 function projectLabel(p){return p.name!==null&&p.name!==undefined?p.name:String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root;}
@@ -286,7 +298,7 @@ function mcpConfigLine(host,token){
   return JSON.stringify({mcpServers:{'specpilot-local':{type:'http',url:`http://${host}/mcp`,headers:{'X-SpecPilot-Token':token}}}});
 }
 
-const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
+const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,CLONE_STAGES,cloneStatus,cloneProgress,projectLabel,
   projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
   optionHtml,tabsHtml,choiceOptions,SETUPS_KEY,setupsLoad,setupsPut,setupsRemove,setupRecord,setupTitle,setupStatus};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);

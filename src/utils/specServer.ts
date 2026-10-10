@@ -633,7 +633,9 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const code = await emptyTarget(target, created);
       return code ? ` ${target} could not be cleaned up (${code}).` : '';
     };
-    const out = await cloneRepository(url, target, { batchSsh: probe.batchSsh, timeoutMs: opts.cloneTimeoutMs, signal });
+    // Progress goes to every open stream, as a stage key and a number only (BL-PM-009, SEC-004.9): a clone belongs to no project.
+    const onProgress = (stage: string, percent: number) => allStreams().forEach(s => s.write(`event: clone\ndata: ${JSON.stringify({ stage, percent })}\n\n`));
+    const out = await cloneRepository(url, target, { batchSsh: probe.batchSsh, timeoutMs: opts.cloneTimeoutMs, signal, onProgress });
     if (!out.ok) {
       const note = await cleanUp();
       if (!out.aborted) sendJson(res, 422, { error: out.error + note });

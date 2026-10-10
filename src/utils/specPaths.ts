@@ -24,21 +24,23 @@ function isAllowlisted(rel: string): boolean {
  * Map a requested project-relative path to a real file the server may read, or null.
  * Rejects NUL, backslashes, absolute paths and `..` segments; no folder on the way may be a
  * symlink (the scanner does not follow them either); after resolving a symlinked file the
- * target must still be inside the project root and still inside the allowlist.
+ * target must still be inside the project root and still inside the allowlist. `allowed`, when
+ * given, replaces the allowlist with exactly these paths, under the same checks (BL-PM-010).
  */
-export function resolveAllowedPath(root: string, requested: string): string | null {
+export function resolveAllowedPath(root: string, requested: string, allowed?: string[]): string | null {
+  const ok = allowed ? (rel: string) => allowed.includes(rel) : isAllowlisted;
   if (!requested || requested.includes('\0') || requested.includes('\\')) return null;
   if (isAbsolute(requested) || posix.isAbsolute(requested)) return null;
   if (requested.split('/').includes('..')) return null;
   const rel = posix.normalize(requested);
-  if (!isAllowlisted(rel)) return null;
+  if (!ok(rel)) return null;
   try {
     const realRoot = realpathSync(root);
     if (realpathSync(dirname(join(root, rel))) !== join(realRoot, dirname(rel))) return null;
     const real = realpathSync(join(root, rel));
     const back = relative(realRoot, real);
     if (!back || back === '..' || back.startsWith('..' + sep) || isAbsolute(back)) return null;
-    if (!isAllowlisted(back.split(sep).join('/'))) return null;
+    if (!ok(back.split(sep).join('/'))) return null;
     return statSync(real).isFile() ? real : null;
   } catch {
     return null;

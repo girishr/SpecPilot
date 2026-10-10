@@ -237,6 +237,12 @@ input.txt{width:100%}
 .insp .row .v{color:var(--label)}
 .insp .desc{padding:10px 12px;color:var(--label-2);line-height:1.55;font-size:14px}
 .insp .actions{display:flex;gap:8px;flex-wrap:wrap;padding:2px}
+/* Open in AI IDE (BL-PM-010): a small menu under its top-bar button */
+.idewrap{position:relative;display:flex}
+.idemenu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:240px;max-width:calc(100vw - 32px);display:grid;padding:4px;background:var(--group);border:1px solid var(--sep-2);border-radius:6px;box-shadow:var(--shadow)}
+.idemenu[hidden]{display:none}
+.idemenu [role=menuitem]{display:block;width:100%;padding:8px 10px;border-radius:var(--rs);color:var(--label);font-size:13px;text-decoration:none}
+.idemenu [role=menuitem]:hover,.idemenu [role=menuitem]:focus-visible{background:var(--hover)}
 .report li{display:flex;gap:10px;padding:9px 12px;border-top:1px solid var(--sep);font-size:13px;line-height:1.45}
 .report li:first-child{border-top:0}
 .report .f{font-family:var(--mono);font-size:12px;color:var(--green-ink);flex:none;min-width:150px;padding-top:2px}

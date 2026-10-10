@@ -123,6 +123,8 @@ function tasksHash(root: string): string | null {
   return real ? sha256(readFileSync(real)) : null;
 }
 
+const CURSOR_RULES = '.cursor/rules/specpilot.mdc';
+
 /** Everything `GET /api/specs` returns: project metadata, readSpecs() output, the nav tree. */
 export function buildSpecsPayload(root: string, specpilotVersion: string) {
   const scanned = listAllowedFiles(root).files;
@@ -139,6 +141,8 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       branch: readBranch(root),
       specpilotVersion,
       specs: !specsMissing(root), // false → the page offers guided setup (BL-055)
+      // the file SpecPilot writes for Cursor; checked, never served (BL-PM-010, SEC-004.8)
+      cursor: resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
     },
     files,
     tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root) } : null,

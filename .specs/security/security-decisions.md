@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-10 (BL-089 Spec Report)
-version: 1.16
+lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 built)
+version: 1.17
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -96,6 +96,7 @@ This file records security-related architectural and implementation decisions ma
   - A per-session token on every request — deferred to Phase 3 (BL-053), where the first write route needs one anyway.
   - Serving the whole project root — rejected: the UI needs only specs and generated instruction files; source and secrets stay unreachable.
   - Loading Google Fonts as the mockup does — rejected: breaks the CSP and the offline guarantee (SEC-004.2).
+- **Revision (BL-PM-010, built 2026-10-10)**: one existence check outside the allowlist: for each served project, `/api/specs` reports whether `.cursor/rules/specpilot.mdc` is a regular file (`project.cursor`). It goes through `resolveAllowedPath()` with that one path as the allowed set, so the traversal, symlinked-folder and escape checks are the same; it is never served or read, and only served projects are checked (not every folder in the registry, the developer's choice over checking Home rows). It tells the page one bit it could not otherwise know, about a folder the user already opened.
 - **Reference**: SEC-002.5, REQ-002.H.4, ARCH-004.33
 
 ### [SEC-004.9] Live reload is polled, capped and content-free

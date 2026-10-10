@@ -110,6 +110,59 @@ describe('resolveAllowedPath', () => {
   });
 });
 
+describe('project.cursor (BL-PM-010): the Cursor rules file checked through the same guard, never served', () => {
+  const RULES = '.cursor/rules/specpilot.mdc';
+  let p: ReturnType<typeof makeProject>;
+  beforeEach(() => (p = makeProject()));
+  afterEach(() => p.cleanup());
+  const cursor = () => buildSpecsPayload(p.root, '0.0.0-test').project.cursor;
+
+  it('is true for the file and false without it', () => {
+    expect(cursor()).toBe(false);
+    write(p.root, RULES, '---\nalwaysApply: true\n---\n');
+    expect(cursor()).toBe(true);
+  });
+
+  it('is false for a folder at that path', () => {
+    mkdirSync(join(p.root, RULES), { recursive: true });
+    expect(cursor()).toBe(false);
+  });
+
+  it('is false through a symlinked .cursor or .cursor/rules folder, and for a file linked to elsewhere', () => {
+    write(p.outside, 'cursor/rules/specpilot.mdc', 'x\n');
+    symlinkSync(join(p.outside, 'cursor'), join(p.root, '.cursor'));
+    expect(cursor()).toBe(false);
+    rmSync(join(p.root, '.cursor'));
+    mkdirSync(join(p.root, '.cursor'));
+    symlinkSync(join(p.outside, 'cursor', 'rules'), join(p.root, '.cursor', 'rules'));
+    expect(cursor()).toBe(false);
+    rmSync(join(p.root, '.cursor', 'rules'));
+    mkdirSync(join(p.root, '.cursor', 'rules'));
+    symlinkSync(join(p.root, 'CLAUDE.md'), join(p.root, RULES));
+    expect(cursor()).toBe(false);
+  });
+
+  it('leaves the allowlist as it was: no other path passes with that one path allowed, the file is not served, listed or watched', async () => {
+    write(p.root, RULES, 'x\n');
+    expect(resolveAllowedPath(p.root, RULES)).toBeNull();
+    expect(resolveAllowedPath(p.root, RULES, [RULES])).toBe(realpathSync(join(p.root, RULES)));
+    expect(resolveAllowedPath(p.root, 'CLAUDE.md', [RULES])).toBeNull();
+    expect(resolveAllowedPath(p.root, '.cursor/rules/../rules/specpilot.mdc', [RULES])).toBeNull();
+    expect(resolveAllowedPath(p.root, 'CLAUDE.md')).not.toBeNull();
+    expect(watchedFiles(p.root)).not.toContain(RULES);
+    const spec = await startSpecServer([p.root], 0, '0.0.0-test');
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      expect((await hit(port, '/api/file?p=' + encodeURIComponent(RULES))).status).toBe(404);
+      const body = JSON.parse((await hit(port, '/api/specs')).body);
+      expect(body.project.cursor).toBe(true);
+      expect(body.nav.instructions.map((f: { path: string }) => f.path)).not.toContain(RULES);
+    } finally {
+      await spec.close();
+    }
+  });
+});
+
 describe('isAllowedHost', () => {
   it('accepts the loopback names on the server port', () => {
     expect(isAllowedHost('127.0.0.1:4321', 4321)).toBe(true);
@@ -733,8 +786,10 @@ describe('the poller watches exactly what /api/file serves', () => {
 
 describe('UI routing (ui/route.js)', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { resolveRoute, goneHtml, editorUrl, recentHtml, openOutcome, reloadView, repoNameFromUrl, projectLabel } = require('../../ui/route.js') as {
-    editorUrl: (path: string, line?: number) => string;
+  const { resolveRoute, goneHtml, editorUrl, cursorPromptUrl, onboardingPrompt, recentHtml, openOutcome, reloadView, repoNameFromUrl, projectLabel } = require('../../ui/route.js') as {
+    editorUrl: (path: string, line?: number, scheme?: string) => string;
+    cursorPromptUrl: (text: string) => string | null;
+    onboardingPrompt: (src: string) => string;
     repoNameFromUrl: (url: string) => string;
     projectLabel: (p: { name: string | null; root: string }) => string;
     resolveRoute: (hash: string, files: Record<string, unknown>, count?: number, home?: boolean) => { project: number; view: string; sub: string; missing: boolean };
@@ -867,6 +922,31 @@ describe('UI routing (ui/route.js)', () => {
     expect(editorUrl('C:\\dev\\p/.specs/planning/tasks.md', 7)).toBe('vscode://file/C:/dev/p/.specs/planning/tasks.md:7');
     expect(editorUrl('/Users/me/notes:12/.specs/planning/tasks.md', 1)).toBe('vscode://file/Users/me/notes%3A12/.specs/planning/tasks.md:1');
     expect(editorUrl('/Users/me/p')).toBe('vscode://file/Users/me/p'); // no line: the folder, as before
+  });
+
+  it('builds the cursor://file/ link the same way, the vscode default unchanged (BL-PM-010)', () => {
+    expect(editorUrl('/Users/me/My Projé 日本', 0, 'cursor')).toBe('cursor://file/Users/me/My%20Proj%C3%A9%20%E6%97%A5%E6%9C%AC');
+    expect(editorUrl('C:\\dev\\a b', 0, 'cursor')).toBe('cursor://file/C:/dev/a%20b');
+    expect(editorUrl('/Users/me/p', 0)).toBe('vscode://file/Users/me/p');
+  });
+
+  it('builds Cursor\'s prompt link with the whole text encoded, and none past 10,000 characters (BL-PM-010)', () => {
+    const text = 'Line one & two #3 50% done\nÉtape 日本';
+    const url = cursorPromptUrl(text)!;
+    expect(url).toBe('cursor://anysphere.cursor-deeplink/prompt?text=' + encodeURIComponent(text));
+    expect(new URL(url).searchParams.get('text')).toBe(text);
+    const head = 'cursor://anysphere.cursor-deeplink/prompt?text='.length;
+    expect(cursorPromptUrl('a'.repeat(10000 - head))).toHaveLength(10000);
+    expect(cursorPromptUrl('a'.repeat(10001 - head))).toBeNull();
+    expect(cursorPromptUrl(' '.repeat(3400))).toBeNull(); // counted after encoding: 3400 spaces are 10,200 characters
+  });
+
+  it('reads the onboarding prompt below the --- line, or the whole body without one (BL-PM-010)', () => {
+    expect(onboardingPrompt('---\ntitle: x\n---\n\n> One-time file.\n\n---\n\nYou are the co-pilot.\nGo.\n')).toBe('You are the co-pilot.\nGo.');
+    expect(onboardingPrompt('---\r\ntitle: x\r\n---\r\n\r\nNote\r\n---\r\nPrompt\r\n')).toBe('Prompt');
+    expect(onboardingPrompt('# Just a prompt\n\nDo this.\n')).toBe('# Just a prompt\n\nDo this.');
+    const r = render(initOptions('', 'demo', NEW_ANSWERS as InitAnswers, '.specs', ALL_FIELDS));
+    expect(onboardingPrompt(r.files.find(f => f.path.endsWith('development/onboarding.md'))!.content)).toBe(r.onboardingPrompt.trim());
   });
 
   it('gives a Home row whose folder exists the Open in VS Code link beside its button, and none when the folder is gone', () => {

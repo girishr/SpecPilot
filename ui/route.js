@@ -43,10 +43,26 @@ function when(iso){
 
 /* The vscode://file/ link for an absolute folder path (BL-PM-008): `\` as `/`, each segment
    percent-encoded, but a drive's `:` (`C:`) kept, so `C:\a b` gives `vscode://file/C:/a%20b`.
-   With a `line`, `:<line>` is appended as is, so VS Code opens the file at that line. */
-function editorUrl(path,line){
+   With a `line`, `:<line>` is appended as is, so VS Code opens the file at that line. `scheme` is
+   another VS Code fork's (`cursor`, BL-PM-010), whose handler takes the same `<scheme>://file/` path. */
+function editorUrl(path,line,scheme){
   const segs=String(path).replace(/\\/g,'/').split('/').map((s,i)=>i===0&&/^[A-Za-z]:$/.test(s)?s:encodeURIComponent(s));
-  return 'vscode://file'+(segs[0]===''?'':'/')+segs.join('/')+(line?':'+line:'');
+  return (scheme||'vscode')+'://file'+(segs[0]===''?'':'/')+segs.join('/')+(line?':'+line:'');
+}
+/* Cursor's prompt deep link (BL-PM-010): the app scheme only, never cursor.com/link/, which would send
+   the text over the network. Null when the link would pass Cursor's 10,000 characters. */
+const CURSOR_LINK_MAX=10000;
+function cursorPromptUrl(text){
+  const u='cursor://anysphere.cursor-deeplink/prompt?text='+encodeURIComponent(text);
+  return u.length>CURSOR_LINK_MAX?null:u;
+}
+/* The prompt in development/onboarding.md: after its front matter and the first line that is only
+   `---` (the line init writes above the prompt), else the whole body. */
+function onboardingPrompt(src){
+  const t=String(src).replace(/\r/g,'');
+  const body=t.startsWith('---\n')&&t.indexOf('\n---\n',3)>=0?t.slice(t.indexOf('\n---\n',3)+5):t;
+  const m=/^---[ \t]*$/m.exec(body);
+  return (m?body.slice(m.index+m[0].length):body).trim();
 }
 const EDITOR_ICON='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg>';
 const REMOVE_ICON='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>';
@@ -270,7 +286,7 @@ function mcpConfigLine(host,token){
   return JSON.stringify({mcpServers:{'specpilot-local':{type:'http',url:`http://${host}/mcp`,headers:{'X-SpecPilot-Token':token}}}});
 }
 
-const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
+const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,projectLabel,
   projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
   optionHtml,tabsHtml,choiceOptions,SETUPS_KEY,setupsLoad,setupsPut,setupsRemove,setupRecord,setupTitle,setupStatus};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);

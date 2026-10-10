@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (BL-PM-016 Spec Report)
-version: 6.39
+lastUpdated: 2026-10-10 (BL-PM-016 completed)
+version: 6.40
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -72,7 +72,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-PM-016 | Guided setup on existing code (REQ-002.H.35; REQ-002.H.27, H.28, H.15): saved setups (`sp-setups`, the Setups list) removed from both chats, recorded as dropped on purpose; the guided-setup intro opens with its existing paragraph at the heading's size, keeps the `Detected …` line, and drops `Hey, I'm SpecPilot` and `Runs on this machine. Nothing leaves it.`; what `ProjectDetector` finds (the language and framework `add-specs` takes without asking, the project name, and a platform from direct evidence: `react-native`/`expo`, `next`, `vite`/`react-scripts` with `react`, `vite` with `vue`, an Xcode project) is shown as answered rows marked `detected`, and the chat starts at the first unanswered question. A layer above the flow: `src/core/chatFlow.ts` and the files written for the same answers are unchanged. Browser test with a Swift/iOS fixture; 420px in every state; README's guided-setup paragraph and CHANGELOG in the branch. Feature. |
 
 ## Completed
 
@@ -113,3 +112,4 @@ Notes
 | 181 | [CD-girishr-090] [BL-PM-009] | `specpilot serve` clone progress (REQ-002.H.25, H.26, H.8; SEC-004.9 revision, SEC-004.15; Architectural): git runs with a fixed `--progress`; `cloneRepository()` reads `Receiving objects`, `Resolving deltas` and `Updating files` percentages from stderr (never `remote:` lines; a 300-character carry) and the server writes `event: clone` `{stage, percent}` to every open `/api/events` stream on each change, never the URL or the target path; the clone answer is unchanged; `gitErrorLine()` leaves out every line of git's progress shape. The sheet shows the moving bar and `Cloning… <m:ss>` until the first event, then `<Stage> <n>% · <m:ss>` with a determinate bar. +11 Jest tests (1461 → 1472), browser 29 → 31. Also archived 22 `prompts.md` entries by hand with the CLI's rule and added BL-092, BL-093. Commit `4d457d0`. |
 | 182 | [CD-girishr-091] [BL-PM-009] | Trivial: at 420px the clone status `Receiving objects 42% · 0:00` ran under the sheet's Cancel button (found in the by-hand check after the merge; BL-PM-002's shorter `Cloning… <m:ss>` fitted). The sheet footer now wraps (`flex-wrap:wrap` on `.sheet .sf`) and the status no longer has `min-width:0`, so at narrow widths the buttons move under the bar; two lines in `ui/app.css`. New browser test: at 420px the status and the buttons do not overlap while a percentage shows and the text is not cut, at 1280px they share one row (it fails on the old CSS). `npm run test:browser`: 8 of 9 full runs 32/32; one run had 1 failure in the MCP card's Copy test (`mcp.browser.test.ts`, 420px page, after `Copied.`; the error text was not kept), which this change does not touch and which passed 15 more runs on its own; held for the developer. |
 | 183 | [CD-girishr-092] [BL-079] | Trivial: on any failure the browser harness (`src/__browser__/harness.ts`, `browserTest()`) also writes the error's message and stack to `<test>-error.txt` beside the screenshot and HTML and prints its path, also when no page was opened; checked with a test that failed on purpose (then deleted). README and tests.md say so. BL-094 added for the MCP Copy flake whose error text was not kept. |
+| 184 | [CD-girishr-093] [BL-PM-016] | `specpilot serve` guided setup on existing code (REQ-002.H.35; H.15, H.27, H.28; SEC-004.17 revision; Feature): saved setups (`sp-setups`, the Setups list) removed from both chats on the developer's typed decision, a leftover key removed once; the guided-setup intro opens with its paragraph as the heading, keeps the `Detected` line, drops the greeting and the fine print; `GET /api/setup`'s `detected` gains `name`, `platform` and `rows`; `ProjectDetector` reports a platform from direct evidence only (`react-native`/`expo` → React Native, `next` → Next.js, `vite`/`react-scripts` with `react` → React, `vite` with `vue` → Vue / Nuxt, an Xcode project → iOS Native); the detected language, framework and name are `detected` rows that cannot be changed, a detected platform is filled in and can be; the chat starts at the first unanswered question. `src/core/chatFlow.ts` and the written files unchanged. Jest 1472 → 1484, browser 32 → 34. BL-095 added. Commit `80db40d`. |

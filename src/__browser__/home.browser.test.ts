@@ -2,7 +2,7 @@
 import { Browser } from 'playwright-core';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, remember, routeJs, serve, Served, until, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, remember, routeJs, serve, Served, until, viewOf, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -160,7 +160,7 @@ printf '%s\\n' '# Tasks' '' '## Backlog' '' '| ID | Description |' '|---|---|' '
       return { now: el.getAttribute('aria-valuenow'), text: el.getAttribute('aria-valuetext'), det: el.classList.contains('det'), status: document.querySelector('#cloneTime')!.textContent, animation: after.animationName, transition: after.transitionDuration };
     });
   const startClone = async (page: import('playwright-core').Page, url: string) => {
-    await page.click('#homeBtn');
+    if ((await viewOf(page)) !== 'v-home') await page.click('#homeBtn');
     await waitView(page, 'v-home');
     await page.click('#homeClone');
     await page.waitForFunction(() => document.querySelector('#openVeil')!.classList.contains('open'));
@@ -202,6 +202,25 @@ printf '%s\\n' '# Tasks' '' '## Backlog' '' '| ID | Description |' '|---|---|' '
     await page.click('#openCancel');
     await page.waitForFunction(() => !document.querySelector('#openVeil')!.classList.contains('open'));
     await until(() => !existsSync(join(env.home, 'dev', 'second')), 'the cancelled clone to be removed');
+  });
+
+  browserTest('at 420px the status never overlaps the buttons while a percentage shows; at 1280px they share one row', b, async open => {
+    for (const width of [420, 1280]) {
+      const { page } = await open(srv, '#home', { width });
+      await startClone(page, `https://example.com/owner/wide${width}.git`);
+      go('go1');
+      await waitStatus(page, /^Receiving objects 42% · /);
+      const [status, cancel, clone] = await Promise.all(['#cloneStatus', '#openCancel', '#openGo'].map(sel => page.locator(sel).boundingBox()));
+      const overlaps = (a: typeof status, b: typeof status) => !!a && !!b && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      expect(overlaps(status, cancel) || overlaps(status, clone)).toBe(false);
+      expect(await page.evaluate(() => { const e = document.querySelector('#cloneStatus')!; return e.scrollWidth <= e.clientWidth; })).toBe(true); // the text is not cut
+      expect(await noSideScroll(page)).toBe(true);
+      if (width === 1280) expect(Math.abs(status!.y + status!.height / 2 - (cancel!.y + cancel!.height / 2))).toBeLessThan(2);
+      else expect(cancel!.y).toBeGreaterThanOrEqual(status!.y + status!.height); // the buttons moved under the bar
+      await page.click('#openCancel');
+      await page.waitForFunction(() => !document.querySelector('#openVeil')!.classList.contains('open'));
+      rmSync(join(bin, 'go1'));
+    }
   });
 
   browserTest('a clone whose git prints no percentage keeps the indeterminate bar and the elapsed time, still under reduced motion', b, async open => {

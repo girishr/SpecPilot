@@ -334,8 +334,8 @@ input.txt{width:100%}
 .sheet .sh h2{margin:0;font-size:18px;font-weight:600;text-wrap:balance}
 .sheet .sh p{margin:2px 0 0;color:var(--label-3);font-size:13px}
 .sheet .sb{padding:12px 18px;display:flex;flex-direction:column;gap:14px;overflow:auto;overscroll-behavior:contain;min-height:0;margin:0}
-.sheet .sf{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px 16px;border-top:1px solid var(--sep)}
-.sheet .sf .cloning{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0;color:var(--label-2);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sheet .sf{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;padding:12px 18px 16px;border-top:1px solid var(--sep)}
+.sheet .sf .cloning{display:flex;align-items:center;gap:10px;margin-right:auto;color:var(--label-2);font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sheet .sf .cloning[hidden]{display:none}
 .cloning .bar{flex:none;width:96px;height:4px;border-radius:2px;background:var(--muted);overflow:hidden;position:relative}
 .cloning .bar::after{content:"";position:absolute;inset:0 60% 0 0;border-radius:2px;background:var(--accent);animation:cloning 1.2s ease-in-out infinite alternate}

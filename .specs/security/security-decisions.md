@@ -55,6 +55,7 @@ This file records security-related architectural and implementation decisions ma
 - **Alternatives considered**:
   - Using a full framework (e.g., `oclif`) — rejected because it brings a large dependency tree for marginal benefit.
   - Inlining functionality (e.g., replacing `chalk` with ANSI codes) — considered too fragile for cross-platform terminal support.
+- **Development dependencies (BL-079, 2026-10-09 Spec Report)**: `playwright-core` is added as a devDependency for the browser suite only, pinned to an exact version, never required by `src/` outside `src/__browser__/` (which the build excludes) and not in the published package. It has no install script and downloads no browser; it runs the Chromium build already in Playwright's cache.
 - **Reference**: SEC-002.3
 
 ### [SEC-004.5] Claude Code plugin ships as a lowest-privilege bundle

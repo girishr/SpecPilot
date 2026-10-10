@@ -372,6 +372,17 @@ npm run build
 npm link  # For local testing
 ```
 
+#### Browser tests for `specpilot serve`
+
+The page's clicks, keys, focus and live reload are tested in headless Chromium, separately from `npm test`:
+
+```bash
+npx playwright-core install chromium-headless-shell  # once, if Playwright's Chromium is not on this machine yet
+npm run test:browser                                  # builds, then runs src/__browser__/ (about 10 s)
+```
+
+The suite starts the built server on scratch copies of `.specs/` under a temporary `HOME`, so it writes nothing in the repo or in `~/.specpilot/`. A failing test prints the paths of a screenshot and the page's HTML, kept in a temp folder.
+
 ### Quick Contribution Guide
 
 1. Review [`.specs/project/requirements.md`](.specs/project/requirements.md)

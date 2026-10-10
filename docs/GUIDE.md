@@ -837,6 +837,10 @@ npm test
 # Run tests with coverage
 npm run test:coverage
 
+# Browser tests for the specpilot serve page (headless Chromium, not part of npm test)
+npx playwright-core install chromium-headless-shell  # once, if Playwright's Chromium is missing
+npm run test:browser
+
 # Build for production
 npm run build
 

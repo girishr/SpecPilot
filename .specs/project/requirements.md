@@ -183,6 +183,7 @@ relatedFiles:
 - Minimal memory footprint [REQ-003.2]
 - Offline operation capability [REQ-003.3]
 - Project name validated against allowlist regex to prevent template injection [REQ-003.4]
+- The `specpilot serve` page's wiring (clicks, keys, fetches, focus, live reload) is covered by an automated browser suite, run on demand with `npm run test:browser` against the built package, a scratch copy of `.specs/` and a temporary `HOME`; it is not part of `npm test` and not shipped (BL-079; Spec Report 2026-10-09, Feature; built after the developer's `yes proceed`; the cases are TESTS-002.4) [REQ-003.5]
 
 ## Assumptions [REQ-004]
 

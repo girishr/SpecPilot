@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-ARCHIVE-001
-lastUpdated: 2026-02-28
+lastUpdated: 2026-10-09 (archive after BL-PM-007)
 version: 1.0
 contributors: [girishr]
 relatedFiles: [tasks.md]

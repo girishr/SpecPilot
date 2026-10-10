@@ -1,6 +1,6 @@
 # SpecPilot SDD CLI - Project Configuration
 # fileID: PROJ-001
-# lastUpdated: 2026-10-09
+# lastUpdated: 2026-10-10 (specs sync)
 name: "SpecPilot SDD CLI"
 version: "2.12.0"
 language: "typescript"
@@ -30,9 +30,9 @@ rules:
   # ============================================================
   process:
     - "MANDATE: Spec-First Development — all changes start with specification updates before code changes."
-    - "MANDATE: Context Preservation — document all important decisions and learnings in .specs/context.md."
+    - "MANDATE: Context Preservation — document all important decisions and learnings in .specs/development/context.md."
     - "MANDATE: Progress Tracking — keep tasks.md current with actual development status."
-    - "MANDATE: Track ALL AI Prompts — update .specs/prompts.md with every AI interaction, including timestamps and context."
+    - "MANDATE: Track ALL AI Prompts — update .specs/development/prompts.md with every AI interaction, including timestamps and context."
     - "MANDATE: After every code change — without waiting to be asked — identify which .specs/ files are affected and update them as part of the same task."
 
   # ============================================================

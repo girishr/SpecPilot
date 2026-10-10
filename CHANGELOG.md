@@ -164,7 +164,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`autoFix()` could write arbitrary files into `.specs/`**: the `fix.startsWith('create-')` catch-all treated any such token as a filename; now constrained to the validator's `requiredFiles`.
 - **`planning/roadmap.md` never got a staleness warning**: `validateStaleDates()` iterated `requiredFiles`, which omits `roadmap.md`; it is now checked explicitly without making its absence an error.
 
-## [2.2.0] - 2026-07-05
+## [2.2.0] - 2026-07-06
 
 ### Added
 
@@ -184,6 +184,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rename Cursor output file to `specpilot.mdc`** (CS-077): `ideConfigGenerator.ts` now writes `.cursor/rules/specpilot.mdc` instead of `project.mdc`; `specBackfiller.ts` backfills `specpilot.mdc`; migration warning emitted when old `project.mdc` exists but `specpilot.mdc` does not (no auto-rename); 2 new tests (188 → 190); swept all `project.mdc` references in `.specs/`, `README.md`, `docs/GUIDE.md`.
 - **Rename `VSCode` IDE label to `GitHub Copilot`** (CS-076): display name only change in `init.ts` and `add-specs.ts` (`{ name: 'VSCode' }` → `{ name: 'GitHub Copilot' }`); internal value stays `'vscode'`; all `VSCode` label references updated in `.specs/` docs, `README.md`, `docs/GUIDE.md`, and `CHANGELOG.md`.
 - **Rename `Cowork` IDE option to `Claude Code`** (CS-075): `init.ts` and `add-specs.ts` display name updated; internal value changed from `'cowork'` to `'claude-code'`; `agentConfigGenerator.ts` and `ideConfigGenerator.ts` routing updated; CLAUDE.md header reference updated.
+
+## [2.0.1] - 2026-06-26
+
+### Changed
+
+- **Claude Code replaces Cowork as an IDE option**: the `cowork` choice is now `claude-code` in the IDE prompts of `init` and `add-specs` and in the IDE and agent config generators, and the generated `CLAUDE.md` header no longer mentions Cowork.
+
+### Fixed
+
+- **`onboarding.md` references**: the logger, `init`'s required-file list and the post-init `.specs/` tree name `onboarding.md` instead of the removed `docs.md`.
+- **IDE choice names**: the IDE choices of `init` and `add-specs` are explicit name/value pairs, so their display names are capitalised correctly (e.g. VSCode).
 
 ## [2.0.0] - 2026-06-26
 
@@ -479,81 +490,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Updated CHANGELOG.md with missing version entries (1.2.1, 1.2.0, 1.1.4)
 - **README**: Fixed unclosed code block causing rendering issues in documentation
 
-## [1.1.1] - 2025-10-11
-
-### Added
-
-- **CS-009**: Comprehensive metadata conventions and stable ID system
-- YAML front-matter metadata headers for all spec files
-- Stable ID format for sections and items (REQ-001, ARCH-002, etc.)
-- Enhanced spec validation with cross-reference checking
-- Complete `.specs/` subfolder structure (project/, architecture/, planning/, quality/, development/)
-- Comprehensive documentation in `.specs/development/docs.md`
-
-### Changed
-
-- **README**: Added table of contents, prerequisites, and improved examples
-- **Validator**: Updated to handle subfolder structure and validate metadata
-- **Templates**: Aligned with current TypeScript/Python support
-- **Documentation**: Removed references to unsupported features
-
-### Fixed
-
-- Cross-references now use correct subfolder paths
-- Validation properly detects missing files in subfolder structure
-- Command examples updated to match actual CLI interface
-
-## [1.1.2] - 2025-10-12
-
-### Added
-
-- **CS-004**: Existing .specs folder detection - Prevents duplicate project initialization with informative error messages
-- **CS-005**: Developer name prompting - Prompts for developer name during init and replaces "Your Name" placeholders in generated specs
-- **CS-009**: Enhanced `add-specs` command - Adds .specs folder to existing projects with intelligent codebase analysis
-- **Project Detector**: Auto-detects language/framework from package.json, requirements.txt, setup.py, pyproject.toml
-- **Code Analyzer**: Scans codebase for TODOs/FIXMEs, analyzes tests, extracts architecture information
-- **Codebase Analysis**: Automatic TODO/FIXME parsing with line numbers and file locations
-- **Test Detection**: Identifies test frameworks (Jest, Pytest, Mocha, etc.) and counts test cases
-- **Architecture Extraction**: Analyzes project structure, components, and file types
-
-### Changed
-
-- **Git Mandates**: Added project rules requiring developer prompts for all git commit/push operations
-- **Init Command**: Now prompts for developer name and displays existing project info if .specs already exists
-- **CLI Commands**: Added `add-specs` command (alias: `add`) with options for --no-analysis and --deep-analysis
-- **Project Detection**: Defaults to TypeScript for Node.js projects when language cannot be explicitly determined
-
-### Fixed
-
-- Existing project initialization now provides helpful next steps instead of silently failing
-- Developer attribution in generated spec files now uses actual developer name
-- Language detection improved for JavaScript/TypeScript projects
-
-### Technical Details
-
-- New utilities: `projectDetector.ts`, `codeAnalyzer.ts`
-- New command: `src/commands/add-specs.ts`
-- Analysis features: TODO parsing, test framework detection, component extraction
-- Smart directory exclusion: node_modules, dist, .git, **pycache**, venv
-
-## [1.1.3] - 2025-10-12
-
-### Added
-
-- **CS-010**: JavaScript language support - Added JavaScript templates and detection for Node.js projects
-- **AI Onboarding**: Added AI onboarding prompt to prompts.md for new projects
-- **CS-011**: Enhanced folder structure display - Architecture.md now shows nested directory trees instead of flat lists
-
-### Changed
-
-- **Project Detection**: Improved language detection to distinguish between TypeScript and JavaScript projects
-- **Template Engine**: Added JavaScript-specific templates alongside existing TypeScript templates
-
-### Fixed
-
-- **Architecture Display**: Folder structures now display as proper nested trees with indentation
-- **Language Support**: JavaScript projects are now properly detected and templated
-
 ## [1.2.1] - 2025-10-26
 
 ### Added
@@ -595,4 +531,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI Success Messages**: Enhanced with detailed next steps and project structure guidance
 - **Documentation**: Improved AI assistant integration documentation
 
-## [1.1.3] - 2025-10-12
+## [1.1.3] - 2025-10-18
+
+### Added
+
+- **CS-010**: JavaScript language support - Added JavaScript templates and detection for Node.js projects
+- **AI Onboarding**: Added AI onboarding prompt to prompts.md for new projects
+- **CS-011**: Enhanced folder structure display - Architecture.md now shows nested directory trees instead of flat lists
+
+### Changed
+
+- **Project Detection**: Improved language detection to distinguish between TypeScript and JavaScript projects
+- **Template Engine**: Added JavaScript-specific templates alongside existing TypeScript templates
+
+### Fixed
+
+- **Architecture Display**: Folder structures now display as proper nested trees with indentation
+- **Language Support**: JavaScript projects are now properly detected and templated
+
+## [1.1.2] - 2025-10-12
+
+### Added
+
+- **CS-004**: Existing .specs folder detection - Prevents duplicate project initialization with informative error messages
+- **CS-005**: Developer name prompting - Prompts for developer name during init and replaces "Your Name" placeholders in generated specs
+- **CS-009**: Enhanced `add-specs` command - Adds .specs folder to existing projects with intelligent codebase analysis
+- **Project Detector**: Auto-detects language/framework from package.json, requirements.txt, setup.py, pyproject.toml
+- **Code Analyzer**: Scans codebase for TODOs/FIXMEs, analyzes tests, extracts architecture information
+- **Codebase Analysis**: Automatic TODO/FIXME parsing with line numbers and file locations
+- **Test Detection**: Identifies test frameworks (Jest, Pytest, Mocha, etc.) and counts test cases
+- **Architecture Extraction**: Analyzes project structure, components, and file types
+
+### Changed
+
+- **Git Mandates**: Added project rules requiring developer prompts for all git commit/push operations
+- **Init Command**: Now prompts for developer name and displays existing project info if .specs already exists
+- **CLI Commands**: Added `add-specs` command (alias: `add`) with options for --no-analysis and --deep-analysis
+- **Project Detection**: Defaults to TypeScript for Node.js projects when language cannot be explicitly determined
+
+### Fixed
+
+- Existing project initialization now provides helpful next steps instead of silently failing
+- Developer attribution in generated spec files now uses actual developer name
+- Language detection improved for JavaScript/TypeScript projects
+
+### Technical Details
+
+- New utilities: `projectDetector.ts`, `codeAnalyzer.ts`
+- New command: `src/commands/add-specs.ts`
+- Analysis features: TODO parsing, test framework detection, component extraction
+- Smart directory exclusion: node_modules, dist, .git, **pycache**, venv
+
+## [1.1.1] - 2025-10-11
+
+### Added
+
+- **CS-009**: Comprehensive metadata conventions and stable ID system
+- YAML front-matter metadata headers for all spec files
+- Stable ID format for sections and items (REQ-001, ARCH-002, etc.)
+- Enhanced spec validation with cross-reference checking
+- Complete `.specs/` subfolder structure (project/, architecture/, planning/, quality/, development/)
+- Comprehensive documentation in `.specs/development/docs.md`
+
+### Changed
+
+- **README**: Added table of contents, prerequisites, and improved examples
+- **Validator**: Updated to handle subfolder structure and validate metadata
+- **Templates**: Aligned with current TypeScript/Python support
+- **Documentation**: Removed references to unsupported features
+
+### Fixed
+
+- Cross-references now use correct subfolder paths
+- Validation properly detects missing files in subfolder structure
+- Command examples updated to match actual CLI interface

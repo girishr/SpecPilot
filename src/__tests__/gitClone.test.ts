@@ -14,7 +14,7 @@ import { cloneRepository, cloneShapeError, cloneUrlError, emptyTarget, gitErrorL
 // not the point. Every test runs under a temp HOME, so the developer's git configuration is not read.
 
 const REAL = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, PATH: process.env.PATH, XDG: process.env.XDG_CONFIG_HOME };
-const GIT_VARS = ['LC_ALL', 'LC_CTYPE', 'LC_MESSAGES', 'LANGUAGE', 'GIT_SSH_COMMAND', 'GIT_SSH', 'GIT_CONFIG_GLOBAL', 'GIT_DIR', 'GIT_WORK_TREE', 'STUB_LOG', 'STUB_MODE', 'STUB_SSH', 'STUB_STDERR', 'STUB_CONFIG_EXIT'];
+const GIT_VARS = ['LC_ALL', 'LC_CTYPE', 'LC_MESSAGES', 'LANGUAGE', 'GIT_SSH_COMMAND', 'GIT_SSH', 'GIT_CONFIG_GLOBAL', 'GIT_DIR', 'GIT_WORK_TREE', 'STUB_LOG', 'STUB_MODE', 'STUB_SSH', 'STUB_STDERR', 'STUB_CONFIG_EXIT', 'STUB_PROGRESS', 'STUB_PROGRESS2'];
 let HOME: string;
 let base: string;
 beforeEach(() => {
@@ -178,6 +178,14 @@ describe('cloneShapeError()', () => {
 });
 
 describe('gitErrorLine()', () => {
+  it("leaves out every line of git's progress shape (BL-PM-009)", () => {
+    expect(gitErrorLine('Receiving objects:  42% (42/100)\rerror: RPC failed; curl 18\nfatal: early EOF\n')).toBe('error: RPC failed; curl 18 fatal: early EOF');
+    expect(gitErrorLine('Receiving objects:  42% (42/100)\rfatal: early EOF\n')).toBe('fatal: early EOF');
+    expect(gitErrorLine('Receiving objects:  42% (42/100)\rReceiving objects:  43% (43/100)\r')).toBeNull();
+    expect(gitErrorLine('error: something broke\nChecking connectivity:  10% (1/10)\r')).toBe('error: something broke');
+    expect(gitErrorLine('Receiving objects: 42%\n')).toBe('Receiving objects: 42%'); // not git's progress shape: shown
+  });
+
   it('returns the last fatal: line, never a remote: line or git\'s own Cloning into line', () => {
     expect(gitErrorLine("Cloning into 'x'...\nremote: run this command\nfatal: repository 'https://h/x' not found\nremote: and this\n")).toBe("fatal: repository 'https://h/x' not found");
     expect(gitErrorLine("Cloning into 'x'...\nfatal: one\n")).toBe('fatal: one');
@@ -313,6 +321,14 @@ describe('cloneRepository() with the real git', () => {
     expect(existsSync(join(target, '.specs', 'note.md'))).toBe(true);
   });
 
+  it("reads the real git's progress: Receiving objects up to 100 over file:// (BL-PM-009)", async () => {
+    const source = makeBare(base, 'source.git');
+    const calls: [string, number][] = [];
+    expect(await cloneRepository(`file://${source}`, target, { allowProtocols: 'file', onProgress: (stage, percent) => calls.push([stage, percent]) })).toEqual({ ok: true });
+    expect(calls).toContainEqual(['receiving', 100]);
+    expect(calls.every(([stage, percent]) => ['receiving', 'resolving', 'updating'].includes(stage) && Number.isInteger(percent) && percent >= 0 && percent <= 100)).toBe(true);
+  });
+
   it('without it git itself refuses the file transport: GIT_ALLOW_PROTOCOL reaches git', async () => {
     const source = makeBare(base, 'source.git');
     for (const url of [source, `file://${source}`]) {
@@ -408,7 +424,7 @@ describe('probeGit() with the real git', () => {
 
 // ─── a stub git first on PATH (a shell script, so POSIX only) ────────────────
 
-/** Writes `<dir>/git`, a script that records how it was called and then plays `STUB_MODE`. */
+/** Writes `<dir>/git`, a script that records how it was called, writes `STUB_PROGRESS` (then `STUB_PROGRESS2` after a pause, so a line can be cut between two reads) to stderr, and then plays `STUB_MODE`. */
 function installStubGit(dir: string): void {
   writeFileSync(
     join(dir, 'git'),
@@ -424,6 +440,8 @@ if read line; then echo open > "$STUB_LOG.stdin"; else echo closed > "$STUB_LOG.
 ps -o pgid= -p $$ | tr -d ' ' > "$STUB_LOG.pgid"
 echo $$ > "$STUB_LOG.pid"
 for target; do :; done
+if [ -n "$STUB_PROGRESS" ]; then printf '%b' "$STUB_PROGRESS" >&2; fi
+if [ -n "$STUB_PROGRESS2" ]; then sleep 0.2; printf '%b' "$STUB_PROGRESS2" >&2; fi
 case "$STUB_MODE" in
   hang) echo partial > "$target/partial"; sleep 60 & echo $! > "$STUB_LOG.child"; wait ;;
   fail) printf '%b' "$STUB_STDERR" >&2; exit 128 ;;
@@ -471,9 +489,9 @@ const until = async (test: () => boolean | Promise<boolean>, ms = 15000) => {
     mkdirSync(target);
   });
 
-  it('passes exactly clone --no-recurse-submodules -- <url> <target>, in the parent folder', async () => {
+  it('passes exactly clone --progress --no-recurse-submodules -- <url> <target>, in the parent folder', async () => {
     expect(await cloneRepository('git@github.com:owner/repo.git', target)).toEqual({ ok: true });
-    expect(logged('args').split('\n')).toEqual(['clone', '--no-recurse-submodules', '--', 'git@github.com:owner/repo.git', target]);
+    expect(logged('args').split('\n')).toEqual(['clone', '--progress', '--no-recurse-submodules', '--', 'git@github.com:owner/repo.git', target]);
     expect(envOf().PWD).toBe(base);
   });
 
@@ -529,6 +547,57 @@ const until = async (test: () => boolean | Promise<boolean>, ms = 15000) => {
     expect(await probeGit(HOME)).toEqual({ error: 'git could not be run (3).' });
   });
 
+  describe('progress (BL-PM-009)', () => {
+    const run = async () => {
+      const calls: [string, number][] = [];
+      const out = await cloneRepository('https://github.com/owner/repo.git', target, { onProgress: (stage, percent) => calls.push([stage, percent]) });
+      return { out, calls };
+    };
+
+    it('reports each change of stage or whole percentage once, in order, from updates split by \\r', async () => {
+      process.env.STUB_PROGRESS =
+        "Cloning into 'x'...\\nremote: Counting objects:  50% (1/2)\\rremote: Counting objects: 100% (2/2), done.\\n" +
+        'Receiving objects:   0% (0/10)\\rReceiving objects:   0% (0/10), 1 KiB | 1 KiB/s\\rReceiving objects:  50% (5/10)\\r' +
+        'Receiving objects: 100% (10/10), 2 KiB | 1 KiB/s, done.\\nResolving deltas: 100% (3/3), done.\\nUpdating files:   7% (1/14)\\r';
+      const { out, calls } = await run();
+      expect(out).toEqual({ ok: true });
+      expect(calls).toEqual([['receiving', 0], ['receiving', 50], ['receiving', 100], ['resolving', 100], ['updating', 7]]);
+    });
+
+    it('joins a line cut between two reads, also inside "% ("', async () => {
+      process.env.STUB_PROGRESS = 'Receiving objects:  4';
+      process.env.STUB_PROGRESS2 = '2% (42/100)\\rReceiving objects:  43%';
+      expect((await run()).calls).toEqual([['receiving', 42]]);
+      process.env.STUB_PROGRESS = 'Receiving objects:  42%';
+      process.env.STUB_PROGRESS2 = ' (42/100)\\n';
+      expect((await run()).calls).toEqual([['receiving', 42]]);
+    });
+
+    it('reads nothing from remote: lines, other stages, numbers above 100 or text before the stage; removes ANSI codes first', async () => {
+      process.env.STUB_PROGRESS =
+        'remote: Receiving objects:  10% (1/10)\\rCounting objects:  20% (2/10)\\rReceiving objects: 101% (1/1)\\r' +
+        'x Receiving objects:  30% (3/10)\\rReceiving objects:40% (4/10)\\r\\033[1mReceiving objects:\\033[0m  9% (1/10)\\r';
+      expect((await run()).calls).toEqual([['receiving', 9]]);
+    });
+
+    it('drops a run of more than 300 characters with no line break and still reads the next progress line', async () => {
+      process.env.STUB_PROGRESS = 'w'.repeat(400);
+      process.env.STUB_PROGRESS2 = 'Receiving objects:   5% (1/20)\\rReceiving objects:   6% (2/20)\\r';
+      expect((await run()).calls).toEqual([['receiving', 6]]);
+    });
+
+    it('calls nothing without a progress line, and a clone still succeeds', async () => {
+      expect(await run()).toEqual({ out: { ok: true }, calls: [] });
+    });
+
+    it('never shows a progress line as the error', async () => {
+      process.env.STUB_PROGRESS = 'Receiving objects:  42% (42/100)\\rChecking connectivity:  10% (1/10)\\r';
+      process.env.STUB_MODE = 'fail';
+      process.env.STUB_STDERR = '';
+      expect((await run()).out).toEqual({ ok: false, aborted: false, error: 'git clone failed (exit code 128).' });
+    });
+  });
+
   it('kills the whole process group at the time limit and leaves no timer', async () => {
     process.env.STUB_MODE = 'hang';
     const out = await cloneRepository('https://github.com/owner/repo.git', target, { timeoutMs: 400 });
@@ -558,6 +627,20 @@ const until = async (test: () => boolean | Promise<boolean>, ms = 15000) => {
 });
 
 // ─── the route, with the stub git ────────────────────────────────────────────
+
+/** An open event stream; `clone()` gives the data of its `clone` events so far. */
+function events(port: number, path: string): Promise<{ text: () => string; clone: () => string[]; close: () => void }> {
+  return new Promise((resolve, reject) => {
+    let text = '';
+    const req = request({ host: '127.0.0.1', port, path, headers: { Host: `127.0.0.1:${port}` } }, res => {
+      res.setEncoding('utf8');
+      res.on('data', c => (text += c));
+      res.once('data', () => resolve({ text: () => text, clone: () => [...text.matchAll(/^event: clone\ndata: (.*)$/gm)].map(m => m[1]), close: () => req.destroy() }));
+    });
+    req.on('error', err => ((err as NodeJS.ErrnoException).code === 'ECONNRESET' ? undefined : reject(err)));
+    req.end();
+  });
+}
 
 type Answer = { status: number; headers: Record<string, unknown>; json: any };
 /** One request; `req` is returned too, so a test can close the connection before the answer. */
@@ -740,7 +823,7 @@ function call(port: number, path: string, method: string, headers: Record<string
     expect(r.json.specs.project.specs).toBe(true);
     expect(r.json.specs.projects).toHaveLength(2);
     expect(r.json.registry.entries.map((e: { path: string }) => e.path)).toEqual([join(parent, 'repo')]);
-    expect(logged('args').split('\n')).toEqual(['clone', '--no-recurse-submodules', '--', URL, join(parent, 'repo')]);
+    expect(logged('args').split('\n')).toEqual(['clone', '--progress', '--no-recurse-submodules', '--', URL, join(parent, 'repo')]);
     expect(logged('env')).toContain('GIT_ALLOW_PROTOCOL=https:ssh');
     expect(logged('env')).not.toContain('GIT_SSH_COMMAND'); // POSIX: the user's ssh setup is never touched
     expect((await get('/api/specs?project=1')).json.project.root).toBe(join(parent, 'repo'));
@@ -748,6 +831,30 @@ function call(port: number, path: string, method: string, headers: Record<string
     const again = await clone(); // the folder is now a served root
     expect(again.status).toBe(409);
     expect(again.json.project).toBe(1);
+  });
+
+  it("sends git's progress as event: clone {stage, percent} to every open stream, and the answer is unchanged (BL-PM-009)", async () => {
+    const second = join(base, 'second');
+    mkdirSync(join(second, '.specs'), { recursive: true });
+    await spec.close();
+    await start([served, second]);
+    const streams = await Promise.all(['/api/events?project=0', '/api/events?project=1'].map(path => events(port, path)));
+    process.env.STUB_PROGRESS = 'remote: Counting objects: 100% (2/2), done.\\nReceiving objects:  50% (1/2)\\rReceiving objects: 100% (2/2), done.\\n';
+    const r = await clone();
+    expect(r.status).toBe(200);
+    expect(Object.keys(r.json)).toEqual(['project', 'specs', 'registry']);
+    for (const s of streams) {
+      expect(s.clone()).toEqual(['{"stage":"receiving","percent":50}', '{"stage":"receiving","percent":100}']);
+      s.close();
+    }
+  });
+
+  it('sends no clone event when git prints no progress', async () => {
+    const s = await events(port, '/api/events?project=0');
+    expect((await clone()).status).toBe(200);
+    expect(s.clone()).toEqual([]);
+    expect(s.text()).not.toContain('url');
+    s.close();
   });
 
   it("passes the user's own GIT_SSH_COMMAND through unchanged", async () => {

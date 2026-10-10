@@ -852,6 +852,7 @@ function listen(){
   if(!window.EventSource)return;
   if(es)es.close(); // one stream, for the shown project
   es=new EventSource('/api/events?'+pq());let dropped=false;
+  es.addEventListener('clone',e=>onCloneEvent(e.data));
   es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
   es.onerror=()=>{dropped=true;};          // EventSource retries by itself
   es.onopen=()=>{if(dropped){dropped=false;refresh(null);}}; // catch up on anything missed
@@ -885,7 +886,7 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
    file content; the strings are the ones REQ-002.H.21, H.24 and H.26 list. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
-let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null;
+let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 /* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, only with --mcp. No status:
    the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
@@ -956,11 +957,25 @@ function setCloning(ctl){
   cloneCtl=ctl;openBusy=!!ctl;
   $('#openGo').disabled=!!ctl;
   $$('#paneClone input, #openTabs button').forEach(el=>{el.disabled=!!ctl;});
-  // An indeterminate bar and the time since the click: the page knows nothing else about a running clone.
-  clearInterval(cloneTick);cloneTick=null;$('#cloneStatus').hidden=!ctl;
+  // The time since the click, and an indeterminate bar until git gives a percentage (BL-PM-009).
+  clearInterval(cloneTick);cloneTick=null;cloneProg=null;$('#cloneStatus').hidden=!ctl;
   if(!ctl)return;
-  const t0=Date.now(),tick=()=>{const s=Math.floor((Date.now()-t0)/1000);$('#cloneTime').textContent=`Cloning… ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
-  tick();cloneTick=setInterval(tick,1000);
+  cloneT0=Date.now();drawCloning();cloneTick=setInterval(drawCloning,1000);
+}
+function drawCloning(){
+  const bar=$('#cloneStatus .bar'),p=cloneProg;
+  $('#cloneTime').textContent=cloneStatus(Math.floor((Date.now()-cloneT0)/1000),p);
+  bar.classList.toggle('det',!!p);
+  if(p){
+    bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax','100');bar.setAttribute('aria-valuenow',String(p.percent));
+    bar.setAttribute('aria-valuetext',`${CLONE_STAGES[p.stage]} ${p.percent}%`);bar.style.setProperty('--pct',p.percent+'%');
+  }else{['aria-valuemin','aria-valuemax','aria-valuenow','aria-valuetext'].forEach(a=>bar.removeAttribute(a));bar.style.removeProperty('--pct');}
+}
+/* A `clone` event from the stream: only while this page is cloning (not another tab's clone, not after the answer). */
+function onCloneEvent(data){
+  const p=cloneProgress(data);
+  if(!cloneCtl||!p)return;
+  cloneProg=p;drawCloning();
 }
 async function cloneRepo(){
   if(openBusy)return;

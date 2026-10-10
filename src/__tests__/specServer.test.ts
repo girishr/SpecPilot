@@ -1022,6 +1022,24 @@ describe('UI routing (ui/route.js)', () => {
     expect(openOutcome(502, {}, 'cloned')).toEqual({ project: null, specs: null, toast: 'Nothing was cloned (HTTP 502).' });
   });
 
+  it("the Clone sheet's status and the clone event check (BL-PM-009)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { cloneStatus, cloneProgress } = require('../../ui/route.js') as {
+      cloneStatus: (seconds: number, progress: { stage: string; percent: number } | null) => string;
+      cloneProgress: (data: string) => { stage: string; percent: number } | null;
+    };
+    expect(cloneStatus(0, null)).toBe('Cloning… 0:00');
+    expect(cloneStatus(42, null)).toBe('Cloning… 0:42');
+    expect(cloneStatus(13, { stage: 'receiving', percent: 42 })).toBe('Receiving objects 42% · 0:13');
+    expect(cloneStatus(75, { stage: 'resolving', percent: 100 })).toBe('Resolving deltas 100% · 1:15');
+    expect(cloneStatus(600, { stage: 'updating', percent: 0 })).toBe('Updating files 0% · 10:00');
+    expect(cloneProgress('{"stage":"receiving","percent":42}')).toEqual({ stage: 'receiving', percent: 42 });
+    expect(cloneProgress('{"stage":"updating","percent":0,"url":"x"}')).toEqual({ stage: 'updating', percent: 0 }); // only the two fields are kept
+    for (const data of ['', 'null', '[]', '{"stage":"counting","percent":1}', '{"stage":"toString","percent":1}', '{"stage":"receiving","percent":101}', '{"stage":"receiving","percent":-1}', '{"stage":"receiving","percent":4.5}', '{"stage":"receiving","percent":"4"}']) {
+      expect(cloneProgress(data)).toBeNull();
+    }
+  });
+
   it('a refused open (422, 403, or no message) opens nothing and shows the server\'s message, so a row click on Home stays on Home', () => {
     expect(openOutcome(422, { error: '~/gone does not exist.' })).toEqual({ project: null, specs: null, toast: '~/gone does not exist.' });
     expect(openOutcome(403, { error: 'Forbidden' })).toEqual({ project: null, specs: null, toast: 'Forbidden' });

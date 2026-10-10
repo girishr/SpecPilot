@@ -28,6 +28,14 @@ const URL_FORMS = [
 const SPACE_OR_CONTROL = /[\s\u0000-\u0020\u007f-\u00a0\u2028\u2029]/;
 // eslint-disable-next-line no-control-regex
 const ANSI_AND_CONTROL = /\u001b\[[0-9;?]*[ -/]*[@-~]|[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g;
+/** The stages of git's progress the page shows (BL-PM-009), by git's own words under `LC_MESSAGES=C`. */
+const STAGES: Record<string, CloneStage> = { 'Receiving objects': 'receiving', 'Resolving deltas': 'resolving', 'Updating files': 'updating' };
+export type CloneStage = 'receiving' | 'resolving' | 'updating';
+const STAGE_LINE = /^(Receiving objects|Resolving deltas|Updating files): +([0-9]{1,3})% \(/;
+/** Any progress line of git's: never shown as its error. */
+const PROGRESS_LINE = /^[A-Z][A-Za-z ]+: +[0-9]{1,3}% \(/;
+/** Longest run of stderr without a line break kept for the next read; a longer one is not progress. */
+const MAX_CARRY = 300;
 
 /** What is wrong with a repository URL, or null. Pure string checks: the URL is never parsed or rewritten. */
 export function cloneUrlError(url: string): string | null {
@@ -112,7 +120,7 @@ export function probeGit(home: string, platform = process.platform): Promise<{ b
  * the last line left.
  */
 export function gitErrorLine(stderr: string): string | null {
-  const lines = stderr.split(/\r?\n|\r/).map(line => line.replace(ANSI_AND_CONTROL, '').trim()).filter(l => l && !l.startsWith('remote:') && !l.startsWith('Cloning into '));
+  const lines = stderr.split(/\r?\n|\r/).map(line => line.replace(ANSI_AND_CONTROL, '').trim()).filter(l => l && !l.startsWith('remote:') && !l.startsWith('Cloning into ') && !PROGRESS_LINE.test(l));
   if (!lines.length) return null;
   const fatal = lines.map(l => l.startsWith('fatal:')).lastIndexOf(true);
   if (fatal <= 0) return lines[fatal < 0 ? lines.length - 1 : 0].slice(0, MAX_GIT_LINE);
@@ -127,6 +135,8 @@ export interface CloneOptions {
   timeoutMs?: number;
   /** Aborting kills the clone: the page went away, or the server is closing. */
   signal?: AbortSignal;
+  /** Called each time git's progress changes stage or whole percentage (BL-PM-009). */
+  onProgress?: (stage: CloneStage, percent: number) => void;
   /** Tests only (a local bare repository needs `file`). The server never passes it and no request field maps to it. */
   allowProtocols?: string;
 }
@@ -134,7 +144,7 @@ export interface CloneOptions {
 export type CloneResult = { ok: true } | { ok: false; aborted: boolean; error: string };
 
 /**
- * `git clone --no-recurse-submodules -- <url> <target>` in the target's parent, without a shell, with
+ * `git clone --progress --no-recurse-submodules -- <url> <target>` in the target's parent, without a shell, with
  * stdin closed and, on POSIX, in its own session (no controlling terminal; one process group to kill).
  * `spawn` and not `execFile`, which cannot start a detached child; both take an argument array.
  */
@@ -144,7 +154,7 @@ export function cloneRepository(url: string, target: string, opts: CloneOptions 
     const posix = process.platform !== 'win32';
     const env = gitEnv(opts.allowProtocols ?? 'https:ssh');
     if (opts.batchSsh) env.GIT_SSH_COMMAND = 'ssh -oBatchMode=yes';
-    const child = spawn('git', ['clone', '--no-recurse-submodules', '--', url, target], {
+    const child = spawn('git', ['clone', '--progress', '--no-recurse-submodules', '--', url, target], {
       cwd: dirname(target), env, stdio: ['ignore', 'ignore', 'pipe'], detached: posix, windowsHide: true,
     });
     let stderr = '';
@@ -169,8 +179,29 @@ export function cloneRepository(url: string, target: string, opts: CloneOptions 
       opts.signal?.removeEventListener('abort', onAbort);
       done(result);
     };
+    // git rewrites a progress line with `\r` and ends it with `\n`; a line cut between two reads is
+    // joined first. null: inside a run longer than MAX_CARRY, dropped up to the next line break.
+    let carry: string | null = '';
+    let last = '';
+    const readProgress = (text: string) => {
+      const lines = text.split(/\r|\n/);
+      const tail = lines.pop()!;
+      if (lines.length) {
+        lines[0] = carry === null ? '' : carry + lines[0];
+        carry = '';
+      }
+      if (carry !== null) carry = carry.length + tail.length > MAX_CARRY ? null : carry + tail;
+      for (const line of lines) {
+        const m = STAGE_LINE.exec(line.replace(ANSI_AND_CONTROL, ''));
+        if (!m || +m[2] > 100 || `${m[1]} ${+m[2]}` === last) continue;
+        last = `${m[1]} ${+m[2]}`;
+        opts.onProgress!(STAGES[m[1]], +m[2]);
+      }
+    };
     child.stderr!.on('data', (chunk: Buffer) => {
-      stderr = (stderr + chunk.toString('utf-8')).slice(-65536);
+      const text = chunk.toString('utf-8');
+      stderr = (stderr + text).slice(-65536);
+      if (opts.onProgress && !finished && !stopped) readProgress(text); // nothing once git is being stopped or has ended
     });
     child.on('error', err => {
       const code = (err as NodeJS.ErrnoException).code;

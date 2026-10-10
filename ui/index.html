@@ -119,7 +119,7 @@
       <a class="ib" id="editorBtn" hidden aria-label="Open in VS Code" title="Open in VS Code"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg></a>
       <div class="idewrap" id="ideWrap" hidden><button type="button" class="ib" id="ideBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="ideMenu" aria-label="Open in AI IDE" title="Open in AI IDE"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-spark"/></svg></button><div class="idemenu" id="ideMenu" role="menu" aria-label="Open in AI IDE" hidden></div></div>
       <button type="button" class="btn line sm" id="newTask" hidden><svg class="ico ico-13" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>New Task</button>
-      <button type="button" class="btn" id="chatSetups" hidden aria-controls="setups">Setups</button><button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>
+      <button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>
     </div>
   </div>
   <div class="content" id="content" tabindex="-1">
@@ -172,15 +172,11 @@
       <div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>
       <p class="note" id="chatNote" hidden></p>
       <div class="cbody" id="cbody" hidden>
-      <aside class="setups" id="setups" aria-label="Saved setups">
-        <div class="sh"><span>Setups</span><button type="button" class="btn sm" id="setupNew">New setup</button></div>
-        <div id="setupList"></div>
-      </aside>
       <div class="cmain">
       <section class="intro" id="intro" hidden>
         <svg class="big" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
         <div><h2 id="introH">Hey, I'm SpecPilot</h2><p id="introText"></p><p id="introText2" hidden></p><p class="note" id="introDetected" hidden translate="no"></p></div>
-        <div class="fine">Runs on this machine. Nothing leaves it.</div>
+        <div class="fine" id="introFine">Runs on this machine. Nothing leaves it.</div>
         <form class="start" id="introForm" autocomplete="off">
           <div class="lbl" id="nameLbl">Name your project to start</div>
           <div class="row"><input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button></div>

@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tasks line in generated instruction files** (BL-PM-007): `CLAUDE.md`, `.github/copilot-instructions.md`, Cursor's `.mdc`, `.windsurfrules` and `.antigravity/rules.md` get one more process mandate: use the SpecPilot MCP tools for tasks when connected, otherwise edit `.specs/planning/tasks.md` and keep its table format. New files only; `specpilot backfill` does not add it yet (BL-088).
 - **Open in AI IDE and per-file Open in VS Code in `specpilot serve`** (BL-PM-010, BL-PM-013): a menu beside Open in VS Code offers Open in Cursor when the project has SpecPilot's Cursor rules file, and, while `development/onboarding.md` exists, sends the onboarding prompt to Cursor through its prompt link or copies it for Claude Code and other IDEs. The file view and the Instructions, Commands and Skills details panels get Open in VS Code for that file. Links only: no route, no process, no write.
 - **Clone progress in `specpilot serve`** (BL-PM-009): while a clone runs, the Clone a Repository sheet shows git's own stage and percentage (`Receiving objects 42% · 0:13`, then `Resolving deltas`, `Updating files`), sent over the page's live-reload stream as a stage and a number only, never the URL or the folder; git now runs with `--progress`. When git gives no percentage, the sheet shows the moving bar and the elapsed time as before.
+- **Guided setup shows what it detected** (BL-PM-016): in `specpilot serve`, the detected language, framework and project name appear as answered rows marked `detected`, and a platform found in the project (React Native, Next.js, React or Vue / Nuxt from `package.json`, iOS Native from an Xcode project) is filled in and can be changed, so the chat starts at the first question it still needs.
+
+### Changed
+
+- **Guided setup intro** (BL-PM-016): the intro of guided setup opens with its paragraph as the heading and the `Detected …` line under it; `Hey, I'm SpecPilot` and `Runs on this machine. Nothing leaves it.` are gone there. The New Project intro is unchanged.
+
+### Removed
+
+- **Saved setups** (BL-PM-016): the Setups list and the answers kept in the browser (`sp-setups`) are gone from both chats; answers stay while the page is open, and a reload starts again. The page removes the old key once.
 
 ## [2.12.0] - 2026-10-09
 

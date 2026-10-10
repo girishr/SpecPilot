@@ -343,4 +343,50 @@ let package = Package(name: "bare-swift")
       expect(info!.name).toBe('WorkspaceApp');
     });
   });
+
+  // ─── Platform from direct evidence (BL-PM-016, REQ-002.H.35) ───────────────
+
+  describe('platform from direct evidence (BL-PM-016)', () => {
+    const node = async (deps: Record<string, string>, dev: Record<string, string> = {}) => {
+      writeFileSync(join(testDir, 'package.json'), JSON.stringify({ name: 'app', dependencies: deps, devDependencies: dev }));
+      return detector.detectProject(testDir);
+    };
+
+    it.each([
+      [{ 'react-native': '0.74.0', react: '18.0.0' }, {}, 'rn'],
+      [{ expo: '51.0.0', react: '18.0.0' }, {}, 'rn'],
+      [{ expo: '51.0.0' }, {}, 'rn'],
+      [{ next: '14.0.0', react: '18.0.0' }, {}, 'nextjs'],
+      [{ react: '18.0.0' }, { vite: '5.0.0' }, 'react'],
+      [{ react: '18.0.0', 'react-scripts': '5.0.0' }, {}, 'react'],
+      [{ vue: '3.0.0' }, { vite: '5.0.0' }, 'vue'],
+    ])('%j with dev %j → %s', async (deps, dev, platform) => {
+      expect((await node(deps, dev))!.platform).toBe(platform);
+    });
+
+    it('react alone, vite alone and express show no platform, and language and framework are as before', async () => {
+      const react = (await node({ react: '18.0.0' }, { typescript: '5.0.0' }))!;
+      expect(react.platform).toBeUndefined();
+      expect([react.language, react.framework]).toEqual(['typescript', 'react']);
+      expect((await node({}, { vite: '5.0.0' }))!.platform).toBeUndefined();
+      expect((await node({ express: '4.0.0' }))!.platform).toBeUndefined();
+      const next = (await node({ next: '14.0.0', react: '18.0.0' }))!;
+      expect(next.framework).toBe('react'); // unchanged: the CLI still reads react first
+    });
+
+    it.each(['Demo.xcodeproj', 'Demo.xcworkspace'])('an %s gives ios, with language and framework as before', async entry => {
+      mkdirSync(join(testDir, entry));
+      const info = (await detector.detectProject(testDir))!;
+      expect([info.language, info.framework, info.platform, info.name]).toEqual(['swift', 'ios', 'ios', 'Demo']);
+    });
+
+    it('an Xcode project beside a Package.swift gives ios too; a bare Swift package gives nothing', async () => {
+      writeFileSync(join(testDir, 'Package.swift'), 'let package = Package(name: "Kit")');
+      const bare = (await detector.detectProject(testDir))!;
+      expect([bare.language, bare.framework, bare.platform]).toEqual(['swift', 'ios', undefined]);
+      mkdirSync(join(testDir, 'Kit.xcodeproj'));
+      const both = (await detector.detectProject(testDir))!;
+      expect([both.name, both.platform]).toEqual(['Kit', 'ios']);
+    });
+  });
 });

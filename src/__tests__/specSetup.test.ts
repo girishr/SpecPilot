@@ -90,11 +90,27 @@ describe('targetsOutsideSpecs() is what generateSpecs() writes outside .specs/',
 });
 
 describe('setupQuestions()', () => {
+  it("an Xcode project: detected name, platform ios and the rows, with no language or framework question (BL-PM-016)", async () => {
+    const root = folder({ 'Demo.xcodeproj/project.pbxproj': '// fixture\n' });
+    const q = await setupQuestions(root);
+    expect(q.questions.map(x => x.key)).toEqual(['projectType', 'apiParadigm', 'handle', 'ide']);
+    expect(q.detected).toMatchObject({ language: 'swift', framework: 'ios', name: 'Demo', platform: 'ios', line: '✅ Detected swift/ios project' });
+    expect(q.detected!.rows.map(r => `${r.step} · ${r.label}: ${r.value}`)).toEqual(['Project identity · Project name: Demo', 'Platform & IDE · Language: swift', 'Platform & IDE · Framework: ios']);
+    expect((await setupQuestions(folder({ 'src/main.go': 'package main\n' }))).detected).toBeNull();
+  });
+
   it('asks what add-specs asks for a detected project, with no language or framework question when both are detected', async () => {
     const root = folder(NODE_REACT);
     const q = await setupQuestions(root);
     expect(q.questions.map(x => x.key)).toEqual(['projectType', 'apiParadigm', 'handle', 'ide']);
-    expect(q.detected).toEqual({ language: 'typescript', framework: 'react', line: '✅ Detected typescript/react project' });
+    expect(q.detected).toEqual({
+      language: 'typescript', framework: 'react', line: '✅ Detected typescript/react project', name: 'fixture-app', platform: null, // react alone shows no platform (BL-PM-016)
+      rows: [
+        { key: 'name', step: 'Project identity', label: 'Project name', value: 'fixture-app' },
+        { key: 'language', step: 'Platform & IDE', label: 'Language', value: 'typescript' },
+        { key: 'framework', step: 'Platform & IDE', label: 'Framework', value: 'react' },
+      ],
+    });
     expect(q.frameworks).toBeUndefined();
     expect(q.questions[2].message).toContain(`[${os.userInfo().username}]:`);
     expect(q.questions[3].choices).toEqual(IDE_CHOICES);

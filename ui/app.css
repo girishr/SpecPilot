@@ -367,6 +367,9 @@ input.txt{width:100%}
 .chat .intro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:22px;overflow:auto}
 .chat .intro .big{width:52px;height:52px;border-radius:14px}
 .chat .intro h2{font-size:28px;font-weight:700;margin:0;letter-spacing:-.02em;text-align:center;text-wrap:balance}
+.chat .intro h2.para{max-width:640px;line-height:1.3;overflow-wrap:anywhere} /* guided setup: its paragraph is the heading (BL-PM-016) */
+.chat .intro h2.para .mono{font-size:.8em}
+.chat .intro .fine[hidden]{display:none}
 .chat .intro p{color:var(--label-2);max-width:540px;text-align:center;line-height:1.55;margin:8px 0 0;overflow-wrap:anywhere}
 .chat .intro p .mono{font-size:13px}
 .chat .intro .fine{font-size:12.5px;color:var(--label-3)}
@@ -394,6 +397,10 @@ input.txt{width:100%}
 .chat .me .ed{font-size:11px;color:var(--label-3);padding:3px 2px}
 .chat .me .mono{font-family:var(--mono);font-size:13px}
 .chat .me.skipped button.b{opacity:.75;font-style:italic}
+.chat .det{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label-2);border:1px solid var(--sep);border-radius:6px;padding:0 5px;margin-right:4px;vertical-align:1px}
+.chat .me.fixed{gap:3px}
+.chat .me.fixed .b{max-width:82%;background:var(--group);color:var(--label);border:1px solid var(--sep);border-radius:14px 4px 14px 14px;padding:11px 15px;line-height:1.5;overflow-wrap:anywhere}
+.chat .rc .l.fixed:hover{background:none}
 .chat .composer{border-top:1px solid var(--sep);background:var(--group);padding:14px 22px 16px;flex:none}
 .chat .composer .col{gap:10px}
 .chat .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -431,20 +438,6 @@ input.txt{width:100%}
 .chat .cbody{flex:1;display:flex;min-height:0;position:relative}
 .chat .cbody[hidden]{display:none}
 .chat .cmain{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
-.chat .setups{width:232px;flex:none;border-right:1px solid var(--sep);background:var(--side);overflow-y:auto;padding:14px 10px}
-.chat .setups .sh{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label-3);padding:0 4px 10px}
-.chat .setups .note{font-size:12.5px;color:var(--label-3);padding:4px;margin:0}
-.chat .srow2{display:flex;align-items:stretch;gap:2px;border-radius:8px}
-.chat .srow2.cur{background:var(--hover)}
-.chat .srow2 .go{flex:1;min-width:0;display:flex;flex-direction:column;padding:7px 8px;border-radius:8px;color:var(--label)}
-.chat .srow2 .go:hover:not(:disabled){background:var(--hover)}
-.chat .srow2 .go:disabled{opacity:.6;cursor:default}
-.chat .srow2 .t{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chat .srow2 .d{font-size:11.5px;color:var(--label-3);overflow-wrap:anywhere}
-.chat .srow2 .rm{font-size:11.5px;color:var(--label-3);padding:0 6px;border-radius:6px}
-.chat .srow2 .rm:hover{color:var(--red-ink)}
-@media (min-width:721px){#chatSetups{display:none}}
-@media (max-width:720px){.chat .setups{display:none}.chat .cbody.lst .setups{display:block;position:absolute;z-index:5;inset:0 auto 0 0;max-width:85%;box-shadow:0 8px 24px rgba(0,0,0,.3)}}
 .chat .bot .cap{display:block;margin-top:4px;font-size:11.5px;color:var(--label-3)}
 .chat .cnote{font-size:12.5px;line-height:1.5;color:var(--label-2);background:var(--muted);border-radius:10px;padding:8px 12px;margin:6px 0 6px 36px}
 .chat .composer .cnote{margin:0}

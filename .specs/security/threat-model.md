@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-10 (BL-PM-009 Spec Report)
-version: 1.23
+lastUpdated: 2026-10-10 (BL-PM-016 Spec Report)
+version: 1.24
 contributors: [girishr]
 relatedFiles:
   [
@@ -116,7 +116,7 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | **Description**   | (a) **Template or YAML injection** through a new field (a value with `{{`, a `: `, a line break). (b) **Oversized bodies**: 23 fields with free entries push requests past the old 16 KB, or a crafted body is large enough to slow the render. (c) **Saved answers read by another local page**: `localStorage` is per origin, and the origin is `http://127.0.0.1:<port>`; any other server later run on that port (another tool's dev server) can read `sp-setups`. (d) **Token in storage**: a saved setup that carried the token would hand it to that other page. (e) **Served script integrity**: `/assets/chat-core.js` is built from the core and runs in the page's origin with the token in reach. (f) **Preview as a read oracle**: the preview route renders for a folder; if it took a path from the body it could probe the disk. |
 | **Impact**        | High for (d) (writes with the user's token while the server runs). Medium for (a) (a broken or misleading spec file). Low for (b), (c) (project descriptions and choices, typed by the user, nothing secret by design), (e) and (f). |
 | **Likelihood**    | Low: the input is the local user's own typing in their own page, already behind the Host, Origin and token checks (SEC-002.5); (c) needs another program served on the same port and origin later. |
-| **Entry point**   | The 23 keys in `POST /api/projects/new` and `POST /api/setup`; `POST /api/preview`; `sp-setups` in `localStorage`; `/assets/chat-core.js`. |
+| **Entry point**   | The 23 keys in `POST /api/projects/new` and `POST /api/setup`; `POST /api/preview`; `sp-setups` in `localStorage` (until BL-PM-016); `/assets/chat-core.js`. |
 | **Mitigation**    | (1) Each field is checked at the route before the lock: type, at most 1000 or 100 characters, lists at most 25 items, integration keys from a fixed list of eight, one line, no control characters or U+2028 / U+2029 (a); values reach the templates only through `{{ }}` and the `yaml` / `yamlList` helpers (REQ-002.I.5, SEC-004.16). (2) 64 KB body limit (bytes) on the three routes, 16 KB elsewhere, checked per route; every ASCII body within the field limits fits, a near-limit non-ASCII body may get 413 (shown to the user, SEC-004.17); the render is linear in the input (b). (3) The saved setup holds only answers, a name, timestamps and flags; the token is never written to storage, and a test reads the stored JSON for the token's value (d); REQ-002.H.28 states where setups live and how to remove them (`Remove`, `Start over`) (c). (4) The script is the compiled core file, served from the package with `default-src 'self'` unchanged; it imports nothing, reads no global but its `exports`, and is checked by the purity test (e). (5) The preview takes the same body as the create (no path for a new project; the served project's index for guided setup), takes no lock and writes nothing; its only disk read is the guided-setup folder's detector and kept list, which `GET /api/setup` already does (f). |
 | **Residual risk** | Low. A later program on the same port can read setups the user did not finish or remove; they hold what the user typed about a project they had not yet created. Accepted, as the web app accepts the same for its own origin. |
 
@@ -166,7 +166,7 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | Existing `specpilot-*` command files (`backfill`) | Disk read (bytes, `lstat`) | ✅ Exact SHA-256 match per target path, regular files only | Replaced or kept (SEC-002.6) |
 | Optional template fields (REQ-002.I.4) | Strings, lists, a map of lists | ⚠️ As typed in markdown (no HTML escaping since BL-PM-004b), `yaml`/`yamlList` in YAML; from BL-PM-004b also checked at the two create routes (type, length, list size, category keys, one line; SEC-002.8) | The phase 2 sections of `.specs/` files (SEC-002.2, SEC-002.7) |
 | `POST /api/preview` (BL-PM-004b) | JSON, the create body; token, `Origin` | ✅ as the create routes, ≤ 64 KB; 405 with `--read-only` | `render()` output returned; nothing written (SEC-002.8) |
-| `sp-setups` in the page's `localStorage` (BL-PM-004b) | JSON written and read by the page | ⚠️ parsed in `try`; bad JSON ignored; no token stored | Saved setups list (SEC-002.8) |
+| `sp-setups` in the page's `localStorage` (BL-PM-004b; removed by BL-PM-016) | Nothing since BL-PM-016: the page only removes a leftover key once, in `try` | ✅ no answers kept in the browser | None (REQ-002.H.35) |
 | `/assets/chat-core.js` (BL-PM-004b) | Compiled `src/core/chatFlow.ts` | ✅ purity rule and test; same-origin script under the existing CSP | Chat options and rules in the page (SEC-002.8) |
 
 ## Out of Scope [SEC-004]

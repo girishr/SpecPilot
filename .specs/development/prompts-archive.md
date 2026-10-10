@@ -1,6 +1,6 @@
 ---
 fileID: PROMPT-ARCHIVE-001
-lastUpdated: 2026-03-07
+lastUpdated: 2026-10-09 (archive after BL-PM-014)
 version: 1.0
 contributors: [girishr]
 relatedFiles: [development/prompts.md, project/project.yaml]

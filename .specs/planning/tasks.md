@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (BL-089, BL-087 completed)
-version: 6.30
+lastUpdated: 2026-10-10 (specs sync)
+version: 6.31
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -103,3 +103,4 @@ Notes
 | 174 | [CD-girishr-083] | Trivial: `.gitignore` ignores `.mcp.json`, which holds a live `X-SpecPilot-Token` once an IDE is connected to `specpilot serve --mcp` (BL-PM-007), so the token cannot be committed by accident. The developer's edit. |
 | 175 | [CD-girishr-084] [BL-089] | `specpilot serve --mcp` also serves MCP revision `2026-07-28` (REQ-002.H.33, ARCH-004.50, SEC-004.21, Architectural): the era is chosen per request from `params._meta`; version (-32022), mirrored headers against the body (-32020, repeats from `rawHeaders`, `Mcp-Name` base64 decoded) and client capabilities (-32602) are checked before any tool runs; `server/discover`; `resultType`, `ttlMs` 0, `cacheScope` private and `serverInfo` on results; other methods 404/-32601; initialize-based answers unchanged. Claude Code 2.1.286 checked live: it now stays on `2026-07-28`. Jest 1416 → 1454 (with BL-087). Commit `6942bec`. |
 | 176 | [CD-girishr-085] [BL-087] | `npm run build` cleans `dist/` first (`prebuild`), so `prepare`, `prepublishOnly` and `test:browser` never ship or test stale output; `clean` is a Node `fs.rmSync` one-liner, since `prepare` now runs it on every install from git (Windows `cmd`). With it, the Connect Your AI IDE note says to add `.mcp.json` to `.gitignore`. Commit `6942bec`. |
+| 177 | [CD-girishr-086] | Trivial, specs only: spec sync. `roadmap.md` Timeline rebuilt from CHANGELOG and git tags (one line per release, headings by series and month), step 6 of ROADMAP-003.1 ticked with BL-089 and BL-087, BL-PM-007 in ROADMAP-002.14, ROADMAP-002.13 deferred; `project.yaml` points at `development/context.md` and `development/prompts.md`; the archive files' `lastUpdated` set to their last archive; CHANGELOG 1.1.x and 1.2.x in order, the empty duplicate `[1.1.3]` removed, `[1.1.3]` and `[2.2.0]` dated by their tags, `[2.0.1]` added from `git log v2.0.0..v2.0.1`. |

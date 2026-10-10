@@ -4,7 +4,7 @@ import { Browser } from 'playwright-core';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { Page } from 'playwright-core';
-import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, remember, routeJs, serve, Served, until, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, remember, routeJs, serve, Served, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -112,13 +112,10 @@ async function ideItems(page: Page): Promise<[string, string | null][]> {
   return page.$$eval('#ideMenu [role=menuitem]', els => els.map(e => [e.textContent!, e.getAttribute('href')] as [string, string | null]));
 }
 
-/** The menu's items, the menu closed again. */
-async function peek(page: Page): Promise<[string, string | null][]> {
-  const items = await ideItems(page);
-  await page.keyboard.press('Escape');
-  await page.locator('#ideMenu').waitFor({ state: 'hidden' });
-  return items;
-}
+/** Live reloads the page has drawn: `redraw()` counts them on <html data-rev>, so a test that changes a file
+    waits for the redraw itself before it opens the menu (a redraw closes an open menu). */
+const rev = (page: Page) => page.evaluate(() => Number(document.documentElement.dataset.rev ?? 0));
+const redrawn = (page: Page, before: number) => page.waitForFunction(n => Number(document.documentElement.dataset.rev ?? 0) > n, before);
 
 browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they apply, never on Home, New project or Home rows', b, async open => {
   const { page } = await open(srv, '#board');
@@ -133,8 +130,9 @@ browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they ap
 
   // onboarding.md appears outside the page: live reload brings the prompt items
   const prompt = 'You are the specification co-pilot for "spec-project".\nFill every file & keep #IDs, 100% of them. Étape 日本.';
+  let r = await rev(page);
   writeFileSync(join(env.project, ...ONB), onboarding(prompt));
-  await until(async () => (await peek(page)).length === 3, 'the prompt items');
+  await redrawn(page, r);
   const items = await ideItems(page);
   expect(items.map(i => i[0])).toEqual(['Open in Cursor', 'Send onboarding prompt to Cursor', 'Copy onboarding prompt']);
   expect(items[1][1]).toBe(routeJs.cursorPromptUrl(prompt));
@@ -153,8 +151,10 @@ browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they ap
   expect(await page.locator('#ideBtn').getAttribute('aria-expanded')).toBe('false');
   // so does live reload: a watched file changes while it is open
   await ideItems(page);
+  r = await rev(page);
   writeFileSync(env.tasks(), readFileSync(env.tasks(), 'utf-8') + '\n');
-  await page.locator('#ideMenu').waitFor({ state: 'hidden' });
+  await redrawn(page, r);
+  expect(await page.locator('#ideMenu').isHidden()).toBe(true);
   expect(await page.locator('#ideBtn').getAttribute('aria-expanded')).toBe('false');
   await ideItems(page);
   await page.locator('#ideMenu [role=menuitem]', { hasText: 'Copy onboarding prompt' }).click();
@@ -165,9 +165,10 @@ browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they ap
   // a prompt too long for a link: the Cursor item copies instead
   const long = 'x '.repeat(4000).trim();
   expect(routeJs.cursorPromptUrl(long)).toBeNull();
+  r = await rev(page);
   writeFileSync(join(env.project, ...ONB), onboarding(long));
-  await until(async () => (await peek(page))[1]?.[1] === null, 'the copy fallback');
-  await ideItems(page);
+  await redrawn(page, r);
+  expect((await ideItems(page))[1]).toEqual(['Send onboarding prompt to Cursor', null]);
   await page.locator('#ideMenu [role=menuitem]', { hasText: 'Send onboarding prompt to Cursor' }).click();
   await waitToast(page, /^The prompt is too long for a Cursor link\. Copied; paste it into Cursor’s chat\.$/);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(long);
@@ -179,13 +180,17 @@ browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they ap
   await waitToast(page, /^Could not copy\. Open development\/onboarding\.md and copy it\.$/);
 
   // onboarding.md deleted: back to Open in Cursor only
+  r = await rev(page);
   rmSync(join(env.project, ...ONB));
-  await until(async () => (await peek(page)).length === 1, 'the prompt items to go');
+  await redrawn(page, r);
+  expect(await ideItems(page)).toEqual([['Open in Cursor', routeJs.editorUrl(env.project, 0, 'cursor')]]);
+  await page.keyboard.press('Escape');
 
   // the other project's path, with spaces and non-ASCII
   cursorOn(odd);
   await page.goto(`${srv.url}/#1/board`);
-  await page.waitForFunction(() => location.hash === '#1/board' && !document.querySelector<HTMLElement>('#ideWrap')!.hidden);
+  // drawn from project 1's data: its folder in the VS Code link (the button alone may still be project 0's)
+  await page.waitForFunction(href => document.querySelector('#editorBtn')!.getAttribute('href') === href && !document.querySelector<HTMLElement>('#ideWrap')!.hidden, routeJs.editorUrl(odd));
   const [[, href]] = await ideItems(page);
   await page.goto(`${srv.url}/#1/explorer`); // a view switch closes the open menu
   await page.locator('#ideMenu').waitFor({ state: 'hidden' });
@@ -198,7 +203,7 @@ browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they ap
   await page.goto(`${srv.url}/#2/setup`);
   await waitView(page, 'v-chat');
   await page.locator('#setupStart').waitFor({ state: 'visible' });
-  await page.locator('#ideBtn').waitFor({ state: 'visible' });
+  await page.waitForFunction(href => document.querySelector('#editorBtn')!.getAttribute('href') === href && !document.querySelector<HTMLElement>('#ideWrap')!.hidden, routeJs.editorUrl(empty));
   expect(await ideItems(page)).toEqual([['Open in Cursor', routeJs.editorUrl(empty, 0, 'cursor')]]);
 
   for (const hash of ['#home', '#new']) {

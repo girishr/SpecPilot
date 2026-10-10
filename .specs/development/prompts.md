@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 completed)
-version: 2.88
+lastUpdated: 2026-10-10 (BL-PM-010 browser race)
+version: 2.89
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-10: the browser suite failed once on `main` after the BL-PM-010/BL-PM-013 merge (1 of 29, the Open in AI IDE test racing live reload), so nothing was pushed; on the developer's typed `yes proceed`: fixed on `fix/bl-pm-010-browser-race` with a `data-rev` live-reload counter and waits on it (no retry loop), the other tests checked for the same pattern, five browser runs 29/29, trivial row 180, `--no-ff` merge, both suites on `main` before the push, both branches deleted.
 - 2026-10-10: BL-PM-010 and BL-PM-013 accepted as built on the developer's typed `yes proceed` (instructions pasted): feature commit `214e481` on `feat/bl-pm-010-013-open-in-ide` (no co-author trailer) after reading the tasks.md diff line by line; completion commit moves both to Completed as rows 178 and 179 (CD-girishr-087, 088) citing it, roadmap step 5 ticked; `--no-ff` merge into `main`, `specpilot archive` for prompts.md on `main`, `npm test` and `npm run test:browser` on `main` before pushing, branch deleted.
 - 2026-10-10: BL-PM-010/BL-PM-013 built on the developer's `Yes Proceed (a)` (reviewer A's second ESCALATE was the optional allowed set on `resolveAllowedPath()`; its three spec-text fixes applied first): `specPaths.ts`, `specServer.ts` (`project.cursor`), `ui/route.js` (`editorUrl` scheme, `cursorPromptUrl`, `onboardingPrompt`), `ui/index.html`, `ui/app.js`, `ui/app.css`; Jest 1454 → 1461, browser 26 → 29; README, CHANGELOG, specs to built. Reviewer B next; not committed.
 - 2026-10-10: BL-PM-010/BL-PM-013 decisions, pasted with "go ahead with this": Q1 (c) served projects only, no Home button, SEC-004.8 revision; Q2 accept; Q3 row reworded; Q4 Cursor only, unverified, Windsurf to BL-PM-015; the reviewer's five fixes applied (SEC-004.8, `resolveAllowedPath()` with an allowed set, `project.cursor` boolean in place of `ides`, untrusted-clone note, browser cases); reviewer A re-run, then build if Feature; stop before commit.

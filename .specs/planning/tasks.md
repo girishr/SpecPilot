@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 completed)
-version: 6.33
+lastUpdated: 2026-10-10 (BL-PM-010 browser race)
+version: 6.34
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -105,3 +105,4 @@ Notes
 | 177 | [CD-girishr-086] | Trivial, specs only: spec sync. `roadmap.md` Timeline rebuilt from CHANGELOG and git tags (one line per release, headings by series and month), step 6 of ROADMAP-003.1 ticked with BL-089 and BL-087, BL-PM-007 in ROADMAP-002.14, ROADMAP-002.13 deferred; `project.yaml` points at `development/context.md` and `development/prompts.md`; the archive files' `lastUpdated` set to their last archive; CHANGELOG 1.1.x and 1.2.x in order, the empty duplicate `[1.1.3]` removed, `[1.1.3]` and `[2.2.0]` dated by their tags, `[2.0.1]` added from `git log v2.0.0..v2.0.1`. |
 | 178 | [CD-girishr-087] [BL-PM-010] | `specpilot serve` Open in AI IDE (REQ-002.H.34, SEC-004.8 revision): a menu beside Open in VS Code on every project view (guided setup and `--read-only` included, not Home or its rows) with `Open in Cursor` (`cursor://file/<root>`) when `project.cursor` (`.cursor/rules/specpilot.mdc`, checked through `resolveAllowedPath()` with that one path as its allowed set, never served), and while `development/onboarding.md` exists `Send onboarding prompt to Cursor` (app-scheme prompt link; copies instead over 10,000 characters) and `Copy onboarding prompt` (Claude Code has no URL scheme). Cursor links unverified on the build machine; Windsurf is BL-PM-015. Jest 1454 → 1461 (with BL-PM-013), browser 26 → 29. Commit `214e481`. |
 | 179 | [CD-girishr-088] [BL-PM-013] | `specpilot serve` per-file Open in VS Code (REQ-002.H.31): the file view of every `.specs/` file (in the front-matter header, or a header line with the path for a file without one) and the Instructions, Commands and Skills inspectors, through `editorUrl()`, with no `:<line>`; none in Explorer or Security or for a gone file. Commit `214e481`. |
+| 180 | [CD-girishr-089] [BL-PM-010] | Trivial: the Open in AI IDE browser test raced live reload on `main` (1 of 29 failed once: it opened the menu while a redraw closed it). `redraw()` now counts drawn live reloads on `<html data-rev>` (one line in `ui/app.js`), and the test waits for that count to rise after each file change before opening the menu once, with no retry loop; the two project switches in it wait for `#editorBtn` to show the new project's folder. The other browser tests already wait on a DOM change after writing a file. `npm run test:browser` 29/29 five times in a row. |

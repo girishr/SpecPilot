@@ -19,7 +19,9 @@ export const registry: RegistryModule = require(join(REPO, 'dist', 'utils', 'pro
 export const taskMover: typeof import('../utils/taskMover') = require(join(REPO, 'dist', 'utils', 'taskMover.js'));
 // The page's own helpers, as the browser runs them.
 export const routeJs: {
-  editorUrl: (path: string, line?: number) => string;
+  editorUrl: (path: string, line?: number, scheme?: string) => string;
+  cursorPromptUrl: (text: string) => string | null;
+  onboardingPrompt: (src: string) => string;
   mcpConfigLine: (host: string, token: string) => string;
 } = require(join(REPO, 'ui', 'route.js'));
 

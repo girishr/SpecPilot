@@ -47,7 +47,7 @@ function renderProject(){
     return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
-  $('#subName').textContent=name;$('#subPath').textContent=where;$('#editorBtn').href=editorUrl(p.root);
+  $('#subName').textContent=name;$('#subPath').textContent=where;$('#editorBtn').href=editorUrl(p.root);syncIde();
   $('#footAddr').textContent=$('#homeAddr').textContent=location.host;$('#footVer').textContent=$('#homeVer').textContent='v'+p.specpilotVersion;
   document.title=name+' · SpecPilot Local';
 }
@@ -79,7 +79,7 @@ function go(v,keep,sub){
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?projectLabel(DATA.projects[PROJECT]):v==='new'?'New project':VIEWS[v];
   $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=$('#chatSetups').hidden=true;chat=null;}
-  $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);
+  $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();
   if(v==='home')loadRecent();
@@ -221,7 +221,9 @@ async function renderFile(path){
   if(src===null){$('#fmBox').innerHTML='';$('#fileBody').innerHTML=gone('.specs/'+path);return;}
   const isYaml=/\.ya?ml$/.test(path);
   const {fm,body}=isYaml?{fm:'',body:src}:splitFm(src);
-  $('#fmBox').innerHTML=fm?`<div class="gh">Front matter <span class="cnt" translate="no">.specs/${esc(path)}</span></div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div>`:'';
+  const ed=`<a class="more" href="${esc(editorUrl(DATA.project.root+'/.specs/'+path))}">Open in VS Code</a>`; // BL-PM-013
+  $('#fmBox').innerHTML=fm?`<div class="gh">Front matter <span class="cnt" translate="no">.specs/${esc(path)}</span>${ed}</div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div>`
+    :`<div class="gh"><span class="cnt" translate="no">.specs/${esc(path)}</span>${ed}</div>`;
   $('#fileBody').innerHTML=isYaml?`<pre translate="no">${esc(src)}</pre>`:md(body);
 }
 const gone=goneHtml; // one definition of the "no longer exists" markup: ui/route.js
@@ -297,10 +299,55 @@ async function openFile(path,quiet){
   const head=`<div class="ih"><span class="id" translate="no">${esc(path)}</span><button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>`;
   if(src===null){insp.innerHTML=head+`<div class="ib2">${gone(path)}</div>`;openInsp(quiet);return;}
   const {fm,body}=splitFm(src);
-  insp.innerHTML=head+`<div class="ib2">${fm?`<div class="gl"><div class="gh">Front matter</div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div></div>`:''}<div class="md doc">${md(body)}</div></div>`;
+  insp.innerHTML=head+`<div class="ib2">${fm?`<div class="gl"><div class="gh">Front matter</div><div class="box"><pre class="raw" translate="no">${esc(fm)}</pre></div></div>`:''}<div class="md doc">${md(body)}</div><div class="actions"><a class="btn sm" href="${esc(editorUrl(DATA.project.root+'/'+path))}">Open in VS Code</a></div></div>`;
   openInsp(quiet);
 }
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-open]');if(b)openFile(b.dataset.open);});
+
+/* Open in AI IDE (BL-PM-010): Cursor by its URL schemes when the project has SpecPilot's Cursor rules
+   file (`project.cursor`), and the onboarding prompt while development/onboarding.md exists. */
+const ONB='development/onboarding.md',ideBtn=$('#ideBtn'),ideMenu=$('#ideMenu');
+const hasOnb=()=>!!DATA&&ONB in DATA.files;
+/* On every view switch and redraw: an open menu would hold another view's or project's items. */
+function syncIde(){
+  closeIde(false);
+  $('#ideWrap').hidden=!DATA||NOPROJ.includes(curView)||!(DATA.project.cursor||hasOnb());
+}
+function closeIde(refocus){
+  if(ideMenu.hidden)return;
+  ideMenu.hidden=true;ideBtn.setAttribute('aria-expanded','false');
+  if(refocus)ideBtn.focus();
+}
+function copyPrompt(text,note){
+  const claude=DATA.nav.instructions.some(f=>f.path==='CLAUDE.md'&&f.exists);
+  (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject())
+    .then(()=>toast(note||(claude?`Copied. Paste it into Claude Code started in ${DATA.project.root}, or into your IDE’s chat.`:'Copied. Paste it into your IDE’s chat.')),
+      ()=>toast('Could not copy. Open development/onboarding.md and copy it.'));
+}
+async function openIde(){
+  const pj=PROJECT,cur=DATA.project.cursor;let prompt=null;
+  if(hasOnb())try{prompt=onboardingPrompt(await getText('.specs/'+ONB));}catch(e){toast(e.message);}
+  if(PROJECT!==pj||$('#ideWrap').hidden||!ideMenu.hidden)return; // switched away, or a second click opened it meanwhile
+  const item=(tag,attrs,label)=>`<${tag} role="menuitem" ${attrs}>${esc(label)}</${tag}>`;
+  const link=prompt!==null&&cur?cursorPromptUrl(prompt):null;
+  ideMenu.innerHTML=[
+    cur?item('a',`href="${esc(editorUrl(DATA.project.root,0,'cursor'))}"`,'Open in Cursor'):'',
+    prompt!==null&&cur?(link?item('a',`href="${esc(link)}"`,'Send onboarding prompt to Cursor'):item('button','type="button" data-copy="long"','Send onboarding prompt to Cursor')):'',
+    prompt!==null?item('button','type="button" data-copy="all"','Copy onboarding prompt'):'',
+  ].join('');
+  if(!ideMenu.children.length)return;
+  $$('[role=menuitem]',ideMenu).forEach(m=>m.onclick=()=>{
+    if(m.dataset.copy)copyPrompt(prompt,m.dataset.copy==='long'?'The prompt is too long for a Cursor link. Copied; paste it into Cursor’s chat.':'');
+    closeIde(false);
+  });
+  ideMenu.hidden=false;ideBtn.setAttribute('aria-expanded','true');ideMenu.firstElementChild.focus();
+}
+ideBtn.onclick=()=>ideMenu.hidden?openIde():closeIde(true);
+ideMenu.addEventListener('keydown',e=>{
+  const it=$$('[role=menuitem]',ideMenu),i=it.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();it[(i+(e.key==='ArrowDown'?1:it.length-1))%it.length].focus();}
+});
+document.addEventListener('click',e=>{if(!ideMenu.hidden&&!e.target.closest('#ideWrap'))closeIde(false);});
 
 /* ---------------- palette + keys ---------------- */
 const palVeil=$('#palVeil'),palIn=$('#palIn'),palList=$('#palList');
@@ -321,7 +368,7 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
-  if(e.key==='Escape'){hideTip();closeInsp();closePal();closeSheet();closeNewTask();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;comp=null;drawChat();}setNav(false);return}
+  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;comp=null;drawChat();}setNav(false);return}
   if(inField||mod||e.altKey||taskVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}

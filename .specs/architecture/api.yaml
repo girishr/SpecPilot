@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-10-10 (BL-089/BL-087 Spec Report)
-# version: 2.32
+# lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 built)
+# version: 2.33
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -262,7 +262,7 @@ commands:
     routes:
       "GET /": The UI page
       "GET /assets/<file>": The UI's stylesheet, scripts and favicon (the SpecPilot logo)
-      "GET /api/specs": "Project metadata (incl. project.specs: whether .specs exists, BL-055), readSpecs() output (each task row carries line, its 1-based line in tasks.md, BL-PM-008), the nav tree (nav.commands, nav.prompts and nav.skills entries carry generated: true|false, BL-PM-006) and projects: [{name, root, branch}] for every served project, root as ~/... under the home directory (JSON)"
+      "GET /api/specs": "Project metadata (incl. project.specs: whether .specs exists, BL-055; project.cursor: whether .cursor/rules/specpilot.mdc is a regular file, checked by resolveAllowedPath() with that one path allowed, not served, BL-PM-010), readSpecs() output (each task row carries line, its 1-based line in tasks.md, BL-PM-008), the nav tree (nav.commands, nav.prompts and nav.skills entries carry generated: true|false, BL-PM-006) and projects: [{name, root, branch}] for every served project, root as ~/... under the home directory (JSON)"
       "GET /api/file?p=<path>": One allowlisted file of the named project as text/plain
       "POST /api/tasks/move": "Move one task row between Backlog and Current Sprint, or reorder within one. JSON body {id, toSection: backlog|currentSprint, toIndex}; headers If-Match (sha256 of tasks.md as last loaded), X-SpecPilot-Token (from the page's meta tag), Origin (the page's own), Content-Type application/json; body <= 16 KB. 200 {sha256, specs}; 409 {error, specs} when the file changed; 422 {error} for an unknown, duplicate or Completed id, a section without a table, a bad index, or a move that cannot keep every other byte; 403 token/Origin/Host (Origin must equal http:// + Host); 400 body not JSON; 413 too large; 415 not application/json; 428 no If-Match; 405 with --read-only"
       "POST /api/tasks/new": "BL-PM-005. Append one task row to Backlog or Current Sprint. JSON body {description, section: backlog|currentSprint}; headers If-Match (sha256 of tasks.md as last loaded), X-SpecPilot-Token, Origin (the page's own), Content-Type application/json; body <= 16 KB. The server picks the ID: BL (Backlog) or CS (Current Sprint) and the highest number of that prefix in ID positions (a table row's ID cell, the leading tags of an archived list item) of tasks.md and tasks-archive.md plus one, >= 3 digits. The line is | <ID> | <description> |, the description as typed with surrounding white space removed. 200 {sha256, id, section, index, specs}, index = the new row's 0-based position among that section's rows (its last); 409 {error, specs} when the file changed; 422 {error} for an empty description, a line break (CR, LF, U+2028, U+2029), other control character (U+0000-U+001F, U+007F-U+009F), unpaired surrogate or | in it, a trailing backslash, more than 4000 Unicode code points, another section, a section without a table, tasks.md a symbolic link or not valid UTF-8, tasks-archive.md a symbolic link, not a regular file, unreadable or not valid UTF-8, no line break at the end of the file where the row would go last, or a row the tasks.md checks of specpilot validate would report; 403 token/Origin/Host; 400 body not JSON; 413 too large; 415 not application/json; 428 no If-Match; 405 with --read-only"

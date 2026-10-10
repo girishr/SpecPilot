@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-10 (BL-089/BL-087 Spec Report)
-version: 2.85
+lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 completed)
+version: 2.88
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-10: BL-PM-010 and BL-PM-013 accepted as built on the developer's typed `yes proceed` (instructions pasted): feature commit `214e481` on `feat/bl-pm-010-013-open-in-ide` (no co-author trailer) after reading the tasks.md diff line by line; completion commit moves both to Completed as rows 178 and 179 (CD-girishr-087, 088) citing it, roadmap step 5 ticked; `--no-ff` merge into `main`, `specpilot archive` for prompts.md on `main`, `npm test` and `npm run test:browser` on `main` before pushing, branch deleted.
+- 2026-10-10: BL-PM-010/BL-PM-013 built on the developer's `Yes Proceed (a)` (reviewer A's second ESCALATE was the optional allowed set on `resolveAllowedPath()`; its three spec-text fixes applied first): `specPaths.ts`, `specServer.ts` (`project.cursor`), `ui/route.js` (`editorUrl` scheme, `cursorPromptUrl`, `onboardingPrompt`), `ui/index.html`, `ui/app.js`, `ui/app.css`; Jest 1454 → 1461, browser 26 → 29; README, CHANGELOG, specs to built. Reviewer B next; not committed.
+- 2026-10-10: BL-PM-010/BL-PM-013 decisions, pasted with "go ahead with this": Q1 (c) served projects only, no Home button, SEC-004.8 revision; Q2 accept; Q3 row reworded; Q4 Cursor only, unverified, Windsurf to BL-PM-015; the reviewer's five fixes applied (SEC-004.8, `resolveAllowedPath()` with an allowed set, `project.cursor` boolean in place of `ides`, untrusted-clone note, browser cases); reviewer A re-run, then build if Feature; stop before commit.
+- 2026-10-10: BL-PM-010 and BL-PM-013 Spec-First gate, specs only, on `feat/bl-pm-010-013-open-in-ide` from `main` (`53d56f6`); brief ("go ahead with this"): Open in AI IDE from the project page and Home rows for the IDEs the instruction files show (Cursor, Windsurf, VS Code; Claude Code copies the onboarding prompt with a note), per-file Open in editor in the inspector and file view through BL-PM-008's `editorUrl()`, no route and no process; one Spec Report with defaults, spec-reviewer A, stop. Updated: REQ-002.H.34 (new), REQ-002.H.31, `architecture.md`, `api.yaml`, the threat-model row, TESTS-002.4 (planned), `tasks.md` (both rows to Current Sprint), `context.md` (13 defaults). No code.
 - 2026-10-10: spec sync on `chore/specs-sync` from `main` (`ad9dab6`), the developer's typed `yes proceed` (instructions pasted, which named a scan from another session; this session scanned again before editing): `roadmap.md` Timeline rebuilt with one line per release, step 6 ticked with BL-089 and BL-087, BL-PM-007 in ROADMAP-002.14, ROADMAP-002.13 deferred; the two `project.yaml` paths; the archive files' `lastUpdated`; CHANGELOG 1.1.x/1.2.x order, duplicate `[1.1.3]` removed, `[1.1.3]` and `[2.2.0]` tag dates, `[2.0.1]` added; nothing under `[Unreleased]` or `[2.12.0]`; row 177. One commit, `--no-ff` merge, push, branch deleted.
 - 2026-10-10: BL-089 and BL-087 accepted as built on the developer's typed `yes proceed` (instructions pasted): feature commit `6942bec` on `feat/bl-089-087-mcp-2026-07-28` (no co-author trailer) after reading the tasks.md diff line by line (only the two row moves); completion commit moves both to Completed as rows 175 and 176 (CD-girishr-084, 085) citing it; `--no-ff` merge into `main`, `npm test` and `npm run test:browser` on `main` before pushing, branch deleted.
 - 2026-10-10: BL-089 and BL-087 built on `feat/bl-089-087-mcp-2026-07-28` after the developer's typed `yes proceed`, taken as accepting SpecPilot's recommendations (Architectural; defaults 2 to 16; 17 amends BL-PM-007's Added entry). Jest 1454/1454, browser 26/26, tsc clean, lint errors only the two already on `main`; Claude Code 2.1.286 checked live through a logging proxy (stays on `2026-07-28`). Not committed.

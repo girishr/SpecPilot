@@ -9,6 +9,8 @@ export interface ProjectInfo {
   author?: string;
   description?: string;
   dependencies: string[];
+  /** A platform id of the setup chat, from direct evidence only (BL-PM-016); the CLI does not read it. */
+  platform?: string;
 }
 
 export class ProjectDetector {
@@ -64,8 +66,19 @@ export class ProjectDetector {
       framework: this.detectFramework(pkg),
       author: this.extractAuthor(pkg.author),
       description: pkg.description || '',
-      dependencies: Object.keys(pkg.dependencies || {})
+      dependencies: Object.keys(pkg.dependencies || {}),
+      platform: this.detectNodePlatform(pkg),
     };
+  }
+
+  /** The platform a package.json shows directly (REQ-002.H.35): nothing for react alone. */
+  private detectNodePlatform(pkg: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> }): string | undefined {
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+    if (deps['react-native'] || deps.expo) return 'rn';
+    if (deps.next) return 'nextjs';
+    if ((deps.vite || deps['react-scripts']) && deps.react) return 'react';
+    if (deps.vite && deps.vue) return 'vue';
+    return undefined;
   }
 
   private detectPythonProject(filePath: string, fileType: string): ProjectInfo {
@@ -224,24 +237,25 @@ export class ProjectDetector {
     let version = '1.0.0';
     let content = '';
 
+    const xcEntry = readdirSync(projectDir).find(e => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace'));
     if (packageSwiftPath && existsSync(packageSwiftPath)) {
       content = readFileSync(packageSwiftPath, 'utf-8');
       const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
       if (nameMatch) projectName = nameMatch[1];
     } else {
       // Derive name from .xcodeproj or .xcworkspace filename
-      const entries = readdirSync(projectDir);
-      const xcEntry = entries.find(e => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace'));
       if (xcEntry) projectName = xcEntry.replace(/\.(xcodeproj|xcworkspace)$/, '');
     }
 
+    // An Xcode project, also beside a Package.swift, is the only evidence of iOS (REQ-002.H.35).
     return {
       name: projectName,
       version,
       language: 'swift',
       framework: this.detectSwiftFramework(content),
       description: '',
-      dependencies: []
+      dependencies: [],
+      ...(xcEntry ? { platform: 'ios' } : {}),
     };
   }
 

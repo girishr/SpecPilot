@@ -82,9 +82,18 @@ export interface SetupQuestions {
   frameworks?: Record<string, string[]>;
   /** What will be written: the `.specs/` files per API paradigm and the files outside it per IDE choice. */
   files: GeneratedFiles;
-  detected: { language: string; framework: string | null; line: string } | null;
+  /** What the detector found; `rows` are the answered rows guided setup shows for it (BL-PM-016). */
+  detected: { language: string; framework: string | null; line: string; name: string; platform: string | null; rows: DetectedRow[] } | null;
   /** Per IDE choice, the files outside `.specs/` that would be written and already exist (kept). */
   keep: Record<string, string[]>;
+}
+
+/** One answered row of guided setup that the detector filled in: shown, not asked and not sent (REQ-002.H.35). */
+export interface DetectedRow {
+  key: string;
+  step: string;
+  label: string;
+  value: string;
 }
 
 export interface GeneratedFiles {
@@ -143,9 +152,17 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
     ...inSteps(questions),
     ...(frameworks ? { frameworks } : {}),
     files: generatedFiles(generator),
-    detected: info ? { language: info.language, framework: info.framework ?? null, line: detectedLine(info) } : null,
+    detected: info ? { language: info.language, framework: info.framework ?? null, line: detectedLine(info), name: info.name, platform: info.platform ?? null, rows: detectedRows(info) } : null,
     keep,
   };
+}
+
+/** The rows for what `add-specs` takes from the detector without asking: the project name, the language and the framework. */
+function detectedRows(info: ProjectInfo): DetectedRow[] {
+  const rows: DetectedRow[] = [{ key: 'name', step: SETUP_STEPS[0], label: 'Project name', value: info.name }];
+  rows.push({ key: 'language', step: QUESTION_STEPS.language, label: QUESTION_CHAT.language.label, value: info.language });
+  if (info.framework) rows.push({ key: 'framework', step: QUESTION_STEPS.framework, label: QUESTION_CHAT.framework.label, value: info.framework });
+  return rows;
 }
 
 const KEYS = ['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide'];

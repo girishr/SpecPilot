@@ -78,7 +78,7 @@ function go(v,keep,sub){
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+(v==='new'||v==='setup'?'chat':v))); // one chat section for both flows (BL-PM-004)
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?projectLabel(DATA.projects[PROJECT]):v==='new'?'New project':VIEWS[v];
-  $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=$('#chatSetups').hidden=true;chat=null;}
+  $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=true;chat=null;}
   $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();
@@ -494,21 +494,17 @@ async function getQuestions(url){
 /* The page's own question of a new project; every other one is the server's or the chat core's. */
 const PARENT_Q={key:'parent',message:'Parent folder',label:'Folder',required:true,chat:"Nice, {name}. Where should it live? I'll create {name}/ inside this folder.",placeholder:'~/dev'};
 const CC=window.SpecPilotChat; // the chat core (BL-PM-004b): src/core/chatFlow.ts, served as /assets/chat-core.js
-/* Saved setups (BL-PM-004b): every setup the chat has started, kept in this browser under sp-setups. */
-let storeOk=true,setups=[];
-try{setups=setupsLoad(localStorage.getItem(SETUPS_KEY));}catch(e){storeOk=false;}
-function storeSetups(){try{localStorage.setItem(SETUPS_KEY,JSON.stringify(setups));}catch(e){storeOk=false;}}
-function saveSetup(st){if(!st.started)return;st.updatedAt=Date.now();setups=setupsPut(setups,setupRecord(st));storeSetups();}
-function dropSetup(id){setups=setupsRemove(setups,id);storeSetups();}
-const freshSetup=(kind,root,id)=>({id:id||(kind==='setup'?'s:'+root:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind,root,answers:{},editing:null,started:false,seeded:{},preview:{done:false,changed:false},finished:false});
-const restoreSetup=e=>({...JSON.parse(JSON.stringify(e)),editing:null});
+/* Answers live in the page only: saved setups were removed on purpose (BL-PM-016); a key an older page left is removed once. */
+try{localStorage.removeItem('sp-setups');}catch(e){}
+// `seed`: what the detector filled in for guided setup (REQ-002.H.35), a normal answer the user can change
+const freshSetup=(kind,root,id,seed={})=>({id:id||(kind==='setup'?'s:'+root:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind,root,answers:{...JSON.parse(JSON.stringify(seed))},seed,editing:null,started:false,seeded:{},preview:{done:false,changed:false},finished:false});
 const live={}; // the setups open in this page, by id
 let curNew=null; // the new-project setup #new shows
 let chat=null,chatBusy=false,comp=null;
 /* Shown by go(): the chat for a new project, or for the project without .specs/. */
 async function renderChat(isNew){
   const pj=PROJECT,note=$('#chatNote');
-  $('#intro').hidden=$('#thread').hidden=$('#composer').hidden=note.hidden=true;$('#chatRestart').hidden=$('#chatClose').hidden=$('#chatSetups').hidden=true;$('#cbody').hidden=true;
+  $('#intro').hidden=$('#thread').hidden=$('#composer').hidden=note.hidden=true;$('#chatRestart').hidden=$('#chatClose').hidden=true;$('#cbody').hidden=true;
   chat=null;comp=null;
   if(!TOKEN){note.textContent='Started with --read-only, so nothing can be set up here.';note.hidden=false;return;}
   const q=await getQuestions(isNew?'/api/projects/new':'/api/setup?project='+pj);
@@ -517,11 +513,11 @@ async function renderChat(isNew){
   if(q.error){note.textContent=q.error;note.hidden=false;return;}
   let st;
   if(isNew){
-    if(!curNew||!live[curNew]){const rec=curNew&&setups.find(e=>e.id===curNew);st=rec?restoreSetup(rec):freshSetup('new');curNew=st.id;live[st.id]=st;}
+    if(!curNew||!live[curNew]){st=freshSetup('new');curNew=st.id;live[st.id]=st;}
     st=live[curNew];
   }else{
-    const root=DATA.projects[pj].root,id='s:'+root,rec=setups.find(e=>e.id===id);
-    st=live[id]||(live[id]=rec?restoreSetup(rec):freshSetup('setup',root));
+    const root=DATA.projects[pj].root,id='s:'+root;
+    st=live[id]||(live[id]=freshSetup('setup',root,id,seededAnswers(q.detected)));
   }
   chat={id:st.id,isNew,project:pj,q,st};
   $('#cbody').hidden=false;
@@ -537,27 +533,20 @@ function chatCtx(){
   const a=chat.st.answers,lq=chat.q.questions.find(x=>x.key==='language'),c=lq&&lq.choices.find(x=>x.value===a.language);
   return {name:chat.isNew?a.name:projectLabel(DATA.projects[chat.project]),language:c?c.name:(chat.q.detected?chat.q.detected.language:'')};
 }
-/* The list of saved setups beside the thread. */
-function drawSetups(){
-  const el=$('#setupList');
-  if(!storeOk){el.innerHTML='<p class="note">Setups cannot be saved in this browser.</p>';return;}
-  const served=root=>DATA.projects.findIndex(p=>p.root===root);
-  el.innerHTML=setups.length?setups.map(e=>{
-    const off=e.kind==='setup'&&served(e.root)<0,t=setupTitle(e);
-    return `<div class="srow2${chat&&chat.st.id===e.id?' cur':''}"><button type="button" class="go" data-setup="${esc(e.id)}"${off?' disabled':''}><span class="t" translate="no">${esc(t)}</span><span class="d">${esc(off?`Open ${e.root} to resume`:`${setupStatus(e)} · ${when(new Date(e.updatedAt).toISOString())}`)}</span></button><button type="button" class="rm" data-rm-setup="${esc(e.id)}" aria-label="Remove ${esc(t)}">Remove</button></div>`;
-  }).join(''):'<p class="note">No saved setups yet.</p>';
-}
+/* What the detector filled in, for threadRows() and recapCards(): its rows, and the seeded answers not changed since. */
+const chatDet=()=>chat.isNew?null:{rows:chat.q.detected?chat.q.detected.rows||[]:[],keys:detectedKeys(chat.st.seed,chat.st.answers)};
 function drawChat(){
   const st=chat.st,isNew=chat.isNew,ctx=chatCtx();
-  $('#chatRestart').hidden=!st.started;$('#chatClose').hidden=!isNew;$('#chatSetups').hidden=false;
+  $('#chatRestart').hidden=!st.started;$('#chatClose').hidden=!isNew;
   $('#title').textContent=isNew?(st.answers.name||'New project'):projectLabel(DATA.projects[chat.project]);
-  drawSetups();
   if(!st.started){ // the intro
     $('#intro').hidden=false;$('#thread').hidden=$('#composer').hidden=true;$('#chatSub').textContent='';$('#barI').style.width='0';$('#v-chat .bar').setAttribute('aria-valuenow','0');
     const mono=t=>`<span class="mono" translate="no">${esc(t)}</span>`;
-    $('#introH').textContent=isNew?"Hey, I'm SpecPilot 👋":"Hey, I'm SpecPilot";
-    $('#introText').innerHTML=isNew?'I turn your project requirements into a complete, structured spec suite - requirements, architecture, tests - and keep it in sync as you build.'
-      :`There is no ${mono('.specs/')} folder in ${mono(DATA.projects[chat.project].root)} yet. I'll ask the same questions as ${mono('specpilot add-specs')}, one at a time, then write it and the files for your AI IDE. Existing files are never changed.`;
+    // guided setup opens with its paragraph as the heading and no fine print (BL-PM-016); the New Project intro is as before
+    const setupLine=`There is no ${mono('.specs/')} folder in ${mono(DATA.projects[chat.project].root)} yet. I'll ask the same questions as ${mono('specpilot add-specs')}, one at a time, then write it and the files for your AI IDE. Existing files are never changed.`;
+    $('#introH').innerHTML=isNew?"Hey, I'm SpecPilot 👋":setupLine;$('#introH').classList.toggle('para',!isNew);
+    $('#introText').hidden=!isNew;$('#introText').innerHTML=isNew?'I turn your project requirements into a complete, structured spec suite - requirements, architecture, tests - and keep it in sync as you build.':'';
+    $('#introFine').hidden=!isNew;
     $('#introText2').hidden=!isNew;$('#introText2').innerHTML=`I write your ${mono('.specs/')} folder, filled in from your answers, plus the files that keep your AI IDE following it.`;
     const det=$('#introDetected');det.hidden=!(chat.q.detected);det.textContent=chat.q.detected?chat.q.detected.line:'';
     $('#nameLbl').hidden=$('#nameIn').parentElement.hidden=!isNew;$('#setupStart').hidden=isNew;$('#nameErr').textContent='';
@@ -567,17 +556,19 @@ function drawChat(){
   }
   $('#intro').hidden=true;$('#thread').hidden=$('#composer').hidden=false;
   const list=chatAsk(),cur=nextQuestion(list,st.answers,st.editing),steps=[...new Set(list.map(x=>x.step))],done=list.filter(x=>answered(x,st.answers)).length;
-  if(st.finished!==!cur){st.finished=!cur;saveSetup(st);drawSetups();}
+  st.finished=!cur;
   const bar=$('#v-chat .bar'),pct=Math.round(done/list.length*100);$('#barI').style.width=pct+'%';bar.setAttribute('aria-valuenow',pct);
   $('#chatSub').textContent=cur?`Step ${steps.indexOf(cur.step)+1} of ${steps.length} · ${cur.step}`:'Review';
-  let html=threadRows(chat.q,list,st.answers,cur,ctx,isNew).map(r=>
+  const det=chatDet(),detTag='<span class="det">detected</span>';
+  let html=threadRows(chat.q,list,st.answers,cur,ctx,isNew,det).map(r=>
     r.kind==='divider'?`<div class="divider"><span>${esc(r.text)}</span></div>`
     :r.kind==='note'?`<p class="cnote">${esc(r.text)}</p>`
     :r.kind==='bot'?`<div class="bot"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="msg">${esc(r.text)}${r.cli?`<span class="cli" translate="no">${esc(r.cli)}</span>`:''}${r.caption?`<span class="cap" translate="no">${esc(r.caption)}</span>`:''}</div></div>`
-    :`<div class="me${r.skipped?' skipped':''}"><button type="button" class="b${r.mono?' mono':''}" data-k="${esc(r.key)}" aria-label="Your answer: ${esc(r.text)}. Edit">${esc(r.text)}</button><span class="ed" aria-hidden="true">✎ tap to edit</span></div>`).join('');
+    :r.key===null?`<div class="me fixed"><span class="b">${esc(r.text)}</span>${detTag}</div>` // detected, not editable
+    :`<div class="me${r.skipped?' skipped':''}"><button type="button" class="b${r.mono?' mono':''}" data-k="${esc(r.key)}" aria-label="Your answer: ${esc(r.text)}${r.detected?', detected':''}. Edit">${esc(r.text)}</button><span class="ed" aria-hidden="true">${r.detected?detTag+' ':''}✎ tap to edit</span></div>`).join('');
   if(!cur){
     const files=previewFiles(chat.q,st.answers),pv=st.preview,again=pv.done&&pv.changed;
-    html+=`<div class="recap"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="card">That's everything I need. Here's a quick recap:<div class="pen">✎ Click any answer to change it. You come straight back here.</div><div class="grid">${recapCards(list,st.answers).map(c=>`<div class="rc"><div class="t">${esc(c.title)}</div>${c.rows.map(r=>`<button type="button" class="l" data-k="${esc(r.key)}"><span>${esc(r.label)}</span><span translate="no">${esc(r.value)}</span></button>`).join('')}</div>`).join('')}</div>${again?'<p class="chg">Answers changed since the last preview. Preview again to see the new files.</p>':''}<details id="pv"><summary>${again?'Preview again':'Preview files'} (${files.length})</summary><ul translate="no" id="pvList">${files.map(f=>`<li>${esc(f.path)}${f.kept?' <span class="kept">Already here, will be kept</span>':''}</li>`).join('')}</ul></details><button type="button" class="btn pri" id="chatCreate">${isNew?'Create Project':'Create .specs/'}</button><p class="err" id="chatErr" role="alert"></p></div></div>`;
+    html+=`<div class="recap"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="card">That's everything I need. Here's a quick recap:<div class="pen">✎ Click any answer to change it. You come straight back here.</div><div class="grid">${recapCards(list,st.answers,det).map(c=>`<div class="rc"><div class="t">${esc(c.title)}</div>${c.rows.map(r=>r.key===null?`<div class="l fixed"><span>${esc(r.label)} ${detTag}</span><span translate="no">${esc(r.value)}</span></div>`:`<button type="button" class="l" data-k="${esc(r.key)}"><span>${esc(r.label)}${r.detected?' '+detTag:''}</span><span translate="no">${esc(r.value)}</span></button>`).join('')}</div>`).join('')}</div>${again?'<p class="chg">Answers changed since the last preview. Preview again to see the new files.</p>':''}<details id="pv"><summary>${again?'Preview again':'Preview files'} (${files.length})</summary><ul translate="no" id="pvList">${files.map(f=>`<li>${esc(f.path)}${f.kept?' <span class="kept">Already here, will be kept</span>':''}</li>`).join('')}</ul></details><button type="button" class="btn pri" id="chatCreate">${isNew?'Create Project':'Create .specs/'}</button><p class="err" id="chatErr" role="alert"></p></div></div>`;
   }
   $('#msgs').innerHTML=html;
   const pvEl=$('#pv');if(pvEl)pvEl.addEventListener('toggle',()=>{if(pvEl.open)loadPreview();});
@@ -602,7 +593,7 @@ async function loadPreview(){
   if(!r||r.status!==200){$('#pvList').insertAdjacentHTML('beforebegin',`<p class="err">${esc(r?res.error||`The preview could not be made (HTTP ${r.status}).`:'The server did not answer.')}</p>`);return;}
   const kept=new Set(res.kept||[]);
   $('#pvList').outerHTML=`<div class="pvl" id="pvList" translate="no">${res.files.map(f=>`<details class="pf"><summary>${esc(f.path)}${kept.has(f.path)?' <span class="kept">Already here, will be kept</span>':''}</summary>${kept.has(f.path)?'':/\.md$/.test(f.path)?`<div class="md">${md(f.content)}</div>`:`<pre>${esc(f.content)}</pre>`}</details>`).join('')}</div>`;
-  if(c.st.preview.changed||!c.st.preview.done){c.st.preview={done:true,changed:false};saveSetup(c.st);}
+  if(c.st.preview.changed||!c.st.preview.done)c.st.preview={done:true,changed:false};
   const chg=$('#msgs .chg');if(chg)chg.remove();const sum=$('#pv summary');if(sum)sum.textContent=`Preview files (${res.files.length})`;
 }
 
@@ -669,7 +660,7 @@ function chatAnswer(cur,value){
   if(cur.seed!==undefined&&JSON.stringify(value)===JSON.stringify(cur.seed))st.seeded[cur.key]=value;else delete st.seeded[cur.key];
   const r=CC.reseed(chatAsk(),st.answers,st.seeded);st.answers=r.answers;st.seeded=r.seeded;
   if(st.preview.done)st.preview.changed=true;
-  st.editing=null;comp=null;saveSetup(st);drawChat();
+  st.editing=null;comp=null;drawChat();
 }
 function chatEdit(key){
   if(chatBusy)return;
@@ -692,7 +683,7 @@ async function chatCreate(){
   if(chat!==c)return; // the view changed meanwhile
   btn.disabled=false;
   if(!r){err.textContent=c.isNew?'The server did not answer.':'The server did not answer. Nothing was set up.';return;}
-  const done=()=>{dropSetup(c.st.id);delete live[c.st.id];if(curNew===c.st.id)curNew=null;};
+  const done=()=>{delete live[c.st.id];if(curNew===c.st.id)curNew=null;};
   if(c.isNew){
     const o=openOutcome(r.status,res,true);
     if(o.project===null){err.textContent=r.status===413?'The answers are too long to send. Shorten the longest ones and try again.':o.toast;return;}
@@ -717,7 +708,7 @@ $('#introForm').onsubmit=e=>{
     if(problem){$('#nameErr').textContent=problem;$('#nameIn').focus();return;}
     chat.st.answers.name=v;
   }
-  chat.st.started=true;chat.st.editing=null;saveSetup(chat.st);drawChat();
+  chat.st.started=true;chat.st.editing=null;drawChat();
 };
 $('#nameIn').addEventListener('input',()=>{$('#nameGo').disabled=!$('#nameIn').value.trim();$('#nameErr').textContent='';});
 $('#setupStart').onclick=()=>$('#introForm').requestSubmit();
@@ -769,24 +760,7 @@ $('#msgs').addEventListener('click',e=>{
   if(e.target.id==='chatCreate'){chatCreate();return;}
   const b=e.target.closest('[data-k]');if(b)chatEdit(b.dataset.k);
 });
-$('#setupList').addEventListener('click',e=>{
-  if(chatBusy)return;
-  const rm=e.target.closest('[data-rm-setup]');
-  if(rm){
-    if(!confirm('Remove this setup?'))return;
-    const id=rm.dataset.rmSetup;dropSetup(id);delete live[id];
-    if(chat&&chat.st.id===id){if(curNew===id)curNew=null;renderChat(chat.isNew);}else drawSetups();
-    return;
-  }
-  const b=e.target.closest('[data-setup]');if(!b)return;
-  const s=setups.find(x=>x.id===b.dataset.setup);if(!s)return;
-  $('#cbody').classList.remove('lst');
-  if(s.kind==='new'){curNew=s.id;if(curView==='new')renderChat(true);else go('new');return;}
-  const i=DATA.projects.findIndex(p=>p.root===s.root);if(i>=0)location.hash='#'+i+'/board';
-});
-$('#setupNew').onclick=()=>{if(chatBusy)return;curNew=null;$('#cbody').classList.remove('lst');if(curView==='new')renderChat(true);else go('new');};
-$('#chatSetups').onclick=()=>$('#cbody').classList.toggle('lst');
-$('#chatRestart').onclick=()=>{if(!chat||chatBusy)return;dropSetup(chat.st.id);chat.st=live[chat.st.id]=freshSetup(chat.st.kind,chat.st.root,chat.st.id);comp=null;drawChat();};
+$('#chatRestart').onclick=()=>{if(!chat||chatBusy)return;chat.st=live[chat.st.id]=freshSetup(chat.st.kind,chat.st.root,chat.st.id,chat.st.seed);comp=null;drawChat();};
 $('#chatClose').onclick=()=>{if(!chatBusy)go('home');};
 
 /* ---------------- live reload (BL-052) ----------------

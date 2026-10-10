@@ -15,14 +15,11 @@ import { newProjectQuestions } from '../utils/specSetup';
 const route = require('../../ui/route.js') as {
   flowQuestions: (q: unknown, answers: Answers, first?: unknown[]) => CliQuestion[];
   flowBody: (list: unknown[], answers: Answers) => Record<string, string>;
-  threadRows: (q: unknown, list: unknown[], answers: Answers, cur: unknown, ctx: { name: string; language: string }, named: boolean) => { kind: string; text: string; caption?: string }[];
+  threadRows: (q: unknown, list: unknown[], answers: Answers, cur: unknown, ctx: { name: string; language: string }, named: boolean, det?: unknown) => { kind: string; key?: string | null; text: string; caption?: string; detected?: boolean }[];
   optionHtml: (o: unknown, pressed: boolean) => string;
-  setupsLoad: (raw: string | null) => { id: string }[];
-  setupsPut: (list: unknown[], entry: unknown) => { id: string; updatedAt: number }[];
-  setupsRemove: (list: unknown[], id: string) => { id: string }[];
-  setupRecord: (st: unknown) => Record<string, unknown>;
-  setupTitle: (e: unknown) => string;
-  setupStatus: (e: unknown) => string;
+  seededAnswers: (detected: unknown) => Record<string, unknown>;
+  detectedKeys: (seed: Record<string, unknown>, answers: Answers) => string[];
+  recapCards: (list: unknown[], answers: Answers, det?: unknown) => { title: string; rows: { key: string | null; label: string; value: string; detected?: boolean }[] }[];
 };
 
 const server = newProjectQuestions();
@@ -286,20 +283,26 @@ describe('the page\'s pieces (ui/route.js)', () => {
     expect(route.flowBody(list.filter(q => !q.core), a)).toEqual({ parent: '~/dev', projectType: 'greenfield', handle: '', language: 'typescript', framework: 'none', ide: 'vscode', apiParadigm: 'rest' });
   });
 
-  it('saved setups: newest first, at most 50, replaced by id, removed, bad JSON ignored, never the token', () => {
-    expect(route.setupsLoad('not json')).toEqual([]);
-    expect(route.setupsLoad('{"a":1}')).toEqual([]);
-    expect(route.setupsLoad('[{"id":"x"},{"id":"n1","kind":"new","answers":{}}]').map(e => e.id)).toEqual(['n1']);
-    let list: { id: string; updatedAt: number }[] = [];
-    for (let i = 0; i < 55; i++) list = route.setupsPut(list, { id: 'n' + i, kind: 'new', answers: {}, updatedAt: i });
-    expect(list).toHaveLength(50);
-    expect(list[0].id).toBe('n54');
-    list = route.setupsPut(list, { id: 'n10', kind: 'new', answers: {}, updatedAt: 99 });
-    expect([list[0].id, list.filter(e => e.id === 'n10').length]).toEqual(['n10', 1]);
-    expect(route.setupsRemove(list, 'n10').some(e => e.id === 'n10')).toBe(false);
-    const record = route.setupRecord({ id: 'n1', kind: 'new', answers: { name: 'demo' }, started: true, token: 'secret', updatedAt: 1 });
-    expect(JSON.stringify(record)).not.toContain('secret');
-    expect(Object.keys(record).sort()).toEqual(['answers', 'editing', 'finished', 'id', 'kind', 'name', 'preview', 'root', 'seeded', 'started', 'updatedAt']);
-    expect([route.setupTitle({ kind: 'new', name: '' }), route.setupTitle({ kind: 'setup', root: '/a/b/proj' }), route.setupStatus({ finished: true })]).toEqual(['Untitled setup', 'proj', 'Ready to create']);
+
+  it('guided setup on existing code: detected answers seeded, marked while unchanged, detected rows shown and not editable (BL-PM-016)', () => {
+    expect(route.seededAnswers({ platform: 'ios' })).toEqual({ platforms: ['ios'] });
+    expect(route.seededAnswers({ platform: null })).toEqual({});
+    expect(route.seededAnswers(null)).toEqual({});
+    const seed = { platforms: ['ios'] };
+    expect(route.detectedKeys(seed, { platforms: ['ios'] })).toEqual(['platforms']);
+    expect(route.detectedKeys(seed, { platforms: ['ios', 'android'] })).toEqual([]); // edited: the mark goes
+    expect(route.detectedKeys({}, {})).toEqual([]);
+    const rows = [{ key: 'name', step: 'Project identity', label: 'Project name', value: 'Demo' }, { key: 'language', step: 'Platform & IDE', label: 'Language', value: 'swift' }];
+    const list = [{ key: 'projectType', step: 'Project identity', label: 'Type', choices: [{ name: 'Brownfield', value: 'brownfield' }] }, { key: 'platforms', step: 'Platform & IDE', label: 'Platforms' }];
+    const det = { rows, keys: ['platforms'] };
+    const cards = route.recapCards(list, { projectType: 'brownfield', platforms: ['ios'] }, det);
+    expect(cards.map(c => c.rows.map(r => [r.key, r.label, !!r.detected]))).toEqual([
+      [[null, 'Project name', true], ['projectType', 'Type', false]],
+      [[null, 'Language', true], ['platforms', 'Platforms', true]],
+    ]);
+    expect(route.recapCards(list, { projectType: 'brownfield' })[0].rows).toEqual([{ key: 'projectType', label: 'Type', value: 'Brownfield' }]); // no det: as before
+    const thread = route.threadRows({}, list, { projectType: 'brownfield' }, list[1], { name: 'Demo', language: 'swift' }, false, det);
+    expect(thread.filter(r => r.kind === 'user' && r.key === null).map(r => r.text)).toEqual(['Project name: Demo', 'Language: swift']);
+    expect(thread[1]).toMatchObject({ kind: 'user', key: null, detected: true }); // right under its step's divider
   });
 });

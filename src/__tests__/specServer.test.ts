@@ -1114,7 +1114,7 @@ describe('UI routing (ui/route.js)', () => {
       const chat = page.slice(page.indexOf('<section class="view chat" id="v-chat">'), page.indexOf('<!-- FILE: any .specs/ file'));
       expect(chat).toContain('<div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>');
       expect(chat).toContain('<h2 id="introH">Hey, I\'m SpecPilot</h2>');
-      expect(chat).toContain('<div class="fine">Runs on this machine. Nothing leaves it.</div>');
+      expect(chat).toContain('<div class="fine" id="introFine">Runs on this machine. Nothing leaves it.</div>');
       expect(chat).toContain('<div class="lbl" id="nameLbl">Name your project to start</div>');
       expect(chat).toContain('<input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button>');
       expect(chat).toContain('<button type="button" class="btn pri" id="setupStart" hidden>Start Guided Setup</button>');

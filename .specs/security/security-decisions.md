@@ -220,7 +220,8 @@ This file records security-related architectural and implementation decisions ma
   - Drafts in `~/.specpilot/drafts` (the backlog row's first plan) — rejected by the developer (2026-10-07): a second file outside a project, with its own folder, mode and atomic-write rules.
   - Accepting only listed option labels — rejected: breaks `Other: ___`, and the templates escape any string anyway.
   - Keeping the 16 KB limit — rejected: 23 fields with free entries can exceed it (18 lists of up to 25 entries: 10 list fields and 8 integration categories).
-- **Reference**: SEC-002.8, SEC-002.5, REQ-002.H.28, REQ-002.I.7
+- **Revision (2026-10-10, BL-PM-016)**: the browser-storage part is superseded: saved setups (`sp-setups`) are removed from both chats on the developer's decision, confirmed in their own words; answers live in the page only, and the page removes a leftover key once. The field checks, the 64 KB limit, the token rule and the compiled core stand (REQ-002.H.35).
+- **Reference**: SEC-002.8, SEC-002.5, REQ-002.H.28, REQ-002.I.7, REQ-002.H.35
 
 ### [SEC-004.18] New Task: the first route that writes request text into an existing file of a project
 

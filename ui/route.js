@@ -213,18 +213,23 @@ function answerText(qu,answers){
 /* The thread up to the current question: the name bubble (a new project only: `named`), a divider per step,
    the skip notes before a question (BL-PM-004b), a bot row per asked question (with its file caption) and an
    answer row per answered one, then the note after it; after the last answer a Review divider. */
-function threadRows(q,list,answers,cur,ctx,named){
+function threadRows(q,list,answers,cur,ctx,named,det){
+  const facts=step=>det&&det.rows?det.rows.filter(f=>f.step===step):[],marked=k=>!!det&&(det.keys||[]).includes(k);
   const steps=[...new Set(list.map(x=>x.step))],rows=[];
   if(named)rows.push({kind:'user',key:'name',text:ctx.name,mono:true,skipped:false});
   let last=null;
   for(const qu of list){
-    if(qu.step!==last){rows.push({kind:'divider',text:`Step ${steps.indexOf(qu.step)+1} · ${qu.step}`});last=qu.step;}
+    if(qu.step!==last){
+      rows.push({kind:'divider',text:`Step ${steps.indexOf(qu.step)+1} · ${qu.step}`});last=qu.step;
+      // what the detector found for this step: answered, never asked, not editable (BL-PM-016)
+      for(const f of facts(qu.step))rows.push({kind:'user',key:null,text:`${f.label}: ${f.value}`,mono:false,skipped:false,detected:true});
+    }
     for(const n of qu.notesBefore||[])rows.push({kind:'note',text:n});
     rows.push({kind:'bot',key:qu.key,text:chatText(qu,ctx),cli:qu.message,caption:qu.caption||''});
     if(cur&&qu.key===cur.key)break;
     if(answered(qu,answers)){
       const text=answerText(qu,answers);
-      rows.push({kind:'user',key:qu.key,text,mono:qu.key==='parent'||qu.key==='handle',skipped:text==='Skipped'||text==='None'&&!qu.choices});
+      rows.push({kind:'user',key:qu.key,text,mono:qu.key==='parent'||qu.key==='handle',skipped:text==='Skipped'||text==='None'&&!qu.choices,...(marked(qu.key)?{detected:true}:{})});
       if(qu.noteAfter)rows.push({kind:'note',text:qu.noteAfter});
     }
   }
@@ -232,10 +237,12 @@ function threadRows(q,list,answers,cur,ctx,named){
   return rows;
 }
 
-/* The recap: one card per step in use, one row per asked question. */
-function recapCards(list,answers){
-  const steps=[...new Set(list.map(x=>x.step))];
-  return steps.map(step=>({title:step,rows:list.filter(x=>x.step===step).map(qu=>({key:qu.key,label:qu.label,value:answerText(qu,answers)}))}));
+/* The recap: one card per step in use, the detector's rows first (no key: not editable), then one row per asked question. */
+function recapCards(list,answers,det){
+  const steps=[...new Set(list.map(x=>x.step))],keys=det&&det.keys||[];
+  return steps.map(step=>({title:step,rows:[
+    ...(det&&det.rows||[]).filter(f=>f.step===step).map(f=>({key:null,label:f.label,value:f.value,detected:true})),
+    ...list.filter(x=>x.step===step).map(qu=>({key:qu.key,label:qu.label,value:answerText(qu,answers),...(keys.includes(qu.key)?{detected:true}:{})}))]}));
 }
 
 /* The POST body: the answer of every question asked, text trimmed. */
@@ -253,7 +260,7 @@ function previewFiles(q,answers){
   return [...(q.files.specs[pick('apiParadigm')]||[]),...(q.files.outside[ide]||[])].map(path=>({path,kept:keep.includes(path)}));
 }
 
-/* ---- the full chat (BL-PM-004b): one renderer for every option, tabs, and the saved setups ---- */
+/* ---- the full chat (BL-PM-004b): one renderer for every option, and tabs ---- */
 
 /* One option as a chip, or a card when it has a description: emoji, label, a Recommended or Check this badge,
    the description and a warning line. `pressed` is its state; `data-v` its value. */
@@ -273,25 +280,10 @@ function choiceOptions(qu){
   return (qu.choices||[]).map(c=>{const [label,description]=c.name.split(' — ');return {id:c.value,label,description,badge:qu.badges&&qu.badges[c.value]};});
 }
 
-/* Saved setups (REQ-002.H.28), kept by the page in localStorage under sp-setups: the list as stored, newest first. */
-const SETUPS_KEY='sp-setups',MAX_SETUPS=50;
-function setupsLoad(raw){
-  let v;try{v=JSON.parse(raw||'[]');}catch(e){return [];}
-  if(!Array.isArray(v))return [];
-  return v.filter(e=>e&&typeof e==='object'&&typeof e.id==='string'&&(e.kind==='new'||e.kind==='setup')&&e.answers&&typeof e.answers==='object')
-    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-}
-/* The list with `entry` saved (replaced by id, else added), newest first, at most 50. */
-function setupsPut(list,entry){return [entry,...list.filter(e=>e.id!==entry.id)].sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,MAX_SETUPS);}
-function setupsRemove(list,id){return list.filter(e=>e.id!==id);}
-/* What is stored for a setup: never the token, only what the chat needs to resume. */
-function setupRecord(st){
-  return {id:st.id,kind:st.kind,root:st.root,name:st.kind==='new'?String(st.answers.name||''):st.name||'',answers:st.answers,editing:null,started:!!st.started,
-    seeded:st.seeded||{},updatedAt:st.updatedAt||0,finished:!!st.finished,preview:st.preview||{done:false,changed:false}};
-}
-/* A row of the list: its title, `In progress` or `Ready to create`. */
-function setupTitle(e){return e.kind==='setup'?(e.name||String(e.root||'').split(/[/\\]/).filter(Boolean).pop()||'Untitled setup'):(e.name||'Untitled setup');}
-function setupStatus(e){return e.finished?'Ready to create':'In progress';}
+/* Guided setup's answers the detector fills in (REQ-002.H.35): the platforms, from direct evidence only. */
+function seededAnswers(detected){return detected&&detected.platform?{platforms:[detected.platform]}:{};}
+/* The keys whose answer is still the one the detector filled in: they show `detected`. */
+function detectedKeys(seed,answers){return Object.keys(seed||{}).filter(k=>JSON.stringify(answers[k])===JSON.stringify(seed[k]));}
 
 /* The one line an IDE's MCP settings take (BL-PM-007); serve.ts prints the same line. */
 function mcpConfigLine(host,token){
@@ -300,6 +292,6 @@ function mcpConfigLine(host,token){
 
 const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,CLONE_STAGES,cloneStatus,cloneProgress,projectLabel,
   projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
-  optionHtml,tabsHtml,choiceOptions,SETUPS_KEY,setupsLoad,setupsPut,setupsRemove,setupRecord,setupTitle,setupStatus};
+  optionHtml,tabsHtml,choiceOptions,seededAnswers,detectedKeys};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);
 })(this);

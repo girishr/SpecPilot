@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 Spec Report)
-version: 6.32
+lastUpdated: 2026-10-10 (BL-PM-010/BL-PM-013 completed)
+version: 6.33
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -69,8 +69,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-PM-010 | Open in Cursor and the onboarding prompt (REQ-002.H.34): on every project view, an `Open in AI IDE` menu beside the VS Code link with `Open in Cursor` (`cursor://file/<root>`) when the project has `.cursor/rules/specpilot.mdc`, and while `development/onboarding.md` exists `Send onboarding prompt to Cursor` (Cursor's prompt deep link) and `Copy onboarding prompt` (Claude Code has no URL scheme). Served projects only; no button on Home rows. Windsurf is BL-PM-015. Relates to BL-PM-008. |
-| BL-PM-013 | The mockup's per-file "Open in Your Editor": a `vscode://file/` link for the file shown in the file view and in the Instructions, Commands and Skills inspectors, through BL-PM-008's `editorUrl()` (REQ-002.H.31). Left out of BL-PM-008 by its default 7; the task inspector's link is in BL-PM-008. |
 
 ## Completed
 
@@ -105,3 +103,5 @@ Notes
 | 175 | [CD-girishr-084] [BL-089] | `specpilot serve --mcp` also serves MCP revision `2026-07-28` (REQ-002.H.33, ARCH-004.50, SEC-004.21, Architectural): the era is chosen per request from `params._meta`; version (-32022), mirrored headers against the body (-32020, repeats from `rawHeaders`, `Mcp-Name` base64 decoded) and client capabilities (-32602) are checked before any tool runs; `server/discover`; `resultType`, `ttlMs` 0, `cacheScope` private and `serverInfo` on results; other methods 404/-32601; initialize-based answers unchanged. Claude Code 2.1.286 checked live: it now stays on `2026-07-28`. Jest 1416 → 1454 (with BL-087). Commit `6942bec`. |
 | 176 | [CD-girishr-085] [BL-087] | `npm run build` cleans `dist/` first (`prebuild`), so `prepare`, `prepublishOnly` and `test:browser` never ship or test stale output; `clean` is a Node `fs.rmSync` one-liner, since `prepare` now runs it on every install from git (Windows `cmd`). With it, the Connect Your AI IDE note says to add `.mcp.json` to `.gitignore`. Commit `6942bec`. |
 | 177 | [CD-girishr-086] | Trivial, specs only: spec sync. `roadmap.md` Timeline rebuilt from CHANGELOG and git tags (one line per release, headings by series and month), step 6 of ROADMAP-003.1 ticked with BL-089 and BL-087, BL-PM-007 in ROADMAP-002.14, ROADMAP-002.13 deferred; `project.yaml` points at `development/context.md` and `development/prompts.md`; the archive files' `lastUpdated` set to their last archive; CHANGELOG 1.1.x and 1.2.x in order, the empty duplicate `[1.1.3]` removed, `[1.1.3]` and `[2.2.0]` dated by their tags, `[2.0.1]` added from `git log v2.0.0..v2.0.1`. |
+| 178 | [CD-girishr-087] [BL-PM-010] | `specpilot serve` Open in AI IDE (REQ-002.H.34, SEC-004.8 revision): a menu beside Open in VS Code on every project view (guided setup and `--read-only` included, not Home or its rows) with `Open in Cursor` (`cursor://file/<root>`) when `project.cursor` (`.cursor/rules/specpilot.mdc`, checked through `resolveAllowedPath()` with that one path as its allowed set, never served), and while `development/onboarding.md` exists `Send onboarding prompt to Cursor` (app-scheme prompt link; copies instead over 10,000 characters) and `Copy onboarding prompt` (Claude Code has no URL scheme). Cursor links unverified on the build machine; Windsurf is BL-PM-015. Jest 1454 → 1461 (with BL-PM-013), browser 26 → 29. Commit `214e481`. |
+| 179 | [CD-girishr-088] [BL-PM-013] | `specpilot serve` per-file Open in VS Code (REQ-002.H.31): the file view of every `.specs/` file (in the front-matter header, or a header line with the path for a file without one) and the Instructions, Commands and Skills inspectors, through `editorUrl()`, with no `:<line>`; none in Explorer or Security or for a gone file. Commit `214e481`. |

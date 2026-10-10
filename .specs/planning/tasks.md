@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-10 (v2.13.0 shipped)
-version: 6.42
+lastUpdated: 2026-10-10 (BL-096 added)
+version: 6.43
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -67,6 +67,7 @@ Notes
 | BL-093 | The `specpilot-archive` command's bash script (`src/core/slashCommands.ts`, written to `.claude/commands/specpilot-archive.md`) uses awk's `$0` twice; Claude Code replaces `$0` in a command file with the command's first argument, so `/specpilot-archive prompts.md` delivers `line[NR] = prompts.md` and both awk programs are broken. Write the script so that no `$<digit>` reaches the command file (a spelling checked against Claude Code's substitution first), check the other generated commands and skills for `$<digit>` outside intended placeholders, and add a test on the rendered text. Found in BL-PM-009 (2026-10-10); the script was not run. |
 | BL-094 | Flaky browser test: `with --mcp the card holds the config line and Copy puts it on the clipboard` (`src/__browser__/mcp.browser.test.ts`) failed once in about 30 runs (2026-10-10, on `fix/bl-pm-009-narrow-status`, which does not touch the card): on its 420px page, after the `Copied.` toast, so either `navigator.clipboard.readText()` or the no-sideways-scroll check failed; the error text was not kept (the harness saves it since the fix that added this row). Not reproduced in 15 runs of that file and 9 more full runs. Headless Chromium keeps its own clipboard, so the system clipboard is not the cause. On the next failure, read `<test>-error.txt` and fix the cause. |
 | BL-095 | Detect more about an existing project for guided setup: package manager (lock files), test framework (`jest`, `vitest`, `pytest`, `XCTest`...), repository URL (`git remote get-url origin`, read without starting a process for a request if possible) and license (`LICENSE`, `package.json` `license`). `ProjectDetector` returns none of these today and no question or template field takes them, so each needs a place in the written files first (a template field, which changes the golden tests). Left out of BL-PM-016 by the developer's decision 4 (a), 2026-10-10. |
+| BL-096 | `dist/__tests__/` ships in the npm package: `tsconfig.build.json` excludes only `**/*.test.ts` and `src/__browser__`, so the test fixture `src/__tests__/fixtures/allFields.ts` is compiled to `dist/__tests__/fixtures/allFields.*` (4 files, about 2.7 kB; no runtime module loads it), in 2.12.0 and 2.13.0. Exclude it from the package through `package.json` `files` or `.npmignore` (or from the build), and add "no `dist/__tests__/`" to the `npm pack --dry-run` check of the release ritual, beside no `scripts/`, `src/__browser__/` or `jest.browser.config.js`. Found by spec-reviewer D during v2.13.0's release prep (2026-10-10). |
 
 ## Current Sprint
 

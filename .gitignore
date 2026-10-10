@@ -72,3 +72,4 @@ final-test/
 .specs/prompts.md
 
 .agents/skills/caveman/SKILL.md
+.mcp.json

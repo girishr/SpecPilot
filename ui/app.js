@@ -821,7 +821,7 @@ async function redraw(paths){
   if(p!==PROJECT)return; // switched projects meanwhile
   // The poller's echo of a move this page just made: same tasks.md hash, nothing to redraw.
   if(paths&&paths.length&&paths.every(p=>p==='.specs/planning/tasks.md')&&DATA&&DATA.tasks&&d.tasks&&d.tasks.sha256===DATA.tasks.sha256)return;
-  await apply(d,paths);
+  await apply(d,paths);document.documentElement.dataset.rev=+(document.documentElement.dataset.rev||0)+1; // live reloads drawn: the browser tests wait on it
 }
 /* Draw a fresh /api/specs payload in place: same route, scroll, inspector, selection and focus. */
 async function apply(d,paths){

@@ -391,6 +391,8 @@ The suite starts the built server on scratch copies of `.specs/` under a tempora
 3. Update specs when making changes
 4. Run `specpilot validate` before committing
 
+Releases follow the checklist in [`docs/RELEASING.md`](docs/RELEASING.md).
+
 ## Documentation
 
 - **[Full Guide](docs/GUIDE.md)**: Comprehensive documentation

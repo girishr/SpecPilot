@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-11 (BL-PM-011 completed)
-version: 6.45
+lastUpdated: 2026-10-11 (docs/RELEASING.md)
+version: 6.46
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -104,3 +104,4 @@ Notes
 | 185 | [CD-girishr-094] | v2.13.0 release prepared and shipped (BL-PM-007, BL-079, BL-089, BL-087, BL-PM-010, BL-PM-013, BL-PM-009, BL-PM-016): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.13.0]`, annotated tag `v2.13.0`; pushed and published (row 186) |
 | 186 | [CD-girishr-095] | v2.13.0 shipped (BL-PM-007, BL-079, BL-089, BL-087, BL-PM-010, BL-PM-013, BL-PM-009, BL-PM-016): pushed, npm `specpilot@2.13.0` latest, GitHub release live (2026-10-10) |
 | 187 | [CD-girishr-096] [BL-PM-011] | `specpilot serve` Browse… in the Open a Project sheet (REQ-002.H.36; Architectural): a `Browse…` button at the end of the Folder tab's `Folder path` field; `POST /api/projects/browse` (body `{}`, every write-route check, 405 with `--read-only`) opens the system folder dialog (`osascript`, `zenity` then `kdialog`, PowerShell) with `execFile`, no shell, constant arguments (the home folder only as one whole argument to zenity or kdialog), `cwd` the home folder's root, a 5-minute kill, one at a time (409), closed when the request closes or the server stops (503 once stopping); the path is returned as text for the field and opened only by `Open`. New `src/utils/folderPicker.ts`, the second module that starts a process for a request (ARCH-003.25, ARCH-004.52, SEC-004.22, SEC-002.5 n). Jest 1484 → 1517, browser 34 → 37; checked against the real `osascript` (409, request close, SIGINT, 405) and by the developer on macOS (a pick fills the field and Open opens it; no privacy prompt, also inside `~/Documents`). BL-097 added for the other folder fields. Commit `2e5b88a`. |
+| 188 | [CD-girishr-097] | Trivial: `docs/RELEASING.md`, the release ritual as a checklist from the 2.13.0 release (version bumps, CHANGELOG, roadmap line, release row, checks incl. three browser runs and the `npm pack --dry-run` present/absent list with `dist/__tests__/`, the `--cleanup=verbatim` tag checked with `git cat-file -p` and `cmp` (command tried on `v2.13.0`), reviewer D, the developer's push/publish/release commands, the shipped commit); linked from README's Quick Contribution Guide. |

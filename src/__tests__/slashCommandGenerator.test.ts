@@ -1,4 +1,9 @@
 import { createHash } from 'crypto';
+import { execFileSync } from 'child_process';
+import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES, skillValue } from '../core/agentConfig';
+import { render } from '../core/render';
+import { initOptions } from '../utils/initQuestions';
+import { addSpecsOptions } from '../utils/addSpecsQuestions';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -7,7 +12,7 @@ import { join } from 'path';
 jest.mock('fs', () => ({ ...jest.requireActual('fs') }));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const fsModule: typeof import('fs') = require('fs');
-import { CODEX_PROMPTS_NOTICE, isSpecPilotCommand, SlashCommandGenerator, SlashCommand, SLASH_COMMANDS, KNOWN_COMMAND_HASHES } from '../utils/slashCommandGenerator';
+import { CODEX_PROMPTS_NOTICE, isSpecPilotCommand, readSkillContext, SlashCommandGenerator, SlashCommand, SLASH_COMMANDS, KNOWN_COMMAND_HASHES } from '../utils/slashCommandGenerator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, PROMPTS_KEEP_LINES, PROMPTS_LINE_LIMIT } from '../utils/specArchiver';
 
 describe('SlashCommandGenerator', () => {
@@ -393,5 +398,120 @@ describe('isSpecPilotCommand (BL-PM-006)', () => {
     const files = ides.flatMap(ide => new SlashCommandGenerator().targets(ide));
     expect(files).toHaveLength(48);
     expect(files.filter(rel => !isSpecPilotCommand(projectDir, rel))).toEqual([]);
+  });
+});
+
+// ---------------- the Claude Code skill (BL-PM-012, REQ-002.H.40) ----------------
+describe('the Claude Code skill from project context (BL-PM-012)', () => {
+  const SKILL = '.claude/skills/specpilot-project/SKILL.md';
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'specpilot-skill-'));
+    mkdirSync(join(dir, '.specs', 'project'), { recursive: true });
+    writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), 'name: "Parcel $& Track"\nlanguage: typescript\nframework: react\nlicense: MIT\n');
+    writeFileSync(join(dir, 'CLAUDE.md'), '# CLAUDE.md\n');
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+  const refresh = (dryRun = false) => new SlashCommandGenerator().refreshSkill(dir, '.specs', dryRun);
+  const skillPath = () => join(dir, ...SKILL.split('/'));
+  const put = (text: string) => {
+    mkdirSync(join(dir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
+    writeFileSync(skillPath(), text);
+  };
+
+  /** What a released version's own source wrote: its template literal and `.replace` chain, from git. */
+  const releasedSource = (tag: string, file: string) => {
+    let src: string;
+    try {
+      src = execFileSync('git', ['show', `${tag}:${file}`], { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      return null; // a clone without tags
+    }
+    const start = src.indexOf('const skillContent = `') + 'const skillContent = `'.length;
+    const literal = src.slice(start, src.indexOf('`;\n', start));
+    const template = new Function(`return \`${literal}\`;`)() as string;
+    return (c: { projectName: string; language: string; framework?: string }) =>
+      template
+        .replace(/\{\{projectName\}\}/g, c.projectName)
+        .replace(/\{\{language\}\}/g, c.language)
+        .replace(/{{#if framework}}/g, c.framework ? '' : '<!-- ')
+        .replace(/{{\/if}}/g, c.framework ? '' : ' -->');
+  };
+
+  it.each([
+    [0, 'v2.0.1', 'src/utils/agentConfigGenerator.ts'],
+    [1, 'v2.13.0', 'src/core/agentConfig.ts'],
+  ] as const)('KNOWN_SKILL_TEMPLATES[%i] writes what %s wrote, $& and all', (i, tag, file) => {
+    const old = releasedSource(tag, file);
+    if (!old) return;
+    for (const c of [{ projectName: 'demo', language: 'typescript' }, { projectName: 'a $& b $1', language: 'python', framework: 'django' }]) {
+      expect(fillReleasedSkill(KNOWN_SKILL_TEMPLATES[i], c)).toBe(old(c));
+    }
+  });
+
+  it.each([
+    ['init, with a framework', () => render(initOptions('', 'parcel-track', { projectType: 'greenfield', language: 'typescript', framework: 'react', apiParadigm: 'rest', handle: 'jsmith', ide: 'claude-code', whatItDoes: '', targetUsers: '', expectedScale: '', constraints: '' } as never))],
+    ['init, without one', () => render(initOptions('', 'plain-app', { projectType: 'greenfield', language: 'python', framework: undefined, apiParadigm: 'cli', handle: 'jsmith', ide: 'claude-code', whatItDoes: '', targetUsers: '', expectedScale: '', constraints: '' } as never))],
+    ['add-specs', () => render(addSpecsOptions('', { name: 'kit', version: '1.0.0', language: 'swift', framework: 'vapor', dependencies: [] }, { language: 'swift', framework: 'vapor', projectType: 'brownfield', apiParadigm: 'rest', handle: 'jsmith', ide: 'claude-code' }, null))],
+  ])('round trip: the project.yaml %s wrote reads back to the context its skill was filled with', (_what, make) => {
+    const files = make().files;
+    writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), files.find(f => f.path === '.specs/project/project.yaml')!.content);
+    const context = readSkillContext(dir, '.specs');
+    expect(typeof context).toBe('object');
+    const written = files.find(f => f.path === SKILL)!.content;
+    expect(written).toBe(render({ ...(context as object), ide: 'claude-code', targetDir: '', specsName: '.specs' } as never).files.find(f => f.path === SKILL)!.content);
+    // and what v2.13.0 would have written for it is recognised
+    put(fillReleasedSkill(KNOWN_SKILL_TEMPLATES[1], context as never));
+    expect(refresh(true)).toEqual({ path: SKILL, action: 'updated' });
+  });
+
+  it('writes one line per present value, as typed, and fills the framework line', () => {
+    expect(refresh()).toEqual({ path: SKILL, action: 'added' });
+    const text = readFileSync(skillPath(), 'utf-8');
+    expect(text).toContain('about the Parcel $& Track project');
+    expect(text).toContain('Project: Parcel $& Track\nLanguage: typescript\nFramework: react\nLicense: MIT\n\n## Development Process');
+    expect(text).not.toContain('{{');
+  });
+
+  it('writes a value holding a placeholder as typed', () => {
+    writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), 'name: "P$&x"\nlanguage: typescript\nframework: "fw {{projectName}}"\nrepository: "https://x/{{projectName}}"\n');
+    refresh();
+    expect(readFileSync(skillPath(), 'utf-8')).toContain('Project: P$&x\nLanguage: typescript\nFramework: fw {{projectName}}\nRepository: https://x/{{projectName}}\n');
+  });
+
+  it.each(['\n', '\r', '\t', '\u007f'])('leaves out a value holding %j, and keeps the skill when the name or language holds one', ch => {
+    expect(skillValue(`a${ch}b`)).toBeUndefined();
+    writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), `name: demo\nlanguage: typescript\nframework: ${JSON.stringify(`re${ch}act`)}\nlicense: MIT\n`);
+    refresh();
+    expect(readFileSync(skillPath(), 'utf-8')).toContain('Project: demo\nLanguage: typescript\nLicense: MIT\n\n');
+    writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), `name: ${JSON.stringify(`de${ch}mo`)}\nlanguage: typescript\n`);
+    expect(refresh()).toEqual({ path: SKILL, action: 'kept', reason: 'project.yaml has no usable name or language' });
+  });
+
+  it('keeps CRLF, a link, a non-file and a linked folder with their reasons, and writes nothing in dry run', () => {
+    expect(refresh(true)).toEqual({ path: SKILL, action: 'added' });
+    expect(existsSync(join(dir, '.claude'))).toBe(false);
+    put(fillReleasedSkill(KNOWN_SKILL_TEMPLATES[1], { projectName: 'Parcel $& Track', language: 'typescript', framework: 'react' }).replace(/\n/g, '\r\n'));
+    expect(refresh()).toEqual({ path: SKILL, action: 'kept', reason: 'CRLF line endings' });
+    rmSync(skillPath());
+    symlinkSync(join(dir, 'CLAUDE.md'), skillPath());
+    expect(refresh()).toEqual({ path: SKILL, action: 'kept', reason: 'symbolic link' });
+    rmSync(skillPath());
+    mkdirSync(skillPath());
+    expect(refresh()).toEqual({ path: SKILL, action: 'kept', reason: 'not a regular file' });
+    rmSync(join(dir, '.claude'), { recursive: true });
+    const outside = mkdtempSync(join(tmpdir(), 'specpilot-skill-out-'));
+    try {
+      mkdirSync(join(dir, '.claude'));
+      symlinkSync(outside, join(dir, '.claude', 'skills'));
+      expect(refresh()).toEqual({ path: SKILL, action: 'kept', reason: 'folder is a symbolic link or not a folder' });
+      rmSync(join(dir, '.claude', 'skills'));
+      mkdirSync(join(dir, '.claude', 'skills'));
+      symlinkSync(outside, join(dir, '.claude', 'skills', 'specpilot-project'));
+      expect(refresh()).toEqual({ path: SKILL, action: 'kept', reason: 'folder is a symbolic link or not a folder' });
+      expect(readdirSync(outside)).toEqual([]);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 });

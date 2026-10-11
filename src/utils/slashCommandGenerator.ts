@@ -3,6 +3,10 @@ import { basename, dirname, join } from 'path';
 import { chmodSync, closeSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'fs';
 import { writeNew } from './ideConfigGenerator';
 import { SlashCommand, SLASH_COMMANDS, resolveTarget } from '../core/slashCommands';
+import * as yaml from 'js-yaml';
+import { agentFile, agentTargets, fillReleasedSkill, KNOWN_SKILL_TEMPLATES, skillValue } from '../core/agentConfig';
+import { TemplateContext, TemplateEngine } from '../core/templateEngine';
+import { resolveAllowedPath } from './specPaths';
 
 export { SLASH_COMMANDS };
 export type { SlashCommand };
@@ -19,6 +23,46 @@ export interface KeptCommand {
     | 'not a regular file'
     | 'folder is a symbolic link or not a folder'
     | `could not be written: ${string}`;
+}
+
+/** What `refreshSkill()` did (or, in dry-run, would do) with the Claude Code skill (BL-PM-012). */
+export interface SkillRefresh {
+  path: string;
+  action: 'added' | 'updated' | 'current' | 'kept';
+  reason?:
+    | Exclude<KeptCommand['reason'], 'modified'>
+    | "does not match SpecPilot's render of project.yaml"
+    | 'project.yaml could not be read'
+    | 'project.yaml has no usable name or language';
+}
+
+/** The skill's context from `<specsName>/project/project.yaml` (REQ-002.H.40), or the reason it cannot be used. */
+export function readSkillContext(projectDir: string, specsName: string): TemplateContext | NonNullable<SkillRefresh['reason']> {
+  const rel = `${specsName}/project/project.yaml`;
+  const file = resolveAllowedPath(projectDir, rel, [rel]); // exactly this path: a link resolves elsewhere and is refused
+  let doc: unknown;
+  try {
+    doc = file && yaml.load(readFileSync(file, 'utf-8'));
+  } catch {
+    doc = null;
+  }
+  if (!doc || typeof doc !== 'object') return 'project.yaml could not be read';
+  const d = doc as Record<string, unknown>;
+  const build = d.build && typeof d.build === 'object' ? (d.build as Record<string, unknown>) : {};
+  const projectName = skillValue(d.name);
+  const language = skillValue(d.language);
+  if (!projectName || !language) return 'project.yaml has no usable name or language';
+  const platforms = Array.isArray(d.platforms) ? d.platforms.map(skillValue) : [];
+  return {
+    projectName,
+    language,
+    framework: skillValue(d.framework),
+    ...(platforms.length && platforms.every(Boolean) ? { platforms: platforms as string[] } : {}),
+    packageManager: skillValue(build.packageManager),
+    testFramework: skillValue(build.testFramework),
+    repository: skillValue(d.repository),
+    license: skillValue(d.license),
+  };
 }
 
 /** What `refreshCommands()` did (or, in dry-run, would do) for one IDE. */
@@ -325,6 +369,57 @@ export class SlashCommandGenerator {
   }
 
   /**
+   * The Claude Code skill by the commands' rule (BL-PM-012, REQ-002.H.40): while `CLAUDE.md` is present, add a
+   * missing skill, replace one whose bytes are SpecPilot's render of `project.yaml` (a released template or the
+   * current one), keep anything else with its reason. Null without `CLAUDE.md`. In dry-run, writes nothing.
+   */
+  refreshSkill(projectDir: string, specsName: string, dryRun: boolean): SkillRefresh | null {
+    try {
+      if (!lstatSync(join(projectDir, 'CLAUDE.md')).isFile()) return null;
+    } catch {
+      return null;
+    }
+    const path = agentTargets('claude-code')[0];
+    const dir = path.slice(0, path.lastIndexOf('/'));
+    const filePath = join(projectDir, ...path.split('/'));
+    const kept = (reason: SkillRefresh['reason']): SkillRefresh => ({ path, action: 'kept', reason });
+    const context = readSkillContext(projectDir, specsName);
+    if (typeof context === 'string') return kept(context);
+    const content = agentFile(new TemplateEngine(), context, 'claude-code')!.content;
+    try {
+      const folders = checkFolders(projectDir, dir, false);
+      if (folders === 'bad') return kept('folder is a symbolic link or not a folder');
+      let st = null;
+      if (folders === 'ok') {
+        try {
+          st = lstatSync(filePath);
+        } catch (err) {
+          if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+        }
+      }
+      if (!st) {
+        if (!dryRun) {
+          if (checkFolders(projectDir, dir, true) !== 'ok') return kept('folder is a symbolic link or not a folder');
+          writeFileSync(filePath, content, { flag: 'wx' });
+        }
+        return { path, action: 'added' };
+      }
+      if (!st.isFile()) return kept(st.isSymbolicLink() ? 'symbolic link' : 'not a regular file');
+      const bytes = readFileSync(filePath);
+      if (bytes.equals(Buffer.from(content, 'utf-8'))) return { path, action: 'current' };
+      const renders = KNOWN_SKILL_TEMPLATES.map(t => Buffer.from(fillReleasedSkill(t, context), 'utf-8'));
+      if (renders.some(r => r.equals(bytes))) {
+        return dryRun || this.replace(filePath, st.mode, bytes, content) ? { path, action: 'updated' } : kept("does not match SpecPilot's render of project.yaml");
+      }
+      const lf = Buffer.from(bytes.toString('latin1').replace(/\r\n/g, '\n'), 'latin1');
+      const crlf = !lf.equals(bytes) && [...renders, Buffer.from(content, 'utf-8')].some(r => r.equals(lf));
+      return kept(crlf ? 'CRLF line endings' : "does not match SpecPilot's render of project.yaml");
+    } catch (err) {
+      return kept(`could not be written: ${(err as NodeJS.ErrnoException).code ?? 'unknown error'}`);
+    }
+  }
+
+  /**
    * Replaces `filePath` with `content`: temp file in the same folder, fsync, same mode, rename.
    * Returns false, writing nothing, if the file no longer holds `before` (an editor saved meanwhile).
    */
@@ -387,6 +482,27 @@ function checkFolders(projectDir: string, dir: string, create: boolean): 'ok' | 
     if (st.isSymbolicLink() || !st.isDirectory()) return 'bad';
   }
   return 'ok';
+}
+
+/**
+ * Whether the Claude Code skill is SpecPilot's own: no linked folder on the way, a regular file, bytes equal to
+ * the current render or a released template's for `.specs/project/project.yaml`. The serve page's "From SpecPilot"
+ * group for it (BL-PM-012); anything else is "Yours".
+ */
+export function isSpecPilotSkill(projectDir: string): boolean {
+  const path = agentTargets('claude-code')[0];
+  const context = readSkillContext(projectDir, '.specs');
+  if (typeof context === 'string') return false;
+  try {
+    if (checkFolders(projectDir, path.slice(0, path.lastIndexOf('/')), false) !== 'ok') return false;
+    const file = join(projectDir, ...path.split('/'));
+    if (!lstatSync(file).isFile()) return false;
+    const bytes = readFileSync(file);
+    const renders = [agentFile(new TemplateEngine(), context, 'claude-code')!.content, ...KNOWN_SKILL_TEMPLATES.map(t => fillReleasedSkill(t, context))];
+    return renders.some(r => bytes.equals(Buffer.from(r, 'utf-8')));
+  } catch {
+    return false;
+  }
 }
 
 /**

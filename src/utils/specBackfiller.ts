@@ -5,7 +5,7 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
 import { TemplateContext } from '../core/templateEngine';
-import { CommandRefresh, SlashCommandGenerator } from './slashCommandGenerator';
+import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
 import { buildProcessMandatesMarkdown } from '../core/ideConfig';
 
@@ -242,7 +242,7 @@ export interface BackfillFileResult {
 
 export interface IdeFileBackfillResult {
   path: string;
-  action: 'updated' | 'created' | 'skipped' | 'missing' | 'stale' | 'warn';
+  action: 'updated' | 'created' | 'skipped' | 'missing' | 'warn';
   found: number;
   total: number;
   added: string[];
@@ -260,6 +260,8 @@ export interface BackfillResult {
   tasksMd: BackfillFileResult;
   ideFiles: IdeFileBackfillResult[];
   slashCommands: SlashCommandBackfillResult[];
+  /** The Claude Code skill (BL-PM-012); null without `CLAUDE.md`. */
+  skill: SkillRefresh | null;
 }
 
 export class SpecBackfiller {
@@ -285,9 +287,11 @@ export class SpecBackfiller {
     const copilotResult = await this.backfillCopilotInstructions(projectDir, specsDir, dryRun);
     const tasksResult = this.backfillTasksMd(specsDir, dryRun);
     const ideFiles = this.backfillIdeFiles(projectDir, dryRun);
+    // The Claude Code skill by the commands' rule (BL-PM-012), from this specs folder's project.yaml.
+    const skill = new SlashCommandGenerator().refreshSkill(projectDir, specsName, dryRun);
     const slashCommands = this.backfillSlashCommands(projectDir, dryRun);
 
-    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult, ideFiles, slashCommands };
+    return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult, ideFiles, slashCommands, skill };
   }
 
   /**
@@ -541,11 +545,6 @@ export class SpecBackfiller {
       });
     }
 
-    const skillResult = this.checkSkillFile(projectDir);
-    if (skillResult) {
-      results.push(skillResult);
-    }
-
     return results;
   }
 
@@ -594,45 +593,6 @@ export class SpecBackfiller {
       found,
       total,
       added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL])],
-    };
-  }
-
-  private checkSkillFile(projectDir: string): IdeFileBackfillResult | undefined {
-    const relativePath = '.claude/skills/specpilot-project/SKILL.md';
-    const filePath = join(projectDir, relativePath);
-
-    if (!existsSync(filePath)) {
-      return undefined;
-    }
-
-    const structuralFingerprints = [
-      { fingerprint: 'name: specpilot-project', label: 'Skill metadata name' },
-      { fingerprint: '# SpecPilot Project Context', label: 'Project context heading' },
-      { fingerprint: '## Key Files to Reference', label: 'Key files section' },
-      { fingerprint: '.specs/project/project.yaml', label: 'project.yaml reference' },
-      { fingerprint: '## Development Process', label: 'Development process section' },
-    ];
-
-    const content = readFileSync(filePath, 'utf-8');
-    const missing = structuralFingerprints.filter((item) => !content.includes(item.fingerprint));
-
-    if (missing.length === 0) {
-      return {
-        path: relativePath,
-        action: 'skipped',
-        found: structuralFingerprints.length,
-        total: structuralFingerprints.length,
-        added: [],
-      };
-    }
-
-    return {
-      path: relativePath,
-      action: 'stale',
-      found: structuralFingerprints.length - missing.length,
-      total: structuralFingerprints.length,
-      added: missing.map((item) => item.label),
-      reason: 'SKILL.md is rendered project context; re-run `specpilot add-specs` to regenerate instead of auto-patching',
     };
   }
 

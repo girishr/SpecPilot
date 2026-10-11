@@ -14,7 +14,7 @@ import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUr
 import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 import { SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
-import { isSpecPilotCommand } from './slashCommandGenerator';
+import { isSpecPilotCommand, isSpecPilotSkill, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
 import { agentTargets } from '../core/agentConfig';
 import { SpecValidator } from './specValidator';
@@ -155,7 +155,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       }),
       // generated: the page's "From SpecPilot" group, else "Yours" (BL-PM-006)
       commands: navFiles(root, scanned, '.claude/commands', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
-      skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) })),
+      skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) && isSpecPilotSkill(root) })), // by the commands' rule, BL-PM-012
       prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
     },
   };
@@ -165,21 +165,23 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
 const LISTED_COMMAND_FOLDERS = ['.claude/commands/', '.github/prompts/'];
 
 /** What Regenerate All did, as project-relative paths, and the lines the page shows verbatim (BL-PM-006, REQ-002.H.30). */
-export function regenerateReport(results: SlashCommandBackfillResult[]) {
+export function regenerateReport(results: SlashCommandBackfillResult[], skill: SkillRefresh | null = null) {
   const pathOf = (ide: string, name: string) => {
     const target = resolveTarget(ide, SLASH_COMMANDS.find(c => c.name === name)!);
     return `${target.dir}/${target.fileName}`;
   };
-  const added = results.flatMap(r => r.added.map(name => pathOf(r.ide, name)));
-  const updated = results.flatMap(r => r.updated.map(name => pathOf(r.ide, name)));
-  const kept = results.flatMap(r => r.kept.map(k => ({ path: k.path, reason: k.reason })));
+  // The skill (BL-PM-012) joins the same lists; the Skills view lists it, so its folder is never "not listed".
+  const skillIf = (action: SkillRefresh['action']) => (skill && skill.action === action ? [skill.path] : []);
+  const added = [...results.flatMap(r => r.added.map(name => pathOf(r.ide, name))), ...skillIf('added')];
+  const updated = [...results.flatMap(r => r.updated.map(name => pathOf(r.ide, name))), ...skillIf('updated')];
+  const kept = [...results.flatMap(r => r.kept.map(k => ({ path: k.path, reason: k.reason as string }))), ...(skill?.action === 'kept' ? [{ path: skill.path, reason: skill.reason as string }] : [])];
   const message: string[] = [];
   if (!results.length) message.push('No IDE instruction file found, so no command files were written.');
   else if (!added.length && !updated.length && !kept.length) message.push('Every SpecPilot command file is current.');
   if (updated.length) message.push(`Updated: ${updated.join(', ')}.`);
   if (added.length) message.push(`Added: ${added.join(', ')}.`);
   if (kept.length) message.push(`Kept as they were: ${kept.map(k => `${k.path} (${k.reason})`).join(', ')}.`);
-  const folders = [...new Set([...updated, ...added, ...kept.map(k => k.path)].map(p => p.slice(0, p.lastIndexOf('/') + 1)))];
+  const folders = [...new Set([...updated, ...added, ...kept.map(k => k.path)].filter(p => p !== skill?.path).map(p => p.slice(0, p.lastIndexOf('/') + 1)))];
   const unlisted = folders.filter(f => !LISTED_COMMAND_FOLDERS.includes(f));
   if (unlisted.length) message.push(`Not listed on this page: ${unlisted.join(', ')}.`);
   return { added, updated, kept, message };
@@ -450,7 +452,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       underLock(res, () => {
         if (specsMissing(roots[i])) return sendJson(res, 422, { error: `No .specs/ folder in ${displayRoot(roots[i])}.` });
-        const report = regenerateReport(new SpecBackfiller().backfillSlashCommands(roots[i], false));
+        // The skill is its own step (BL-PM-012): the MCP tool calls only the command step.
+        const report = regenerateReport(new SpecBackfiller().backfillSlashCommands(roots[i], false), new SlashCommandGenerator().refreshSkill(roots[i], '.specs', false));
         sendJson(res, 200, { ...report, specs: payload(i) });
       });
     });

@@ -23,6 +23,7 @@ import { ALL_FIELDS } from './fixtures/allFields';
 const DETECTION_ONLY = ['packageManager', 'testFramework', 'repository', 'license'];
 const CHAT_FIELDS = Object.fromEntries(Object.entries(ALL_FIELDS).filter(([k]) => !DETECTION_ONLY.includes(k)));
 import { SpecBackfiller } from '../utils/specBackfiller';
+import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -1507,9 +1508,11 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
   const regen = (body = '{}', headers = good(), query = '?project=0') => post(port, body, headers, REGEN + query);
   const specs = async () => JSON.parse((await hit(port, '/api/specs')).body);
   const flag = (list: { path: string; generated: boolean }[], path: string) => list.find(f => f.path === path)?.generated;
+  const SKILL = '.claude/skills/specpilot-project/SKILL.md';
 
   beforeEach(async () => {
     p = makeProject(); // has CLAUDE.md, so Claude Code is detected
+    write(p.root, '.specs/project/project.yaml', '# fileID: PROJ-001\nname: "Fixture Project"\nlanguage: typescript\n'); // a usable context for the skill (BL-PM-012)
     spec = await startSpecServer([p.root], 0, '0.0.0-test');
     port = (spec.server.address() as AddressInfo).port;
     token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
@@ -1519,11 +1522,13 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
     p.cleanup();
   });
 
-  it('adds the missing Claude Code commands, lists them under From SpecPilot and reports their paths', async () => {
+  it('adds the missing Claude Code commands and skill, lists them under From SpecPilot and reports their paths', async () => {
     const res = await regen();
     expect(res.status).toBe(200);
-    expect(res.json.added).toHaveLength(8);
-    expect(res.json.added.every((f: string) => f.startsWith('.claude/commands/specpilot-'))).toBe(true);
+    expect(res.json.added).toHaveLength(9);
+    expect(res.json.added.slice(0, 8).every((f: string) => f.startsWith('.claude/commands/specpilot-'))).toBe(true);
+    expect(res.json.added[8]).toBe(SKILL);
+    expect(flag(res.json.specs.nav.skills, SKILL)).toBe(true);
     expect(res.json.updated).toEqual([]);
     expect(res.json.kept).toEqual([]);
     expect(res.json.message).toEqual([`Added: ${res.json.added.join(', ')}.`]);
@@ -1565,14 +1570,36 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
     expect(flag(res.json.specs.nav.commands, '.claude/commands/mine.md')).toBe(false);
   });
 
-  it('splits skills by path and never writes one', async () => {
-    write(p.root, '.claude/skills/specpilot-project/SKILL.md', '---\nname: specpilot-project\n---\nEdited.\n');
+  it('keeps an edited skill under Yours with its reason, refreshes a released render, and never writes another skill (BL-PM-012)', async () => {
+    write(p.root, SKILL, '---\nname: specpilot-project\n---\nEdited.\n');
     write(p.root, '.claude/skills/mine/SKILL.md', '---\nname: mine\n---\nMine.\n');
-    const res = await regen();
-    const skills = res.json.specs.nav.skills;
-    expect(flag(skills, '.claude/skills/specpilot-project/SKILL.md')).toBe(true);
-    expect(flag(skills, '.claude/skills/mine/SKILL.md')).toBe(false);
-    expect(readFileSync(at('.claude/skills/specpilot-project/SKILL.md'), 'utf-8')).toBe('---\nname: specpilot-project\n---\nEdited.\n');
+    let res = await regen();
+    expect(res.json.kept).toEqual([{ path: SKILL, reason: "does not match SpecPilot's render of project.yaml" }]);
+    expect(res.json.message).toContain(`Kept as they were: ${SKILL} (does not match SpecPilot's render of project.yaml).`);
+    expect(res.json.message.some((l: string) => l.startsWith('Not listed on this page'))).toBe(false);
+    expect(flag(res.json.specs.nav.skills, SKILL)).toBe(false);
+    expect(flag(res.json.specs.nav.skills, '.claude/skills/mine/SKILL.md')).toBe(false);
+    expect(readFileSync(at(SKILL), 'utf-8')).toBe('---\nname: specpilot-project\n---\nEdited.\n');
+    expect(readFileSync(at('.claude/skills/mine/SKILL.md'), 'utf-8')).toBe('---\nname: mine\n---\nMine.\n');
+    // what v2.13.0 wrote for this project: SpecPilot's own, so it is replaced
+    const released = fillReleasedSkill(KNOWN_SKILL_TEMPLATES[1], { projectName: 'Fixture Project', language: 'typescript' });
+    writeFileSync(at(SKILL), released);
+    expect(flag((await specs()).nav.skills, SKILL)).toBe(true);
+    res = await regen();
+    expect(res.json.updated).toEqual([SKILL]);
+    expect(res.json.message).toEqual([`Updated: ${SKILL}.`]);
+    expect(readFileSync(at(SKILL), 'utf-8')).toContain('Project: Fixture Project\nLanguage: typescript\n\n## Development Process');
+    expect(flag(res.json.specs.nav.skills, SKILL)).toBe(true);
+  });
+
+  it('keeps the skill with a reason when project.yaml has no usable name or language, or is a link (BL-PM-012)', async () => {
+    write(p.root, '.specs/project/project.yaml', 'name: "Fixture Project"\nlanguage: "type\\nscript"\n');
+    expect((await regen()).json.kept).toEqual([{ path: SKILL, reason: 'project.yaml has no usable name or language' }]);
+    rmSync(at('.specs/project/project.yaml'));
+    write(p.root, '.specs/project/real.yaml', 'name: x\nlanguage: typescript\n');
+    symlinkSync(at('.specs/project/real.yaml'), at('.specs/project/project.yaml'));
+    expect((await regen()).json.kept).toEqual([{ path: SKILL, reason: 'project.yaml could not be read' }]);
+    expect(existsSync(at(SKILL))).toBe(false);
   });
 
   it('names the command folders the page does not list', async () => {
@@ -1615,7 +1642,8 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
   (process.platform === 'win32' ? it.skip : it)('skips a linked .claude folder', async () => {
     symlinkSync(p.outside, at('.claude'));
     const res = await regen();
-    expect(res.json.kept).toHaveLength(8);
+    expect(res.json.kept).toHaveLength(9); // the eight commands and the skill (BL-PM-012)
+    expect(res.json.kept[8]).toEqual({ path: SKILL, reason: 'folder is a symbolic link or not a folder' });
     expect(res.json.added).toEqual([]);
     expect(readdirSync(p.outside)).toEqual(['secret.txt']);
   });
@@ -1666,7 +1694,7 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
       post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': ifMatch })),
     ]);
     expect([a.status, b.status]).toEqual([200, 200]);
-    expect(a.json.added).toHaveLength(8);
+    expect(a.json.added).toHaveLength(9);
   });
 
   it('answers 500 when the run throws, and the page adds that files may be partly written', async () => {
@@ -3404,8 +3432,21 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     await start();
     const r = (await tool('specpilot_regenerate_commands', { project: 0 })).structuredContent;
     const page = (await pageWrite('/api/commands/regenerate', {}, b.root, 1)).json;
-    expect(r).toEqual({ added: page.added, updated: page.updated, kept: page.kept, message: page.message });
+    // the page also refreshes the skill (BL-PM-012); the tool is commands only
+    const SKILL = '.claude/skills/specpilot-project/SKILL.md';
+    expect(r).toEqual({ added: page.added, updated: page.updated, kept: page.kept.filter((k: { path: string }) => k.path !== SKILL), message: page.message.filter((l: string) => !l.startsWith('Kept as they were: ' + SKILL)) });
     expect(r.added.length).toBeGreaterThan(0);
+  });
+
+  it('leaves an out-of-date released skill byte for byte, where the page route would refresh it (BL-PM-012)', async () => {
+    const SKILL = '.claude/skills/specpilot-project/SKILL.md';
+    write(a.root, '.specs/project/project.yaml', 'name: "MCP Project"\nlanguage: typescript\n');
+    const released = fillReleasedSkill(KNOWN_SKILL_TEMPLATES[0], { projectName: 'MCP Project', language: 'typescript' });
+    write(a.root, SKILL, released);
+    await start();
+    await tool('specpilot_regenerate_commands', { project: 0 });
+    expect(readFileSync(join(a.root, SKILL), 'utf-8')).toBe(released);
+    expect((await pageWrite('/api/commands/regenerate', {}, a.root, 0)).json.updated).toEqual([SKILL]);
   });
 
   it('keeps the page write routes exact about Origin when --mcp is on', async () => {

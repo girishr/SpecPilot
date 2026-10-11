@@ -7,6 +7,7 @@ import {
   IdeFileBackfillResult,
   SlashCommandBackfillResult,
 } from '../utils/specBackfiller';
+import { SkillRefresh } from '../utils/slashCommandGenerator';
 import { Logger } from '../utils/logger';
 
 export interface BackfillOptions {
@@ -70,12 +71,6 @@ function ideFileResultLines(r: IdeFileBackfillResult, dryRun: boolean): string[]
 
   if (r.action === 'warn') {
     lines.push(chalk.yellow(`  ⚠️  ${r.reason}`));
-  } else if (r.action === 'stale') {
-    lines.push(chalk.yellow(`  ⚠️  Stale — ${r.found}/${r.total} structural fingerprints found`));
-    r.added.forEach((label) => lines.push(chalk.white(`     • Missing: ${label}`)));
-    if (r.reason) {
-      lines.push(chalk.white(`     ${r.reason}`));
-    }
   } else {
     const fileResult: BackfillFileResult = {
       action: r.action,
@@ -88,6 +83,22 @@ function ideFileResultLines(r: IdeFileBackfillResult, dryRun: boolean): string[]
   }
 
   return lines;
+}
+
+/** The Claude Code skill's line (BL-PM-012): refreshed from project.yaml, or kept with the reason. */
+function skillResultLines(r: SkillRefresh, dryRun: boolean): string[] {
+  const done = {
+    added: dryRun ? 'Would add it from project.yaml' : 'Added from project.yaml',
+    updated: dryRun ? "Would update it from project.yaml (it is SpecPilot's own render)" : "Updated from project.yaml (it was SpecPilot's own render)",
+    current: 'Current — nothing to do',
+  };
+  return [
+    chalk.blue.bold('Claude Code skill'),
+    '',
+    chalk.cyan(`📄 ${r.path}`),
+    r.action === 'kept' ? chalk.yellow(`  ⚠️  Kept as it was (${r.reason})`) : chalk.green(`  ✅ ${done[r.action]}`),
+    '',
+  ];
 }
 
 function slashCommandResultLines(r: SlashCommandBackfillResult, dryRun: boolean): string[] {
@@ -146,28 +157,31 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     '',
     ...ideLines,
     ...slashLines,
+    ...(result.skill ? skillResultLines(result.skill, dryRun) : []),
   ];
 
   const updatedCount =
     allResults.filter((r) => r.action === 'updated' || r.action === 'created').length +
-    result.slashCommands.filter((r) => r.added.length > 0 || r.updated.length > 0).length;
+    result.slashCommands.filter((r) => r.added.length > 0 || r.updated.length > 0).length +
+    (result.skill?.action === 'added' || result.skill?.action === 'updated' ? 1 : 0);
   const skippedCount =
     allResults.filter((r) => r.action === 'skipped').length +
-    result.slashCommands.filter((r) => r.added.length === 0 && r.updated.length === 0).length;
-  const staleCount = allResults.filter((r) => r.action === 'stale').length;
+    result.slashCommands.filter((r) => r.added.length === 0 && r.updated.length === 0).length +
+    (result.skill?.action === 'current' ? 1 : 0);
+  const keptCount = result.skill?.action === 'kept' ? 1 : 0;
 
-  if (updatedCount === 0 && staleCount === 0) {
+  if (updatedCount === 0 && keptCount === 0) {
     content.push(chalk.green('✅ Everything is up to date — nothing to backfill.'));
   } else if (dryRun) {
     content.push(
       chalk.yellow(
-        `ℹ️  ${updatedCount} file(s) would be updated, ${skippedCount} already up to date, ${staleCount} stale. Run without --dry-run to apply.`,
+        `ℹ️  ${updatedCount} file(s) would be updated, ${skippedCount} already up to date, ${keptCount} kept. Run without --dry-run to apply.`,
       ),
     );
   } else {
     content.push(
       chalk.green(
-        `✅ ${updatedCount} file(s) updated, ${skippedCount} already up to date, ${staleCount} stale.`,
+        `✅ ${updatedCount} file(s) updated, ${skippedCount} already up to date, ${keptCount} kept.`,
       ),
     );
     content.push('');

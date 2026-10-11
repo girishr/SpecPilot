@@ -572,6 +572,9 @@ sourceOfTruth: project/project.yaml
 # {{projectName}} Test Strategy
 
 ## Overview
+{{#if testFramework}}
+Test framework: {{testFramework}}
+{{/if}}
 {{#if testingStrategy}}
 Strategy: {{join testingStrategy ", "}}
 {{else}}

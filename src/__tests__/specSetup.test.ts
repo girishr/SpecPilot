@@ -53,6 +53,13 @@ function makeFolder(files: Record<string, string> = {}): { base: string; root: s
 const NODE_REACT = { 'package.json': JSON.stringify({ name: 'fixture-app', description: 'A fixture', dependencies: { react: '18.0.0' }, devDependencies: { typescript: '5.0.0' } }), 'src/app.ts': '// TODO: one\n' };
 const NODE_PLAIN = { 'package.json': JSON.stringify({ name: 'plain-app', devDependencies: { typescript: '5.0.0' } }), 'src/index.ts': 'export const one = 1;\n' };
 const FULL = { projectType: 'brownfield', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode' };
+/** A Node project with everything BL-095 detects (REQ-002.H.39). */
+const NODE_MORE = {
+  'package.json': JSON.stringify({ name: 'more-app', license: 'MIT', dependencies: { react: '18.0.0' }, devDependencies: { typescript: '5.0.0', vitest: '1.0.0' } }),
+  'pnpm-lock.yaml': '',
+  '.git/config': '[remote "origin"]\n\turl = git@github.com:acme/more-app.git\n',
+  'src/app.ts': 'export const one = 1;\n',
+};
 
 /** What `add-specs` itself writes for the same folder and answers, generated straight into `root`. */
 async function cliOutput(root: string, answers: Record<string, string>): Promise<Record<string, Buffer>> {
@@ -218,6 +225,34 @@ describe('setupProject() writes what add-specs writes', () => {
     const a = folder(NODE_REACT);
     await setupProject(a, FULL);
     expect(readFileSync(join(a, '.specs/architecture/architecture.md'), 'utf-8')).not.toContain('.specpilot-setup-');
+  });
+});
+
+describe('guided setup detects more (BL-095)', () => {
+  it('shows the four as detected rows beside the language, asking nothing more', async () => {
+    const q = await setupQuestions(folder(NODE_MORE));
+    expect(q.questions.map(x => x.key)).toEqual(['projectType', 'apiParadigm', 'handle', 'ide']);
+    expect(q.detected!.rows.slice(3)).toEqual([
+      { key: 'packageManager', step: 'Platform & IDE', label: 'Package manager', value: 'pnpm' },
+      { key: 'testFramework', step: 'Platform & IDE', label: 'Test framework', value: 'vitest' },
+      { key: 'repository', step: 'Platform & IDE', label: 'Repository', value: 'git@github.com:acme/more-app.git' },
+      { key: 'license', step: 'Platform & IDE', label: 'License', value: 'MIT' },
+    ]);
+  });
+
+  it('writes them from its own detection, byte for byte what add-specs writes', async () => {
+    const [a, b] = [folder(NODE_MORE), folder(NODE_MORE)];
+    expect((await setupProject(a, FULL)).status).toBe(200);
+    const expected = await cliOutput(b, FULL);
+    const got = tree(a);
+    for (const p of Object.keys(expected)) expect([p, got[p].equals(expected[p])]).toEqual([p, true]);
+    const yaml = readFileSync(join(a, '.specs/project/project.yaml'), 'utf-8');
+    for (const line of ['repository: git@github.com:acme/more-app.git\n', 'license: MIT\n', '  packageManager: pnpm\n', '  testFramework: vitest\n']) expect(yaml).toContain(line);
+    expect(readFileSync(join(a, '.specs/quality/tests.md'), 'utf-8')).toContain('## Overview\nTest framework: vitest\n');
+  });
+
+  it('a body cannot set them', async () => {
+    expect(answersShapeError({ ...FULL, license: 'GPL' })).toBe('Unexpected field "license".');
   });
 });
 

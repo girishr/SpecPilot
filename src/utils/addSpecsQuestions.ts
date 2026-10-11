@@ -86,8 +86,10 @@ export function addSpecsOptions(
   fields: OptionalFields = {},
 ): SpecGeneratorOptions {
   const { language, framework } = answers;
+  const { packageManager, testFramework, repository, license } = projectInfo ?? {};
   return {
     ...fields,
+    ...{ packageManager, testFramework, repository, license }, // BL-095: detection only, never from `fields`
     projectName: projectInfo?.name || 'my-project',
     language,
     framework,

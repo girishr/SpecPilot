@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-11 (BL-097 completed)
-version: 6.55
+lastUpdated: 2026-10-11 (BL-095 built)
+version: 6.57
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -62,12 +62,14 @@ Notes
 | BL-092 | `specpilot archive` and `validate`'s prompts.md check date each log entry by the last date in it (`lastDate()` in `src/utils/specArchiver.ts`), so an entry that mentions another date reads as out of order and the whole archive is refused: the MCP revisions `2026-07-28`, `2025-11-25` and `2025-06-18` named in the BL-089 and BL-PM-007 entries did this on 2026-10-10. Date an entry by its leading date (`- YYYY-MM-DD:` at the start of a list item, or the Date cell of a table row), and use the last date only for an entry that has no leading one. Found in BL-PM-009, whose archive was done by hand with `planPromptsArchive()` on an in-memory copy with the three revisions masked. |
 | BL-093 | The `specpilot-archive` command's bash script (`src/core/slashCommands.ts`, written to `.claude/commands/specpilot-archive.md`) uses awk's `$0` twice; Claude Code replaces `$0` in a command file with the command's first argument, so `/specpilot-archive prompts.md` delivers `line[NR] = prompts.md` and both awk programs are broken. Write the script so that no `$<digit>` reaches the command file (a spelling checked against Claude Code's substitution first), check the other generated commands and skills for `$<digit>` outside intended placeholders, and add a test on the rendered text. Found in BL-PM-009 (2026-10-10); the script was not run. |
 | BL-094 | Flaky browser test: `with --mcp the card holds the config line and Copy puts it on the clipboard` (`src/__browser__/mcp.browser.test.ts`) failed once in about 30 runs (2026-10-10, on `fix/bl-pm-009-narrow-status`, which does not touch the card): on its 420px page, after the `Copied.` toast, so either `navigator.clipboard.readText()` or the no-sideways-scroll check failed; the error text was not kept (the harness saves it since the fix that added this row). Not reproduced in 15 runs of that file and 9 more full runs. Headless Chromium keeps its own clipboard, so the system clipboard is not the cause. On the next failure, read `<test>-error.txt` and fix the cause. 2026-10-11, on the checked-in fixture (BL-099): 30 runs of 30 passed, light and dark (60 passes); not reproduced, nothing to fix. |
-| BL-095 | Detect more about an existing project for guided setup: package manager (lock files), test framework (`jest`, `vitest`, `pytest`, `XCTest`...), repository URL (`git remote get-url origin`, read without starting a process for a request if possible) and license (`LICENSE`, `package.json` `license`). `ProjectDetector` returns none of these today and no question or template field takes them, so each needs a place in the written files first (a template field, which changes the golden tests). Left out of BL-PM-016 by the developer's decision 4 (a), 2026-10-10. |
+| BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
+| BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
+| BL-095 | Detect more about an existing project for guided setup: package manager (lock files), test framework (`jest`, `vitest`, `pytest`, `XCTest`...), repository URL (`git remote get-url origin`, read without starting a process for a request if possible) and license (`LICENSE`, `package.json` `license`). `ProjectDetector` returns none of these today and no question or template field takes them, so each needs a place in the written files first (a template field, which changes the golden tests). Left out of BL-PM-016 by the developer's decision 4 (a), 2026-10-10. |
 
 ## Completed
 

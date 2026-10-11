@@ -58,6 +58,7 @@ describe('the questions and their order (REQ-002.H.28)', () => {
     const k = keys({ apiParadigm: 'rest', technicalConstraints: ['Budget cap'], localDatabases: ['SQLite'] }, 'setup');
     for (const key of ['parent', 'projectDescription', 'userTypes', 'scaleTier', 'nonGoals']) expect(k).not.toContain(key);
     for (const key of Object.keys(core.OPTIONAL_FIELD_LIMITS)) expect(k).toContain(key);
+    for (const key of ['packageManager', 'testFramework', 'repository', 'license']) expect(Object.keys(core.OPTIONAL_FIELD_LIMITS)).not.toContain(key); // BL-095: never from a request
   });
 
   it('the CLI\'s context questions are not asked themselves; the folded questions show their message', () => {

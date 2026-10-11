@@ -19,6 +19,9 @@ import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry 
 import { initOptions, InitAnswers } from '../utils/initQuestions';
 import { render } from '../core/render';
 import { ALL_FIELDS } from './fixtures/allFields';
+// The chat's fields: ALL_FIELDS without BL-095's detection-only four, which no request may carry (REQ-002.H.39).
+const DETECTION_ONLY = ['packageManager', 'testFramework', 'repository', 'license'];
+const CHAT_FIELDS = Object.fromEntries(Object.entries(ALL_FIELDS).filter(([k]) => !DETECTION_ONLY.includes(k)));
 import { SpecBackfiller } from '../utils/specBackfiller';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
@@ -3090,10 +3093,10 @@ describe('the full chat\'s answers over HTTP (BL-PM-004b)', () => {
   });
 
   it('a new project with every optional field writes what render() gives for them: the phase 2 recording\'s content', async () => {
-    const r = await create(ALL_FIELDS);
+    const r = await create(CHAT_FIELDS);
     expect(r.status).toBe(200);
     const target = join(base, 'demo');
-    for (const f of render(initOptions(target, 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', ALL_FIELDS)).files) expect([f.path, readFileSync(join(target, ...f.path.split('/')), 'utf-8')]).toEqual([f.path, f.content]);
+    for (const f of render(initOptions(target, 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', CHAT_FIELDS)).files) expect([f.path, readFileSync(join(target, ...f.path.split('/')), 'utf-8')]).toEqual([f.path, f.content]);
     expect(readFileSync(join(target, '.specs', 'project', 'project.yaml'), 'utf-8')).toContain('platforms:\n  - iOS Native\n  - Node.js / Express\n');
   });
 
@@ -3131,11 +3134,18 @@ describe('the full chat\'s answers over HTTP (BL-PM-004b)', () => {
     expect((await preview({ name: 'p', ...NEW_ANSWERS, pad: 'x'.repeat(65 * 1024) })).status).toBe(413);
   });
 
+  it.each(DETECTION_ONLY)('refuses the detection-only %s in a body (BL-095), creating nothing', async key => {
+    const r = await create({ ...CHAT_FIELDS, [key]: 'x' });
+    expect(r.status).toBe(422);
+    expect(r.json.error).toBe(`Unexpected field "${key}".`);
+    expect(readdirSync(base)).toEqual([]);
+  });
+
   it('POST /api/preview renders a new project without writing, taking no parent', async () => {
-    const r = await preview({ name: 'demo', ...NEW_ANSWERS, ...ALL_FIELDS });
+    const r = await preview({ name: 'demo', ...NEW_ANSWERS, ...CHAT_FIELDS });
     expect(r.status).toBe(200);
     const out = r.json;
-    expect(out.files).toEqual(render(initOptions('', 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', ALL_FIELDS)).files);
+    expect(out.files).toEqual(render(initOptions('', 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', CHAT_FIELDS)).files);
     expect(out.kept).toEqual([]);
     expect(readdirSync(base)).toEqual([]);
     expect((await preview({ name: 'demo', parent: base, ...NEW_ANSWERS })).status).toBe(422); // no parent in a preview

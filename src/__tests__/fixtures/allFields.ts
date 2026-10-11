@@ -26,4 +26,8 @@ export const ALL_FIELDS: Required<OptionalFields> = {
   buildTimeline: '3 months',
   constraintDescription: 'Must run on the existing Postgres cluster.',
   testingStrategy: ['Unit', 'E2E'],
+  packageManager: 'pnpm',
+  testFramework: 'vitest',
+  repository: 'git@github.com:acme/parcel-track.git',
+  license: '(MIT OR Apache-2.0)',
 };

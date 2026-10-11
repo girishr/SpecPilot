@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, readdirSync } from 'fs';
+import { existsSync, lstatSync, readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
+import { cloneUrlError } from './gitClone';
 
 export interface ProjectInfo {
   name: string;
@@ -11,10 +12,95 @@ export interface ProjectInfo {
   dependencies: string[];
   /** A platform id of the setup chat, from direct evidence only (BL-PM-016); the CLI does not read it. */
   platform?: string;
+  /** BL-095 (REQ-002.H.39): from files only, each absent without direct evidence. */
+  packageManager?: string;
+  testFramework?: string;
+  repository?: string;
+  license?: string;
+}
+
+/** Largest `.git/config` or LICENSE file read for detection (REQ-002.H.39). */
+const MAX_DETECT_BYTES = 64 * 1024;
+const LICENSE_SHAPE = /^[A-Za-z0-9.+()\- ]{1,64}$/;
+const NODE_LOCKS: [string, string][] = [['pnpm-lock.yaml', 'pnpm'], ['yarn.lock', 'yarn'], ['bun.lock', 'bun'], ['bun.lockb', 'bun'], ['package-lock.json', 'npm']];
+const PYTHON_LOCKS: [string, string][] = [['uv.lock', 'uv'], ['poetry.lock', 'poetry'], ['Pipfile.lock', 'pipenv']];
+const NODE_TESTS: [string, string][] = [['vitest', 'vitest'], ['jest', 'jest'], ['mocha', 'mocha'], ['@playwright/test', 'playwright'], ['cypress', 'cypress']];
+const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'LICENCE'];
+const LICENSE_LINES: [RegExp, string][] = [[/^MIT License$/i, 'MIT'], [/^Apache License$/i, 'Apache-2.0'], [/^GNU GENERAL PUBLIC LICENSE$/i, 'GPL'], [/^ISC License$/i, 'ISC'], [/^BSD .*License$/i, 'BSD']];
+
+/** A file's text when `lstat` shows a regular file of at most MAX_DETECT_BYTES, else null: no link is followed. */
+function readSmall(path: string): string | null {
+  try {
+    const st = lstatSync(path);
+    return st.isFile() && st.size <= MAX_DETECT_BYTES ? readFileSync(path, 'utf-8') : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The first `url =` of `[remote "origin"]` in `.git/config`, when `.git` is a real folder and the clone check accepts it. */
+function originUrl(dir: string): string | undefined {
+  try {
+    if (!lstatSync(join(dir, '.git')).isDirectory()) return undefined;
+  } catch {
+    return undefined;
+  }
+  const lines = (readSmall(join(dir, '.git', 'config')) ?? '').split(/\r?\n/);
+  const start = lines.findIndex(l => /^\s*\[remote "origin"\]\s*$/.test(l));
+  if (start < 0) return undefined;
+  for (const line of lines.slice(start + 1)) {
+    if (/^\s*\[/.test(line)) return undefined;
+    const m = /^\s*url\s*=\s*(.*?)\s*$/.exec(line);
+    if (m) return cloneUrlError(m[1]) === null ? m[1] : undefined;
+  }
+  return undefined;
+}
+
+/** `package.json`'s license string verbatim, else the first LICENSE file's first line matched to one of five families. */
+function licenseOf(dir: string, pkgLicense: unknown): string | undefined {
+  let value: string | undefined;
+  if (typeof pkgLicense === 'string') value = pkgLicense;
+  else {
+    const file = LICENSE_FILES.map(f => readSmall(join(dir, f))).find(t => t !== null);
+    const first = file?.replace(/^\uFEFF/, '').split(/\r?\n/).map(l => l.trim()).find(l => l !== '');
+    value = first ? LICENSE_LINES.find(([re]) => re.test(first))?.[1] : undefined;
+  }
+  return value && LICENSE_SHAPE.test(value) ? value : undefined;
 }
 
 export class ProjectDetector {
   async detectProject(projectDir: string = process.cwd()): Promise<ProjectInfo | null> {
+    const info = this.detectBase(projectDir);
+    return info && { ...info, ...this.detectMore(projectDir, info) };
+  }
+
+  /**
+   * BL-095 (REQ-002.H.39): package manager, test framework, repository URL and license, each from direct
+   * evidence at the folder's root only; files are read, no process is started.
+   */
+  private detectMore(dir: string, info: ProjectInfo): Pick<ProjectInfo, 'packageManager' | 'testFramework' | 'repository' | 'license'> {
+    const pkgPath = join(dir, 'package.json');
+    const node = existsSync(pkgPath); // a package.json makes it a Node project (detectBase)
+    const pkg = node ? JSON.parse(readFileSync(pkgPath, 'utf-8')) : {};
+    const locks = node ? NODE_LOCKS : info.language === 'python' ? PYTHON_LOCKS : [];
+    const packageManager = locks.find(([file]) => existsSync(join(dir, file)))?.[1];
+    let testFramework: string | undefined;
+    if (node) {
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      testFramework = NODE_TESTS.find(([name]) => deps[name])?.[1];
+    } else if (info.language === 'python') {
+      const text = ['pyproject.toml', 'setup.py', 'requirements.txt'].map(f => join(dir, f)).filter(f => existsSync(f)).map(f => readFileSync(f, 'utf-8'))[0] ?? '';
+      if (/(^|[^A-Za-z0-9_.-])pytest(?![A-Za-z0-9_-])/m.test(text)) testFramework = 'pytest';
+    } else if (info.language === 'kotlin') {
+      const gradle = ['build.gradle.kts', 'build.gradle'].map(f => join(dir, f)).filter(f => existsSync(f)).map(f => readFileSync(f, 'utf-8')).join('\n');
+      if (/junit/i.test(gradle)) testFramework = 'junit';
+    }
+    const repository = originUrl(dir);
+    const license = licenseOf(dir, node ? pkg.license : undefined);
+    return { ...(packageManager ? { packageManager } : {}), ...(testFramework ? { testFramework } : {}), ...(repository ? { repository } : {}), ...(license ? { license } : {}) };
+  }
+
+  private detectBase(projectDir: string): ProjectInfo | null {
     // Try to detect Node.js/TypeScript project
     const packageJsonPath = join(projectDir, 'package.json');
     if (existsSync(packageJsonPath)) {

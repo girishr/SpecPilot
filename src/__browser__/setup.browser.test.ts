@@ -2,7 +2,7 @@
 import { Browser, Page } from 'playwright-core';
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, launch, makeEnv, noSideScroll, serve, Served, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, noSideScroll, read, serve, Served, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -210,4 +210,58 @@ describe('guided setup on existing code (BL-PM-016)', () => {
     await fits(page, 'after the create');
     expect(existsSync(join(swift, '.specs', 'project', 'project.yaml'))).toBe(true);
   }, [/status of 500/]); // the refused create: a folder that cannot be written answers 500, as before BL-PM-016
+});
+
+// More detection (BL-095, REQ-002.H.39): package manager, test framework, repository URL and license.
+describe('guided setup detects more (BL-095)', () => {
+  let app: string;
+  let msrv: Served;
+  const write = (rel: string, text: string) => {
+    mkdirSync(join(app, rel, '..'), { recursive: true });
+    writeFileSync(join(app, rel), text);
+  };
+  beforeEach(async () => {
+    app = join(env.home, 'dev', 'more-app');
+    write('package.json', JSON.stringify({ name: 'more-app', dependencies: { react: '18.0.0' }, devDependencies: { typescript: '5.0.0', vitest: '1.0.0' } }));
+    write('pnpm-lock.yaml', '');
+    write('LICENSE', 'MIT License\n\nCopyright (c) 2026 Fixture\n');
+    write('.git/config', '[remote "origin"]\n\turl = https://github.com/acme/more-app.git\n');
+    msrv = await serve(env, [env.project, app]);
+  });
+  afterEach(async () => msrv.close());
+
+  const detectedRows = (page: Page) => page.locator('#msgs .me.fixed').allTextContents();
+  const toRecapHere = async (page: Page) => {
+    await waitView(page, 'v-chat');
+    await page.locator('#setupStart').waitFor({ state: 'visible' });
+    await page.click('#setupStart');
+    await page.locator('#composer').waitFor({ state: 'visible' });
+    await answerAll(page);
+  };
+
+  browserTest('the four show as detected rows, are never asked, and the created files hold them', b, async open => {
+    const { page } = await open(msrv, '#1/setup');
+    await toRecapHere(page);
+    expect(await detectedRows(page)).toEqual(expect.arrayContaining(['Package manager: pnpmdetected', 'Test framework: vitestdetected', 'Repository: https://github.com/acme/more-app.gitdetected', 'License: MITdetected']));
+    await page.click('#chatCreate');
+    await waitToast(page, /\.specs\/ created in /);
+    const yaml = read(join(app, '.specs', 'project', 'project.yaml'));
+    for (const line of ['repository: https://github.com/acme/more-app.git\n', 'license: MIT\n', '  packageManager: pnpm\n', '  testFramework: vitest\n']) expect(yaml).toContain(line);
+    expect(read(join(app, '.specs', 'quality', 'tests.md'))).toContain('## Overview\nTest framework: vitest\n');
+  });
+
+  browserTest('an origin URL carrying a token shows no Repository row and is written nowhere; 420px fits with the rows', b, async open => {
+    write('.git/config', '[remote "origin"]\n\turl = https://user:s3cret@github.com/acme/more-app.git\n');
+    const { page } = await open(msrv, '#1/setup', { width: 420 });
+    await toRecapHere(page);
+    const rows = await detectedRows(page);
+    expect(rows.some(r => r.startsWith('Repository'))).toBe(false);
+    expect(rows).toEqual(expect.arrayContaining(['Package manager: pnpmdetected', 'License: MITdetected']));
+    expect(await page.content()).not.toContain('s3cret');
+    expect(await noSideScroll(page)).toBe(true);
+    await page.click('#chatCreate');
+    await waitToast(page, /\.specs\/ created in /);
+    expect(read(join(app, '.specs', 'project', 'project.yaml'))).not.toContain('s3cret');
+    expect(await noSideScroll(page)).toBe(true);
+  });
 });

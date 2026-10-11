@@ -20,9 +20,9 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
   ".specs/planning/roadmap.md": "7ed6626df8a290f46af85065cee2cd6e34cc11ae4f07c062275ef4fed751d2fb",
   ".specs/planning/tasks.md": "8c53c0c44392538576bd63647d03e9c819e7ec7c7867b4eaed8aaf046da1eb55",
-  ".specs/project/project.yaml": "c4d863cdbe89ec83d885d3592392b207ff2a5901112e89208fcbd9ed912d8f79",
+  ".specs/project/project.yaml": "0a62377f8873d07abf30094dd9bc294cf62696c9878bd49c09375f6fa03c780c",
   ".specs/project/requirements.md": "c0ec426aca3abe814c9b00e833a9e5fa9b57af8e777c4f46e7b458e2da771975",
-  ".specs/quality/tests.md": "76c290435c40b48ea0fb429e2b63812ab102806824855b982a29d31b918cee23",
+  ".specs/quality/tests.md": "0b54fa1bef850f4bf53d6a21c8e25afc876554d9ca2f829ef3cbd353a7f7b4f9",
   ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
   ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
   "CLAUDE.md": "c8db5dd2a7103dc3188eb869b66bd47eb269ff9487211c609de22d689651a316",
@@ -49,9 +49,9 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
   ".specs/planning/roadmap.md": "7ed6626df8a290f46af85065cee2cd6e34cc11ae4f07c062275ef4fed751d2fb",
   ".specs/planning/tasks.md": "8c53c0c44392538576bd63647d03e9c819e7ec7c7867b4eaed8aaf046da1eb55",
-  ".specs/project/project.yaml": "c4d863cdbe89ec83d885d3592392b207ff2a5901112e89208fcbd9ed912d8f79",
+  ".specs/project/project.yaml": "0a62377f8873d07abf30094dd9bc294cf62696c9878bd49c09375f6fa03c780c",
   ".specs/project/requirements.md": "c0ec426aca3abe814c9b00e833a9e5fa9b57af8e777c4f46e7b458e2da771975",
-  ".specs/quality/tests.md": "76c290435c40b48ea0fb429e2b63812ab102806824855b982a29d31b918cee23",
+  ".specs/quality/tests.md": "0b54fa1bef850f4bf53d6a21c8e25afc876554d9ca2f829ef3cbd353a7f7b4f9",
   ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
   ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
   "CODEX_INSTRUCTIONS.md": "6c477f5eb06b4a44fdea9cf639c6c8b6c69ea34c4ed04547f7849a04694016f7",
@@ -960,6 +960,8 @@ version: "1.0.0"
 language: typescript
 framework: express
 description: Tracks parcels for small couriers
+repository: git@github.com:acme/parcel-track.git
+license: (MIT OR Apache-2.0)
 
 # Rules and mandates: see your AI agent configuration file (single source of truth)
 
@@ -982,6 +984,8 @@ build:
   
   
   
+  packageManager: pnpm
+  testFramework: vitest
 
 # Dependencies (framework-specific)
 dependencies:
@@ -1037,6 +1041,7 @@ sourceOfTruth: project/project.yaml
 # parcel-track Test Strategy
 
 ## Overview
+Test framework: vitest
 Strategy: Unit, E2E
 ",
   ".specs/security/security-decisions.md": "---

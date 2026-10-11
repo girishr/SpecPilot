@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-11 (BL-097 built)
-version: 6.54
+lastUpdated: 2026-10-11 (BL-097 completed)
+version: 6.55
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -68,7 +68,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-097 | A `Browse…` button beside the other folder fields of `specpilot serve`: the Clone tab's `Parent folder` and the New Project chat's parent folder, reusing BL-PM-011's `POST /api/projects/browse` (page only). Left out of BL-PM-011 by its scope (the Folder tab's `Folder path` only). |
 
 ## Completed
 
@@ -103,3 +102,4 @@ Notes
 | 188 | [CD-girishr-097] | Trivial: `docs/RELEASING.md`, the release ritual as a checklist from the 2.13.0 release (version bumps, CHANGELOG, roadmap line, release row, checks incl. three browser runs and the `npm pack --dry-run` present/absent list with `dist/__tests__/`, the `--cleanup=verbatim` tag checked with `git cat-file -p` and `cmp` (command tried on `v2.13.0`), reviewer D, the developer's push/publish/release commands, the shipped commit); linked from README's Quick Contribution Guide. |
 | 189 | [CD-girishr-098] [BL-098] [BL-088] [BL-096] [BL-090] [BL-091] | Batch B (one Spec Report, Architectural, approved by the Day brief; spec-reviewer A ESCALATE, the architect's DECIDE on nine questions, PASS): `specpilot serve --stop [--port <n>]` and a Quit button in the rail foot, both through `POST /api/quit` (every write-route check, 405 with `--read-only`, 202 then the signal's stop path; the CLI reads the page token over the loopback, no run file or signal; REQ-002.H.37, ARCH-004.53, SEC-004.23); `specpilot backfill` adds the MCP Tasks line after the Process Mandates section's last item, one line and no other byte (REQ-002.E.16); the build excludes `src/__tests__`, so no `dist/__tests__/` ships (REQ-003.6); browser tests for Start a New Project through Create Project and for Clone's refused URL and failing clone, plus Quit at 420px in each state, all on `fixtureProject()` folders with known rows. Jest 1517 → 1551, browser 37 → 44. BL-099 added. Commit `6eb9aef`. |
 | 190 | [CD-girishr-099] [BL-099] | Test-only, Trivial: the browser harness's `makeProject()` copies a checked-in fixture project, `src/__browser__/fixture/` (a `.specs/` from `specpilot init` with the handle replaced by `fixture`, a hand-written `tasks.md` and `tasks-archive.md` with known rows, a short `CLAUDE.md`), never this repo's own `.specs/` or `CLAUDE.md`; `fixtureProject()` removed, its three files use `makeProject()`. Browser 44/44. BL-094's Copy test then ran 30 times on it, 60 of 60 passes; noted on its row, left in Backlog. Commit `34fa982`. |
+| 191 | [CD-girishr-100] [BL-097] | Feature (REQ-002.H.38): `Browse…` beside the Clone tab's `Parent folder` and on the New Project chat's parent-folder question, reusing `POST /api/projects/browse` with no server change; `browseFolder(btn, field, pick)` serves all three buttons, one dialog at a time for the page; leaving the chat and closing the sheet abort it. Browser 44 → 47 (`browse.browser.test.ts`), 420px idle, waiting and after an error. prompts.md archived by hand (21 lines, the CLI's rule, BL-PM-009 precedent). Commit `d5b68f6`. |

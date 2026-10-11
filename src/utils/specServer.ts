@@ -11,6 +11,7 @@ import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths
 import { createPoller } from './specPoller';
 import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, previewNewProject, previewSetup, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
+import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 import { SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
 import { isSpecPilotCommand } from './slashCommandGenerator';
@@ -254,6 +255,8 @@ export interface SpecServerOptions {
   registry?: string;
   /** Time limit of a clone in ms (tests shorten it; default `CLONE_TIMEOUT_MS`). */
   cloneTimeoutMs?: number;
+  /** Time limit of a folder dialog in ms (tests shorten it; default `BROWSE_TIMEOUT_MS`). */
+  browseTimeoutMs?: number;
   /** `--mcp`: serve POST /mcp (BL-PM-007). */
   mcp?: boolean;
   /** `SPECPILOT_MCP_TOKEN`, already checked by the command: /mcp's token instead of a per-start one. */
@@ -266,7 +269,7 @@ export interface SpecServer {
   mcpToken: string | null;
   /** Open event streams right now. */
   streams(): number;
-  /** Kill a running clone and remove what it downloaded (BL-PM-002); resolves when that is done. */
+  /** Kill a running clone and remove what it downloaded (BL-PM-002), and close an open folder dialog (BL-PM-011); resolves when that is done. */
   stopClone(): Promise<void>;
   /** Stop a running clone, end every event stream, clear every timer, then close the listener. */
   close(): Promise<void>;
@@ -678,6 +681,38 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     });
   };
 
+  // ---- browse for a folder (BL-PM-011): the system's dialog, its answer returned as text for the Folder path field.
+  // Nothing comes from the request, nothing is read or written, so no lock; one dialog at a time.
+  let browseAbort: AbortController | null = null;
+  let browseDone: Promise<void> = Promise.resolve();
+
+  const handleBrowse = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
+    readJson(req, res, body => {
+      if (body === null || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) return sendJson(res, 422, { error: 'Send an empty JSON object.' });
+      if (closing) return sendJson(res, 503, { error: 'The server is stopping.' });
+      if (browseAbort) return sendJson(res, 409, { error: 'A folder dialog is already open.' });
+      const abort = new AbortController();
+      browseAbort = abort;
+      const gone = () => {
+        if (!res.writableEnded) abort.abort(); // the sheet was closed or the page went away: close the dialog
+      };
+      res.on('close', gone);
+      browseDone = pickFolder(home, { timeoutMs: opts.browseTimeoutMs, signal: abort.signal })
+        .then(out => {
+          if (!abort.signal.aborted) sendJson(res, 'error' in out ? 422 : 200, out);
+        })
+        .catch(() => {
+          if (!res.headersSent) sendJson(res, 500, { error: 'The server could not finish this request.' });
+        })
+        .then(() => {
+          res.off('close', gone);
+          if (!res.writableEnded) res.destroy();
+          browseAbort = null;
+        });
+    });
+  };
+
   const handleProjectRemove = (req: IncomingMessage, res: ServerResponse) => {
     if (!writeAllowed(req, res)) return;
     readJson(req, res, body => {
@@ -829,6 +864,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         res.setHeader('Allow', registry ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
+      if (url.pathname === '/api/projects/browse') {
+        if (registry && req.method === 'POST') return handleBrowse(req, res);
+        res.setHeader('Allow', registry ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
       if (url.pathname === '/api/projects/remove') {
         if (registry && req.method === 'POST') return handleProjectRemove(req, res);
         res.setHeader('Allow', registry ? 'POST' : '');
@@ -889,7 +929,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   const stopClone = () => {
     closing = true;
     cloneAbort?.abort();
-    return cloneDone;
+    browseAbort?.abort();
+    return Promise.all([cloneDone, browseDone]).then(() => undefined);
   };
 
   return {

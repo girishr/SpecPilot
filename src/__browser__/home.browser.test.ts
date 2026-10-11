@@ -236,3 +236,121 @@ printf '%s\\n' '# Tasks' '' '## Backlog' '' '| ID | Description |' '|---|---|' '
     await waitToast(page, /cloned and opened as project 1/);
   });
 });
+
+// Browse… (BL-PM-011, TESTS-002.4): a stub dialog first on PATH, `osascript` on macOS and `zenity` on
+// Linux (a shell script, so POSIX only), so no real dialog opens. STUB_MODE picks what it does.
+(process.platform === 'darwin' || process.platform === 'linux' ? describe : describe.skip)('Browse for a folder (BL-PM-011)', () => {
+  let bin: string;
+  let realPath: string | undefined;
+  const pidFile = () => join(env.base, 'dialog.pid');
+  const alive = (pid: number) => {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  beforeEach(() => {
+    bin = join(env.base, 'bin');
+    mkdirSync(bin);
+    writeFileSync(
+      join(bin, process.platform === 'darwin' ? 'osascript' : 'zenity'),
+      `#!/bin/sh
+echo $$ > "${pidFile()}"
+case "$STUB_MODE" in
+  cancel) echo "execution error: User canceled. (-128)" >&2; exit 1 ;;
+  fail) echo "Gtk-WARNING: cannot open display: :0" >&2; exit 3 ;;
+  hang) exec /bin/sleep 30 ;;
+  *) printf '%s\\n' "$STUB_OUT" ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+    realPath = process.env.PATH;
+    process.env.PATH = `${bin}:/usr/bin:/bin`;
+    process.env.STUB_OUT = join(env.home, 'dev', 'third-project') + '/';
+  });
+  afterEach(() => {
+    process.env.PATH = realPath;
+    delete process.env.STUB_MODE;
+    delete process.env.STUB_OUT;
+  });
+  const openFolderSheet = async (page: import('playwright-core').Page) => {
+    await waitView(page, 'v-home');
+    await page.click('#homeOpen');
+    await page.waitForFunction(() => document.querySelector('#openVeil')!.classList.contains('open') && document.activeElement?.id === 'pathIn');
+  };
+  const waiting = (page: import('playwright-core').Page) =>
+    page.waitForFunction(() => { const b = document.querySelector<HTMLButtonElement>('#browseBtn')!; return b.disabled && b.getAttribute('aria-busy') === 'true'; });
+  const idle = (page: import('playwright-core').Page) =>
+    page.waitForFunction(() => { const b = document.querySelector<HTMLButtonElement>('#browseBtn')!; return !b.disabled && !b.hasAttribute('aria-busy'); });
+
+  browserTest('Browse… fills the folder path with the folder picked and Open opens it; a cancelled dialog changes nothing', b, async open => {
+    const { page } = await open(srv, '#home');
+    await openFolderSheet(page);
+    process.env.STUB_MODE = 'cancel';
+    await page.fill('#pathIn', '~/typed');
+    await page.click('#browseBtn');
+    await until(() => existsSync(pidFile()), 'the dialog to start');
+    await idle(page);
+    await page.waitForFunction(() => document.activeElement?.id === 'browseBtn');
+    expect(await page.inputValue('#pathIn')).toBe('~/typed');
+    delete process.env.STUB_MODE;
+    await page.click('#browseBtn');
+    await page.waitForFunction(() => document.activeElement?.id === 'pathIn' && (document.querySelector('#pathIn') as HTMLInputElement).value.endsWith('/dev/third-project'));
+    expect(await page.inputValue('#pathIn')).toBe(join(env.home, 'dev', 'third-project'));
+    await page.click('#openGo');
+    await page.waitForFunction(() => document.querySelectorAll('#projList .tile').length === 2);
+    await waitToast(page, /third-project/);
+  });
+
+  browserTest("a failing dialog shows its message; closing the sheet while it is open closes the dialog", b, async open => {
+    const { page } = await open(srv, '#home');
+    await openFolderSheet(page);
+    process.env.STUB_MODE = 'fail';
+    await page.click('#browseBtn');
+    await waitToast(page, /The folder dialog could not be opened: Gtk-WARNING: cannot open display: :0/);
+    await idle(page);
+    rmSync(pidFile());
+    process.env.STUB_MODE = 'hang';
+    await page.click('#browseBtn');
+    await waiting(page);
+    await until(() => existsSync(pidFile()), 'the dialog to start');
+    const pid = Number(read(pidFile()));
+    expect(await page.evaluate(() => (document.querySelector('#pathIn') as HTMLInputElement).disabled)).toBe(false); // the rest of the sheet stays usable
+    await page.click('#openCancel');
+    await page.waitForFunction(() => !document.querySelector('#openVeil')!.classList.contains('open'));
+    await until(() => !alive(pid), 'the dialog to be closed');
+    await page.click('#homeOpen'); // the button is usable again when the sheet opens next
+    await idle(page);
+    }, [/status of 422/]); // the failing dialog's answer
+
+  browserTest('at 420px the button stays on the field\'s row with no sideways scroll: idle, waiting and after an error', b, async open => {
+    const { page } = await open(srv, '#home', { width: 420 });
+    await openFolderSheet(page);
+    const check = async () => {
+      const [field, input, btn] = await Promise.all(['#paneFolder .field', '#pathIn', '#browseBtn'].map(sel => page.locator(sel).boundingBox()));
+      expect(Math.abs(btn!.y + btn!.height / 2 - (input!.y + input!.height / 2))).toBeLessThan(2);
+      expect(btn!.x + btn!.width).toBeLessThanOrEqual(field!.x + field!.width);
+      expect(input!.width).toBeGreaterThan(100);
+      expect(await noSideScroll(page)).toBe(true);
+    };
+    await check(); // idle
+    process.env.STUB_MODE = 'hang';
+    await page.click('#browseBtn');
+    await waiting(page);
+    await check();
+    await page.click('#openCancel');
+    await page.waitForFunction(() => !document.querySelector('#openVeil')!.classList.contains('open'));
+    await until(() => !existsSync(pidFile()) || !alive(Number(read(pidFile()))), 'the dialog to be closed');
+    process.env.STUB_MODE = 'fail';
+    await page.click('#homeOpen');
+    await page.waitForFunction(() => document.querySelector('#openVeil')!.classList.contains('open'));
+    await idle(page);
+    await page.click('#browseBtn');
+    await waitToast(page, /could not be opened/);
+    await idle(page);
+    await check(); // after the error
+    }, [/status of 422/]); // the failing dialog's answer
+});

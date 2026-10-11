@@ -860,7 +860,7 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
    file content; the strings are the ones REQ-002.H.21, H.24 and H.26 list. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
-let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
+let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,browseCtl=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 /* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, only with --mcp. No status:
    the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
@@ -887,7 +887,7 @@ function setTab(t){
   $('#openGo').textContent=GO[t];
   if(t==='folder')loadRecent();
 }
-function closeSheet(){if(!openVeil.classList.contains('open'))return;if(cloneCtl)cloneCtl.abort();openVeil.classList.remove('open');sheetFrom.focus();}
+function closeSheet(){if(!openVeil.classList.contains('open'))return;if(cloneCtl)cloneCtl.abort();if(browseCtl)browseCtl.abort();openVeil.classList.remove('open');sheetFrom.focus();}
 /* The registry as GET /api/projects sends it: in the sheet, or on Home (BL-PM-001), where a row opens
    its folder at once and a served project also shows the branch the rail tooltip shows. */
 function drawRecent(reg,home){
@@ -964,6 +964,24 @@ async function cloneRepo(){
   if(ctl.signal.aborted)return; // the sheet was closed: the server removes the clone
   await showOutcome(openOutcome(r.status,res,'cloned'));
 }
+/* Browse… (BL-PM-011): the server opens the system's folder dialog; the folder picked fills the field, and Open opens it. */
+function setBrowsing(ctl){
+  const btn=$('#browseBtn');browseCtl=ctl;btn.disabled=!!ctl;
+  if(ctl)btn.setAttribute('aria-busy','true');else btn.removeAttribute('aria-busy');
+}
+async function browseFolder(){
+  if(browseCtl)return;
+  const ctl=new AbortController();setBrowsing(ctl);
+  let r,res={};
+  try{
+    r=await fetch('/api/projects/browse',{method:'POST',cache:'no-store',signal:ctl.signal,headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:'{}'});
+    res=await r.json().catch(()=>({}));
+  }catch(e){setBrowsing(null);if(!ctl.signal.aborted){toast('The server did not answer.');$('#browseBtn').focus();}return;}
+  setBrowsing(null);
+  if(ctl.signal.aborted)return; // the sheet was closed: the server closes the dialog
+  if(r.status!==200){toast(res.error||`Nothing was chosen (HTTP ${r.status}).`);$('#browseBtn').focus();return;}
+  if(res.path){pathIn.value=res.path;pathIn.focus();}else $('#browseBtn').focus();
+}
 async function removeRecent(path){
   let out;
   try{out=await postPath(path,'/api/projects/remove');}catch(e){toast('The server did not answer.');return;}
@@ -988,6 +1006,7 @@ $('#homeBox').addEventListener('click',e=>{
   const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);
 });
 $('#openCancel').onclick=closeSheet;
+$('#browseBtn').onclick=browseFolder;
 openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
 $('#openForm').onsubmit=e=>{e.preventDefault();if(sheetTab==='clone')cloneRepo();else openPath(pathIn.value.trim());};
 $('#recentBox').addEventListener('click',e=>{

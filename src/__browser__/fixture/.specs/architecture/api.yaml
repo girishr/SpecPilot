@@ -1,0 +1,24 @@
+# .specs/architecture/api.yaml
+# meta: project=fixture-project language=typescript framework= updated=2026-10-11
+
+project: "fixture-project"
+version: "1.0.0"
+lastUpdated: "2026-10-11"
+
+openapi: "3.0.0"
+info:
+  title: "fixture-project API"
+  version: "1.0.0"
+  description: "[TODO: Describe your API]"
+
+servers:
+  - url: "http://localhost:3000"
+    description: "Local development"
+
+paths:
+  /example:
+    get:
+      summary: "[TODO: Replace with your first endpoint]"
+      responses:
+        "200":
+          description: "Success"

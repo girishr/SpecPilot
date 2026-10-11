@@ -385,7 +385,7 @@ npx playwright-core install chromium-headless-shell  # once, if Playwright's Chr
 npm run test:browser                                  # builds, then runs src/__browser__/ (about 10 s)
 ```
 
-The suite starts the built server on scratch copies of `.specs/` under a temporary `HOME`, so it writes nothing in the repo or in `~/.specpilot/`. A failing test prints the paths of its error message and stack, a screenshot and the page's HTML, kept in a temp folder.
+The suite starts the built server on scratch copies of a fixture project (`src/__browser__/fixture/`, never this repo's own `.specs/`) under a temporary `HOME`, so it writes nothing in the repo or in `~/.specpilot/`. A failing test prints the paths of its error message and stack, a screenshot and the page's HTML, kept in a temp folder.
 
 ### Quick Contribution Guide
 

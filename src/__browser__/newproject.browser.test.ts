@@ -3,7 +3,7 @@
 import { Browser, Page } from 'playwright-core';
 import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, fixtureProject, launch, makeEnv, read, serve, Served, waitToast, waitView } from './harness';
+import { browserTest, Env, makeProject, launch, makeEnv, read, serve, Served, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -12,7 +12,7 @@ beforeAll(async () => (browser = await launch()));
 afterAll(async () => browser.close());
 beforeEach(async () => {
   env = makeEnv();
-  srv = await serve(env, [fixtureProject(join(env.home, 'dev'), 'first-project')]);
+  srv = await serve(env, [makeProject(join(env.home, 'dev'), 'first-project')]);
 });
 afterEach(async () => {
   await srv.close();

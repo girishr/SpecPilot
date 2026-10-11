@@ -11,8 +11,8 @@ beforeAll(async () => (browser = await launch()));
 afterAll(async () => browser.close());
 beforeEach(async () => {
   env = makeEnv();
-  // A known row at the top of each movable section, so no test depends on what this repo's own tasks.md
-  // holds today (its Current Sprint is empty whenever no item is in progress).
+  // A known row at the top of each movable section, beside the fixture's own rows (BL-099), so the tests
+  // below find their rows by these IDs.
   const lines = read(env.tasks()).split('\n');
   for (const [heading, line] of [['Current Sprint', '| CS-901 | Fixture sprint row |'], ['Backlog', '| BL-901 | Fixture backlog row |']]) {
     const at = lines.findIndex(l => l.trim() === `## ${heading}`);

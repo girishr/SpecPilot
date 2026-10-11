@@ -1,0 +1,28 @@
+# fixture-project - SDD Project Configuration
+name: fixture-project
+version: "1.0.0"
+language: typescript
+
+description: A typescript project
+
+# Rules and mandates: see your AI agent configuration file (single source of truth)
+
+# Team Guidelines
+team:
+  devPrefix: "fixture"
+  code_review_required: true
+  testing_required: true
+  documentation_required: true
+  
+# Build and Deployment
+build:
+  command: "npm run build"
+  
+  
+  
+  
+
+# Dependencies (framework-specific)
+dependencies:
+  runtime: []
+  development: []

@@ -4,7 +4,7 @@
 import { Browser, Page } from 'playwright-core';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, fixtureProject, launch, makeEnv, read, serve, Served, viewOf, waitToast, waitView } from './harness';
+import { browserTest, Env, makeProject, launch, makeEnv, read, serve, Served, viewOf, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -32,7 +32,7 @@ exit 128
   );
   realPath = process.env.PATH;
   process.env.PATH = `${bin}:/usr/bin:/bin`;
-  srv = await serve(env, [fixtureProject(join(env.home, 'dev'), 'clone-project')]);
+  srv = await serve(env, [makeProject(join(env.home, 'dev'), 'clone-project')]);
 });
 afterEach(async () => {
   process.env.PATH = realPath;

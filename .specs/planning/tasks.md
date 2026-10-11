@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-11 (BL-PM-012 completed)
-version: 6.63
+lastUpdated: 2026-10-11 (v2.14.0 prepared)
+version: 6.64
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -105,3 +105,4 @@ Notes
 | 192 | [CD-girishr-101] [BL-095] | Guided setup detects more (REQ-002.H.39, ARCH-004.54, SEC-004.24; Architectural, architect DECIDE on all): `ProjectDetector` reports the package manager (lock files), test framework (lowercase package ids: vitest, jest, mocha, playwright, cypress, pytest, junit), repository URL (`.git/config` read as a file, kept only when `cloneUrlError()` accepts it, never stripped) and license (`package.json` verbatim, else the LICENSE file's first line, five families), files read only as regular files of at most 64 KB, no process; shown as detected rows, never asked, written by guided setup and `add-specs` to `project.yaml` and `tests.md` as four detection-only template fields a request cannot carry. XCTest cut to BL-100; the build command by package manager filed as BL-101. Jest 1551 → 1598, browser 47 → 49. Commit `df0b2e5`. |
 | 193 | [CD-girishr-102] [BL-092] [BL-093] | Feature (Spec Report recorded after the build, which skipped the gate): `specpilot archive`, `validate`'s prompts.md check and the `specpilot-archive` command date a prompts.md list entry by its leading `YYYY-MM-DD`, else its last date, so a date an entry mentions no longer refuses the archive (REQ-002.F); the archive and backfill command scripts hold no dollar sign before a digit, which Claude Code replaces with arguments: awk's `$(0)`, the backfill checks on `"$f"` (REQ-002.E.13); 12 hashes added to `KNOWN_COMMAND_HASHES`, recordings of those two files re-recorded, a scan of every rendered command and skill. Jest 1598 → 1603. Commit `ba827b2`. |
 | 194 | [CD-girishr-103] [BL-PM-012] | The Claude Code skill from project context (REQ-002.H.40, ARCH-004.55, SEC-004.25; Architectural, architect DECIDE on all): `.claude/skills/specpilot-project/SKILL.md` renders the name, language, framework (filled at last), platforms, package manager, test framework, repository URL and license from `project.yaml`, a value with a control character left out; Regenerate All and `specpilot backfill` add it when missing (with `CLAUDE.md`) and replace it only when its bytes are SpecPilot's render (the two released templates, frozen, or the current one), else keep it with its reason; the Skills view groups it by that rule; the MCP tool stays commands-only; backfill's stale check removed. BL-102 filed for Codex. Jest 1603 → 1618, browser 49 → 52. Commit `577409e`. |
+| 195 | [CD-girishr-104] | v2.14.0 release prepared (BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.14.0]`, annotated tag `v2.14.0`; not pushed or published |

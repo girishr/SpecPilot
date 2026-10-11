@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2026-10-11
+
 ### Added
 
 - **Regenerate All and `specpilot backfill` refresh the Claude Code skill** (BL-PM-012): `.claude/skills/specpilot-project/SKILL.md` is re-rendered from the project's `project.yaml` (name, language, framework, platforms, package manager, test framework, repository URL, license) when it is still SpecPilot's own; a skill you edited is kept and reported, as your commands are. Its `Framework:` line, which earlier versions left as `{{framework}}`, is filled.

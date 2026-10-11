@@ -415,6 +415,7 @@ input.txt{width:100%}
 .chat .crow{display:flex;gap:10px}
 .chat .crow input{flex:1;min-width:0;background:var(--ground);border:1px solid var(--sep);border-radius:12px;padding:12px 14px;font:inherit;color:var(--label)}
 .chat .crow input.mono{font-family:var(--mono);font-size:13.5px}
+.chat .crow .btn{flex:none}
 .chat .act{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .chat .act .hint,.chat .act .err{font-size:12px;color:var(--label-3);min-height:0}
 .chat .act .hint:empty{display:none}

@@ -1133,9 +1133,10 @@ describe('UI routing (ui/route.js)', () => {
       expect(sheet.indexOf('id="cloneIn"')).toBeLessThan(sheet.indexOf('id="cloneParentIn"'));
       expect(sheet.indexOf('id="cloneParentIn"')).toBeLessThan(sheet.indexOf('id="cloneNameIn"'));
       expect(sheet.indexOf('id="recentBox"')).toBeLessThan(sheet.indexOf('id="paneClone"'));
-      // BL-PM-011: one Browse… button, at the end of the Folder tab's field only
+      // BL-PM-011 and BL-097: a Browse… button at the end of the Folder tab's field and of the Clone tab's Parent folder, no other
       expect(sheet).toContain('aria-label="Folder path" placeholder="/path/to/project or ~/project"><button type="button" class="btn" id="browseBtn">Browse…</button></div>');
-      expect(page.split('Browse').length - 1).toBe(1);
+      expect(sheet).toContain('aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"><button type="button" class="btn" id="cloneBrowseBtn">Browse…</button></div>');
+      expect(page.split('Browse…').length - 1).toBe(2);
       for (const left of ['Browse Folders', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
       // BL-PM-007: the card is in the markup but hidden, and without --mcp nothing tells the script to show it
       expect(page).toContain('<div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional, one line</span></div>');

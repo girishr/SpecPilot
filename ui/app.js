@@ -93,6 +93,7 @@ function go(v,keep,sub){
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?projectLabel(DATA.projects[PROJECT]):v==='new'?'New project':VIEWS[v];
   $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=true;chat=null;}
+  if(v!=='new'&&browseCtl&&browseBtn&&browseBtn.id==='chatBrowse')browseCtl.abort(); // leaving the chat closes its folder dialog (BL-097)
   $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
   setNav(false);closeInsp();
   if(v!=='file'||sub!==fileNoteFor)clearFileNote();
@@ -639,7 +640,7 @@ function drawComposer(cur){
   let h='';
   if(cur.type==='text'){
     const max=cur.key==='parent'?4096:cur.key==='handle'?39:cur.key==='nonGoals'?870:1000;
-    h=`<div class="crow"><input type="text" id="chatIn" class="${cur.key==='parent'||cur.key==='handle'?'mono':''}" placeholder="${esc(cur.placeholder||'')}" aria-label="${label}" aria-describedby="compErr" maxlength="${max}"${cur.required?' aria-required="true"':''} value="${esc(k.v)}"></div>`
+    h=`<div class="crow"><input type="text" id="chatIn" class="${cur.key==='parent'||cur.key==='handle'?'mono':''}" placeholder="${esc(cur.placeholder||'')}" aria-label="${label}" aria-describedby="compErr" maxlength="${max}"${cur.required?' aria-required="true"':''} value="${esc(k.v)}">${cur.key==='parent'?'<button type="button" class="btn" id="chatBrowse">Browse…</button>':''}</div>`
       +acts((cur.todo?'<button type="button" class="btn" id="chatTodo">Not sure - skip for now</button>':'')+skip,true);
   }else if(cur.type==='tabbed-chips'){
     const groups=[...new Set(cur.options.map(o=>o.group))],tab=k.tab||groups[0];
@@ -755,6 +756,7 @@ $('#comp').addEventListener('click',e=>{
   if(t.id==='chatOther'){comp.showCustom=!comp.showCustom;if(!isMulti(cur.type)&&comp.showCustom)comp.v='';return redraw(comp.showCustom?'#chatCustom':'#chatOther');}
   if(t.id==='chatSkip'){if(!cur.required)chatAnswer(cur,isMulti(cur.type)?[]:'');return;}
   if(t.id==='chatTodo'){chatAnswer(cur,cur.todo);return;}
+  if(t.id==='chatBrowse'){const k=comp;browseFolder(t,()=>comp===k?$('#chatIn'):null,p=>{k.v=p;});return;}
   if(t.id==='chatNone'){chatAnswer(cur,CC.noneOfThese(comp.v,CC.visibleCategories(chat.st.answers.projectCategory||null,CC.hasMobilePlatform(chat.st.answers.platforms||[]))));return;}
   if(t.id==='chatCancel'){const k=chat.st.editing;chat.st.editing=null;comp=null;drawChat();const b=$(`#msgs [data-k="${k}"]`);if(b)b.focus();return;}
   const v=t.dataset.v;if(v===undefined)return;
@@ -874,7 +876,7 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
    file content; the strings are the ones REQ-002.H.21, H.24 and H.26 list. */
 const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
-let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,browseCtl=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
+let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,browseCtl=null,browseBtn=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 /* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, only with --mcp. No status:
    the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
@@ -944,7 +946,7 @@ async function showOutcome(o){
 function setCloning(ctl){
   cloneCtl=ctl;openBusy=!!ctl;
   $('#openGo').disabled=!!ctl;
-  $$('#paneClone input, #openTabs button').forEach(el=>{el.disabled=!!ctl;});
+  $$('#paneClone input, #cloneBrowseBtn, #openTabs button').forEach(el=>{el.disabled=!!ctl;});
   // The time since the click, and an indeterminate bar until git gives a percentage (BL-PM-009).
   clearInterval(cloneTick);cloneTick=null;cloneProg=null;$('#cloneStatus').hidden=!ctl;
   if(!ctl)return;
@@ -978,23 +980,28 @@ async function cloneRepo(){
   if(ctl.signal.aborted)return; // the sheet was closed: the server removes the clone
   await showOutcome(openOutcome(r.status,res,'cloned'));
 }
-/* Browse… (BL-PM-011): the server opens the system's folder dialog; the folder picked fills the field, and Open opens it. */
-function setBrowsing(ctl){
-  const btn=$('#browseBtn');browseCtl=ctl;btn.disabled=!!ctl;
-  if(ctl)btn.setAttribute('aria-busy','true');else btn.removeAttribute('aria-busy');
+/* Browse… (BL-PM-011, BL-097): the server opens the system's folder dialog; the folder picked fills the
+   button's field, and nothing is sent until the user does. One dialog at a time for the whole page. */
+function setBrowsing(ctl,btn){
+  browseCtl=ctl;if(btn)browseBtn=btn;
+  const b=browseBtn;b.disabled=!!ctl||(b.id==='cloneBrowseBtn'&&!!cloneCtl); // a running clone keeps its sheet's button off
+  if(ctl)b.setAttribute('aria-busy','true');else b.removeAttribute('aria-busy');
 }
-async function browseFolder(){
+/* `field()` is looked up after the answer: the chat may have redrawn its text box meanwhile. `pick` also sees the path. */
+async function browseFolder(btn,field,pick){
   if(browseCtl)return;
-  const ctl=new AbortController();setBrowsing(ctl);
+  const ctl=new AbortController();setBrowsing(ctl,btn);
+  const back=()=>{if(btn.isConnected)btn.focus();};
   let r,res={};
   try{
     r=await fetch('/api/projects/browse',{method:'POST',cache:'no-store',signal:ctl.signal,headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:'{}'});
     res=await r.json().catch(()=>({}));
-  }catch(e){setBrowsing(null);if(!ctl.signal.aborted){toast('The server did not answer.');$('#browseBtn').focus();}return;}
+  }catch(e){setBrowsing(null);if(!ctl.signal.aborted){toast('The server did not answer.');back();}return;}
   setBrowsing(null);
-  if(ctl.signal.aborted)return; // the sheet was closed: the server closes the dialog
-  if(r.status!==200){toast(res.error||`Nothing was chosen (HTTP ${r.status}).`);$('#browseBtn').focus();return;}
-  if(res.path){pathIn.value=res.path;pathIn.focus();}else $('#browseBtn').focus();
+  if(ctl.signal.aborted)return; // the sheet was closed or the chat left: the server closes the dialog
+  if(r.status!==200){toast(res.error||`Nothing was chosen (HTTP ${r.status}).`);back();return;}
+  const f=res.path&&field();
+  if(f){f.value=res.path;if(pick)pick(res.path);f.focus();}else back();
 }
 async function removeRecent(path){
   let out;
@@ -1020,7 +1027,8 @@ $('#homeBox').addEventListener('click',e=>{
   const row=e.target.closest('[data-path]');if(row)openPath(row.dataset.path);
 });
 $('#openCancel').onclick=closeSheet;
-$('#browseBtn').onclick=browseFolder;
+$('#browseBtn').onclick=()=>browseFolder($('#browseBtn'),()=>pathIn);
+$('#cloneBrowseBtn').onclick=()=>browseFolder($('#cloneBrowseBtn'),()=>$('#cloneParentIn'));
 openVeil.onclick=e=>{if(e.target===openVeil)closeSheet();};
 $('#openForm').onsubmit=e=>{e.preventDefault();if(sheetTab==='clone')cloneRepo();else openPath(pathIn.value.trim());};
 $('#recentBox').addEventListener('click',e=>{

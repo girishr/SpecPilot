@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Browse for the parent folder too** (BL-097): in `specpilot serve`, the Clone a Repository sheet's Parent folder and the New Project chat's parent-folder question have the same `Browse…` button as Open a Project.
 - **Stop `specpilot serve` from the terminal or the page** (BL-098): `specpilot serve --stop` stops the server running on this machine (`--port` for one not on 4321), and the page's rail has a Quit button that does the same after asking. Both stop it the way Ctrl+C does, a running clone included. A `--read-only` server is stopped with Ctrl+C.
 - **`specpilot backfill` adds the MCP Tasks line** (BL-088): existing `CLAUDE.md`, `.github/copilot-instructions.md`, Cursor's `.mdc`, `.windsurfrules` and `.antigravity/rules.md` get the Tasks process mandate that new files have had since 2.13.0, added to their Process Mandates section; nothing else in them changes.
 - **Browse for a folder in `specpilot serve`** (BL-PM-011): a `Browse…` button beside the Open a Project sheet's folder path opens your system's folder dialog on this machine (macOS, Linux with `zenity` or `kdialog`, Windows) and fills in the folder you pick; `Open` still opens it. Nothing is read or opened until you click `Open`.

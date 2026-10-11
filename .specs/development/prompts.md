@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-11 (Batch B built)
-version: 2.94
+lastUpdated: 2026-10-11 (BL-099 fixture)
+version: 2.95
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-11: afternoon Day brief (pasted, then the developer's typed `yes, proceed for today's brief`) item 1 on `test/bl-099-094-fixtures` from `main` (`23c60c6`): fixture project `src/__browser__/fixture/` from `specpilot init` in a scratch folder under a temp HOME (handle replaced, `onboarding.md` removed, `tasks.md`/`tasks-archive.md`/`CLAUDE.md` hand-written), `makeProject()` copies it, `fixtureProject()` removed; browser 44/44; the MCP Copy test 30 times, 60/60 passes, BL-094 noted and left in Backlog; ARCH-004.51, tests.md, README, row 190.
 - 2026-10-11: Day brief item 3: the architect found no precedent in the specs for what "project context" means for BL-PM-012's SKILL.md (REQ-002.H.30, ARCH-004.49, ARCH-004.24 say only "rendered per project"; REQ-002.B.1 uses the phrase for init's four questions; `claudeCodeSkill()` takes projectName, language, framework), so BL-PM-012 stays in Backlog with one line saying why, on `docs/bl-pm-012-note`.
 - 2026-10-11: Batch B accepted under the Day brief after spec-reviewer B ESCALATE with nothing to fix (only the standing new-route rule, covered by the brief and the architect): tasks.md diff read line by line (only the five Batch B rows, BL-099 and the header), feature commit `6eb9aef` on `feat/batch-b`, completion commit (row 189, CD-girishr-098), `--no-ff` merge into `main`, `npm test` and `npm run test:browser` on `main`, push after reading them, branch deleted.
 - 2026-10-11: Batch B built on `feat/batch-b` (Day brief, after spec-reviewer A ESCALATE, the architect's DECIDE on all nine, the fixes and reviewer A PASS): `tsconfig.build.json` excludes `src/__tests__` (BL-096); `withTasksLine()` in `specBackfiller.ts` for the IDE files and `copilot-instructions.md` (BL-088); `POST /api/quit` and `onQuit` in `specServer.ts`, `--stop` and the loopback client in `serve.ts`, the option in `cli.ts`, Quit in `ui/index.html`, `ui/app.js`, `ui/app.css` (BL-098); `fixtureProject()` in the harness and three new browser files (BL-090, BL-091, BL-098); README. Jest 1517 → 1551, browser 37 → 44 three times, lint as on `main` (the two BL-068 errors), `npm pack --dry-run` without `dist/__tests__/`.

@@ -2,7 +2,7 @@
 // onQuit is a mock, so the test sees the call while the server keeps answering for the checks after it.
 import { Browser, Page } from 'playwright-core';
 import { join } from 'path';
-import { browserTest, Env, fixtureProject, launch, makeEnv, noSideScroll, serve, Served, until, waitToast, waitView } from './harness';
+import { browserTest, Env, makeProject, launch, makeEnv, noSideScroll, serve, Served, until, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -13,7 +13,7 @@ afterAll(async () => browser.close());
 beforeEach(async () => {
   env = makeEnv();
   onQuit = jest.fn();
-  srv = await serve(env, [fixtureProject(join(env.home, 'dev'), 'quit-project')], { onQuit });
+  srv = await serve(env, [makeProject(join(env.home, 'dev'), 'quit-project')], { onQuit });
 });
 afterEach(async () => {
   await srv.close();
@@ -98,7 +98,7 @@ browserTest('at 420px Quit is reachable and nothing scrolls sideways: idle, afte
 
 describe('with --read-only', () => {
   let ro: Served;
-  beforeEach(async () => (ro = await serve(env, [fixtureProject(join(env.home, 'dev'), 'ro-project')], { readOnly: true })));
+  beforeEach(async () => (ro = await serve(env, [makeProject(join(env.home, 'dev'), 'ro-project')], { readOnly: true })));
   afterEach(async () => ro.close());
 
   browserTest('there is no Quit', b, async open => {

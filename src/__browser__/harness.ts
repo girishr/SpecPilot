@@ -51,32 +51,22 @@ export async function launch(): Promise<Browser> {
 export interface Env {
   base: string;
   home: string;
-  /** A project with a copy of this repo's .specs/ and CLAUDE.md, on branch main. */
+  /** A copy of the fixture project (`src/__browser__/fixture/`), on branch main. */
   project: string;
   registryFile: string;
   tasks: (root?: string) => string;
   cleanup: () => void;
 }
 
-/** A project folder under `parent`: this repo's .specs/ and CLAUDE.md, a .git/HEAD on main. */
+/** The checked-in fixture project: known rows and files, never this repo's own .specs/ or CLAUDE.md (BL-099). */
+const FIXTURE = join(REPO, 'src', '__browser__', 'fixture');
+
+/** A project folder under `parent`: a copy of the fixture project, a .git/HEAD on main. */
 export function makeProject(parent: string, name: string): string {
   const root = join(parent, name);
   mkdirSync(root, { recursive: true });
-  cpSync(join(REPO, '.specs'), join(root, '.specs'), { recursive: true });
-  cpSync(join(REPO, 'CLAUDE.md'), join(root, 'CLAUDE.md'));
+  cpSync(FIXTURE, root, { recursive: true });
   mkdirSync(join(root, '.git'));
-  writeFileSync(join(root, '.git', 'HEAD'), 'ref: refs/heads/main\n');
-  return realpathSync(root);
-}
-
-/** A project folder under `parent` with known rows only (never this repo's .specs/), on branch main. */
-export function fixtureProject(parent: string, name: string): string {
-  const root = join(parent, name);
-  mkdirSync(join(root, '.specs', 'project'), { recursive: true });
-  mkdirSync(join(root, '.specs', 'planning'));
-  mkdirSync(join(root, '.git'));
-  writeFileSync(join(root, '.specs', 'project', 'project.yaml'), '# fileID: PROJ-001\nname: "Fixture Project"\n');
-  writeFileSync(join(root, '.specs', 'planning', 'tasks.md'), '# Tasks\n\n## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | Fixture task |\n\n## Current Sprint\n\n| ID | Description |\n|---|---|\n');
   writeFileSync(join(root, '.git', 'HEAD'), 'ref: refs/heads/main\n');
   return realpathSync(root);
 }

@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-10 (BL-PM-009 Spec Report)
-version: 1.18
+lastUpdated: 2026-10-11 (BL-PM-011 Spec Report)
+version: 1.19
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -268,6 +268,17 @@ This file records security-related architectural and implementation decisions ma
   - The SDK (`@modelcontextprotocol/sdk`) for the new revision — rejected as in SEC-004.20 (SEC-004.4).
 - **Reference**: SEC-004.20, SEC-002.9, REQ-002.H.33, ARCH-004.50
 
+### [SEC-004.22] Browse: the system's folder dialog started with constant arguments, its answer returned as text and opened only through the one path rule
+
+- **Date**: 2026-10-11 (BL-PM-011 Spec Report; built 2026-10-11 after the developer's `yes proceed`, option (a))
+- **Decision**: `POST /api/projects/browse` starts the platform's folder dialog (`osascript`, `zenity` then `kdialog`, `powershell.exe`) through `folderPicker.ts` with `execFile`, no shell, the working directory the root of the home folder and an argument array of constants; the server's home folder is passed only to `zenity` and `kdialog` as one whole argument and never into script text (osascript uses `path to home folder`, PowerShell `[Environment]::GetFolderPath('UserProfile')`), so a home folder holding quotes or backslashes cannot change what runs. The request carries nothing: the body must be `{}`, behind every write-route guard (Host, exact `Origin`, the per-start token, `application/json`, 16 KB; 405 with `--read-only`). One dialog at a time (409), killed after 5 minutes, on a closed request or on server stop; none starts once the server is stopping (503). The answer is the program's output checked as one absolute line of at most 4096 characters without NUL, returned to the page as text; the server does not read, `stat`, open or record it. The page puts it in the `Folder path` field and only the user's `Open` sends it, through `POST /api/projects` and its one path rule (SEC-004.13).
+- **Rationale**: A page cannot learn an absolute path, so a native picker must be started by the server; with no request text, constant arguments and no shell, the only thing a forged request could do is show a dialog, and the token and `Origin` checks already stop forged requests. Returning text instead of opening keeps one way for a folder to become a project and keeps the user's `Open` as the act that opens it. The dialog runs outside the server, so the server gains no read access to anything the user browses past.
+- **Alternatives considered**:
+  - No dialog; the typed path and the Recent list only (option (b)) — no new process and no new route; kept as the fallback if the developer declines a second process start.
+  - A server-side folder browser listing the children of a folder named in the request, read-only, folder names only (option (c)) — rejected: a path from the browser, every folder name under the home folder readable over HTTP, macOS privacy prompts for Documents, Desktop and Downloads on the terminal's behalf, and the largest page change; needs no process.
+  - The server opening the picked folder itself — rejected: a project without the user's `Open`.
+- **Reference**: SEC-002.5 (n), SEC-004.15, REQ-002.H.36, ARCH-003.25, ARCH-004.52
+
 ## Open Questions [SEC-005]
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
@@ -276,4 +287,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-10-10_
+_Last updated: 2026-10-11_

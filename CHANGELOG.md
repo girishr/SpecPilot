@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Browse for a folder in `specpilot serve`** (BL-PM-011): a `Browse…` button beside the Open a Project sheet's folder path opens your system's folder dialog on this machine (macOS, Linux with `zenity` or `kdialog`, Windows) and fills in the folder you pick; `Open` still opens it. Nothing is read or opened until you click `Open`.
+
 ## [2.13.0] - 2026-10-10
 
 ### Added

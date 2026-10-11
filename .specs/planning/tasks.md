@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-11 (BL-PM-011 built)
-version: 6.44
+lastUpdated: 2026-10-11 (BL-PM-011 completed)
+version: 6.45
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -73,7 +73,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-PM-011 | A "Browse…" button next to the Open a Project sheet's `Folder path` field (REQ-002.H.36): `POST /api/projects/browse` opens the system folder dialog through the server (`osascript` on macOS, `zenity` / `kdialog` on Linux, PowerShell on Windows), loopback and token only, no path from the browser, the picked folder returned as text for the field. Architectural: a second module starts a process for a request (ARCH-003.25, SEC-004.22). Spec Report 2026-10-11 on `feat/bl-pm-011-browse-folder`; built 2026-10-11 after the developer's `yes proceed` (option (a), defaults accepted); the developer's hand check on macOS: a pick fills the field and Open opens it, no privacy prompt at Browse… or Open (also inside `~/Documents`); the 503 kept. The other folder fields are BL-097. |
 
 ## Completed
 
@@ -104,3 +103,4 @@ Notes
 | 184 | [CD-girishr-093] [BL-PM-016] | `specpilot serve` guided setup on existing code (REQ-002.H.35; H.15, H.27, H.28; SEC-004.17 revision; Feature): saved setups (`sp-setups`, the Setups list) removed from both chats on the developer's typed decision, a leftover key removed once; the guided-setup intro opens with its paragraph as the heading, keeps the `Detected` line, drops the greeting and the fine print; `GET /api/setup`'s `detected` gains `name`, `platform` and `rows`; `ProjectDetector` reports a platform from direct evidence only (`react-native`/`expo` → React Native, `next` → Next.js, `vite`/`react-scripts` with `react` → React, `vite` with `vue` → Vue / Nuxt, an Xcode project → iOS Native); the detected language, framework and name are `detected` rows that cannot be changed, a detected platform is filled in and can be; the chat starts at the first unanswered question. `src/core/chatFlow.ts` and the written files unchanged. Jest 1472 → 1484, browser 32 → 34. BL-095 added. Commit `80db40d`. |
 | 185 | [CD-girishr-094] | v2.13.0 release prepared and shipped (BL-PM-007, BL-079, BL-089, BL-087, BL-PM-010, BL-PM-013, BL-PM-009, BL-PM-016): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.13.0]`, annotated tag `v2.13.0`; pushed and published (row 186) |
 | 186 | [CD-girishr-095] | v2.13.0 shipped (BL-PM-007, BL-079, BL-089, BL-087, BL-PM-010, BL-PM-013, BL-PM-009, BL-PM-016): pushed, npm `specpilot@2.13.0` latest, GitHub release live (2026-10-10) |
+| 187 | [CD-girishr-096] [BL-PM-011] | `specpilot serve` Browse… in the Open a Project sheet (REQ-002.H.36; Architectural): a `Browse…` button at the end of the Folder tab's `Folder path` field; `POST /api/projects/browse` (body `{}`, every write-route check, 405 with `--read-only`) opens the system folder dialog (`osascript`, `zenity` then `kdialog`, PowerShell) with `execFile`, no shell, constant arguments (the home folder only as one whole argument to zenity or kdialog), `cwd` the home folder's root, a 5-minute kill, one at a time (409), closed when the request closes or the server stops (503 once stopping); the path is returned as text for the field and opened only by `Open`. New `src/utils/folderPicker.ts`, the second module that starts a process for a request (ARCH-003.25, ARCH-004.52, SEC-004.22, SEC-002.5 n). Jest 1484 → 1517, browser 34 → 37; checked against the real `osascript` (409, request close, SIGINT, 405) and by the developer on macOS (a pick fills the field and Open opens it; no privacy prompt, also inside `~/Documents`). BL-097 added for the other folder fields. Commit `2e5b88a`. |

@@ -59,7 +59,8 @@ function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: string[] 
       else if (cur && /^\s+\S/.test(lines[i])) cur.end = i + 1; // indented continuation of the item
       else cur = null;
     }
-    entries.forEach(e => (e.date = lastDate(lines.slice(e.start, e.end).join('\n'))));
+    // An entry is dated by its leading `- YYYY-MM-DD`, else by the last date in it (BL-092): a date it only mentions never reorders the log.
+    entries.forEach(e => (e.date = lastDate(/^[-*+] (\d{4}-\d{2}-\d{2})\b/.exec(lines[e.start])?.[1] ?? lines.slice(e.start, e.end).join('\n'))));
     return { entries, tableHeader: [] };
   }
   const table = findSectionBounds(lines, '## Prompt History', true);

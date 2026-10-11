@@ -682,6 +682,26 @@ describe('SpecArchiver — prompts.md entry order (BL-061)', () => {
     expect(entriesIn(readFileSync(promptsPath, 'utf-8'))[0]).toBe(90);
   });
 
+  it('dates an entry by its leading date, so a later date it mentions cannot reorder the log (BL-092)', async () => {
+    // Newest first by leading date; the 30th entry mentions a future revision date that used to read as its own.
+    const entries = Array.from({ length: 90 }, (_, i) => {
+      const d = new Date(Date.UTC(2026, 0, 1) + (89 - i) * 86400000).toISOString().slice(0, 10);
+      return `- ${d}${i % 2 ? ' 10:15' : ''}: [PROMPT-${90 - i}] work${i === 30 ? ' on MCP revision 2027-07-28' : ''}`;
+    });
+    writeFileSync(promptsPath, [...BOILER, '## Latest Entries', ...entries, ...AFTER].join('\n') + '\n');
+    const result = await run();
+    expect(result.refused).toEqual([]);
+    expect(entriesIn(readFileSync(promptsPath, 'utf-8'))[0]).toBe(90);
+    expect(Math.max(...entriesIn(readFileSync(archivePath, 'utf-8')))).toBeLessThan(Math.min(...entriesIn(readFileSync(promptsPath, 'utf-8'))));
+  });
+
+  it('an entry with no leading date still takes the last date in it (BL-092)', async () => {
+    const entries = Array.from({ length: 90 }, (_, i) => `- [PROMPT-${90 - i}] work (${new Date(Date.UTC(2026, 0, 1) + (89 - i) * 86400000).toISOString().slice(0, 10)})`);
+    writeFileSync(promptsPath, [...BOILER, '## Latest Entries', ...entries, ...AFTER].join('\n') + '\n');
+    expect((await run()).refused).toEqual([]);
+    expect(entriesIn(readFileSync(promptsPath, 'utf-8'))[0]).toBe(90);
+  });
+
   it('refuses undated entries and changes nothing', async () => {
     const content = [...BOILER, '## Latest Entries', ...Array.from({ length: 100 }, (_, i) => `- Undated entry ${i}`), ...AFTER].join('\n');
     writeFileSync(promptsPath, content);
@@ -789,6 +809,8 @@ describe('SpecArchiver — prompts.md entry order (BL-061)', () => {
     ['newest first, no trailing newline', () => [...BOILER, '## Latest Entries', ...range(90, 1).map(i => datedEntry(i))].join('\n')],
     ['oldest first, no trailing newline', () => [...BOILER, '## Latest Entries', ...range(1, 90).map(i => datedEntry(i))].join('\n')],
     ['a table, no trailing newline', () => [...BOILER, '## Prompt History', '| Date | Summary |', '|---|---|', ...range(1, 95).map(i => `| ${new Date(Date.UTC(2025, 0, 1) + i * 86400000).toISOString().slice(0, 10)} | x ${i} |`)].join('\n')],
+    ['leading dates with a later date mentioned (BL-092)', () => [...BOILER, '## Latest Entries', ...range(90, 1).map(i => `- ${new Date(Date.UTC(2026, 0, 1) + i * 86400000).toISOString().slice(0, 10)}${i % 2 ? ' 10:15' : ''}: [PROMPT-${i}] work${i === 60 ? ' on revision 2027-07-28' : ''}`), ...AFTER].join('\n') + '\n'],
+    ['a leading date run into a word is not a leading date (BL-092)', () => [...BOILER, '## Latest Entries', ...range(90, 1).map(i => `- ${new Date(Date.UTC(2026, 0, 1) + i * 86400000).toISOString().slice(0, 10)}${i === 60 ? 'x 2020-01-01' : ''}: [PROMPT-${i}]`), ...AFTER].join('\n') + '\n'],
     ['mixed (refused)', () => { const ids = range(90, 1); [ids[5], ids[6]] = [ids[6], ids[5]]; return listLog(ids) + '\n'; }],
     ['undated (refused)', () => [...BOILER, '## Latest Entries', ...range(1, 95).map(i => `- note ${i}`), ...AFTER].join('\n') + '\n'],
     ['no log section (refused)', () => [...BOILER, ...range(1, 95).map(i => `Line ${i}`)].join('\n') + '\n'],

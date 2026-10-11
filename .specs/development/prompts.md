@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-11 (BL-095 built)
-version: 2.98
+lastUpdated: 2026-10-11 (BL-092, BL-093)
+version: 2.99
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-11: afternoon Day brief item 4, BL-092 and BL-093 on `fix/bl-092-093-archive` from `main` (`141c8ac`): REQ-002.F archive dating sentence and REQ-002.E.13 first; `specArchiver.ts` leading date; the archive command's awk the same; `$0` → `$(0)` and the backfill checks on `"$f"` in `slashCommands.ts` after checking Claude Code's substitution rules in its docs; `KNOWN_COMMAND_HASHES` from `scripts/command-hashes.js`; recordings; tests. Jest 1598 → 1603. spec-reviewer B FIX: REQ-002.I.3 lets the golden recordings change only under a Spec Report naming the template change, and none was written before the build; the Spec Report is recorded in context.md after the fact, saying so, and reviewed (A and B) before any commit.
 - 2026-10-11: BL-095 built on `feat/bl-095-detect-more`: `projectDetector.ts` (`detectMore()`, `readSmall()`, `originUrl()`, `licenseOf()`), `templateEngine.ts` (four fields, `project.yaml`), `specFiles.ts` (`tests.md`), `addSpecsQuestions.ts`, `specSetup.ts` (rows); `ALL_FIELDS` and its three recordings (the ten golden ones unchanged); tests in five Jest files and `setup.browser.test.ts`. Jest 1551 → 1598, browser 47 → 49 three times, lint as on `main`, validate clean.
 - 2026-10-11: afternoon Day brief item 3, BL-095 Spec Report (Architectural, approved by the brief) on `feat/bl-095-detect-more` from `main` (`0274352`), specs only: REQ-002.H.39 (H.35's "nothing else is detected" sentence updated), ARCH-003 detector line, ARCH-004.54, SEC-004.24, SEC-002.5 (p) and (13), tests.md (planned), BL-095 to Current Sprint, CTX-003 defaults (nine), CHANGELOG. spec-reviewer A FIX (ten points, incl. the SEC-005 heading the edit had overwritten), all applied; then ESCALATE, the architect's DECIDE on all eight plus the shape and id spelling (BL-100, BL-101 filed), applied; spec-reviewer A re-run FIX (SEC-004.24 and threat (13) wording: the 64 KB rule on `.git/config` and LICENSE only, the shape check on the license only), applied. Read first: a survey of `projectDetector.ts`, `specSetup.ts`, `ui/route.js`, `chatFlow.ts`, `templateEngine.ts`, `specFiles.ts`, the golden tests and SEC-004.14/15/17/22.
 - 2026-10-11: afternoon Day brief item 2, BL-097 (Feature) on `feat/bl-097-browse-more` from `main` (`53e6863`): REQ-002.H.38 written first (H.36's last sentence updated), then `Browse…` on the Clone tab's Parent folder and the chat's parent-folder question reusing `POST /api/projects/browse`; `browse.browser.test.ts` (3, the BL-PM-011 stand-in dialog); the served-page test updated; README; browser 47/47 three times, Jest 1551. spec-reviewer B FIX (the H.38 bullet glued to H.37's line; validate's prompts.md line-limit warning, which the first build report missed by reading only the result line; the one-dialog test missing): bullet split, a one-dialog-at-a-time check added to the Clone test, and prompts.md archived by hand with the CLI's own `planPromptsArchive()` on an in-memory copy whose non-leading dates were masked (BL-PM-009's precedent; BL-092 fixes the cause), 21 lines moved, no past line edited; validate without warnings.

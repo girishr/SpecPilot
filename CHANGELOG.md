@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`specpilot archive` dates a prompts.md entry by its leading date** (BL-092): an entry that mentions another date (an MCP revision, a deadline) no longer makes the log look out of order, which had made archive refuse the whole file. The `specpilot-archive` command does the same.
+- **The `specpilot-archive` and `specpilot-backfill` commands work when given an argument in Claude Code** (BL-093): their scripts no longer contain `$0` or `$1`, which Claude Code replaces with the command's arguments. Run `specpilot backfill` or Regenerate All to refresh existing copies.
 - **No test code in the npm package** (BL-096): the compiled test fixture `dist/__tests__/` no longer ships.
 
 ## [2.13.0] - 2026-10-10

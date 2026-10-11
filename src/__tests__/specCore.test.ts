@@ -179,6 +179,14 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(file({ ...BASE, testFramework: 'pytest' }, '.specs/quality/tests.md')).toMatch(/## Overview\nTest framework: pytest\n\[TODO\]$/);
   });
 
+  test('no generated command or skill holds a dollar sign before a digit, which Claude Code would replace with an argument (BL-093)', () => {
+    for (const { value: ide } of IDE_CHOICES) {
+      const files = render({ ...BASE, ide, apiParadigm: 'rest' } as RenderOptions).files.filter(f => /(^|\/)(commands|skills|workflows|prompts)\//.test(f.path));
+      expect(files.length).toBeGreaterThan(0);
+      for (const f of files) expect([f.path, f.content.match(/\$\d/g)]).toEqual([f.path, null]);
+    }
+  });
+
   test('each section renders as REQ-002.I.4 says', () => {
     const all = { ...BASE, ide: 'vscode', apiParadigm: 'rest' as const, ...ALL_FIELDS };
     expect(file(all, '.specs/project/project.yaml')).toContain('  documentation_required: true\n  \n# Platforms\nplatforms:\n  - iOS Native\n  - Node.js / Express\n\n# Build and Deployment\n');

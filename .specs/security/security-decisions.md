@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-11 (BL-095 Spec Report)
-version: 1.21
+lastUpdated: 2026-10-11 (BL-PM-012 Spec Report)
+version: 1.22
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -243,7 +243,7 @@ This file records security-related architectural and implementation decisions ma
   - All of `specpilot backfill` from the page — rejected by default: it appends text into `CLAUDE.md` and four other rule files the user edits, and writes `project.yaml` and `tasks.md` without the hash check the task writer has (open question 1).
   - `If-Match` over the command files — rejected: each replace already compares the file's bytes immediately before `rename`, which is the check that matters per file.
   - The folder check in the route only — rejected: the same write runs from the CLI; one guard in the shared function.
-- **Reference**: SEC-002.6, SEC-004.10, REQ-002.H.30, ARCH-004.49
+- **Reference**: SEC-002.6, SEC-004.10, REQ-002.H.30, ARCH-004.49. Since BL-PM-012 one more fixed path, `.claude/skills/specpilot-project/SKILL.md` (up to 49), by SEC-004.25; "`SKILL.md` [is] not written" above is superseded for that file.
 
 ### [SEC-004.20] Local MCP endpoint: off by default, the page's guards with Origin optional, the page's functions only
 
@@ -298,6 +298,16 @@ This file records security-related architectural and implementation decisions ma
   - `git remote get-url origin` — rejected: a process for a request (SEC-004.14's precedent).
   - Stripping `user:password@` and keeping the rest — rejected (architect): a rewritten URL is not the user's text, and a partial strip of an odd form could leave a secret.
 - **Reference**: SEC-002.5 (p), SEC-004.17, REQ-002.H.39, ARCH-004.54
+
+### [SEC-004.25] The skill is replaced only when its bytes are SpecPilot's own render
+
+- **Date**: 2026-10-11 (BL-PM-012 Spec Report; architect decision 2026-10-11)
+- **Decision**: Regenerate All and `specpilot backfill` write one more fixed path, `.claude/skills/specpilot-project/SKILL.md`, through the same checks and write as the command files (SEC-004.19): the page's write guards, the write lock, `lstat` on every folder level, no link followed, temp file and rename, an exclusive create for a new file. A file is replaced only when its bytes equal a SpecPilot render for this project's `project.yaml` (a released template or the current one); any other file is kept and reported. The context comes from `project.yaml` only, read through the shared path guard (no link followed) with js-yaml's safe load; a value holding a control character is left out, so none can add a line, and the template engine does no escaping. A file that matches no render is kept with a reason in SpecPilot's own words.
+- **Rationale**: The user's own edits to the skill must survive, exactly as their commands do; a file equal to a SpecPilot render holds nothing of theirs.
+- **Alternatives considered**:
+  - A content hash or marker written into the skill — rejected (architect): every skill already written has none, so none could ever be refreshed.
+  - Showing a reviewed diff before writing — rejected (architect): the commands have no such step, and the brief asks for the commands' rule.
+- **Reference**: SEC-004.19, SEC-002.6, REQ-002.H.40, ARCH-004.55
 
 ## Open Questions [SEC-005]
 

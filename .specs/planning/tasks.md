@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-11 (BL-092, BL-093 completed)
-version: 6.60
+lastUpdated: 2026-10-11 (BL-PM-012 built)
+version: 6.62
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -57,16 +57,17 @@ Notes
 | BL-082 | `specpilot init` asks a Brownfield project its four project-context questions (the first is required) but writes the answers nowhere: `specFileGenerator.ts` puts them into `onboarding.md` only in the Greenfield branch of the onboarding prompt. Either use them in the Brownfield prompt or do not ask. Since BL-PM-004 `specpilot serve` does not ask a Brownfield new project these questions. Found by spec-reviewer during BL-PM-004; not part of it. |
 | BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
 | BL-086 | Remove `SlashCommandGenerator.generate()` and `targets()` from `src/utils/slashCommandGenerator.ts`: since BL-032 the writer goes through `render()` and `writeNew()`, so neither has a caller outside `src/__tests__/` (15 call sites in `slashCommandGenerator.test.ts`, which test the per-IDE routing on disk); move those tests to `render()` or `commandFiles()`. Found by spec-reviewer on the BL-032 build (2026-10-06). |
-| BL-PM-012 | Regenerate skills from project context: `.claude/skills/specpilot-project/SKILL.md` is rendered from the project's specs, so no hash list can say whether it is unedited, and `specpilot backfill` only reports it stale while `add-specs` keeps an existing file (BL-073), so nothing rewrites it. Design a refresh (e.g. render it with `render()` from `project.yaml` and replace it only when it equals what an earlier render of the same project would give, or offer it as a reviewed diff) for the CLI and the `specpilot serve` Skills view's From SpecPilot group. Left out of BL-PM-006 by the developer's scope choice (a). Not started (2026-10-11, architect): no spec defines "project context" for this file (REQ-002.B.1 means init's four questions; `claudeCodeSkill()` uses only projectName, language and framework), so its inputs need defining first. |
 | BL-PM-015 | Open in Windsurf: a `windsurf://file/<root>` link (and a prompt link if Windsurf has one) beside BL-PM-010's Cursor item, when the project has `.windsurfrules`. Windsurf documents no URL scheme; held until tested on a machine with Windsurf installed. Dropped from BL-PM-010 by the developer (2026-10-10). |
 | BL-094 | Flaky browser test: `with --mcp the card holds the config line and Copy puts it on the clipboard` (`src/__browser__/mcp.browser.test.ts`) failed once in about 30 runs (2026-10-10, on `fix/bl-pm-009-narrow-status`, which does not touch the card): on its 420px page, after the `Copied.` toast, so either `navigator.clipboard.readText()` or the no-sideways-scroll check failed; the error text was not kept (the harness saves it since the fix that added this row). Not reproduced in 15 runs of that file and 9 more full runs. Headless Chromium keeps its own clipboard, so the system clipboard is not the cause. On the next failure, read `<test>-error.txt` and fix the cause. 2026-10-11, on the checked-in fixture (BL-099): 30 runs of 30 passed, light and dark (60 passes); not reproduced, nothing to fix. |
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
+| BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
+| BL-PM-012 | Regenerate skills from project context: `.claude/skills/specpilot-project/SKILL.md` is rendered from the project's specs, so no hash list can say whether it is unedited, and `specpilot backfill` only reports it stale while `add-specs` keeps an existing file (BL-073), so nothing rewrites it. Design a refresh (e.g. render it with `render()` from `project.yaml` and replace it only when it equals what an earlier render of the same project would give, or offer it as a reviewed diff) for the CLI and the `specpilot serve` Skills view's From SpecPilot group. Left out of BL-PM-006 by the developer's scope choice (a). Not started (2026-10-11, architect): no spec defines "project context" for this file (REQ-002.B.1 means init's four questions; `claudeCodeSkill()` uses only projectName, language and framework), so its inputs need defining first. Defined 2026-10-11 by the developer's evening brief (REQ-002.H.40). |
 
 ## Completed
 

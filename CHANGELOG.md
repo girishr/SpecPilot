@@ -9,11 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Regenerate All and `specpilot backfill` refresh the Claude Code skill** (BL-PM-012): `.claude/skills/specpilot-project/SKILL.md` is re-rendered from the project's `project.yaml` (name, language, framework, platforms, package manager, test framework, repository URL, license) when it is still SpecPilot's own; a skill you edited is kept and reported, as your commands are. Its `Framework:` line, which earlier versions left as `{{framework}}`, is filled.
 - **Guided setup detects more** (BL-095): on existing code, `specpilot serve`'s guided setup and `specpilot add-specs` also find the package manager (from the lock file), the test framework, the repository URL (from `.git/config`; never one carrying a password or token) and the license, show them as detected and write them to `project.yaml` and `quality/tests.md`. The test framework of a Swift project is not detected yet.
 - **Browse for the parent folder too** (BL-097): in `specpilot serve`, the Clone a Repository sheet's Parent folder and the New Project chat's parent-folder question have the same `Browse…` button as Open a Project.
 - **Stop `specpilot serve` from the terminal or the page** (BL-098): `specpilot serve --stop` stops the server running on this machine (`--port` for one not on 4321), and the page's rail has a Quit button that does the same after asking. Both stop it the way Ctrl+C does, a running clone included. A `--read-only` server is stopped with Ctrl+C.
 - **`specpilot backfill` adds the MCP Tasks line** (BL-088): existing `CLAUDE.md`, `.github/copilot-instructions.md`, Cursor's `.mdc`, `.windsurfrules` and `.antigravity/rules.md` get the Tasks process mandate that new files have had since 2.13.0, added to their Process Mandates section; nothing else in them changes.
 - **Browse for a folder in `specpilot serve`** (BL-PM-011): a `Browse…` button beside the Open a Project sheet's folder path opens your system's folder dialog on this machine (macOS, Linux with `zenity` or `kdialog`, Windows) and fills in the folder you pick; `Open` still opens it. Nothing is read or opened until you click `Open`.
+
+### Changed
+
+- **`specpilot backfill` reports the Claude Code skill as updated, added or kept** (BL-PM-012), with the reason when kept, instead of checking it for stale sections.
+
+### Removed
+
+- **`specpilot backfill`'s stale check of `SKILL.md`** (BL-PM-012): replaced by the refresh above.
 
 ### Fixed
 

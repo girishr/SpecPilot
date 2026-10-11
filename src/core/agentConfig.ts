@@ -22,8 +22,11 @@ export function agentFile(engine: TemplateEngine, context: TemplateContext, agen
   return { path: AGENT_FILES[key], content: key === 'claude-code' ? claudeCodeSkill(context) : codexInstructions(engine, context) };
 }
 
-function claudeCodeSkill(context: TemplateContext): string {
-    const skillContent = `---
+/**
+ * The skill template v2.1.0 to v2.13.0 shipped, frozen (BL-PM-012, ARCH-004.55): the base of today's render
+ * and, without its Code Philosophy and Code Rules sections, the template v1.5.0 to v2.0.1 shipped.
+ */
+const SKILL_V2 = `---
 name: specpilot-project
 description: SpecPilot project context, specifications, and development guidelines. Use to understand project architecture, requirements, and AI interaction history.
 ---
@@ -110,12 +113,48 @@ All spec files link to each other for easy navigation. Follow the links in relat
 - ../architecture/architecture.md
 - ../planning/tasks.md
 `;
+const SKILL_V1 = SKILL_V2.slice(0, SKILL_V2.indexOf('## Code Philosophy')) + SKILL_V2.slice(SKILL_V2.indexOf('## Cross-References'));
 
-    return skillContent
-        .replace(/\{\{projectName\}\}/g, context.projectName)
-        .replace(/\{\{language\}\}/g, context.language)
-        .replace(/{{#if framework}}/g, context.framework ? '' : '<!-- ')
-        .replace(/{{\/if}}/g, context.framework ? '' : ' -->');
+/** The two skill templates SpecPilot released, oldest first (REQ-002.H.40); `fillReleasedSkill()` fills them. */
+export const KNOWN_SKILL_TEMPLATES = [SKILL_V1, SKILL_V2];
+
+/** A released template filled the way that version did, `.replace` patterns such as `$&` included: the bytes it wrote. */
+export function fillReleasedSkill(template: string, context: { projectName: string; language: string; framework?: string }): string {
+  return template
+    .replace(/\{\{projectName\}\}/g, context.projectName)
+    .replace(/\{\{language\}\}/g, context.language)
+    .replace(/{{#if framework}}/g, context.framework ? '' : '<!-- ')
+    .replace(/{{\/if}}/g, context.framework ? '' : ' -->');
+}
+
+/** A value the skill can hold on one line: a non-blank string with no control character (REQ-002.H.40). */
+export function skillValue(value: unknown): string | undefined {
+  if (typeof value !== 'string' || value.trim() === '') return undefined;
+  for (let i = 0; i < value.length; i++) if (value.charCodeAt(i) < 0x20 || value.charCodeAt(i) === 0x7f) return undefined;
+  return value;
+}
+
+const PROJECT_BLOCK = 'Project: {{projectName}}\nLanguage: {{language}}\n{{#if framework}}\nFramework: {{framework}}\n{{/if}}\n';
+
+/** The skill from the project context (BL-PM-012): one line per present value, written as typed, no `.replace` patterns. */
+function claudeCodeSkill(context: TemplateContext): string {
+  const lines = [`Project: ${context.projectName}`, `Language: ${context.language}`];
+  const add = (label: string, value: unknown) => {
+    const v = skillValue(value);
+    if (v) lines.push(`${label}: ${v}`);
+  };
+  add('Framework', context.framework);
+  const platforms = (context.platforms ?? []).map(skillValue);
+  if (platforms.length && platforms.every(Boolean)) lines.push(`Platforms: ${platforms.join(', ')}`);
+  add('Package manager', context.packageManager);
+  add('Test framework', context.testFramework);
+  add('Repository', context.repository);
+  add('License', context.license);
+  if (!SKILL_V2.includes(PROJECT_BLOCK)) throw new Error('the skill template lost its project block');
+  // The template's own placeholders are filled around the value lines, so a value is never rewritten.
+  const [head, tail] = SKILL_V2.split(PROJECT_BLOCK);
+  const fill = (text: string) => text.split('{{projectName}}').join(context.projectName);
+  return fill(head) + lines.join('\n') + '\n' + fill(tail);
 }
 
 function codexInstructions(engine: TemplateEngine, context: TemplateContext): string {

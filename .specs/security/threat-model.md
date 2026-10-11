@@ -83,7 +83,7 @@ An HTTP server on `127.0.0.1` that shows the `.specs/` and a few generated files
 
 ### Command File Refresh: `specpilot backfill` [SEC-002.6]
 
-`specpilot backfill` replaces existing `specpilot-*` command files in the project when their bytes match a version SpecPilot generated (BL-058). Since BL-PM-006 the `specpilot serve` page runs the same step through `POST /api/commands/regenerate` (SEC-004.19).
+`specpilot backfill` replaces existing `specpilot-*` command files in the project when their bytes match a version SpecPilot generated (BL-058). Since BL-PM-006 the `specpilot serve` page runs the same step through `POST /api/commands/regenerate` (SEC-004.19). Since BL-PM-012 both also replace `.claude/skills/specpilot-project/SKILL.md` when its bytes equal SpecPilot's render for the project's `project.yaml` (a released template or the current one), and keep it otherwise (SEC-004.25).
 
 | Field             | Detail |
 | ----------------- | ------ |

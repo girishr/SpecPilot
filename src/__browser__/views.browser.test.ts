@@ -50,9 +50,10 @@ browserTest('Commands and Skills split into From SpecPilot and Yours; Regenerate
   expect(await page.locator('#cmdYouCnt').textContent()).toBe('1');
   await page.goto(`${srv.url}/#skills`);
   await waitView(page, 'v-skills');
-  expect(await page.locator('#sklSpCnt').textContent()).toBe('1');
-  expect(await page.locator('#sklYouCnt').textContent()).toBe('1');
-  expect(await page.locator('#sklBox').textContent()).toContain('.claude/skills/specpilot-project/SKILL.md');
+  // a hand-written specpilot-project skill is not SpecPilot's render of project.yaml: Yours, kept (BL-PM-012)
+  expect(await page.locator('#sklSpCnt').textContent()).toBe('0');
+  expect(await page.locator('#sklYouCnt').textContent()).toBe('2');
+  expect(await page.locator('#sklMine').textContent()).toContain('.claude/skills/specpilot-project/SKILL.md');
 });
 
 browserTest('Open in VS Code: on every project view and guided setup, encoded for spaces and non-ASCII, never on Home or New project', b, async open => {

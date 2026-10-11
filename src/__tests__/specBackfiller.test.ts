@@ -1,5 +1,6 @@
 import { SpecBackfiller, withTasksLine } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
+import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
@@ -199,26 +200,6 @@ Task ID conventions
 Notes
 
 ## Backlog
-`;
-}
-
-function makeFullSkillMd(): string {
-  return `---
-name: specpilot-project
-description: SpecPilot project context.
----
-
-# SpecPilot Project Context
-
-## Quick Start
-
-## Key Files to Reference
-
-1. **.specs/project/project.yaml** - Project configuration
-
-## Project Rules
-
-## Development Process
 `;
 }
 
@@ -1038,77 +1019,65 @@ rules:
     });
   });
 
-  describe('backfillIdeFiles — Claude Code SKILL.md', () => {
-    it('does not report SKILL.md when the file is absent', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeFullTasksMd('girishr'),
-      });
+  describe('the Claude Code skill (BL-PM-012)', () => {
+    const SKILL = '.claude/skills/specpilot-project/SKILL.md';
+    const skillFile = () => join(testDir, ...SKILL.split('/'));
+    const setup = (claude = true) => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      if (claude) writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD_TERSE, 'utf-8');
+    };
+    const putSkill = (text: string) => {
+      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
+      writeFileSync(skillFile(), text);
+    };
+
+    it('writes no skill without CLAUDE.md', async () => {
+      setup(false);
+      expect((await backfiller.backfill(testDir, '.specs', false, true)).skill).toBeNull();
+      expect(existsSync(join(testDir, '.claude'))).toBe(false);
+    });
+
+    it('adds a missing skill rendered from project.yaml, and then finds it current', async () => {
+      setup();
+      expect((await backfiller.backfill(testDir, '.specs', false, true)).skill).toEqual({ path: SKILL, action: 'added' });
+      expect(readFileSync(skillFile(), 'utf-8')).toContain('Project: TestProject\nLanguage: typescript\nLicense: MIT\n');
+      expect((await backfiller.backfill(testDir, '.specs', false, true)).skill).toEqual({ path: SKILL, action: 'current' });
+    });
+
+    it('replaces a released render, only listing it with --dry-run', async () => {
+      setup();
+      const released = fillReleasedSkill(KNOWN_SKILL_TEMPLATES[0], { projectName: 'TestProject', language: 'typescript' });
+      putSkill(released);
+      expect((await backfiller.backfill(testDir, '.specs', true, true)).skill).toEqual({ path: SKILL, action: 'updated' });
+      expect(readFileSync(skillFile(), 'utf-8')).toBe(released);
+      expect((await backfiller.backfill(testDir, '.specs', false, true)).skill).toEqual({ path: SKILL, action: 'updated' });
+      expect(readFileSync(skillFile(), 'utf-8')).toContain('License: MIT');
+    });
+
+    it('keeps an edited skill and says why, in the result and the output', async () => {
+      setup();
+      putSkill('# My own skill\n');
+      const out: string[] = [];
+      jest.spyOn(console, 'log').mockImplementation((m?: unknown) => void out.push(String(m)));
+      try {
+        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+      } finally {
+        jest.restoreAllMocks();
+      }
+      expect(readFileSync(skillFile(), 'utf-8')).toBe('# My own skill\n');
+      const text = out.join('\n');
+      expect(text).toContain("Kept as it was (does not match SpecPilot's render of project.yaml)");
+      expect(text).toContain('1 kept.');
+      expect(text).not.toMatch(/stale/i);
+    });
+
+    it("reads project.yaml from the --specs-name folder", async () => {
       writeFileSync(join(testDir, 'CLAUDE.md'), FULL_MD_TERSE, 'utf-8');
-
-      const result = await backfiller.backfill(testDir, '.specs', false, true);
-
-      expect(result.ideFiles.map((r) => r.path)).toEqual(['CLAUDE.md']);
-    });
-
-    it('skips SKILL.md when structural fingerprints are present', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeFullTasksMd('girishr'),
-      });
-      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
-      writeFileSync(join(testDir, '.claude', 'skills', 'specpilot-project', 'SKILL.md'), makeFullSkillMd(), 'utf-8');
-
-      const result = await backfiller.backfill(testDir, '.specs', false, true);
-
-      expect(result.ideFiles).toEqual([
-        expect.objectContaining({
-          path: '.claude/skills/specpilot-project/SKILL.md',
-          action: 'skipped',
-        }),
-      ]);
-    });
-
-    it('reports stale SKILL.md when structural fingerprints are missing', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeFullTasksMd('girishr'),
-      });
-      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
-      const skillPath = join(testDir, '.claude', 'skills', 'specpilot-project', 'SKILL.md');
-      writeFileSync(skillPath, '# Old Skill\n', 'utf-8');
-
-      const result = await backfiller.backfill(testDir, '.specs', false, true);
-      const written = readFileSync(skillPath, 'utf-8');
-
-      expect(result.ideFiles).toEqual([
-        expect.objectContaining({
-          path: '.claude/skills/specpilot-project/SKILL.md',
-          action: 'stale',
-        }),
-      ]);
-      expect(result.ideFiles[0].reason).toContain('re-run `specpilot add-specs`');
-      expect(written).toBe('# Old Skill\n');
-    });
-
-    it('dry-run leaves stale SKILL.md unchanged', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        copilotMd: FULL_MD,
-        tasksMd: makeFullTasksMd('girishr'),
-      });
-      mkdirSync(join(testDir, '.claude', 'skills', 'specpilot-project'), { recursive: true });
-      const skillPath = join(testDir, '.claude', 'skills', 'specpilot-project', 'SKILL.md');
-      writeFileSync(skillPath, '# Old Skill\n', 'utf-8');
-
-      const result = await backfiller.backfill(testDir, '.specs', true, true);
-      const written = readFileSync(skillPath, 'utf-8');
-
-      expect(result.ideFiles[0].action).toBe('stale');
-      expect(written).toBe('# Old Skill\n');
+      mkdirSync(join(testDir, 'specs', 'project'), { recursive: true });
+      mkdirSync(join(testDir, 'specs', 'planning'), { recursive: true });
+      writeFileSync(join(testDir, 'specs', 'project', 'project.yaml'), 'name: "Other"\nlanguage: python\n');
+      expect((await backfiller.backfill(testDir, 'specs', false, true)).skill).toEqual({ path: SKILL, action: 'added' });
+      expect(readFileSync(skillFile(), 'utf-8')).toContain('Project: Other\nLanguage: python\n');
     });
   });
 

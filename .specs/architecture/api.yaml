@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-10-11 (BL-PM-011 built)
-# version: 2.36
+# lastUpdated: 2026-10-11 (Batch B Spec Report)
+# version: 2.37
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -256,6 +256,9 @@ commands:
       --mcp:
         type: boolean
         description: "BL-PM-007 (REQ-002.H.33). Reads SPECPILOT_MCP_TOKEN (32+ visible ASCII characters, else exit 1) as the /mcp token when set. Add POST /mcp, a local MCP endpoint for AI IDEs, and the Connect Your AI IDE card on Home; off by default. With --read-only only the read tools are offered"
+      --stop:
+        type: boolean
+        description: "BL-098 (REQ-002.H.37). Stop the SpecPilot server on 127.0.0.1:<--port> (default 4321) through its POST /api/quit, with the token read from its GET /; takes --port only (a folder or another option: exit 1); signals no process, writes no file"
       --open:
         type: boolean
         description: Open the UI in the default browser
@@ -280,6 +283,7 @@ commands:
       "POST /api/preview": "BL-PM-004b (REQ-002.H.28; accepted by the developer, open question 4). Render what the create would write, writing nothing: the body of POST /api/projects/new without parent (a new project) or of POST /api/setup with ?project=<n> (guided setup, which reads the folder as GET /api/setup does for the kept list), checked the same way; headers X-SpecPilot-Token, Origin; body <= 64 KB. 200 {files: [{path, content}] in write order, kept: [paths that exist and would be kept], onboardingPrompt}; 400/403/413/415/422 as the create routes; 404 for guided setup when the project was not named or has .specs; 405 with --read-only. Takes no lock; touches no file"
       "POST /api/projects/clone": "BL-PM-002. Clone a repository into <parent>/<name> with the installed git, then serve the folder (Tasks view with .specs/, guided setup without). JSON body {url, parent, name}, all strings; url 1 to 2048 characters, no whitespace or control character, one of https://host[:port]/path, ssh://[user@]host[:port]/path or user@host:path on a fixed character set, no user or password in an https URL; parent as POST /api/projects/new; name empty (taken from the URL) or 1 to 214 characters of the init name rule; same headers and checks as POST /api/projects. The target must be missing (one non-recursive mkdir) or an empty folder. Runs git clone --no-recurse-submodules -- <url> <target> as an argument array (no shell) with GIT_ALLOW_PROTOCOL=https:ssh, no prompt (GIT_TERMINAL_PROMPT=0, no askpass, no terminal; on Windows also ssh BatchMode unless the user has an ssh command of their own) and a 10-minute limit; one clone at a time, outside the write lock. 200 {project, specs, registry} as POST /api/projects; 400 bad JSON; 403/415/413 as the other write routes; 422 a field, the URL, the parent, git is not installed, git clone failed (its last fatal line with the line before it, 300 characters at most), the limit, or the folder could not be read; 503 the server is stopping; 409 another clone is running, the target is being cloned, the target is a link, not a folder, not empty, already open (with project), made by something else meanwhile, or 20 projects already served; on failure, the limit, a closed connection or server stop the folder is emptied, and removed when the request created it; 405 with --read-only"
       "POST /api/projects/browse": "BL-PM-011. No project parameter; present exactly when the registry routes are. Open the operating system's folder dialog on this machine (osascript on macOS; zenity, else kdialog on Linux; PowerShell FolderBrowserDialog on Windows), started at the home folder (constant in the osascript and PowerShell scripts; a separate argument for zenity and kdialog), and return the folder picked. JSON body exactly {}; same headers and checks as POST /api/projects. 200 {path} (absolute, one line, at most 4096 characters, no trailing separator) or {path: null} when cancelled; 409 a dialog is already open; 503 the server is stopping; 422 no dialog program, the dialog failed (first stderr line, 300 characters at most), an unusable path, or 5 minutes passed; 400/403/413/415 as above; 405 with --read-only. Nothing is read, written or recorded; a closed connection or server stop closes the dialog"
+      "POST /api/quit": "BL-098 (REQ-002.H.37). No project parameter; present exactly when the token is (else 405, Allow: empty, as the other token-gated routes). Body {}; headers X-SpecPilot-Token, Content-Type application/json, Origin http://<Host>; checks of writeAllowed() (403/415/413). 202 {stopping: true}, then (in the response's end callback) the signal's stop path (clone and dialog stopped within STOP_CLONE_MS, streams, pollers and listener closed, process exits 0); 202 again while stopping"
     behavior:
       - Binds 127.0.0.1 only; rejects any Host header other than 127.0.0.1:<port> or localhost:<port> (403)
       - In a project with .specs/, writes only its .specs/planning/tasks.md (one line moved or appended; temp file, fsync, rename) and, through POST /api/commands/regenerate (BL-PM-006), its specpilot-* command files at KNOWN_COMMAND_HASHES paths; --read-only disables both
@@ -295,8 +299,8 @@ commands:
       - Live reload polls allowlisted files with stat() every --poll ms while a page is open, and pushes changed paths on /api/events
       - Methods other than the route's own return 405; unknown paths return 404
     exit-codes:
-      0: Stopped with Ctrl+C
-      1: A named folder that does not exist or is not a directory (named in the message), no folder named and no .specs/ in the current directory, invalid --port or --poll, or port already in use
+      0: Stopped with Ctrl+C, SIGTERM, SIGHUP, the page's Quit or specpilot serve --stop (BL-098); with --stop, the server on the port stopped
+      1: A named folder that does not exist or is not a directory (named in the message), no folder named and no .specs/ in the current directory, invalid --port or --poll, or port already in use; with --stop (BL-098): another option or a folder given, no SpecPilot server on the port, a read-only server (no token), or the port still open STOP_CLONE_MS + 2 s after the quit
 
 global-options:
   --version:

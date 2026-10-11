@@ -259,6 +259,8 @@ export interface SpecServerOptions {
   browseTimeoutMs?: number;
   /** `--mcp`: serve POST /mcp (BL-PM-007). */
   mcp?: boolean;
+  /** Called once by POST /api/quit after its 202 is sent: the command's own stop path (BL-098). */
+  onQuit?: () => void;
   /** `SPECPILOT_MCP_TOKEN`, already checked by the command: /mcp's token instead of a per-start one. */
   mcpToken?: string;
 }
@@ -841,6 +843,18 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     );
   };
 
+  /** POST /api/quit (BL-098): 202, then the command's stop once the answer has gone out. */
+  let quitting = false;
+  const handleQuit = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
+    res.writeHead(202, { 'Content-Type': 'application/json; charset=utf-8', ...SECURITY_HEADERS });
+    res.end(JSON.stringify({ stopping: true }), () => {
+      if (quitting) return;
+      quitting = true;
+      opts.onQuit?.();
+    });
+  };
+
   const server = createServer((req, res) => {
     try {
       const { port } = server.address() as AddressInfo;
@@ -872,6 +886,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (url.pathname === '/api/projects/remove') {
         if (registry && req.method === 'POST') return handleProjectRemove(req, res);
         res.setHeader('Allow', registry ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/quit') {
+        if (token && req.method === 'POST') return handleQuit(req, res);
+        res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
       if (url.pathname === '/api/tasks/move') {

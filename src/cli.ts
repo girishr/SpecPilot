@@ -119,6 +119,7 @@ program
   .option('--read-only', 'Turn off task moves and guided setup: the page only reads')
   .option('--open', 'Open the UI in your default browser')
   .option('--mcp', 'Also serve a local MCP endpoint at /mcp for your AI IDE (SPECPILOT_MCP_TOKEN sets its token)')
+  .option('--stop', 'Stop the SpecPilot server running on this machine (on --port; a --read-only one stops with Ctrl+C)')
   .action(serveCommand);
 
 program.addHelpText('after', `

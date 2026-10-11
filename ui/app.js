@@ -18,6 +18,20 @@ let theme=null;try{theme=localStorage.getItem('sp-theme');}catch(e){}
 function setMeta(light){const m=document.querySelector('meta[name=theme-color]');if(m)m.content=light?'#f8fafc':'#0f172a';}
 if(theme==='light'){document.documentElement.setAttribute('data-theme','light');setMeta(true);}
 $('#themeBtn').onclick=()=>{const light=document.documentElement.getAttribute('data-theme')==='light';if(light)document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme','light');setMeta(!light);try{light?localStorage.removeItem('sp-theme'):localStorage.setItem('sp-theme','light');}catch(e){}toast('Appearance: '+(light?'dark':'light'));};
+/* Quit (BL-098): the route `specpilot serve --stop` uses; the server then stops as on Ctrl+C. This page
+   closes its stream and says so; other open pages see a dropped stream, as before. */
+let stopped=false;
+if(TOKEN)$('#quitBtn').hidden=false;
+$('#quitBtn').onclick=async()=>{
+  if(!confirm('Quit SpecPilot? Open pages stop updating.'))return;
+  let r;
+  try{r=await fetch('/api/quit',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:'{}'});}
+  catch(e){return toast('The server did not answer.');}
+  if(r.status!==202){const t=await r.text().catch(()=>'');let m=t;try{m=JSON.parse(t).error||t;}catch(e){}return toast(m.trim()||'The server did not stop.');}
+  stopped=true;if(es){es.close();es=null;}
+  const p=document.createElement('p');p.className='stopped';p.setAttribute('role','status');p.textContent='SpecPilot has stopped. Run specpilot serve to start it again.';
+  document.querySelector('main.pane').replaceChildren(p);
+};
 
 /* ---------------- data: fetched, never embedded ---------------- */
 let DATA=null;
@@ -823,7 +837,7 @@ async function apply(d,paths){
 }
 let es=null;
 function listen(){
-  if(!window.EventSource)return;
+  if(stopped||!window.EventSource)return;
   if(es)es.close(); // one stream, for the shown project
   es=new EventSource('/api/events?'+pq());let dropped=false;
   es.addEventListener('clone',e=>onCloneEvent(e.data));

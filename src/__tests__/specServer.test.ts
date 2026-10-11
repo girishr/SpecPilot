@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { request } from 'http';
+import { createServer, request } from 'http';
 import { AddressInfo } from 'net';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -3504,5 +3504,181 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     const r = await rpc('ping', undefined, { 'MCP-Protocol-Version': ['2025-11-25', '2025-11-25'] });
     expect(r.status).toBe(400);
     expect(r.json.error.message).toBe('Bad Request: Unsupported protocol version: 2025-11-25, 2025-11-25 (supported versions: 2025-11-25, 2025-06-18)');
+  });
+});
+
+describe('Quit (BL-098)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  let onQuit: jest.Mock;
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    ...over,
+  });
+  const quit = (headers: Record<string, string | undefined>, body = '{}') => post(port, body, headers, '/api/quit');
+
+  beforeEach(async () => {
+    p = makeProject();
+    onQuit = jest.fn();
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { onQuit });
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it.each([
+    ['a bad Host', { Host: 'evil.example' }, 403],
+    ['no Origin', { Origin: undefined }, 403],
+    ['another Origin', { Origin: 'http://evil.example' }, 403],
+    ['no token', { 'X-SpecPilot-Token': undefined }, 403],
+    ['a wrong token', { 'X-SpecPilot-Token': 'f'.repeat(64) }, 403],
+    ['a body that is not JSON', { 'Content-Type': 'text/plain' }, 415],
+  ])('refuses %s and does not stop', async (_what, over, status) => {
+    expect((await quit(good(over))).status).toBe(status);
+    expect(onQuit).not.toHaveBeenCalled();
+  });
+
+  it('refuses a body over the size limit with 413', async () => {
+    expect((await quit(good(), JSON.stringify({ pad: 'x'.repeat(20000) }))).status).toBe(413);
+    expect(onQuit).not.toHaveBeenCalled();
+  });
+
+  it('answers 405 to GET', async () => {
+    const r = await hit(port, '/api/quit');
+    expect(r.status).toBe(405);
+    expect(r.headers.allow).toBe('POST');
+  });
+
+  it('answers 202 and then stops once, also when asked again', async () => {
+    const r = await quit(good());
+    expect(r.status).toBe(202);
+    expect(r.json).toEqual({ stopping: true });
+    await new Promise(res => setTimeout(res, 20));
+    expect(onQuit).toHaveBeenCalledTimes(1);
+    expect((await quit(good())).status).toBe(202);
+    await new Promise(res => setTimeout(res, 20));
+    expect(onQuit).toHaveBeenCalledTimes(1);
+  });
+
+  it('is 405 with an empty Allow under --read-only', async () => {
+    const ro = await startSpecServer([p.root], 0, 'x', { readOnly: true, onQuit });
+    const roPort = (ro.server.address() as AddressInfo).port;
+    try {
+      const r = await post(roPort, '{}', { Host: `127.0.0.1:${roPort}`, Origin: `http://127.0.0.1:${roPort}`, 'Content-Type': 'application/json' }, '/api/quit');
+      expect(r.status).toBe(405);
+      expect(r.headers.allow).toBe('');
+      expect(onQuit).not.toHaveBeenCalled();
+    } finally {
+      await ro.close();
+    }
+  });
+});
+
+describe('specpilot serve --stop (BL-098)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let cwd: string;
+  let exit: jest.SpyInstance;
+  let errors: string[];
+  let logs: string[];
+  const NONE = (port: number) => `No SpecPilot server that --stop can reach is running on port ${port}. A --read-only server stops with Ctrl+C in its terminal.`;
+  const freePort = async () => {
+    const probe = await startSpecServer([p.root], 0, 'x');
+    const port = (probe.server.address() as AddressInfo).port;
+    await probe.close();
+    return port;
+  };
+
+  beforeEach(() => {
+    p = makeProject();
+    cwd = process.cwd();
+    process.chdir(p.root);
+    errors = [];
+    logs = [];
+    exit = jest.spyOn(process, 'exit').mockImplementation(((code: number) => {
+      throw new Error(`exit ${code}`);
+    }) as never);
+    jest.spyOn(console, 'error').mockImplementation((...a: unknown[]) => void errors.push(stripVTControlCharacters(a.join(' '))));
+    jest.spyOn(console, 'log').mockImplementation((...a: unknown[]) => void logs.push(a.join(' ')));
+  });
+  afterEach(() => {
+    process.chdir(cwd);
+    jest.restoreAllMocks();
+    p.cleanup();
+  });
+
+  it('stops a running specpilot serve the way Ctrl+C does, and says so', async () => {
+    const port = await freePort();
+    let exited: (code: number) => void;
+    const exitCode = new Promise<number>(r => (exited = r));
+    exit.mockImplementation(((code: number) => {
+      if (code === 0) return exited(code);
+      throw new Error(`exit ${code}`);
+    }) as never);
+    const before = process.listenerCount('SIGINT');
+    await serveCommand([], { port: String(port) });
+    await serveCommand([], { stop: true, port: String(port) });
+    expect(await exitCode).toBe(0);
+    expect(logs).toContain(`Stopped the SpecPilot server on port ${port}.`);
+    expect(process.listenerCount('SIGINT')).toBe(before);
+    expect(logs.join('\n')).not.toMatch(/[0-9a-f]{64}/); // the token is never printed
+  });
+
+  it('exits 1 when nothing listens on the port', async () => {
+    const port = await freePort();
+    await expect(serveCommand([], { stop: true, port: String(port) })).rejects.toThrow('exit 1');
+    expect(errors).toEqual([NONE(port)]);
+  });
+
+  it('exits 1 for a server that is not SpecPilot, and sends it nothing but GET /', async () => {
+    const seen: string[] = [];
+    const other = createServer((req, res) => {
+      seen.push(`${req.method} ${req.url}`);
+      res.end('<html><title>SpecPilot Local</title></html>');
+    });
+    await new Promise<void>(r => other.listen(0, '127.0.0.1', r));
+    const port = (other.address() as AddressInfo).port;
+    try {
+      await expect(serveCommand([], { stop: true, port: String(port) })).rejects.toThrow('exit 1');
+      expect(errors).toEqual([NONE(port)]);
+      expect(seen).toEqual(['GET /']);
+    } finally {
+      await new Promise(r => other.close(r));
+    }
+  });
+
+  it('exits 1 for a --read-only server, which keeps running', async () => {
+    const ro = await startSpecServer([p.root], 0, 'x', { readOnly: true });
+    const port = (ro.server.address() as AddressInfo).port;
+    try {
+      await expect(serveCommand([], { stop: true, port: String(port) })).rejects.toThrow('exit 1');
+      expect(errors).toEqual([NONE(port)]);
+      expect((await hit(port, '/')).status).toBe(200);
+    } finally {
+      await ro.close();
+    }
+  });
+
+  it.each([
+    ['a folder', ['.'], {}],
+    ['--read-only', [], { readOnly: true }],
+    ['--open', [], { open: true }],
+    ['--mcp', [], { mcp: true }],
+    ['--poll', [], { poll: '500' }],
+  ])('exits 1 with %s', async (_what, folders, opts) => {
+    await expect(serveCommand(folders as string[], { stop: true, ...opts })).rejects.toThrow('exit 1');
+    expect(errors).toEqual(['--stop takes only --port. Run `specpilot serve --stop` or `specpilot serve --stop --port <n>`.']);
+  });
+
+  it('exits 1 for an invalid --port', async () => {
+    await expect(serveCommand([], { stop: true, port: '0' })).rejects.toThrow('exit 1');
+    expect(errors).toEqual(['Invalid --port "0". Use a whole number from 1 to 65535.']);
   });
 });

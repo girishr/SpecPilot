@@ -7,6 +7,7 @@ import { IdeConfigGenerator } from './ideConfigGenerator';
 import { TemplateContext } from '../core/templateEngine';
 import { CommandRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
+import { buildProcessMandatesMarkdown } from '../core/ideConfig';
 
 /**
  * Fingerprint + YAML line for each critical mandate.
@@ -202,6 +203,34 @@ const CODE_SECTIONS: { fingerprint: string; content: string; label: string }[] =
 7. Read before write. Never reference code you haven't read.`,
   },
 ];
+
+/** BL-088: the Process Mandates line new instruction files have had since BL-PM-007. */
+const TASKS_FINGERPRINT = '**Tasks:** When the SpecPilot MCP tools are connected';
+const TASKS_LINE = buildProcessMandatesMarkdown().split('\n').find((l) => l.includes(TASKS_FINGERPRINT))!;
+const TASKS_LABEL = 'Tasks line (MCP)';
+
+/**
+ * The file with the Tasks line added and no existing byte changed (REQ-002.E.16), or null when it is there:
+ * after the last item of `## 🟡 Process Mandates`, else that heading and the line at the end.
+ */
+export function withTasksLine(content: string): string | null {
+  if (content.includes(TASKS_FINGERPRINT)) return null;
+  const eol = content.includes('\r\n') ? '\r\n' : '\n';
+  const lines = content.split(eol);
+  const heading = lines.findIndex((l) => /^##\s.*Process Mandates/.test(l));
+  if (heading === -1) {
+    const block = `## 🟡 Process Mandates${eol}${eol}${TASKS_LINE}`;
+    return content.endsWith(eol) ? `${content}${eol}${block}${eol}` : `${content}${eol}${eol}${block}`;
+  }
+  let end = heading + 1;
+  while (end < lines.length && !lines[end].startsWith('#')) end++;
+  let last = -1;
+  for (let i = heading + 1; i < end; i++) if (lines[i].startsWith('- ')) last = i;
+  if (last === -1) last = heading;
+  else while (last + 1 < end && /^\s+\S/.test(lines[last + 1])) last++; // an item's indented continuation lines
+  lines.splice(last + 1, 0, TASKS_LINE);
+  return lines.join(eol);
+}
 
 export interface BackfillFileResult {
   action: 'updated' | 'created' | 'skipped' | 'missing';
@@ -440,10 +469,11 @@ export class SpecBackfiller {
     const mandates = verbose ? MD_MANDATES : TERSE_MD_MANDATES;
     const missingMandates = mandates.filter((m) => !content.includes(m.fingerprint));
     const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
-    const total = mandates.length + CODE_SECTIONS.length;
-    const found = (mandates.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
+    const withTasks = withTasksLine(content);
+    const total = mandates.length + CODE_SECTIONS.length + 1;
+    const found = total - missingMandates.length - missingSections.length - (withTasks === null ? 0 : 1);
 
-    if (missingMandates.length === 0 && missingSections.length === 0) {
+    if (missingMandates.length === 0 && missingSections.length === 0 && withTasks === null) {
       return { action: 'skipped', found: total, total, added: [] };
     }
 
@@ -456,14 +486,15 @@ export class SpecBackfiller {
       if (missingSections.length > 0) {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
       }
-      writeFileSync(filePath, content.trimEnd() + toAppend + '\n', 'utf-8');
+      const base = withTasks ?? content;
+      writeFileSync(filePath, toAppend ? base.trimEnd() + toAppend + '\n' : base, 'utf-8');
     }
 
     return {
       action: 'updated',
       found,
       total,
-      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label)],
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL])],
     };
   }
 
@@ -531,10 +562,11 @@ export class SpecBackfiller {
     const content = readFileSync(filePath, 'utf-8');
     const missingMandates = TERSE_MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
     const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
-    const total = TERSE_MD_MANDATES.length + CODE_SECTIONS.length;
-    const found = (TERSE_MD_MANDATES.length - missingMandates.length) + (CODE_SECTIONS.length - missingSections.length);
+    const withTasks = withTasksLine(content);
+    const total = TERSE_MD_MANDATES.length + CODE_SECTIONS.length + 1;
+    const found = total - missingMandates.length - missingSections.length - (withTasks === null ? 0 : 1);
 
-    if (missingMandates.length === 0 && missingSections.length === 0) {
+    if (missingMandates.length === 0 && missingSections.length === 0 && withTasks === null) {
       return {
         path: relativePath,
         action: 'skipped',
@@ -552,7 +584,8 @@ export class SpecBackfiller {
       if (missingSections.length > 0) {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
       }
-      writeFileSync(filePath, content.trimEnd() + toAppend + '\n', 'utf-8');
+      const base = withTasks ?? content;
+      writeFileSync(filePath, toAppend ? base.trimEnd() + toAppend + '\n' : base, 'utf-8');
     }
 
     return {
@@ -560,7 +593,7 @@ export class SpecBackfiller {
       action: 'updated',
       found,
       total,
-      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label)],
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL])],
     };
   }
 

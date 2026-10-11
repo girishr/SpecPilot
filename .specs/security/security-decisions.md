@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-11 (BL-PM-011 Spec Report)
-version: 1.19
+lastUpdated: 2026-10-11 (Batch B Spec Report)
+version: 1.20
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -278,6 +278,16 @@ This file records security-related architectural and implementation decisions ma
   - A server-side folder browser listing the children of a folder named in the request, read-only, folder names only (option (c)) — rejected: a path from the browser, every folder name under the home folder readable over HTTP, macOS privacy prompts for Documents, Desktop and Downloads on the terminal's behalf, and the largest page change; needs no process.
   - The server opening the picked folder itself — rejected: a project without the user's `Open`.
 - **Reference**: SEC-002.5 (n), SEC-004.15, REQ-002.H.36, ARCH-003.25, ARCH-004.52
+
+### [SEC-004.23] Quit: a write route that ends the server, and `--stop` as its loopback client
+
+- **Date**: 2026-10-11 (Batch B Spec Report, BL-098; architect decisions 1 and 2, 2026-10-11)
+- **Decision**: `POST /api/quit` sits behind `writeAllowed()` (Host, Origin, token, JSON, size) and exists only when the token does; it runs the signal's stop path. `specpilot serve --stop` gets the token from `GET /` on `127.0.0.1:<port>` and posts with `Origin: http://127.0.0.1:<port>`, connecting only to `127.0.0.1`, following no redirect, reading at most 1 MB and never printing the token. No pid, no run file, no signal sent by the CLI. A `--read-only` server (no token) is not stoppable by `--stop` and is not told apart from no server: one message for all three cases.
+- **Rationale**: Ending the server is a state change a hostile page must not make; the write checks already keep pages out. A local process can read `GET /` or signal the server today, so `--stop` grants no new power.
+- **Alternatives considered**:
+  - A run file (`~/.specpilot/serve.json` with pid and port) and a signal — rejected: a second file outside the project, pid reuse, stale after a crash.
+  - A separate quit token for `--read-only` servers — rejected by default: `--read-only` has no token by design; stop those with Ctrl+C.
+- **Reference**: SEC-002.5 (o), SEC-004.10, REQ-002.H.37, ARCH-004.53
 
 ## Open Questions [SEC-005]
 

@@ -63,6 +63,7 @@ a{color:var(--accent);text-decoration:none}
 .rlist{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
 .rsep{width:22px;height:1px;background:var(--sep);flex:none;margin:2px 0}
 .rfoot{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;padding-top:8px}
+.stopped{margin:auto;padding:48px 16px;text-align:center;max-width:36em}
 .tile{position:relative;width:44px;height:44px;flex:none;border-radius:var(--r);display:grid;place-items:center;background:var(--muted);color:var(--label-2);font-size:13.5px;font-weight:600;font-family:var(--sans);transition:background var(--t),color var(--t)}
 .tile:hover{background:var(--press);color:var(--label)}
 .tile.blue{color:var(--blue-ink)}.tile.green{color:var(--green-ink)}.tile.orange{color:var(--orange-ink)}.tile.violet{color:var(--violet-ink)}

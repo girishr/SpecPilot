@@ -69,6 +69,18 @@ export function makeProject(parent: string, name: string): string {
   return realpathSync(root);
 }
 
+/** A project folder under `parent` with known rows only (never this repo's .specs/), on branch main. */
+export function fixtureProject(parent: string, name: string): string {
+  const root = join(parent, name);
+  mkdirSync(join(root, '.specs', 'project'), { recursive: true });
+  mkdirSync(join(root, '.specs', 'planning'));
+  mkdirSync(join(root, '.git'));
+  writeFileSync(join(root, '.specs', 'project', 'project.yaml'), '# fileID: PROJ-001\nname: "Fixture Project"\n');
+  writeFileSync(join(root, '.specs', 'planning', 'tasks.md'), '# Tasks\n\n## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | Fixture task |\n\n## Current Sprint\n\n| ID | Description |\n|---|---|\n');
+  writeFileSync(join(root, '.git', 'HEAD'), 'ref: refs/heads/main\n');
+  return realpathSync(root);
+}
+
 /** A temp HOME with one project in it; HOME points there until cleanup(). */
 export function makeEnv(): Env {
   const base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-browser-')));

@@ -96,7 +96,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`   | `--dry-run` · `--force`                                                             |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
-| `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--mcp`                            |
+| `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--mcp` · `--stop`                 |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 
@@ -125,6 +125,7 @@ specpilot serve                  # this project, at http://127.0.0.1:4321
 specpilot serve --port 5000 --open
 specpilot serve ../api ../web    # two projects on one server; switch in the left rail
 specpilot serve ../new-project   # no .specs/ there yet: the page sets it up (or `specpilot serve .`)
+specpilot serve --stop           # stop the server on port 4321 from another terminal (--port for another)
 ```
 
 | Option        | Default | Description                                                                              |
@@ -134,8 +135,10 @@ specpilot serve ../new-project   # no .specs/ there yet: the page sets it up (or
 | `--read-only` |        | No task moves, no new tasks, no guided setup, no opening folders and no registry: the UI only reads, with no drag handles, no New Task button and no write routes |
 | `--open`      |         | Open the UI in the default browser                                                       |
 | `--mcp`       |         | Also serve a local MCP endpoint at `/mcp` for your AI IDE, and show the Connect Your AI IDE card on Home (below) |
+| `--stop`      |         | Stop the SpecPilot server running on this machine on `--port` (default 4321), as Ctrl+C would; takes no other option. A `--read-only` server cannot be stopped this way: press Ctrl+C in its terminal |
 
 - **Several projects**: name any folders; one without `.specs/` is served too and offers guided setup (below). They are numbered in command-line order from 0 (`../api` is project 0, `../web` is project 1), and that number is the `?project=<n>` on the server's `/api/` routes and the `#1/...` at the start of a page link for any project after the first (no number means project 0). Each project keeps its own tasks, files and live reload; a move changes only that project's `tasks.md`. Folders opened from the page (below) get the next numbers; a number never changes while the server runs, and one server holds at most 20 projects.
+- **Quit**: the power button at the foot of the left rail stops the server after you confirm, as Ctrl+C or `specpilot serve --stop` would (a running clone is stopped and cleaned up first). The page then says SpecPilot has stopped; other open pages simply stop updating. Not shown with `--read-only`.
 - **Task moves**: drag a row, or use `Alt+Up/Down` to reorder and `Alt+Left/Right` to move between Backlog and Current Sprint. A move changes exactly one line of `.specs/planning/tasks.md` and nothing else, and offers Undo; Completed rows do not move. If the file changed on disk since the page loaded, the move is refused and the page redraws. Start with `--read-only` to turn moves off.
 - **Commands and Skills**: each view lists its files in two groups. Under From SpecPilot are the `specpilot-*` commands whose bytes match a version SpecPilot released (in `.claude/commands/` and `.github/prompts/`) and the `specpilot-project` skill; everything else is under Yours, including a `specpilot-*` command you edited. Regenerate All, in the From SpecPilot header of Commands, runs what `specpilot backfill` runs for command files, and nothing else: for each IDE whose instruction file is in the project it adds the missing `specpilot-*` commands and updates the unedited ones to the current version, in every IDE's command folder, also the ones the page does not list (`.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/`, `.codex/prompts/`). Edited files, links, files under a linked folder, your own commands, skills, instruction files and `.specs/` are never written. What it did is shown above the groups as it happened: updated, added, kept with the reason, and the folders the page does not list.
 - **New Task**: the New Task button on the Tasks view opens a small form: a description and a section (Backlog by default, or Current Sprint). SpecPilot adds one row, `| <ID> | <description> |`, at the end of that section's table in `.specs/planning/tasks.md` and changes nothing else in the file. The ID is the next free one: `BL-###` for Backlog, `CS-###` for Current Sprint, one past the highest in use in `tasks.md` and `tasks-archive.md` (only IDs in ID columns and leading tags count, not IDs mentioned in a description; gaps are never filled). The description is written exactly as you typed it, markdown included, with no label or date added; one with a line break, a control character, a `|` or a trailing `\`, or over 4000 characters, is refused with the reason, and what you typed stays in the form. The new row is selected and opened in the details panel. If the file changed on disk since the page loaded, nothing is added and the page redraws. Protected like a task move; off with `--read-only`.

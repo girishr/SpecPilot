@@ -1,6 +1,9 @@
 import chalk from 'chalk';
 import { spawn } from 'child_process';
+import { Command } from 'commander';
 import { existsSync, realpathSync, statSync } from 'fs';
+import { request } from 'http';
+import { connect } from 'net';
 import { join, resolve } from 'path';
 import { displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
 import { removeStaleStaging, specsMissing } from '../utils/specSetup';
@@ -15,6 +18,7 @@ export interface ServeOptions {
   readOnly?: boolean;
   open?: boolean;
   mcp?: boolean;
+  stop?: boolean;
 }
 
 const DEFAULT_PORT = 4321;
@@ -42,13 +46,84 @@ function openBrowser(url: string, logger: Logger): void {
   child.unref();
 }
 
+/** The most of `GET /` that `--stop` reads (BL-098). */
+const MAX_PAGE_BYTES = 1024 * 1024;
+
+/** One request to 127.0.0.1:<port>: status and body (at most MAX_PAGE_BYTES), no redirect followed. */
+function loopback(port: number, method: string, path: string, headers: Record<string, string> = {}, body?: string): Promise<{ status: number; body: string }> {
+  return new Promise((resolveRequest, reject) => {
+    const req = request({ host: '127.0.0.1', port, method, path, headers, timeout: 5000, agent: false }, res => {
+      let text = '';
+      res.setEncoding('utf8');
+      res.on('data', (chunk: string) => {
+        text += chunk;
+        if (text.length > MAX_PAGE_BYTES) req.destroy(new Error('too large'));
+      });
+      res.on('end', () => resolveRequest({ status: res.statusCode ?? 0, body: text }));
+      res.on('error', reject);
+    });
+    req.on('timeout', () => req.destroy(new Error('timeout')));
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+/** Whether something accepts connections on 127.0.0.1:<port>. */
+function listening(port: number): Promise<boolean> {
+  return new Promise(resolveCheck => {
+    const socket = connect(port, '127.0.0.1');
+    socket.once('connect', () => (socket.destroy(), resolveCheck(true)));
+    socket.once('error', () => resolveCheck(false));
+  });
+}
+
+/**
+ * `specpilot serve --stop` (BL-098): the page's own Quit, sent from here. Reads the page token from `GET /`
+ * as any page on this machine can, posts `/api/quit` with it, then waits for the port to close. Never
+ * prints the token, signals no process and writes nothing.
+ */
+async function stopRunningServer(port: number, logger: Logger): Promise<void> {
+  const page = await loopback(port, 'GET', '/').catch(() => null);
+  const token = page?.status === 200 ? /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec(page.body)?.[1] : undefined;
+  if (!token) {
+    logger.error(`No SpecPilot server that --stop can reach is running on port ${port}. A --read-only server stops with Ctrl+C in its terminal.`);
+    return process.exit(1);
+  }
+  const headers = { Origin: `http://127.0.0.1:${port}`, 'X-SpecPilot-Token': token, 'Content-Type': 'application/json' };
+  const quit = await loopback(port, 'POST', '/api/quit', headers, '{}').catch(() => null);
+  const deadline = Date.now() + STOP_CLONE_MS + 2000;
+  while (quit?.status === 202 && Date.now() < deadline) {
+    if (!(await listening(port))) {
+      console.log(`Stopped the SpecPilot server on port ${port}.`);
+      return;
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
+  logger.error(`Asked the server on port ${port} to stop; it is still running.`);
+  return process.exit(1);
+}
+
 /**
  * Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current
  * directory (BL-054), which must contain `.specs/`; a named folder without one is served for guided
  * setup (BL-055). More folders can be opened from the page and are remembered in the registry (BL-067).
  */
-export async function serveCommand(folders: string[], options: ServeOptions): Promise<void> {
+export async function serveCommand(folders: string[], options: ServeOptions, command?: Command): Promise<void> {
   const logger = new Logger();
+
+  if (options.stop) {
+    const pollGiven = command ? command.getOptionValueSource('poll') === 'cli' : options.poll !== undefined;
+    if (folders.length || options.readOnly || options.open || options.mcp || pollGiven) {
+      logger.error('--stop takes only --port. Run `specpilot serve --stop` or `specpilot serve --stop --port <n>`.');
+      return process.exit(1);
+    }
+    const port = options.port === undefined ? DEFAULT_PORT : Number(options.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      logger.error(`Invalid --port "${options.port}". Use a whole number from 1 to 65535.`);
+      return process.exit(1);
+    }
+    return stopRunningServer(port, logger);
+  }
   const roots: string[] = [];
 
   if (!folders.length) {
@@ -118,7 +193,7 @@ export async function serveCommand(folders: string[], options: ServeOptions): Pr
 
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, mcp: !!options.mcp, mcpToken: envToken, log: m => logger.warn(m) });
+    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, mcp: !!options.mcp, mcpToken: envToken, log: m => logger.warn(m), onQuit: () => stop() });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);

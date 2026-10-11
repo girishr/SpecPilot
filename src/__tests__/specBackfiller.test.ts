@@ -1,4 +1,4 @@
-import { SpecBackfiller } from '../utils/specBackfiller';
+import { SpecBackfiller, withTasksLine } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, symlinkSync } from 'fs';
@@ -92,6 +92,10 @@ const FULL_MD = `# AI Coding Instructions
 7. **NEVER implement, write code, or make file changes** unless the developer explicitly asks. If the next step seems obvious, ask first — do not assume.
 8. **SPEC-FIRST review gate**: Before touching any code or non-spec files, read all relevant \`.specs/\` files, update all affected spec files first, present a **Spec Report** summarizing what changed, which files were affected, and what the specs now say, then wait for the developer's explicit \`yes, proceed\` before writing code. If the developer declines, revert the spec changes and stop.
 
+## 🟡 Process Mandates
+
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format.
+
 ## Code Philosophy — Write Only What Needed
 
 1. Need exist? No → skip. Say why.
@@ -135,6 +139,10 @@ const FULL_MD_TERSE = `# CLAUDE.md
    - Trivial → no gate
    - Feature → read 1–2 relevant \`.specs/\` files before coding
    - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\`
+
+## 🟡 Process Mandates
+
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format.
 
 ## Code Philosophy — Write Only What Needed
 
@@ -391,8 +399,8 @@ rules:
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.copilotInstructions.action).toBe('skipped');
-      expect(result.copilotInstructions.found).toBe(10);
-      expect(result.copilotInstructions.total).toBe(10);
+      expect(result.copilotInstructions.found).toBe(11);
+      expect(result.copilotInstructions.total).toBe(11);
       expect(result.copilotInstructions.added).toHaveLength(0);
     });
   });
@@ -475,7 +483,7 @@ rules:
       await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' });
       const before = readFileSync(mdFile(), 'utf-8');
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 10, total: 10 });
+      expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 11, total: 11 });
       expect(readFileSync(mdFile(), 'utf-8')).toBe(before);
     });
 
@@ -495,7 +503,7 @@ rules:
     it('adds the terse block to a file with neither wording', async () => {
       scaffoldSpecs(testDir, { projectYaml: BARE_YAML, copilotMd: '# My instructions\n', tasksMd: makeFullTasksMd('girishr') });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions.added).toHaveLength(10);
+      expect(result.copilotInstructions.added).toHaveLength(11);
       const written = readFileSync(mdFile(), 'utf-8');
       expect(written).toContain('1. No commit unless asked.');
       expect(written).not.toContain('NEVER');
@@ -563,7 +571,7 @@ rules:
         jest.restoreAllMocks();
       }
       expect(out.join('\n')).toContain('All 1 item already present');
-      expect(out.join('\n')).toContain('All 10 items already present');
+      expect(out.join('\n')).toContain('All 11 items already present');
     });
   });
 
@@ -766,8 +774,8 @@ rules:
         expect.objectContaining({
           path: '.cursor/rules/specpilot.mdc',
           action: 'skipped',
-          found: 10,
-          total: 10,
+          found: 11,
+          total: 11,
         }),
       ]);
     });
@@ -884,7 +892,7 @@ rules:
         path: 'CLAUDE.md',
         action: 'updated',
         found: 1,
-        total: 10,
+        total: 11,
       });
       expect(result.ideFiles[0].added).toContain('Never push');
     });
@@ -902,7 +910,7 @@ rules:
       const written = readFileSync(claudePath, 'utf-8');
 
       expect(result.ideFiles[0]).toMatchObject({ path: 'CLAUDE.md', action: 'updated' });
-      expect(result.ideFiles[0].added).toHaveLength(10);
+      expect(result.ideFiles[0].added).toHaveLength(11);
       expect(written).toBe('# CLAUDE.md\n');
     });
 
@@ -1006,7 +1014,7 @@ rules:
       const written = readFileSync(windsurfPath, 'utf-8');
 
       expect(result.ideFiles).toContainEqual(
-        expect.objectContaining({ path: '.windsurfrules', action: 'updated', found: 8, total: 10 })
+        expect.objectContaining({ path: '.windsurfrules', action: 'updated', found: 8, total: 11 })
       );
       expect(written).toContain('## Code Philosophy — Write Only What Needed');
       expect(written).toContain('## Code Rules');
@@ -1025,7 +1033,7 @@ rules:
       const result = await backfiller.backfill(testDir, '.specs', false, true);
 
       expect(result.ideFiles).toContainEqual(
-        expect.objectContaining({ path: '.windsurfrules', action: 'skipped', found: 10, total: 10 })
+        expect.objectContaining({ path: '.windsurfrules', action: 'skipped', found: 11, total: 11 })
       );
     });
   });
@@ -1237,6 +1245,102 @@ rules:
       expect(readdirSync(outside)).toEqual([]);
       expect(out.join('\n')).toContain('kept: folder is a symbolic link or not a folder  .claude/commands/specpilot-status.md');
       rmSync(outside, { recursive: true, force: true });
+    });
+  });
+});
+
+describe('the MCP Tasks line (BL-088)', () => {
+  const TASKS = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format.';
+  const PROCESS = '## 🟡 Process Mandates\n\n- **Spec-First:** Update `.specs/` before writing code.\n- **Document decisions** in `.specs/development/context.md`.\n';
+  /** The input with exactly one line added at line index `at`. */
+  const oneLineAt = (input: string, at: number, eol = '\n') => {
+    const lines = input.split(eol);
+    lines.splice(at, 0, TASKS);
+    return lines.join(eol);
+  };
+
+  it('goes after the last Process Mandates item, nothing else changed', () => {
+    const input = `# CLAUDE.md\n\n${PROCESS}\n## Code Rules\n\n1. Delete before add.\n`;
+    expect(withTasksLine(input)).toBe(oneLineAt(input, 6));
+  });
+
+  it('goes after the last item when the next heading follows at once', () => {
+    const input = `${PROCESS}## Re-Anchor\n`;
+    expect(withTasksLine(input)).toBe(oneLineAt(input, 4));
+  });
+
+  it("keeps an item's indented continuation lines with it", () => {
+    const input = '## 🟡 Process Mandates\n\n- **Spec-First:** one\n  two\n\n## Next\n';
+    expect(withTasksLine(input)).toBe(oneLineAt(input, 4));
+  });
+
+  it('keeps CRLF line endings', () => {
+    const input = `# X\r\n\r\n${PROCESS.replace(/\n/g, '\r\n')}\r\n## Code Rules\r\n`;
+    const out = withTasksLine(input)!;
+    expect(out).toBe(oneLineAt(input, 6, '\r\n'));
+    expect(out.replace(/\r\n/g, '')).not.toContain('\n');
+  });
+
+  it('adds the heading with the line at the end when the file has no Process Mandates', () => {
+    expect(withTasksLine('# CLAUDE.md\n\n## Re-Anchor\n')).toBe(`# CLAUDE.md\n\n## Re-Anchor\n\n## 🟡 Process Mandates\n\n${TASKS}\n`);
+    expect(withTasksLine('# CLAUDE.md')).toBe(`# CLAUDE.md\n\n## 🟡 Process Mandates\n\n${TASKS}`);
+  });
+
+  it('keeps a file without a final newline without one', () => {
+    const input = `${PROCESS}\n## Code Rules\n\n1. Delete before add.`;
+    const out = withTasksLine(input)!;
+    expect(out).toBe(oneLineAt(input, 4));
+    expect(out.endsWith('add.')).toBe(true);
+  });
+
+  it('is null when the line is there, so a second run changes nothing', () => {
+    const once = withTasksLine(`# X\n\n${PROCESS}`)!;
+    expect(withTasksLine(once)).toBeNull();
+  });
+
+  describe('through specpilot backfill', () => {
+    let testDir: string;
+    beforeEach(() => {
+      testDir = makeTmpDir();
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+    });
+    afterEach(() => rmSync(testDir, { recursive: true, force: true }));
+
+    /** A complete file of the IDE files' wording, without the Tasks line. */
+    const withoutTasks = (md: string) => md.split('\n').filter(l => !l.startsWith('- **Tasks:**')).join('\n');
+
+    it.each(['CLAUDE.md', '.cursor/rules/specpilot.mdc', '.windsurfrules', '.antigravity/rules.md'])('adds exactly one line to %s, then nothing', async rel => {
+      const file = join(testDir, ...rel.split('/'));
+      mkdirSync(join(file, '..'), { recursive: true });
+      const input = withoutTasks(FULL_MD_TERSE);
+      writeFileSync(file, input);
+      writeFileSync(join(testDir, '.github', 'copilot-instructions.md'), FULL_MD);
+      const result = await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      expect(result.ideFiles.find(r => r.path === rel)).toMatchObject({ action: 'updated', found: 10, total: 11, added: ['Tasks line (MCP)'] });
+      const once = readFileSync(file, 'utf-8');
+      expect(once).toBe(withTasksLine(input));
+      expect(once.split('\n').length).toBe(input.split('\n').length + 1);
+      await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      expect(readFileSync(file, 'utf-8')).toBe(once);
+    });
+
+    it.each([['verbose', FULL_MD], ['terse', FULL_MD_TERSE]])('adds exactly one line to a %s copilot-instructions.md', async (_wording, md) => {
+      const file = join(testDir, '.github', 'copilot-instructions.md');
+      const input = withoutTasks(md);
+      writeFileSync(file, input);
+      const result = await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      expect(result.copilotInstructions).toMatchObject({ action: 'updated', found: 10, total: 11, added: ['Tasks line (MCP)'] });
+      expect(readFileSync(file, 'utf-8')).toBe(withTasksLine(input));
+    });
+
+    it('with --dry-run lists the line and writes nothing', async () => {
+      const file = join(testDir, 'CLAUDE.md');
+      const input = withoutTasks(FULL_MD_TERSE);
+      writeFileSync(file, input);
+      writeFileSync(join(testDir, '.github', 'copilot-instructions.md'), FULL_MD);
+      const result = await new SpecBackfiller().backfill(testDir, '.specs', true, true);
+      expect(result.ideFiles.find(r => r.path === 'CLAUDE.md')!.added).toEqual(['Tasks line (MCP)']);
+      expect(readFileSync(file, 'utf-8')).toBe(input);
     });
   });
 });

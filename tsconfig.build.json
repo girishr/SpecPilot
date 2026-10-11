@@ -3,5 +3,5 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/__browser__"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/__browser__", "src/__tests__"]
 }

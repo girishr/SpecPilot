@@ -173,6 +173,12 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(present('x')).toBe(true);
   });
 
+  test("BL-095's four detection-only fields read back as written, each one YAML string (REQ-002.H.39)", () => {
+    const doc = yaml.load(file({ ...BASE, ide: 'vscode', apiParadigm: 'rest' as const, ...ALL_FIELDS }, '.specs/project/project.yaml')) as { repository: string; license: string; build: { packageManager: string; testFramework: string } };
+    expect([doc.repository, doc.license, doc.build.packageManager, doc.build.testFramework]).toEqual([ALL_FIELDS.repository, ALL_FIELDS.license, 'pnpm', 'vitest']);
+    expect(file({ ...BASE, testFramework: 'pytest' }, '.specs/quality/tests.md')).toMatch(/## Overview\nTest framework: pytest\n\[TODO\]$/);
+  });
+
   test('each section renders as REQ-002.I.4 says', () => {
     const all = { ...BASE, ide: 'vscode', apiParadigm: 'rest' as const, ...ALL_FIELDS };
     expect(file(all, '.specs/project/project.yaml')).toContain('  documentation_required: true\n  \n# Platforms\nplatforms:\n  - iOS Native\n  - Node.js / Express\n\n# Build and Deployment\n');
@@ -192,7 +198,7 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(file(all, '.specs/planning/roadmap.md')).toContain('## Milestones\nBuild timeline: 3 months\n\n[TODO]\n\n## Objectives');
     expect(file(all, '.specs/planning/tasks.md')).not.toContain('3 months');
     expect(file(all, '.specs/development/context.md')).toMatch(/## Project Memory\n### Constraints\nMust run on the existing Postgres cluster\.\n$/);
-    expect(file(all, '.specs/quality/tests.md')).toMatch(/## Overview\nStrategy: Unit, E2E\n$/);
+    expect(file(all, '.specs/quality/tests.md')).toMatch(/## Overview\nTest framework: vitest\nStrategy: Unit, E2E\n$/);
   });
 
   test('yaml values: plain when YAML reads them back unchanged, else double-quoted and escaped (REQ-002.I.5)', () => {

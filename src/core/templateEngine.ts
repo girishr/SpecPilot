@@ -32,6 +32,11 @@ export interface OptionalFields {
   buildTimeline?: string;
   constraintDescription?: string;
   testingStrategy?: string[];
+  /** BL-095 (REQ-002.H.39): detection-only, filled from `ProjectDetector`, never asked or taken from a request. */
+  packageManager?: string;
+  testFramework?: string;
+  repository?: string;
+  license?: string;
 }
 
 /** The keys of `OptionalFields`, for `render()`'s present-or-absent rule. */
@@ -39,7 +44,7 @@ export const OPTIONAL_FIELDS: (keyof OptionalFields)[] = [
   'platforms', 'accessControl', 'specialConsiderations', 'accessibilityNotes', 'systemPattern', 'activeUsers', 'teamSize',
   'deploymentTargets', 'localDatabases', 'dataSyncStrategy', 'integrations', 'otherApis', 'apiResponseTime', 'availability',
   'databases', 'authStrategy', 'realtimeTypes', 'compliance', 'cicd', 'securityConcerns', 'buildTimeline', 'constraintDescription',
-  'testingStrategy',
+  'testingStrategy', 'packageManager', 'testFramework', 'repository', 'license',
 ];
 
 export interface TemplateContext extends OptionalFields {
@@ -197,6 +202,12 @@ version: "1.0.0"
 language: ${language}
 ${framework ? `framework: ${framework}` : ''}
 description: {{yaml description}}
+{{#if repository}}
+repository: {{yaml repository}}
+{{/if}}
+{{#if license}}
+license: {{yaml license}}
+{{/if}}
 
 # Rules and mandates: see your AI agent configuration file (single source of truth)
 
@@ -220,6 +231,12 @@ build:
   ${language === 'python' ? 'command: "python -m build"' : ''}
   ${language === 'kotlin' ? 'command: "./gradlew build"' : ''}
   ${language === 'swift' ? 'command: "swift build"' : ''}
+{{#if packageManager}}
+  packageManager: {{yaml packageManager}}
+{{/if}}
+{{#if testFramework}}
+  testFramework: {{yaml testFramework}}
+{{/if}}
 
 # Dependencies (framework-specific)
 ${this.getDependencySection(language, framework)}`;

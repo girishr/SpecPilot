@@ -1,6 +1,10 @@
 import { ProjectDetector } from '../utils/projectDetector';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, existsSync, symlinkSync } from 'fs';
+import * as childProcess from 'child_process';
+
+// BL-095: detection must start no process; every way to start one is a mock here (Node's own exports cannot be spied on).
+jest.mock('child_process', () => ({ ...jest.requireActual('child_process'), spawn: jest.fn(), spawnSync: jest.fn(), exec: jest.fn(), execSync: jest.fn(), execFile: jest.fn(), execFileSync: jest.fn(), fork: jest.fn() }));
 import * as os from 'os';
 
 describe('ProjectDetector', () => {
@@ -387,6 +391,153 @@ let package = Package(name: "bare-swift")
       mkdirSync(join(testDir, 'Kit.xcodeproj'));
       const both = (await detector.detectProject(testDir))!;
       expect([both.name, both.platform]).toEqual(['Kit', 'ios']);
+    });
+  });
+
+  // ─── More detection (BL-095, REQ-002.H.39) ────────────────────────────────
+
+  describe('package manager, test framework, repository URL and license (BL-095)', () => {
+    const pkg = (o: Record<string, unknown> = {}) => writeFileSync(join(testDir, 'package.json'), JSON.stringify({ name: 'app', ...o }));
+    const gitConfig = (text: string) => {
+      mkdirSync(join(testDir, '.git'), { recursive: true });
+      writeFileSync(join(testDir, '.git', 'config'), text);
+    };
+    const origin = (url: string) => gitConfig(`[core]\n\tbare = false\n[remote "upstream"]\n\turl = https://example.com/other/up.git\n[remote "origin"]\n\tpushurl = https://example.com/push/x.git\n\turl = ${url}\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n`);
+    const more = async () => {
+      const info = await detector.detectProject(testDir);
+      return info && { packageManager: info.packageManager, testFramework: info.testFramework, repository: info.repository, license: info.license };
+    };
+
+    it.each([
+      [['pnpm-lock.yaml', 'yarn.lock', 'package-lock.json'], 'pnpm'],
+      [['yarn.lock', 'package-lock.json'], 'yarn'],
+      [['bun.lock'], 'bun'],
+      [['bun.lockb', 'package-lock.json'], 'bun'],
+      [['package-lock.json'], 'npm'],
+    ])('a Node project with %j uses %s', async (locks, expected) => {
+      pkg();
+      for (const f of locks) writeFileSync(join(testDir, f), '');
+      expect((await more())!.packageManager).toBe(expected);
+    });
+
+    it.each([
+      [['uv.lock', 'poetry.lock'], 'uv'],
+      [['poetry.lock', 'Pipfile.lock'], 'poetry'],
+      [['Pipfile.lock'], 'pipenv'],
+    ])('a Python project with %j uses %s', async (locks, expected) => {
+      writeFileSync(join(testDir, 'requirements.txt'), 'flask\n');
+      for (const f of locks) writeFileSync(join(testDir, f), '');
+      expect((await more())!.packageManager).toBe(expected);
+    });
+
+    it('a lock file of another language says nothing', async () => {
+      writeFileSync(join(testDir, 'requirements.txt'), 'flask\n');
+      writeFileSync(join(testDir, 'yarn.lock'), '');
+      expect(await more()).toEqual({});
+    });
+
+    it.each([
+      [{ devDependencies: { jest: '1', vitest: '1' } }, 'vitest'],
+      [{ devDependencies: { mocha: '1', jest: '1' } }, 'jest'],
+      [{ dependencies: { mocha: '1' } }, 'mocha'],
+      [{ devDependencies: { '@playwright/test': '1', cypress: '1' } }, 'playwright'],
+      [{ devDependencies: { cypress: '1' } }, 'cypress'],
+    ])('a Node project with %j tests with %s', async (deps, expected) => {
+      pkg(deps);
+      expect((await more())!.testFramework).toBe(expected);
+    });
+
+    it.each([
+      ['pytest>=7\nflask\n', 'pytest'],
+      ['flask\npytest\n', 'pytest'],
+      ['pytest-cov\nflask\n', undefined],
+      ['flask\n', undefined],
+    ])('requirements.txt %j gives %s', async (text, expected) => {
+      writeFileSync(join(testDir, 'requirements.txt'), text);
+      expect((await more())!.testFramework).toBe(expected);
+    });
+
+    it('a Gradle build with junit gives junit; a Swift package gives no test framework (BL-100)', async () => {
+      writeFileSync(join(testDir, 'build.gradle.kts'), 'dependencies { testImplementation("org.junit.jupiter:junit-jupiter:5.10.0") }\n');
+      expect((await more())!.testFramework).toBe('junit');
+      rmSync(join(testDir, 'build.gradle.kts'));
+      writeFileSync(join(testDir, 'Package.swift'), 'let package = Package(name: "Kit", targets: [.target(name: "Kit"), .testTarget(name: "KitTests")])\n');
+      expect((await more())!.testFramework).toBeUndefined();
+    });
+
+    it.each(['https://github.com/acme/app.git', 'git@github.com:acme/app.git', 'ssh://git@github.com/acme/app.git'])('keeps the origin url %s, the first url of [remote "origin"] only', async url => {
+      pkg();
+      origin(url);
+      expect((await more())!.repository).toBe(url);
+    });
+
+    it.each(['https://user:tok@github.com/acme/app.git', 'https://tok@github.com/acme/app.git', 'ssh://user:pw@github.com/acme/app.git', '"https://github.com/acme/app.git"', 'http://github.com/acme/app.git'])('drops the origin url %s, never stripping it', async url => {
+      pkg();
+      origin(url);
+      expect((await more())!.repository).toBeUndefined();
+    });
+
+    it('needs an origin remote and a real .git folder', async () => {
+      pkg();
+      gitConfig('[remote "upstream"]\n\turl = https://github.com/acme/app.git\n');
+      expect((await more())!.repository).toBeUndefined();
+      rmSync(join(testDir, '.git'), { recursive: true });
+      writeFileSync(join(testDir, '.git'), 'gitdir: /elsewhere/.git/worktrees/app\n'); // a worktree: not followed
+      expect((await more())!.repository).toBeUndefined();
+    });
+
+    it('reads .git/config and LICENSE only as regular files of at most 64 KB', async () => {
+      pkg();
+      const outside = join(testDir, 'outside');
+      mkdirSync(outside);
+      writeFileSync(join(outside, 'config'), '[remote "origin"]\n\turl = https://github.com/acme/app.git\n');
+      writeFileSync(join(outside, 'LICENSE'), 'MIT License\n');
+      mkdirSync(join(testDir, '.git'));
+      symlinkSync(join(outside, 'config'), join(testDir, '.git', 'config'));
+      symlinkSync(join(outside, 'LICENSE'), join(testDir, 'LICENSE'));
+      expect(await more()).toEqual({});
+      rmSync(join(testDir, '.git', 'config'));
+      rmSync(join(testDir, 'LICENSE'));
+      writeFileSync(join(testDir, '.git', 'config'), '[remote "origin"]\n\turl = https://github.com/acme/app.git\n' + '#'.repeat(64 * 1024));
+      writeFileSync(join(testDir, 'LICENSE'), 'MIT License\n' + 'x'.repeat(64 * 1024));
+      expect(await more()).toEqual({});
+    });
+
+    it.each([
+      ['MIT License\n\nCopyright (c) 2026', 'MIT'],
+      ['﻿\n  Apache License  \n  Version 2.0', 'Apache-2.0'],
+      ['GNU GENERAL PUBLIC LICENSE\nVersion 3', 'GPL'],
+      ['GNU LESSER GENERAL PUBLIC LICENSE\n', undefined],
+      ['GNU AFFERO GENERAL PUBLIC LICENSE\n', undefined],
+      ['ISC License\n', 'ISC'],
+      ['BSD 3-Clause License\n', 'BSD'],
+      ['The MIT License (MIT)\n', undefined],
+    ])('a LICENSE starting %j gives %s', async (text, expected) => {
+      writeFileSync(join(testDir, 'requirements.txt'), 'flask\n');
+      writeFileSync(join(testDir, 'LICENSE'), text);
+      expect((await more())!.license).toBe(expected);
+    });
+
+    it("package.json's license wins and is kept verbatim when it fits the shape", async () => {
+      writeFileSync(join(testDir, 'LICENSE'), 'MIT License\n');
+      pkg({ license: '(MIT OR Apache-2.0)' });
+      expect((await more())!.license).toBe('(MIT OR Apache-2.0)');
+      pkg({ license: 'SEE LICENSE IN LICENSE.txt' });
+      expect((await more())!.license).toBe('SEE LICENSE IN LICENSE.txt');
+      pkg({ license: 'MIT; rm -rf /' });
+      expect((await more())!.license).toBeUndefined();
+      pkg({ license: { type: 'MIT' } });
+      expect((await more())!.license).toBe('MIT'); // not a string: the LICENSE file is read instead
+    });
+
+    it('detects nothing in a folder with no language, and starts no process', async () => {
+      origin('https://github.com/acme/app.git');
+      writeFileSync(join(testDir, 'LICENSE'), 'MIT License\n');
+      expect(await detector.detectProject(testDir)).toBeNull();
+      pkg({ devDependencies: { vitest: '1' } });
+      writeFileSync(join(testDir, 'pnpm-lock.yaml'), '');
+      expect(await more()).toEqual({ packageManager: 'pnpm', testFramework: 'vitest', repository: 'https://github.com/acme/app.git', license: 'MIT' });
+      for (const fn of ['spawn', 'spawnSync', 'exec', 'execSync', 'execFile', 'execFileSync', 'fork'] as const) expect(childProcess[fn]).not.toHaveBeenCalled();
     });
   });
 });

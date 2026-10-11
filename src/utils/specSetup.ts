@@ -157,11 +157,14 @@ export async function setupQuestions(root: string): Promise<SetupQuestions> {
   };
 }
 
-/** The rows for what `add-specs` takes from the detector without asking: the project name, the language and the framework. */
+/** The rows for what `add-specs` takes from the detector without asking: the project name, the language, the framework and the BL-095 values. */
 function detectedRows(info: ProjectInfo): DetectedRow[] {
   const rows: DetectedRow[] = [{ key: 'name', step: SETUP_STEPS[0], label: 'Project name', value: info.name }];
   rows.push({ key: 'language', step: QUESTION_STEPS.language, label: QUESTION_CHAT.language.label, value: info.language });
   if (info.framework) rows.push({ key: 'framework', step: QUESTION_STEPS.framework, label: QUESTION_CHAT.framework.label, value: info.framework });
+  // BL-095 (REQ-002.H.39): shown beside the language, never asked; the server writes them from its own detection.
+  const more: [keyof ProjectInfo, string][] = [['packageManager', 'Package manager'], ['testFramework', 'Test framework'], ['repository', 'Repository'], ['license', 'License']];
+  for (const [key, label] of more) if (info[key]) rows.push({ key, step: QUESTION_STEPS.language, label, value: String(info[key]) });
   return rows;
 }
 

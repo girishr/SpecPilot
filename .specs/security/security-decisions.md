@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-11 (Batch B Spec Report)
-version: 1.20
+lastUpdated: 2026-10-11 (BL-095 Spec Report)
+version: 1.21
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -289,7 +289,18 @@ This file records security-related architectural and implementation decisions ma
   - A separate quit token for `--read-only` servers — rejected by default: `--read-only` has no token by design; stop those with Ctrl+C.
 - **Reference**: SEC-002.5 (o), SEC-004.10, REQ-002.H.37, ARCH-004.53
 
+### [SEC-004.24] Detected repository URL and license: read as files, credentials never kept, never taken from a request
+
+- **Date**: 2026-10-11 (BL-095 Spec Report; architect decision 2026-10-11)
+- **Decision**: `ProjectDetector` reads `.git/config`, `package.json` and the `LICENSE` files with `fs` only; `.git/config` and the `LICENSE` files only when `lstat` shows a regular file of at most 64 KB (a symbolic link, anything else or a larger file: value absent; `package.json` is read as today); the origin URL is kept only when `cloneUrlError()` accepts it (no password or token: https userinfo is refused, `git@host:path` and `ssh://user@host/path` are accepted as the clone route accepts them), so a token in a remote URL is never shown in `GET /api/setup` or written to a spec file; the license is checked against a fixed shape and length, the package manager and test framework come from fixed lists, the URL is checked by `cloneUrlError()`. The four fields enter `render()` from the server's detection only: the setup and preview routes refuse them in a body (SEC-004.17's allowlist does not grow).
+- **Rationale**: Developers do put tokens in remote URLs; the page and the written `project.yaml` are both places a secret must not reach. Reading files adds no capability (the server already reads the project); running `git` would be a third process started for a request.
+- **Alternatives considered**:
+  - `git remote get-url origin` — rejected: a process for a request (SEC-004.14's precedent).
+  - Stripping `user:password@` and keeping the rest — rejected (architect): a rewritten URL is not the user's text, and a partial strip of an odd form could leave a secret.
+- **Reference**: SEC-002.5 (p), SEC-004.17, REQ-002.H.39, ARCH-004.54
+
 ## Open Questions [SEC-005]
+
 
 - Should SpecPilot add `npm audit` integration as a first-party feature? (tracked in BL-010)
 - Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Since BL-PM-004b there is no HTML escaping; the handle is quoted for YAML by `dq` and `yaml`, SEC-004.3.) (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged. Since BL-PM-003 the project-context answers sent over HTTP are limited to one line of 1000 characters without control characters, SEC-004.14.)

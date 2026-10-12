@@ -35,7 +35,7 @@ For Cursor, VS Code and other clients, add it as an HTTP (streamable) server:
 
 No install, no API key. Full setup notes: <https://specpilot.dev/mcp-setup>
 
-To let your AI IDE read this machine's specs and add or move tasks, start `specpilot serve --mcp`: see [Local MCP endpoint](#local-mcp-endpoint-specpilot-serve---mcp) below.
+`specpilot serve` also serves a local MCP endpoint, so your AI IDE can read this machine's specs, add or move tasks and set up a folder: see [Local MCP endpoint](#local-mcp-endpoint-specpilot-serve) below.
 
 ## Quick Start
 
@@ -96,7 +96,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`   | `--dry-run` · `--force`                                                             |
 | `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
-| `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--mcp` · `--stop`                 |
+| `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--no-mcp` · `--stop`              |
 
 > Run `specpilot <command> --help` for full flag descriptions and default values.
 
@@ -134,7 +134,7 @@ specpilot serve --stop           # stop the server on port 4321 from another ter
 | `--poll <ms>` | `1000`  | Change-detection interval in ms (minimum 250); polling runs only while a page is open    |
 | `--read-only` |        | No task moves, no new tasks, no Setup view steps, no opening folders and no registry: the UI only reads, with no drag handles, no New Task button and no write routes |
 | `--open`      |         | Open the UI in the default browser                                                       |
-| `--mcp`       |         | Also serve a local MCP endpoint at `/mcp` for your AI IDE, and show the Connect Your AI IDE card on Home (below) |
+| `--no-mcp`    |         | Leave out the local MCP endpoint at `/mcp` (served by default for your AI IDE, with the Connect Your AI IDE card on Home and in the Setup view; below). `--mcp` is still accepted and changes nothing |
 | `--stop`      |         | Stop the SpecPilot server running on this machine on `--port` (default 4321), as Ctrl+C would; takes no other option. A `--read-only` server cannot be stopped this way: press Ctrl+C in its terminal |
 
 - **Several projects**: name any folders; one without `.specs/` is served too and shows the Setup view (below). They are numbered in command-line order from 0 (`../api` is project 0, `../web` is project 1), and that number is the `?project=<n>` on the server's `/api/` routes and the `#1/...` at the start of a page link for any project after the first (no number means project 0). Each project keeps its own tasks, files and live reload; a move changes only that project's `tasks.md`. Folders opened from the page (below) get the next numbers; a number never changes while the server runs, and one server holds at most 20 projects.
@@ -154,12 +154,12 @@ specpilot serve --stop           # stop the server on port 4321 from another ter
 - **What it shows**: `.specs/`, `CLAUDE.md`, `AGENTS.md`, `.github/copilot-instructions.md`, `.claude/commands/`, `.claude/skills/` and `.github/prompts/`, as the files' own text.
 - **Limits**: paths through symlinked folders, hidden files and `node_modules` are not shown. Task moves and new tasks are refused, not approximated, when they cannot change exactly one line: a section with no table yet (a fresh project's `[TODO]`), a move involving the file's last line when it has no trailing newline, and a `tasks.md` that is not valid UTF-8. If an editor saves `tasks.md` in the same instant the server writes it, that save can be overwritten; git keeps it recoverable. VS Code reads a path ending in `:<number>` as a line number, so a project folder whose name ends that way (`notes:12`) may not open as a folder from Open in VS Code. Windows paths (`C:\…`) in that link are untested. The Cursor links are untested on a machine with Cursor installed, and Windsurf has none yet. Adding or removing `.cursor/rules/specpilot.mdc` shows on the page at its next refresh, not at once, since that file is not watched. The Setup view's Connected status shows the name the IDE sends when it connects (`clientInfo`); it was checked with test requests in both MCP revisions, not with every IDE. The order the setup tools want is sent as the MCP `instructions` and in the tools' descriptions; whether an IDE shows `instructions` to its agent is up to the IDE, and only test requests were checked. A local program that can read the page can also register a new project's folder itself: the setup tools guard against an agent writing elsewhere by mistake, not against software already running on your machine.
 
-### Local MCP endpoint (`specpilot serve --mcp`)
+### Local MCP endpoint (`specpilot serve`)
 
-With `--mcp`, the server also answers MCP at `http://127.0.0.1:<port>/mcp`, so Claude Code, Cursor and other AI IDEs on this machine can read the specs and add or move tasks through the same checks as the page. It is off by default; without the flag nothing changes.
+The server also answers MCP at `http://127.0.0.1:<port>/mcp`, so Claude Code, Cursor and other AI IDEs on this machine can read the specs and add or move tasks through the same checks as the page. It is on by default; start with `--no-mcp` to leave it out (the Setup view then says how to restart). `--mcp` is still accepted and changes nothing.
 
 ```bash
-specpilot serve --mcp
+specpilot serve
 # MCP endpoint: http://127.0.0.1:4321/mcp
 # Add to your IDE's MCP settings: {"mcpServers":{"specpilot-local":{"type":"http","url":"http://127.0.0.1:4321/mcp","headers":{"X-SpecPilot-Token":"<token>"}}}}
 ```
@@ -171,7 +171,7 @@ Copy that line from the terminal, from the **Connect Your AI IDE** card on Home,
 - **Same guards as the page**: loopback only, the Host check, the token (a wrong or missing `X-SpecPilot-Token` gets 403), JSON only, 64 KB, the page's read allowlist, the page's write allowlist and one write lock for page and IDE. A request from a web page (any other `Origin`) is refused with 403; IDEs send none. Clones and the project list are not tools.
 - **Protocol revisions**: MCP `2026-07-28` (no handshake; the version, `Mcp-Method` and `Mcp-Name` headers must match the request body), and `2025-11-25` and `2025-06-18` (with `initialize`), on the same URL. A client that speaks both picks one; the config line is the same. Streamable HTTP, POST only, no sessions; answers are JSON, never a stream, and no change notifications are sent.
 - **Token**: a new one each time `serve` starts, so the line needs copying again after a restart. To keep one line, set `SPECPILOT_MCP_TOKEN` (at least 32 characters, no spaces) in the environment of `serve` and of your IDE; the line then says `${SPECPILOT_MCP_TOKEN}`, which Claude Code fills in from the environment (other IDEs: put the token in its place). SpecPilot never writes the token anywhere.
-- **`--read-only --mcp`**: only the four read tools (no task writes, no Regenerate, no setup tools); the endpoint gets its own token and the page stays read-only.
+- **`--read-only`**: only the four read tools (no task writes, no Regenerate, no setup tools); the endpoint gets its own token and the page stays read-only.
 - **Instruction files**: files generated by `init`, `add-specs` and the setup through your AI IDE carry one more process mandate: use the SpecPilot MCP tools for tasks when they are connected, otherwise edit `.specs/planning/tasks.md` and keep its table format. `specpilot backfill` does not add it to existing files yet.
 
 ## Supported Languages & Frameworks

@@ -522,11 +522,31 @@ describe('serveCommand', () => {
     }
   });
 
-  it('ignores SPECPILOT_MCP_TOKEN without --mcp and prints nothing about MCP (BL-PM-007)', async () => {
+  it('with --no-mcp ignores SPECPILOT_MCP_TOKEN, prints nothing about MCP and serves no /mcp (BL-105)', async () => {
+    process.env.SPECPILOT_MCP_TOKEN = 'short';
+    const startSpy = jest.spyOn(specServerModule, 'startSpecServer');
+    try {
+      const { out } = await runAndStop({ mcp: false });
+      expect(out).not.toMatch(/MCP/);
+      expect(startSpy.mock.calls[startSpy.mock.calls.length - 1][3]).toMatchObject({ mcp: false, mcpToken: undefined });
+    } finally {
+      delete process.env.SPECPILOT_MCP_TOKEN;
+    }
+  });
+
+  it('serves MCP by default: plain specpilot serve prints the endpoint and the config line, as --mcp does (BL-105)', async () => {
+    for (const opts of [{}, { mcp: true }]) {
+      logs.length = 0;
+      const { port, out } = await runAndStop(opts);
+      expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp\n`);
+      expect(out).toMatch(/^Add to your IDE's MCP settings: \{"mcpServers"/m);
+    }
+  });
+
+  it('without --no-mcp a broken SPECPILOT_MCP_TOKEN stops plain specpilot serve (BL-105)', async () => {
     process.env.SPECPILOT_MCP_TOKEN = 'short';
     try {
-      const { out } = await runAndStop({});
-      expect(out).not.toMatch(/MCP/);
+      await expect(serveCommand([], { port: '0' })).rejects.toThrow('exit 1');
     } finally {
       delete process.env.SPECPILOT_MCP_TOKEN;
     }
@@ -553,9 +573,11 @@ describe('serveCommand', () => {
     }
   });
 
-  it('says read tools only with --read-only --mcp (BL-PM-007)', async () => {
-    const { port, out } = await runAndStop({ mcp: true, readOnly: true });
-    expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp (read tools only)`);
+  it('says read tools only with --read-only, with or without --mcp (BL-PM-007, BL-105)', async () => {
+    for (const opts of [{ readOnly: true }, { mcp: true, readOnly: true }]) {
+      const { port, out } = await runAndStop(opts);
+      expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp (read tools only)`);
+    }
   });
 
   it.each(['SIGINT', 'SIGTERM', 'SIGHUP'] as const)('closes and exits 0 on %s, and then handles none of the three (BL-PM-002)', async signal => {
@@ -3432,7 +3454,7 @@ describe('specpilot serve --stop (BL-098)', () => {
       throw new Error(`exit ${code}`);
     }) as never);
     const before = process.listenerCount('SIGINT');
-    await serveCommand([], { port: String(port) });
+    await serveCommand([], { port: String(port), mcp: false }); // no config line, so any token in the log came from --stop
     await serveCommand([], { stop: true, port: String(port) });
     expect(await exitCode).toBe(0);
     expect(logs).toContain(`Stopped the SpecPilot server on port ${port}.`);
@@ -3480,6 +3502,7 @@ describe('specpilot serve --stop (BL-098)', () => {
     ['--read-only', [], { readOnly: true }],
     ['--open', [], { open: true }],
     ['--mcp', [], { mcp: true }],
+    ['--no-mcp', [], { mcp: false }],
     ['--poll', [], { poll: '500' }],
   ])('exits 1 with %s', async (_what, folders, opts) => {
     await expect(serveCommand(folders as string[], { stop: true, ...opts })).rejects.toThrow('exit 1');

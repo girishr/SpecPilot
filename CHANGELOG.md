@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **A folder without `.specs/` is set up by your AI IDE** (BL-103): in `specpilot serve`, opening or cloning such a folder, or Start a New Project, shows the Setup view: connect your AI IDE to the local MCP endpoint (with a Connected status that names the IDE), paste one line into it, and follow the Progress rows (Read the code, Answer the questions, Write the files, Validate), which follow your IDE's calls (BL-104). For a new project the page checks the name and parent folder as you type; the folder is created only by your IDE, and only there. When `.specs/` appears the page opens the project.
-- **`specpilot serve --mcp` takes requests up to 64 KB and offers nine tools** (BL-104), four with `--read-only` as before.
+- **`specpilot serve` serves the local MCP endpoint by default** (BL-105): no flag needed, and the terminal prints the config line for your AI IDE on every start; `--no-mcp` leaves it out. `--mcp` is still accepted. A `SPECPILOT_MCP_TOKEN` that is too short now stops `specpilot serve` (unless `--no-mcp`), as it did with `--mcp`.
+- **The local MCP endpoint takes requests up to 64 KB and offers nine tools** (BL-104), four with `--read-only` as before.
 
 ### Removed
 

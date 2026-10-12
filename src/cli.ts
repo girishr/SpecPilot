@@ -112,13 +112,14 @@ program
 // Serve command
 program
   .command('serve')
-  .description('Serve a local web UI over the .specs/ of this project, or of each folder named (127.0.0.1 only; task moves, and guided setup of a named folder without .specs/, unless --read-only)')
+  .description('Serve a local web UI over the .specs/ of this project, or of each folder named (127.0.0.1 only; task moves, and setup of a folder without .specs/ through your AI IDE, unless --read-only)')
   .argument('[folders...]', 'Project folders to serve, in this order (default: the current directory)')
   .option('-p, --port <number>', 'Port to listen on', '4321')
   .option('--poll <ms>', 'How often to check spec files for changes, in ms (minimum 250)', '1000')
   .option('--read-only', 'Turn off task moves and guided setup: the page only reads')
   .option('--open', 'Open the UI in your default browser')
-  .option('--mcp', 'Also serve a local MCP endpoint at /mcp for your AI IDE (SPECPILOT_MCP_TOKEN sets its token)')
+  .option('--mcp', 'Serve the local MCP endpoint at /mcp for your AI IDE (the default; SPECPILOT_MCP_TOKEN sets its token)')
+  .option('--no-mcp', 'Do not serve the local MCP endpoint')
   .option('--stop', 'Stop the SpecPilot server running on this machine (on --port; a --read-only one stops with Ctrl+C)')
   .action(serveCommand);
 

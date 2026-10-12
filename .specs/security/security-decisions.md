@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-12 (BL-104 Spec Report)
-version: 1.24
+lastUpdated: 2026-10-12 (BL-105 Spec Report)
+version: 1.25
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -245,7 +245,7 @@ This file records security-related architectural and implementation decisions ma
   - The folder check in the route only — rejected: the same write runs from the CLI; one guard in the shared function.
 - **Reference**: SEC-002.6, SEC-004.10, REQ-002.H.30, ARCH-004.49. Since BL-PM-012 one more fixed path, `.claude/skills/specpilot-project/SKILL.md` (up to 49), by SEC-004.25; "`SKILL.md` [is] not written" above is superseded for that file.
 
-### [SEC-004.20] Local MCP endpoint: off by default, the page's guards with Origin optional, the page's functions only
+### [SEC-004.20] Local MCP endpoint: off by default (on by default since BL-105, SEC-004.28), the page's guards with Origin optional, the page's functions only
 
 - **Date**: 2026-10-09 (BL-PM-007 Spec Report)
 - **Decision**: `specpilot serve --mcp` adds `POST /mcp`. Guards in order: Host (as every route), `Origin` absent or the page's own, the per-start token in `X-SpecPilot-Token`, `application/json`, 16 KB. Seven tools, each a call to a function a page route already uses; the three write tools take `sha256` as `If-Match` and run under the one write lock; `--read-only` removes them. No new dependency: the protocol is written by hand (stateless, JSON responses only). With `--read-only --mcp` the `/mcp` token is a separate value from the page's (which stays absent), so no page write route appears. The page's write routes keep the exact-`Origin` rule. The token is not stored anywhere: it lives as long as the server and is shown only in the page's card and the terminal. The developer added `SPECPILOT_MCP_TOKEN` at build: when set (at least 32 visible ASCII characters, else `serve --mcp` refuses to start), it is `/mcp`'s token, read from the environment and never written, and the card and terminal name the variable instead of showing it; a missing or wrong token answers 403 with a JSON-RPC error that names the `X-SpecPilot-Token` header. Why not 401, the status an HTTP API gives a missing credential: Claude Code 2.1.286 reads a 401 from an MCP server as an OAuth challenge, tries Dynamic Client Registration on this server, gets 405 and shows `Dynamic Client Registration rejected (HTTP 405)`, which says nothing about the token (seen in the BL-PM-007 check; the build had 401 and the developer changed it at review). So `/mcp` answers a bad credential with 403, as the page routes do, and sends no `WWW-Authenticate`; what still differs from the page routes is the body (JSON-RPC, naming the header) and that `Origin` may be absent.
@@ -330,6 +330,15 @@ This file records security-related architectural and implementation decisions ma
   - Trusting the registration without a re-check — rejected: the folder can change between registration and write.
   - A separate `/mcp` token, so a `/mcp` caller cannot reach the page's routes — rejected (architect decision Q1): any local process can read the page token from `GET /` (SEC-004.20), so it would stop nothing, and D3 keeps the token rules unchanged. D2 guards against an agent's mistakes, not against a local token holder.
 - **Reference**: SEC-004.12, SEC-004.14, SEC-004.20, SEC-004.26, SEC-002.11, REQ-002.H.42, ARCH-004.57
+
+### [SEC-004.28] The local MCP endpoint is on by default
+
+- **Date**: 2026-10-12 (BL-105 Spec Report; Girish decision D3)
+- **Decision**: `specpilot serve` serves `POST /mcp` unless `--no-mcp`. Every guard of SEC-004.20 and SEC-004.27 is unchanged: loopback only, Host, `Origin` absent or the page's own, the token, JSON, 64 KB; `--read-only` offers the four read tools only, with the endpoint's own token. Token rules unchanged (D3): per start, or `SPECPILOT_MCP_TOKEN`, now read on every start that serves MCP.
+- **Rationale**: the Setup view (SEC-004.26) only works with MCP on; the endpoint adds no capability a local process lacks, since it can already read the page token from `GET /` (SEC-004.20).
+- **Alternatives considered**:
+  - Keep it off and show the amber block — rejected (D3): setup would need a restart for almost everyone.
+- **Reference**: SEC-004.20, SEC-004.26, SEC-004.27, SEC-002.9, REQ-002.H.43
 
 ## Open Questions [SEC-005]
 

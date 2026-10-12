@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **A folder without `.specs/` is set up by your AI IDE** (BL-103): in `specpilot serve`, opening or cloning such a folder, or Start a New Project, shows the Setup view: connect your AI IDE to the local MCP endpoint (with a Connected status that names the IDE), paste one line into it, and follow the Progress rows. For a new project the page checks the name and parent folder as you type; the folder is created only by your IDE, and only there. When `.specs/` appears the page opens the project.
+
+### Removed
+
+- **The New Project chat and the guided-setup chat in `specpilot serve`** (BL-103), with their routes (`/api/setup`, `/api/projects/new`, `/api/preview`) and the page's copy of the chat rules (`/assets/chat-core.js`): the Setup view above replaces them. `specpilot init` and `specpilot add-specs` are unchanged.
+
 ## [2.14.0] - 2026-10-11
 
 ### Added

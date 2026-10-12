@@ -357,116 +357,39 @@ input.txt{width:100%}
 .recent .row .body{cursor:pointer}
 .recent .btn{flex:none}
 .sheet .note{padding:10px 14px}
-/* setup chat (BL-PM-004): the init.specpilot.dev flow as specpilot-chat-setup.html draws it; the sidebar gives way */
-.win.inchat .src{display:none}
-@media (min-width:901px){.win.inchat{grid-template-columns:60px minmax(0,1fr)}}
-.win.inchat #subName,.win.inchat #subPath{display:none}
-.win.inchat .content{padding:0;display:flex;flex-direction:column;overflow:hidden}
-.content>.chat.on{display:flex;flex:1;min-height:0;max-width:none;gap:0}
-.chat .bar{height:3px;background:var(--muted);flex:none}
-.chat .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s ease}
-@media (prefers-reduced-motion:reduce){.chat .bar i{transition:none}}
-.chat>.note{padding:22px}
-.chat .intro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:22px;overflow:auto}
-.chat .intro .big{width:52px;height:52px;border-radius:14px}
-.chat .intro h2{font-size:28px;font-weight:700;margin:0;letter-spacing:-.02em;text-align:center;text-wrap:balance}
-.chat .intro h2.para{max-width:640px;line-height:1.3;overflow-wrap:anywhere} /* guided setup: its paragraph is the heading (BL-PM-016) */
-.chat .intro h2.para .mono{font-size:.8em}
-.chat .intro .fine[hidden]{display:none}
-.chat .intro p{color:var(--label-2);max-width:540px;text-align:center;line-height:1.55;margin:8px 0 0;overflow-wrap:anywhere}
-.chat .intro p .mono{font-size:13px}
-.chat .intro .fine{font-size:12.5px;color:var(--label-3)}
-.chat .intro .start{display:flex;flex-direction:column;gap:8px;align-items:flex-start;width:min(540px,100%)}
-.chat .intro .lbl{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label-3);padding-left:4px}
-.chat .intro .row{display:flex;gap:10px;width:100%;min-height:0;border:0;padding:0}
-
-.chat .intro .cfield{flex:1;min-width:0;background:var(--group);border:1px solid var(--sep);border-radius:12px;padding:12px 16px;font-size:15.5px;color:var(--label)}
-.chat .intro .cfield.mono{font-family:var(--mono);font-size:14px}
-.chat .intro .cfield::placeholder{color:var(--label-3)}
-.chat .send{width:46px;height:46px;border-radius:50%;background:var(--accent-fill);color:var(--on-accent);font-size:18px;font-weight:700;flex:none}
-.chat .send:disabled{opacity:.4}
-.chat .err{color:var(--red-ink);font-size:12.5px;min-height:16px;padding-left:4px;margin:0;overflow-wrap:anywhere}
-.chat .thread{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:22px}
-.chat .col{max-width:680px;margin:0 auto;display:flex;flex-direction:column}
-.chat .divider{text-align:center;margin:22px 0 10px}
-.chat .divider span{display:inline-block;padding:4px 12px;border-radius:999px;background:var(--muted);color:var(--label-3);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-.chat .bot{display:flex;gap:10px;align-items:flex-start;margin:6px 0;max-width:90%}
-.chat .bot .logo,.chat .recap .logo{width:26px;height:26px;border-radius:8px;flex:none;margin-top:2px}
-.chat .bot .msg{background:var(--group);border:1px solid var(--sep);border-radius:4px 14px 14px 14px;padding:11px 15px;line-height:1.55;color:var(--label);min-width:0;overflow-wrap:anywhere}
-.chat .bot .cli{display:block;margin-top:6px;font-family:var(--mono);font-size:11.5px;color:var(--label-3);white-space:pre-line}
-.chat .me{display:flex;flex-direction:column;align-items:flex-end;margin:6px 0}
-.chat .me button.b{max-width:82%;background:var(--bubble);color:#fff;border:1px solid var(--bubble);border-radius:14px 4px 14px 14px;padding:11px 15px;line-height:1.5;text-align:left;font:inherit;overflow-wrap:anywhere}
-.chat .me button.b:hover{filter:brightness(1.1)}
-.chat .me .ed{font-size:11px;color:var(--label-3);padding:3px 2px}
-.chat .me .mono{font-family:var(--mono);font-size:13px}
-.chat .me.skipped button.b{opacity:.75;font-style:italic}
-.chat .det{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label-2);border:1px solid var(--sep);border-radius:6px;padding:0 5px;margin-right:4px;vertical-align:1px}
-.chat .me.fixed{gap:3px}
-.chat .me.fixed .b{max-width:82%;background:var(--group);color:var(--label);border:1px solid var(--sep);border-radius:14px 4px 14px 14px;padding:11px 15px;line-height:1.5;overflow-wrap:anywhere}
-.chat .rc .l.fixed:hover{background:none}
-.chat .composer{border-top:1px solid var(--sep);background:var(--group);padding:14px 22px 16px;flex:none}
-.chat .composer .col{gap:10px}
-.chat .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chat .chip{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:9px 13px;border:1px solid var(--sep);border-radius:10px;background:var(--ground);text-align:left;min-width:120px;max-width:100%;font:inherit;color:var(--label)}
-.chat .chip b{font-weight:600;font-size:13.5px}
-.chat .chip small{color:var(--label-3);font-size:12px;overflow-wrap:anywhere}
-.chat .chip:hover{border-color:var(--sep-2)}
-.chat .chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
-.chat .crow{display:flex;gap:10px}
-.chat .crow input{flex:1;min-width:0;background:var(--ground);border:1px solid var(--sep);border-radius:12px;padding:12px 14px;font:inherit;color:var(--label)}
-.chat .crow input.mono{font-family:var(--mono);font-size:13.5px}
-.chat .crow .btn{flex:none}
-.chat .act{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.chat .act .hint,.chat .act .err{font-size:12px;color:var(--label-3);min-height:0}
-.chat .act .hint:empty{display:none}
-.chat .act .err{color:var(--red-ink);margin-right:auto}
-.chat .act .hint:not(:empty)+.err:empty{display:none}
-.chat .act .hint:not(:empty){margin-right:auto}
-.chat .recap{display:flex;gap:10px;align-items:flex-start;margin-top:14px}
-.chat .card{flex:1;min-width:0;background:var(--group);border:1px solid var(--sep);border-radius:4px 14px 14px 14px;padding:16px 18px;line-height:1.5}
-.chat .card .pen{font-size:12px;color:var(--label-3);margin:4px 0 12px}
-.chat .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
-.chat .rc{border:1px solid var(--sep);border-radius:10px;padding:10px 12px;background:var(--ground)}
-.chat .rc .t{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label-3);margin-bottom:6px}
-.chat .rc .l{display:flex;justify-content:space-between;gap:8px;width:100%;font:inherit;font-size:13px;padding:3px 0;text-align:left;color:var(--label);border-radius:6px}
-.chat .rc .l:hover{background:var(--hover)}
-.chat .rc .l span:first-child{color:var(--label-3);white-space:nowrap}
-.chat .rc .l span:last-child{text-align:right;overflow-wrap:anywhere}
-.chat details{border:1px solid var(--sep);border-radius:10px;padding:8px 12px;margin-bottom:14px}
-.chat details summary{cursor:pointer;font-size:13px;color:var(--label-2)}
-.chat details ul{margin:8px 0 0;padding:0;list-style:none;font-family:var(--mono);font-size:12px;color:var(--label-3);columns:2}
-.chat details li{overflow-wrap:anywhere;break-inside:avoid}
-.chat details .kept{font-family:var(--sans);color:var(--label-2)}
-.chat .card .err{margin-top:8px}
-.chat{--bubble:#2563eb} /* the web's solid answer bubble (BL-PM-004b): white on it is 5.2:1 in both themes */
-.chat .cbody{flex:1;display:flex;min-height:0;position:relative}
-.chat .cbody[hidden]{display:none}
-.chat .cmain{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
-.chat .bot .cap{display:block;margin-top:4px;font-size:11.5px;color:var(--label-3)}
-.chat .cnote{font-size:12.5px;line-height:1.5;color:var(--label-2);background:var(--muted);border-radius:10px;padding:8px 12px;margin:6px 0 6px 36px}
-.chat .composer .cnote{margin:0}
-.chat .composer{max-height:60vh;overflow-y:auto}
-.chat .composer .lbl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label-3);margin:0}
-.chat .ctabs{display:flex;gap:16px;border-bottom:1px solid var(--sep);overflow-x:auto;scrollbar-width:none}
-.chat .tab{padding:0 0 8px;margin-bottom:-1px;border-bottom:2px solid transparent;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label-3);white-space:nowrap}
-.chat .tab[aria-selected="true"]{color:var(--accent);border-color:var(--accent)}
-.chat .tab .cnt{display:inline-block;min-width:16px;padding:0 5px;border-radius:999px;background:var(--accent-fill);color:var(--on-accent);font-size:10px;text-align:center}
-.chat .chip b{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
-.chat .chip .em{font-size:14px;line-height:1}
-.chat .chip.todo b{font-style:italic;font-weight:500}
-.chat .chip.other b{font-weight:500;color:var(--label-2)}
-.chat .chip small.wn{color:var(--orange-ink)}
-.chat .bdg{font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--accent-soft);color:var(--green-ink)}
-.chat .bdg.fl{background:var(--orange-soft);color:var(--orange-ink)}
-.chat .chips.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
-.chat .chips.grid2 .chip{min-width:0}
-.chat .chg{font-size:12.5px;color:var(--orange-ink);margin:0 0 8px}
-.chat .pvl{display:flex;flex-direction:column;gap:6px;margin-top:8px}
-.chat details.pf{border:0;padding:0;margin:0}
-.chat details.pf summary{font-family:var(--mono);font-size:12px;color:var(--label-3);overflow-wrap:anywhere}
-.chat details.pf pre,.chat details.pf .md{max-height:360px;overflow:auto;border:1px solid var(--sep);border-radius:8px;padding:10px;font-size:12px;background:var(--ground);margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
-@media (max-width:900px){.chat .thread,.chat .composer{padding-left:14px;padding-right:14px}.chat details ul{columns:1}.chat .me button.b,.chat .bot{max-width:100%}}
-@media (prefers-reduced-motion:reduce){.chat .thread{scroll-behavior:auto}}
+/* Setup view (BL-103): the mockup specpilot-setup-view.html; the AI IDE does the setup, the page says how */
+.win.insetup .src{display:none} /* no spec nav for a folder without specs, as the chat had it */
+@media (min-width:901px){.win.insetup{grid-template-columns:60px minmax(0,1fr)}}
+.win.insetup #subName,.win.insetup #subPath{display:none}
+.setupv{max-width:760px}
+.setupv .lead{color:var(--label-2);margin:0;line-height:1.55;max-width:66ch;overflow-wrap:anywhere}
+.setupv .lead .mono{color:var(--label)}
+.setupv .gl{background:var(--group);border:1px solid var(--sep);border-radius:6px;padding:14px 16px}
+.setupv .gl .gh{color:var(--label);font-size:14px;font-weight:600;text-transform:none;letter-spacing:0;padding:0;margin-bottom:2px}
+.setupv .gh .n{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--label-3)}
+.setupv .gh .st{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:400;color:var(--label-3);overflow-wrap:anywhere;text-align:right}
+.setupv .gh .st.ok{color:var(--green-ink)}
+.setupv .box{display:flex;gap:8px;align-items:center;background:var(--ground);border:1px solid var(--sep);padding:8px 10px;min-width:0}
+.setupv .box.pre{align-items:flex-start}
+.setupv .box pre,.setupv .box code{margin:0;flex:1;min-width:0;font:12.5px/1.5 var(--mono);color:var(--label);overflow-x:auto}
+.setupv .box code{white-space:nowrap}
+.setupv .box .btn{flex:none}
+.setupv .note{margin:4px 0 0;padding:0;font-size:12.5px}
+.setupv .fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px}
+.setupv .f label{display:block;font-size:12px;color:var(--label-3);margin-bottom:4px}
+.setupv .f .in{display:flex;gap:6px}
+.setupv .f input{width:100%;flex:1;min-width:0;background:var(--ground);border:1px solid var(--sep-2);border-radius:var(--r);padding:6px 9px;color:var(--label);font:13px var(--mono)}
+.setupv .err{padding:0;margin:4px 0 0;overflow-wrap:anywhere}
+.setupv .err:empty{display:none}
+.setupv .warnbox{display:flex;gap:10px;align-items:flex-start;background:var(--orange-soft);border:1px solid color-mix(in srgb,var(--orange) 40%,transparent);border-radius:var(--r);padding:8px 10px;font-size:13px;line-height:1.5}
+.setupv .warnbox[hidden]{display:none}
+.setupv .step.off{opacity:.45}
+.setupv .steps{list-style:none;margin:6px 0 0;padding:0}
+.setupv .steps li{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--sep);color:var(--label-3)}
+.setupv .steps li:first-child{border-top:0}
+.setupv .steps i{width:18px;height:18px;border-radius:50%;border:1.5px dashed var(--sep-2);flex:none}
+.setupv .sufoot{color:var(--label-3)}
+@media (max-width:720px){.setupv .fields{grid-template-columns:1fr}}
 
 /* Home (BL-PM-001): the mockup's .welcome column. The sidebar and the top bar give way and the rail
    stays; in a narrow window the bar keeps its menu button, the only way to the rail there. */

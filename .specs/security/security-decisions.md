@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-11 (BL-PM-012 Spec Report)
-version: 1.22
+lastUpdated: 2026-10-12 (BL-103 Spec Report)
+version: 1.23
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -309,6 +309,17 @@ This file records security-related architectural and implementation decisions ma
   - Showing a reviewed diff before writing — rejected (architect): the commands have no such step, and the brief asks for the commands' rule.
 - **Reference**: SEC-004.19, SEC-002.6, REQ-002.H.40, ARCH-004.55
 
+### [SEC-004.26] The Setup view adds one in-memory pending path and shows a client name; setup itself leaves the page
+
+- **Date**: 2026-10-12 (BL-103 Spec Report; Girish decisions D1, D2)
+- **Decision**: The chat's routes are removed (`GET`/`POST /api/setup`, `GET`/`POST /api/projects/new`, `POST /api/preview`, `/assets/chat-core.js`), so the page no longer sends answers or creates a project. Two things are added. (1) `POST /api/projects/pending` `{parent, name}`: every write-route check (Host, exact Origin, token, JSON, at most 16 KB; 405 with `--read-only`), then under the write lock the checks of REQ-002.H.23 steps (1) to (3) through `checkTarget()`, the code `reserveTarget()` runs before its `mkdir`; it creates, reads into and writes nothing, and keeps the absolute target in the server's memory as the one pending path (the next registration replaces it; nothing on disk; gone when the server stops). That path is the only place outside a served root the BL-104 setup tool may write (D2). (2) The MCP client's name (`clientInfo.name` on `initialize`, or the 2026-07-28 `_meta` `io.modelcontextprotocol/clientInfo`, which that revision defines as self-reported and for display only, checked 2026-10-12) is kept in memory and shown on the page: C0 and C1 controls, U+2028, U+2029 and the bidi format characters (U+200E, U+200F, U+202A to U+202E, U+2066 to U+2069) removed on the server, then cut to 100 characters, drawn with `textContent`; it rides `/api/specs` and `event: mcp`, as `event: clone` does, to every open stream, as state only. Registration authorizes nothing on its own: the BL-104 writer re-runs every target check against the disk at write time, under the write lock, and compares the tool's path with the pending target as the same absolute string; it also refuses a served root not named on the command line or opened or cloned from the page (architect decision).
+- **Rationale**: D2 needs a set of writable targets the user chose on the page, and one slot is the smallest such set: a typo corrected in the field leaves nothing writable behind. The client name is the only new text from outside the page; it comes from a request that already passed `/mcp`'s token check, and it is shown as text.
+- **Alternatives considered**:
+  - A list of pending paths, or one per page — rejected: older entries stay writable for the run.
+  - Writing the pending path to `~/.specpilot` — rejected: the registry stays the one file SpecPilot writes outside a project (SEC-002.7).
+  - Paths or file names on the event streams — rejected, as for `event: clone` (SEC-004.9).
+- **Reference**: SEC-002.10, SEC-004.9, SEC-004.20, REQ-002.H.41, ARCH-004.56
+
 ## Open Questions [SEC-005]
 
 
@@ -318,4 +329,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-10-11_
+_Last updated: 2026-10-12_

@@ -355,7 +355,7 @@ specpilot serve --mcp           # also a local MCP endpoint for your AI IDE
 
 - `--port, -p <number>`: Port to listen on (127.0.0.1 only) · default: `4321`
 - `--poll <ms>`: Change-detection interval, 250 or more · default: `1000`
-- `--read-only`: The page only reads: no task moves, new tasks, setup, opening folders or registry
+- `--read-only`: The page only reads: no task moves, new tasks, Setup view steps, opening folders or registry
 - `--open`: Open the UI in the default browser
 - `--mcp`: Also serve MCP at `/mcp` (below)
 
@@ -366,6 +366,8 @@ specpilot serve --mcp           # also a local MCP endpoint for your AI IDE
 ```
 
 Put it in your IDE's MCP settings (or a `.mcp.json` you keep out of git). The IDE then has seven tools: `specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs` and `specpilot_regenerate_commands`. They run the page's own code behind the page's own checks; the task writes need the `sha256` from `specpilot_list_tasks` and are refused when the file changed since. The token is new on every start; set `SPECPILOT_MCP_TOKEN` (32 characters or more) in the environment of `serve` and of your IDE to keep it, and the line then reads `${SPECPILOT_MCP_TOKEN}`. With `--read-only` only the four read tools are offered.
+
+**Setting up a folder without `.specs/`:** the page shows a Setup view (also for Start a New Project on Home): connect your AI IDE with the line above, paste the one line it gives you into the IDE, and watch the Progress rows; the IDE reads the code and asks you only what it cannot tell. When `.specs/` appears the page opens the project. In the terminal, `specpilot add-specs` (existing code) or `specpilot init` (new project) asks the same questions.
 
 ### Generated Slash Commands
 

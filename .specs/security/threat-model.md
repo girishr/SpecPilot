@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-11 (BL-095 Spec Report)
-version: 1.27
+lastUpdated: 2026-10-12 (BL-103 Spec Report)
+version: 1.28
 contributors: [girishr]
 relatedFiles:
   [
@@ -133,6 +133,19 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | **Mitigation**    | (1) Same listener on `127.0.0.1`, same `Host` check (b). (2) `Origin` absent or exactly the page's own; a browser request from another site always carries its `Origin` (a). (3) The per-start token, constant-time compared, checked before anything is read (a). (4) `application/json` only, so a browser cannot send it without a preflight, which is never answered with CORS headers (a). (5) Tools call only the page's guarded functions: the same read allowlist and realpath (f), the same write allowlist (`tasks.md`, `specpilot-*` command files), shape checks, `sha256` as `If-Match`, and the one write lock (d, e). (6) No tool for setup, new project, clone, opening folders or the registry. (7) `--read-only` removes the write tools. (8) The token dies with the server, so a committed config line is useless after a restart (c); a `SPECPILOT_MCP_TOKEN` the user sets lives as long as they keep it, is at least 32 characters, is never written by SpecPilot and is shown in the page and terminal only as `${SPECPILOT_MCP_TOKEN}` (c). (9) A missing or wrong token is 403, with a body naming `X-SpecPilot-Token`, and learns nothing about the projects. |
 | **Residual risk** | Low. A local process can already read the token from `GET /` and call the page's routes with a forged `Origin`, so `/mcp` adds no capability a local process lacks. (d) is the IDE's to control: its own tool approval prompts and the agent's mandates; every write is one reviewable line in git. |
 
+### Setup View — pending path and client name (BL-103) [SEC-002.10]
+
+The page registers where a new project may be made, and shows which MCP client is connected (REQ-002.H.41).
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Cross-site request** to `POST /api/projects/pending` to point the pending path elsewhere. (b) **Stale target**: a path registered earlier stays writable for the setup tool. (c) **Markup injection** through the MCP client's name shown on the page. |
+| **Impact**        | Low: (a) and (b) only choose where the BL-104 tool may create a new folder, which must be missing or empty and pass `checkOpenPath()`; nothing is written by the route. (c) would run script in the page that holds the token. |
+| **Likelihood**    | Low: (a) needs the page token; (c) needs the `/mcp` token. |
+| **Entry point**   | `POST /api/projects/pending` JSON `{parent, name}`; `clientInfo.name` on `/mcp`. |
+| **Mitigation**    | (1) Every write-route check, then REQ-002.H.23 steps (1) to (3) under the lock (a); the BL-104 writer runs them again at write time and compares paths as the same absolute string, so registration alone authorizes nothing. (2) One pending path, replaced by the next registration, kept in memory only (b). (3) C0/C1 controls, U+2028/U+2029 and bidi format characters removed, then cut to 100 characters, drawn with `textContent` (c). |
+| **Residual risk** | Low. A local process with the page token could set the pending path, as it could already create a project through the removed route. |
+
 ## Attack Surface Summary [SEC-003]
 
 | Entry Point                          | Data Type            | Validated?                     | Used In                                  |
@@ -149,26 +162,28 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 | `?project=<n>` on `/api/` routes     | Integer index        | ✅ one value, decimal digits only, no sign or leading zero, naming a served project, else 404 | Picks one root; then single-project guards (SEC-002.5 i) |
 | `specpilot serve --port`             | Integer              | ✅ 1–65535 integer             | `server.listen()` on 127.0.0.1           |
 | `specpilot serve --poll`             | Integer (ms)         | ✅ whole number ≥ 250          | Poller interval (SEC-002.5 g)            |
-| `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g); clone progress: a stage key and a percentage (BL-PM-009) |
+| `GET /api/events` streams            | Long-lived connection | ✅ Host check, cap of 8 (503)  | Change events: paths only (SEC-002.5 g); clone progress: a stage key and a percentage (BL-PM-009); MCP client: `{client}`, a sanitized name, state only (BL-103, SEC-002.10) |
 | `POST /api/tasks/move`               | JSON `{id, toSection, toIndex}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, If-Match, row lookup | One line moved in `tasks.md` (SEC-002.5 f, h) |
 | `POST /api/tasks/new` (BL-PM-005)   | JSON `{description, section}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; description one line of at most 4000 code points, no control character, no unpaired surrogate, no `|`, no trailing `\`, not empty; section `backlog` or `currentSprint`; ID computed by the server | One line appended to Backlog or Current Sprint in `tasks.md`; `tasks-archive.md` read for IDs (SEC-004.18) |
 | `POST /api/commands/regenerate` (BL-PM-006) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; body must be `{}`; targets fixed by `KNOWN_COMMAND_HASHES` and IDE signal files | Adds missing and replaces byte-exact known `specpilot-*` command files of detected IDEs; links on the way kept (SEC-004.19) |
 | `POST /mcp` (BL-PM-007, only with `--mcp`) | JSON-RPC (one message), `X-SpecPilot-Token`, `Origin` absent or the page's own | ✅ Host, Origin, token, JSON only, ≤ 16 KB; tool arguments through the page routes' shape checks; `sha256` as If-Match; on revision `2026-07-28` (BL-089) the mirrored `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers must equal the body (-32020), and nothing is routed on a header | The page's read and write functions under the one lock (SEC-002.9) |
-| `GET /api/setup`                     | `project` index      | ✅ Host check; 404 unless a named folder without `.specs`; 405 with `--read-only` | Questions, detector result and the kept list, read-only (SEC-002.5 j) |
-| `POST /api/setup`                    | JSON `{projectType, language?, framework?, apiParadigm, handle, ide}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, fixed keys, fixed choices, handle allowlist | New files only, staged then created exclusively; existing files kept (SEC-002.5 j) |
+| `GET /api/setup` (removed by BL-103) | `project` index      | ✅ Host check; 404 unless a named folder without `.specs`; 405 with `--read-only` | Questions, detector result and the kept list, read-only (SEC-002.5 j) |
+| `POST /api/setup` (removed by BL-103) | JSON `{projectType, language?, framework?, apiParadigm, handle, ide}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, fixed keys, fixed choices, handle allowlist | New files only, staged then created exclusively; existing files kept (SEC-002.5 j) |
 | `.specpilot-setup-*` folders at `serve` startup | Disk read (`lstat`, marker file) | ✅ exact name pattern, real folder, marker present as a regular file; skipped with `--read-only` | Removed with contents; nothing else touched (SEC-002.5 j) |
 | `POST /api/projects`                 | JSON `{path}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; one key, string ≤ 4096, no NUL, `~` expanded, absolute, `realpath`, directory, not home / a root / a served root; 405 with `--read-only` | One more served root (then the per-root guards); one registry entry (SEC-002.5 k) |
 | `GET /api/projects`, `POST /api/projects/remove` | none / JSON `{path}` + token + `Origin` | ✅ Host (and the write checks on remove); remove matches the stored string only | Registry listed or one entry removed; no folder touched (SEC-002.5 k) |
-| `GET /api/projects/new`              | none                 | ✅ Host check; 405 with `--read-only` | `init`'s questions; reads no folder, writes nothing (SEC-002.5 l) |
-| `POST /api/projects/new`             | JSON `{parent, name, projectType, language, framework?, apiParadigm, handle, ide, whatItDoes, targetUsers?, expectedScale?, constraints?}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; fixed keys and choices; parent through `checkOpenPath()`, no `.specs` segment; name allowlist, ≤ 214; handle allowlist; context answers single-line, ≤ 1000, no control characters or U+2028 / U+2029; 405 with `--read-only` | One new folder (or an existing empty one) with the files `init` writes, staged then created exclusively; then one more served root and one registry entry (SEC-002.5 l) |
+| `GET /api/projects/new` (removed by BL-103) | none                 | ✅ Host check; 405 with `--read-only` | `init`'s questions; reads no folder, writes nothing (SEC-002.5 l) |
+| `POST /api/projects/new` (removed by BL-103) | JSON `{parent, name, projectType, language, framework?, apiParadigm, handle, ide, whatItDoes, targetUsers?, expectedScale?, constraints?}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; fixed keys and choices; parent through `checkOpenPath()`, no `.specs` segment; name allowlist, ≤ 214; handle allowlist; context answers single-line, ≤ 1000, no control characters or U+2028 / U+2029; 405 with `--read-only` | One new folder (or an existing empty one) with the files `init` writes, staged then created exclusively; then one more served root and one registry entry (SEC-002.5 l) |
 | `POST /api/projects/clone`           | JSON `{url, parent, name}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; three string keys; URL allowlist (https, `ssh://`, `user@host:path`; ≤ 2048, no whitespace or control character, no leading `-`, no credentials); parent and name as `POST /api/projects/new`; target missing or empty; one clone at a time; 405 with `--read-only` | One `git clone --progress` started without a shell (stderr read for a stage and a percentage only, BL-PM-009; https or ssh only, no submodules, no prompt, 10 minutes at most) into one new or empty folder, cleaned up on failure; then one more served root and one registry entry (SEC-002.5 m) |
 | `POST /api/projects/browse` (BL-PM-011) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; body exactly `{}`; one dialog at a time; 405 with `--read-only` | One system folder dialog started without a shell, constant arguments, 5 minutes at most; its output returned as text, never read or opened by the server (SEC-002.5 n) |
+| `POST /api/projects/pending` (BL-103) | JSON `{parent, name}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; two keys, the new-project parent and name rules, `checkTarget()` under the lock; 405 with `--read-only` | One pending target in memory; nothing read inside it or written (SEC-002.10) |
+| MCP client name (BL-103) | `clientInfo.name` from `/mcp` | ✅ after `/mcp`'s token check; controls, U+2028/U+2029 and bidi format characters removed, ≤ 100 characters; shown with `textContent` | Block 1 status of the Setup view (SEC-002.10) |
 | `~/.specpilot/projects.json`         | Disk read (JSON, `lstat`) | ✅ `.specpilot` a real folder, file a regular file, valid JSON of the one shape, absolute paths; anything else → refused for the run, never rewritten | Recent projects list; never a served root by itself (SEC-002.5 k) |
 | Existing `specpilot-*` command files (`backfill`) | Disk read (bytes, `lstat`) | ✅ Exact SHA-256 match per target path, regular files only | Replaced or kept (SEC-002.6) |
 | Optional template fields (REQ-002.I.4) | Strings, lists, a map of lists | ⚠️ As typed in markdown (no HTML escaping since BL-PM-004b), `yaml`/`yamlList` in YAML; from BL-PM-004b also checked at the two create routes (type, length, list size, category keys, one line; SEC-002.8) | The phase 2 sections of `.specs/` files (SEC-002.2, SEC-002.7) |
-| `POST /api/preview` (BL-PM-004b) | JSON, the create body; token, `Origin` | ✅ as the create routes, ≤ 64 KB; 405 with `--read-only` | `render()` output returned; nothing written (SEC-002.8) |
+| `POST /api/preview` (BL-PM-004b) (removed by BL-103) | JSON, the create body; token, `Origin` | ✅ as the create routes, ≤ 64 KB; 405 with `--read-only` | `render()` output returned; nothing written (SEC-002.8) |
 | `sp-setups` in the page's `localStorage` (BL-PM-004b; removed by BL-PM-016) | Nothing since BL-PM-016: the page only removes a leftover key once, in `try` | ✅ no answers kept in the browser | None (REQ-002.H.35) |
-| `/assets/chat-core.js` (BL-PM-004b) | Compiled `src/core/chatFlow.ts` | ✅ purity rule and test; same-origin script under the existing CSP | Chat options and rules in the page (SEC-002.8) |
+| `/assets/chat-core.js` (BL-PM-004b) (removed by BL-103) | Compiled `src/core/chatFlow.ts` | ✅ purity rule and test; same-origin script under the existing CSP | Chat options and rules in the page (SEC-002.8) |
 
 ## Out of Scope [SEC-004]
 
@@ -180,4 +195,4 @@ The setup chat of `specpilot serve` sends 23 more answers to the two create rout
 
 ---
 
-_Last updated: 2026-10-11_
+_Last updated: 2026-10-12_

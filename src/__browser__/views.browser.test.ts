@@ -72,13 +72,13 @@ browserTest('Open in VS Code: on every project view and guided setup, encoded fo
   }
   expect(routeJs.editorUrl(odd)).toContain('My%20Proj%C3%A9%20%E6%97%A5%E6%9C%AC');
   await page.goto(`${srv.url}/#2/setup`);
-  await waitView(page, 'v-chat');
-  await page.locator('#setupStart').waitFor({ state: 'visible' });
+  await waitView(page, 'v-setup');
+  await page.locator('#suLead').waitFor({ state: 'visible' });
   expect(await page.locator('#editorBtn').isVisible()).toBe(true);
   expect(await page.locator('#editorBtn').getAttribute('href')).toBe(routeJs.editorUrl(empty));
   for (const hash of ['#home', '#new']) {
     await page.goto(`${srv.url}/${hash}`);
-    await waitView(page, hash === '#home' ? 'v-home' : 'v-chat');
+    await waitView(page, hash === '#home' ? 'v-home' : 'v-setup');
     expect(await page.locator('#editorBtn').isHidden()).toBe(true);
   }
 });
@@ -202,14 +202,14 @@ browserTest('Open in AI IDE: Cursor and the onboarding prompt, only when they ap
   // guided setup (no .specs/): Open in Cursor only
   cursorOn(empty);
   await page.goto(`${srv.url}/#2/setup`);
-  await waitView(page, 'v-chat');
-  await page.locator('#setupStart').waitFor({ state: 'visible' });
+  await waitView(page, 'v-setup');
+  await page.locator('#suLead').waitFor({ state: 'visible' });
   await page.waitForFunction(href => document.querySelector('#editorBtn')!.getAttribute('href') === href && !document.querySelector<HTMLElement>('#ideWrap')!.hidden, routeJs.editorUrl(empty));
   expect(await ideItems(page)).toEqual([['Open in Cursor', routeJs.editorUrl(empty, 0, 'cursor')]]);
 
   for (const hash of ['#home', '#new']) {
     await page.goto(`${srv.url}/${hash}`);
-    await waitView(page, hash === '#home' ? 'v-home' : 'v-chat');
+    await waitView(page, hash === '#home' ? 'v-home' : 'v-setup');
     expect(await page.locator('#ideWrap').isHidden()).toBe(true);
   }
   remember(env, [env.project, odd]); // both have the Cursor rules file

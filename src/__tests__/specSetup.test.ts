@@ -17,7 +17,7 @@ import {
 } from '../utils/specSetup';
 import { API_PARADIGM_CHOICES } from '../utils/addSpecsQuestions';
 import { NOT_SPECIFIED, projectNameError } from '../utils/initQuestions';
-import { HANDLE_PATTERN } from '../utils/specSetup';
+import { checkTarget, HANDLE_PATTERN, pendingShapeError } from '../utils/specSetup';
 
 jest.mock('inquirer', () => ({ __esModule: true, default: { prompt: jest.fn() } }));
 import inquirer from 'inquirer';
@@ -559,7 +559,7 @@ describe('createProject() refusals: nothing created, nothing changed', () => {
     expect(await createProject(a.base, 'demo', NEW, [], a.home)).toEqual(link(a));
     expect(existsSync(join(a.base, 'gone'))).toBe(false);
     await refused(x => x.base, 'demo', { status: 409, error: expect.stringMatching(/demo exists and is not a folder, so nothing was created\.$/) }, x => writeFileSync(join(x.base, 'demo'), 'x'));
-    const notEmpty = { status: 409, error: expect.stringMatching(/demo already exists and is not empty\. Use the Folder tab to open it and add \.specs\/ there\.$/) };
+    const notEmpty = { status: 409, error: expect.stringMatching(/demo already exists and is not empty\. Use Open a Project Folder to open it and add \.specs\/ there\.$/) };
     await refused(x => x.base, 'demo', notEmpty, x => { mkdirSync(join(x.base, 'demo')); writeFileSync(join(x.base, 'demo', 'README.md'), 'mine\n'); });
     await refused(x => x.base, 'demo', notEmpty, x => { mkdirSync(join(x.base, 'demo')); writeFileSync(join(x.base, 'demo', '.DS_Store'), ''); });
     await refused(x => x.base, 'demo', notEmpty, x => mkdirSync(join(x.base, 'demo', 'sub'), { recursive: true }));
@@ -615,6 +615,17 @@ describe('createProject() refusals: nothing created, nothing changed', () => {
 });
 
 describe('reserveTarget() (BL-PM-002): the folder steps of createProject(), shared with the clone route', () => {
+  it('checkTarget() makes the same checks and creates nothing (BL-103, the pending path)', () => {
+    const a = makeBase();
+    expect(checkTarget(a.base, 'demo', [], a.home)).toEqual({ target: join(a.base, 'demo'), exists: false });
+    expect(readdirSync(a.base)).toEqual([]);
+    mkdirSync(join(a.base, 'demo'));
+    expect(checkTarget(a.base, 'demo', [], a.home)).toEqual({ target: join(a.base, 'demo'), exists: true });
+    writeFileSync(join(a.base, 'demo', 'x'), 'x');
+    expect(checkTarget(a.base, 'demo', [], a.home)).toEqual(reserveTarget(a.base, 'demo', [], a.home));
+    expect(checkTarget(a.base, 'demo', [join(a.base, 'demo')], a.home)).toMatchObject({ status: 409, project: 0 });
+  });
+
   it('makes a missing target and says so, and uses an empty one as it is', () => {
     const a = makeBase();
     expect(reserveTarget(a.base, 'demo', [], a.home)).toEqual({ target: join(a.base, 'demo'), created: true });
@@ -627,7 +638,7 @@ describe('reserveTarget() (BL-PM-002): the folder steps of createProject(), shar
     mkdirSync(join(a.base, 'demo'));
     writeFileSync(join(a.base, 'demo', '.hidden'), 'x');
     const target = join(a.base, 'demo');
-    expect(reserveTarget(a.base, 'demo', [], a.home)).toEqual({ status: 409, error: `${target} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.`, notEmpty: target });
+    expect(reserveTarget(a.base, 'demo', [], a.home)).toEqual({ status: 409, error: `${target} already exists and is not empty. Use Open a Project Folder to open it and add .specs/ there.`, notEmpty: target });
   });
 
   it('refuses the folder a running clone holds before looking at it, also for a new project', async () => {
@@ -916,11 +927,10 @@ describe('the name and handle rules have one copy, in ui/route.js (BL-PM-004)', 
   });
 });
 
-describe('the setup chat\'s decisions (ui/route.js, BL-PM-004)', () => {
+describe('the CLI question list for the chat core (ui/route.js, BL-PM-004)', () => {
   const PARENT = { key: 'parent', message: 'Parent folder', label: 'Folder', required: true, chat: "Nice, {name}. Where should it live? I'll create {name}/ inside this folder.", placeholder: '~/dev' };
   const FIRST = [{ ...PARENT, step: STEPS[0] }];
   const keys = (q: unknown, answers: Record<string, string>, first?: unknown[]) => route.flowQuestions(q, answers, first).map(x => x.key);
-  const CTX = { name: 'demo', language: 'python' };
 
   it('flowQuestions(): the chat\'s order, the page\'s parent question first, project type before "describe it"', () => {
     const q = newProjectQuestions();
@@ -967,91 +977,6 @@ describe('the setup chat\'s decisions (ui/route.js, BL-PM-004)', () => {
     expect(route.answered(by('parent'), {})).toBe(false);
   });
 
-  it('nextQuestion(): the first unanswered, the edited one, null at the recap; a type or language change adds or drops questions', () => {
-    const q = newProjectQuestions();
-    const next = (answers: Record<string, string>, editing?: string) => { const list = route.flowQuestions(q, answers, FIRST); const n = route.nextQuestion(list, answers, editing); return n ? n.key : null; };
-    expect(next({})).toBe('parent');
-    expect(next({ parent: '/tmp/x' })).toBe('projectType');
-    expect(next({ parent: '/tmp/x', projectType: 'greenfield' })).toBe('whatItDoes');
-    expect(next({ parent: '/tmp/x', projectType: 'brownfield' })).toBe('handle');
-    const all = { parent: '/tmp/x', projectType: 'brownfield', handle: '', language: 'javascript', ide: 'vscode', apiParadigm: 'rest' };
-    expect(next(all)).toBeNull();
-    expect(next({ ...all, projectType: 'greenfield' })).toBe('whatItDoes'); // newly asked, no answer yet
-    expect(next({ ...all, language: 'python' })).toBe('framework'); // the language now has frameworks
-    expect(next({ ...all, language: 'python', framework: 'react' })).toBe('framework'); // a framework of another language is asked again
-    expect(next({ ...all, language: 'python', framework: 'django' })).toBeNull();
-    expect(next(all, 'language')).toBe('language'); // editing
-    expect(next(all, 'whatItDoes')).toBeNull(); // editing a question that is not asked falls back
-  });
-
-  it('chatText(): {name} and {language} filled, the CLI message untouched', () => {
-    expect(route.chatText(PARENT, CTX)).toBe("Nice, demo. Where should it live? I'll create demo/ inside this folder.");
-    const fw = newProjectQuestions().questions.find(x => x.key === 'framework')!;
-    expect(route.chatText(fw, CTX)).toBe('Any framework on top of python?');
-    expect(route.chatText(fw, { name: 'x', language: 'javascript' })).toBe('Any framework on top of javascript?'); // the detected language, when none is asked
-    expect(route.chatText({ chat: 'Plain' }, CTX)).toBe('Plain');
-    expect(route.chatText({}, CTX)).toBe('');
-  });
-
-  it('threadRows(): the name bubble, a divider per step, bot rows up to the current question, answers as given, then Review', () => {
-    const q = newProjectQuestions();
-    const answers = { parent: '/tmp/x', projectType: 'greenfield', whatItDoes: '<b>x</b>', handle: '' };
-    const list = route.flowQuestions(q, answers, FIRST);
-    const cur = route.nextQuestion(list, answers);
-    const rows = route.threadRows(q, list, answers, cur, CTX, true);
-    expect(rows.map(r => r.kind + ':' + (r.key || r.text))).toEqual([
-      'user:name', 'divider:Step 1 · Project identity', 'bot:parent', 'user:parent', 'bot:projectType', 'user:projectType', 'bot:whatItDoes', 'user:whatItDoes', 'bot:handle', 'user:handle',
-      'divider:Step 2 · Platform & IDE', 'bot:language',
-    ]);
-    expect(rows[0]).toEqual({ kind: 'user', key: 'name', text: 'demo', mono: true, skipped: false });
-    expect(rows[2]).toEqual({ kind: 'bot', key: 'parent', text: "Nice, demo. Where should it live? I'll create demo/ inside this folder.", cli: 'Parent folder', caption: '' });
-    expect(rows[3]).toMatchObject({ text: '/tmp/x', mono: true, skipped: false });
-    expect(rows[5]).toMatchObject({ text: 'Greenfield', mono: false }); // a choice's text up to its ' — ' part; the chips keep the whole
-    expect(rows[7]).toMatchObject({ text: '<b>x</b>' }); // text; the page escapes it
-    expect(rows[9]).toMatchObject({ text: 'Skipped', mono: true, skipped: true });
-    expect(rows[11]).toMatchObject({ cli: 'Choose a language:', text: 'Which language is it in?' });
-    const done = { ...answers, language: 'javascript', ide: 'Codex', targetUsers: '', expectedScale: '', apiParadigm: 'none', constraints: 'x' };
-    const dl = route.flowQuestions(q, done, FIRST);
-    const all = route.threadRows(q, dl, done, route.nextQuestion(dl, done), CTX, true);
-    expect(all[all.length - 1]).toEqual({ kind: 'divider', text: 'Review' });
-    expect(all.filter(r => r.kind === 'divider').map(r => r.text)).toEqual(['Step 1 · Project identity', 'Step 2 · Platform & IDE', 'Step 3 · Target users', 'Step 4 · Scale & deploy', 'Step 5 · Architecture & data', 'Step 6 · Constraints & non-goals', 'Review']);
-    expect(route.threadRows(q, dl, done, null, { name: 'node', language: 'javascript' }, false)[0].kind).toBe('divider'); // guided setup: the folder's label fills {name} but gets no bubble
-  });
-
-  it('recapCards(): one card per step in use with the labels, Brownfield without the context rows, Skipped for an empty optional', () => {
-    const q = newProjectQuestions();
-    const green = { parent: '/tmp/x', projectType: 'greenfield', whatItDoes: 'A thing', handle: '', language: 'python', framework: 'django', ide: 'claude-code', targetUsers: '', expectedScale: 'small', apiParadigm: 'rest', constraints: '' };
-    const cards = route.recapCards(route.flowQuestions(q, green, FIRST), green);
-    expect(cards.map(c => c.title)).toEqual(STEPS);
-    expect(cards[0].rows).toEqual([
-      { key: 'parent', label: 'Folder', value: '/tmp/x' }, { key: 'projectType', label: 'Type', value: 'Greenfield' },
-      { key: 'whatItDoes', label: 'What it does', value: 'A thing' }, { key: 'handle', label: 'Handle', value: 'Skipped' },
-    ]);
-    expect(cards[1].rows.map(r => r.value)).toEqual(['python', 'django', 'Claude Code']);
-    expect(cards[2].rows).toEqual([{ key: 'targetUsers', label: 'Users', value: 'Skipped' }]);
-    const brown = { ...green, projectType: 'brownfield' };
-    expect(route.recapCards(route.flowQuestions(q, brown, FIRST), brown).map(c => c.title)).toEqual([STEPS[0], STEPS[1], STEPS[4]]);
-  });
-
-  it('answerError(): This one is required. for an empty required text, then the name and handle rules on the trimmed value', () => {
-    const name = { key: 'name', required: true }, handle = { key: 'handle', required: false };
-    expect(route.answerError(name, '')).toBe('This one is required.');
-    expect(route.answerError(name, '   ')).toBe('This one is required.');
-    expect(route.answerError(PARENT, '')).toBe('This one is required.');
-    expect(route.answerError(PARENT, '~/dev')).toBeNull();
-    expect(route.answerError(name, '  demo-app  ')).toBeNull();
-    expect(route.answerError(name, 'demo app')).toBe('Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores.');
-    expect(route.answerError(name, 'a'.repeat(215))).toBe('Project name must be 214 characters or fewer.');
-    expect(route.answerError(name, 'demo app')).not.toContain('💡');
-    expect(route.answerError(name, 'demo app')).toBe(newProjectShapeError({ parent: '/tmp/x', name: 'demo app', ...NEW })); // the same text the server answers with
-    expect(route.answerError(handle, '')).toBeNull();
-    expect(route.answerError(handle, ' jsmith ')).toBeNull();
-    expect(route.answerError(handle, 'j smith')).toBe(HANDLE_MESSAGE);
-    expect(route.answerError({ key: 'whatItDoes', required: true }, ' ')).toBe('This one is required.');
-    expect(route.answerError({ key: 'targetUsers', required: false }, '')).toBeNull();
-    expect(route.answerError({ key: 'ide', required: true, choices: IDE_CHOICES }, 'vscode')).toBeNull();
-  });
-
   it('flowBody(): a Greenfield body the server accepts (with the name added by the page), text trimmed, first choices for what was not touched', () => {
     const q = newProjectQuestions();
     const answers = { parent: ' /tmp/x ', handle: ' jsmith ', whatItDoes: ' Tracks parcels ', language: 'python', framework: 'django', constraints: 'Offline first' };
@@ -1072,19 +997,16 @@ describe('the setup chat\'s decisions (ui/route.js, BL-PM-004)', () => {
     expect(route.flowBody(route.flowQuestions(q, { language: 'python', framework: 'react' }, FIRST), { language: 'python', framework: 'react' }).framework).toBe('none');
   });
 
-  it('previewFiles(): .specs/ for the API paradigm, then the IDE\'s files, with the kept ones marked', async () => {
-    const q = newProjectQuestions();
-    const paths = (answers: Record<string, string>) => route.previewFiles(q, answers).map(f => f.path);
-    expect(paths({})).toEqual([...q.files.specs.rest, ...q.files.outside.vscode]);
-    expect(paths({ apiParadigm: 'none' })).not.toContain('.specs/architecture/api.yaml');
-    expect(paths({ apiParadigm: 'none' })).toContain('.specs/README.md');
-    expect(paths({ ide: 'claude-code' })).toContain('CLAUDE.md');
-    expect(paths({ ide: 'claude-code' })).not.toContain('.vscode/settings.json');
-    expect(route.previewFiles(q, {}).some(f => f.kept)).toBe(false);
-    const root = folder(NODE_PLAIN);
-    writeFileSync(join(root, 'CLAUDE.md'), 'mine\n');
-    const setup = await setupQuestions(root);
-    expect(route.previewFiles(setup, { ide: 'claude-code' }).filter(f => f.kept).map(f => f.path)).toEqual(['CLAUDE.md']);
-    expect(route.previewFiles(setup, { ide: 'vscode' }).some(f => f.kept)).toBe(false);
+});
+
+describe('pendingShapeError() (BL-103)', () => {
+  it('takes exactly parent and name, by the new-project rules', () => {
+    expect(pendingShapeError({ parent: '~/dev', name: 'demo' })).toBeNull();
+    expect(pendingShapeError([])).toBe('The request must be a JSON object with parent and name.');
+    expect(pendingShapeError({ name: 'demo' })).toBe('"parent" is missing.');
+    expect(pendingShapeError({ parent: 1, name: 'demo' })).toBe('"parent" must be a string.');
+    expect(pendingShapeError({ parent: '', name: 'demo' })).toBe('"parent" must be 1 to 4096 characters.');
+    expect(pendingShapeError({ parent: '~/dev', name: '' })).toBe('Project name is required and cannot be empty.');
+    expect(pendingShapeError({ parent: '~/dev', name: 'demo', ide: 'vscode' })).toBe('Unexpected field "ide".');
   });
 });

@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="/assets/app.css">
 <script src="/assets/md.js" defer></script>
 <script src="/assets/route.js" defer></script>
-<script src="/assets/chat-core.js" defer></script>
 <script src="/assets/app.js" defer></script>
 </head>
 <body>
@@ -115,13 +114,12 @@
 <main class="pane">
   <div class="tb">
     <button class="ib menu" id="menuBtn" aria-label="Show sidebar"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
-    <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span><span id="chatSub" aria-live="polite" hidden></span></div></div>
+    <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span><span class="mono" id="crumb" translate="no" hidden></span></div></div>
     <div class="right">
       <div class="seg" id="modeSeg"><button class="on" data-m="list">List</button><button data-m="board">Board</button></div>
       <a class="ib" id="editorBtn" hidden aria-label="Open in VS Code" title="Open in VS Code"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg></a>
       <div class="idewrap" id="ideWrap" hidden><button type="button" class="ib" id="ideBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="ideMenu" aria-label="Open in AI IDE" title="Open in AI IDE"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-spark"/></svg></button><div class="idemenu" id="ideMenu" role="menu" aria-label="Open in AI IDE" hidden></div></div>
       <button type="button" class="btn line sm" id="newTask" hidden><svg class="ico ico-13" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>New Task</button>
-      <button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>
     </div>
   </div>
   <div class="content" id="content" tabindex="-1">
@@ -137,7 +135,7 @@
       </div>
       <div class="gl benefits"><div class="box">
         <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div></div></div>
-        <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? The guided setup writes one for you.</div></div></div>
+        <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? Your AI IDE writes one for you.</div></div></div>
       </div></div>
       <div class="gl recents"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
       <!-- BL-PM-007: only with specpilot serve --mcp -->
@@ -168,33 +166,29 @@
       <div id="secBody"></div>
     </section>
 
-    <!-- SETUP CHAT (BL-PM-004): the init.specpilot.dev chat over the CLI's own questions; shown for a new project
-         (#new) and for a named folder with no .specs/ yet (BL-055). The questions, their chat lines and choices come from the server -->
-    <section class="view chat" id="v-chat">
-      <div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>
-      <p class="note" id="chatNote" hidden></p>
-      <div class="cbody" id="cbody" hidden>
-      <div class="cmain">
-      <section class="intro" id="intro" hidden>
-        <svg class="big" aria-hidden="true" focusable="false"><use href="#logo"/></svg>
-        <div><h2 id="introH">Hey, I'm SpecPilot</h2><p id="introText"></p><p id="introText2" hidden></p><p class="note" id="introDetected" hidden translate="no"></p></div>
-        <div class="fine" id="introFine">Runs on this machine. Nothing leaves it.</div>
-        <form class="start" id="introForm" autocomplete="off">
-          <div class="lbl" id="nameLbl">Name your project to start</div>
-          <div class="row"><input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button></div>
-          <div class="err" id="nameErr" role="alert"></div>
-          <button type="button" class="btn pri" id="setupStart" hidden>Start Guided Setup</button>
-        </form>
-      </section>
-      <section class="thread" id="thread" hidden><div class="col" id="msgs"></div></section>
-      <section class="composer" id="composer" hidden><form class="col" id="comp" autocomplete="off"></form></section>
+    <!-- SETUP (BL-103): a project without .specs/ (Open, Clone, a folder named on the command line) and #new.
+         The user's AI IDE does the setup over MCP; this view says how, and nothing on it writes a spec. -->
+    <section class="view setupv" id="v-setup">
+      <p class="lead" id="suLead"></p>
+      <p class="note" id="suNote" hidden></p>
+      <div class="gl" id="suNew" hidden>
+        <div class="fields">
+          <div class="f"><label for="suName">Project name</label><input id="suName" name="project-name" type="text" spellcheck="false" maxlength="214" placeholder="my-project" aria-describedby="suErr"></div>
+          <div class="f"><label for="suParent">Parent folder</label><div class="in"><input id="suParent" name="parent-folder" type="text" spellcheck="false" maxlength="4096" placeholder="~/dev" aria-describedby="suErr"><button type="button" class="btn" id="suBrowse">Browse…</button></div></div>
+        </div>
+        <p class="err" id="suErr" role="alert"></p>
+        <p class="note">Nothing is created yet. The folder is made by your IDE in step 3, only at this path.</p>
       </div>
-      </div>
+      <div class="warnbox" id="suOff" hidden><span aria-hidden="true">!</span><span>This server was started with <span class="mono" translate="no">--no-mcp</span>, so your IDE cannot reach it. Restart with <span class="mono" translate="no">specpilot serve</span> and come back here.</span></div>
+      <div class="gl step" id="suConnect"><div class="gh"><span class="n">1</span>Connect your AI IDE<span class="st" id="suStatus" role="status"></span></div><div class="box pre" id="suConfigBox"><pre id="suConfig" translate="no"></pre><button type="button" class="btn sm" id="suConfigCopy">Copy</button></div><p class="note" id="suMcpNote"></p></div>
+      <div class="gl step" id="suTell"><div class="gh"><span class="n">2</span>Tell it what to do</div><div class="box line"><code id="suPrompt" translate="no"></code><button type="button" class="btn sm" id="suPromptCopy">Copy</button></div></div>
+      <div class="gl step" id="suProgress"><div class="gh"><span class="n">3</span>Progress</div><p class="note">Updates by itself as your IDE calls the server. Nothing here to click.</p>
+        <ol class="steps"><li class="wait"><i aria-hidden="true"></i>Read the code</li><li class="wait"><i aria-hidden="true"></i>Answer the questions</li><li class="wait"><i aria-hidden="true"></i>Write the files</li><li class="wait"><i aria-hidden="true"></i>Validate</li></ol></div>
+      <p class="note sufoot" id="suFoot"></p>
     </section>
 
     <!-- FILE: any .specs/ file, rendered as written -->
     <section class="view" id="v-file">
-      <div class="gl" id="fileNote" hidden></div>
       <div class="gl" id="fmBox"></div>
       <div class="md doc" id="fileBody"></div>
     </section>

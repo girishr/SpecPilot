@@ -10,6 +10,8 @@ const toast=(m,action)=>{
   toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),action?8000:2600);};
 /* Task moves (BL-053) are on only when the server put a token in the page (not with --read-only). */
 const TOKEN=(document.querySelector('meta[name="specpilot-token"]')||{}).content||null;
+/* /mcp is on (BL-PM-007), and whose token it takes: `page` or `env` (SPECPILOT_MCP_TOKEN). */
+const MCP=(document.querySelector('meta[name="specpilot-mcp"]')||{}).content||null;
 const MOVABLE={backlog:true,currentSprint:true};
 const chev='<svg class="ico chev" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg>';
 
@@ -84,22 +86,19 @@ function syncNav(){
 }
 function go(v,keep,sub){
   if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
-  else if(NOPROJ.includes(v)){if(!TOKEN)v='board';} // no Home and no new-project chat with --read-only
+  else if(NOPROJ.includes(v)){if(!TOKEN)v='board';} // no Home and no #new with --read-only
   else if(!VIEWS[v]||v==='setup')v='board';
   if(!NOPROJ.includes(v)&&DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route of the project shows the setup view (BL-055)
   curView=v;
-  $('#win').classList.toggle('home',v==='home');$('#win').classList.toggle('inchat',v==='new'||v==='setup'); // not `chat`: the chat's own rules are `.chat .x` and must not reach the rail
-  $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+(v==='new'||v==='setup'?'chat':v))); // one chat section for both flows (BL-PM-004)
+  $('#win').classList.toggle('home',v==='home');$('#win').classList.toggle('insetup',v==='new'||v==='setup');
+  $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+(v==='new'?'setup':v))); // one Setup view for both (BL-103)
   syncNav();
-  $('#title').textContent=v==='file'?(TITLES[sub]||sub):v==='setup'?projectLabel(DATA.projects[PROJECT]):v==='new'?'New project':VIEWS[v];
-  $('#chatSub').hidden=!(v==='new'||v==='setup');if(v!=='new'&&v!=='setup'){$('#chatRestart').hidden=$('#chatClose').hidden=true;chat=null;}
-  if(v!=='new'&&browseCtl&&browseBtn&&browseBtn.id==='chatBrowse')browseCtl.abort(); // leaving the chat closes its folder dialog (BL-097)
+  $('#title').textContent=v==='file'?(TITLES[sub]||sub):VIEWS[v];$('#crumb').hidden=true;
+  if(v!=='new'&&browseCtl&&browseBtn&&browseBtn.id==='suBrowse')browseCtl.abort(); // leaving #new closes its folder dialog (BL-097)
   $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
   setNav(false);closeInsp();
-  if(v!=='file'||sub!==fileNoteFor)clearFileNote();
   if(v==='home')loadRecent();
-  if(v==='setup')renderChat(false);
-  if(v==='new')renderChat(true);
+  if(v==='setup'||v==='new')renderSetup();
   if(v==='file')renderFile(sub);
   if(v==='explorer')renderExplorer();
   if(v==='security')renderSecurity();
@@ -117,7 +116,7 @@ function setHash(v,sub){const h='#'+(PROJECT&&!NOPROJ.includes(v)?PROJECT+'/':''
   try{history.replaceState(null,'',h);}catch(e){urlOk=false;}}
 function route(){
   const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1,!!TOKEN);
-  if(NOPROJ.includes(r.view)){go(r.view);return;} // Home and the new-project chat belong to no project: the shown one stays loaded behind them
+  if(NOPROJ.includes(r.view)){go(r.view);return;} // Home and #new belong to no project: the shown one stays loaded behind them
   if(r.project!==PROJECT){switchProject(r.project,true);return;}
   if(r.view==='board'&&r.sub==='board'){mode='board';$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.m==='board'));renderTasks();}
   go(r.view,true,r.sub);
@@ -383,7 +382,7 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
-  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();if(chat&&chat.st.editing&&!chatBusy){chat.st.editing=null;comp=null;drawChat();}setNav(false);return}
+  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();setNav(false);return}
   if(inField||mod||e.altKey||taskVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}
@@ -486,298 +485,72 @@ $('#taskCancel').onclick=closeNewTask;
 taskVeil.onclick=e=>{if(e.target===taskVeil)closeNewTask();};
 $('#taskForm').onsubmit=e=>{e.preventDefault();addTask();};
 
-/* ---------------- setup chat (BL-055, BL-PM-004) ----------------
-   The init.specpilot.dev chat over the CLI's own questions: for a new project (#new) and for a named
-   folder with no .specs/ yet (its setup view). The questions, their chat lines, choices, steps and file
-   lists come from GET /api/setup or GET /api/projects/new; the page adds only the strings REQ-002.H.17
-   and H.27 list, and its own parent-folder question. What can be decided without the DOM is in route.js. */
-let fileNoteFor=null;
-function clearFileNote(){const n=$('#fileNote');n.hidden=true;n.innerHTML='';fileNoteFor=null;}
-function setFileNote(path,lines){const n=$('#fileNote');n.innerHTML=lines.map(l=>`<p class="note" translate="no">${esc(l)}</p>`).join('');n.hidden=false;fileNoteFor=path;}
-/* Above onboarding.md after a setup or a create: what was kept, and the Codex notice. */
-function noteCreated(res){
-  go('file',false,'development/onboarding.md');
-  const lines=[];
-  if(res.kept&&res.kept.length)lines.push('Kept as they were: '+res.kept.join(', ')+'. Run specpilot backfill there to add missing SpecPilot sections to the instruction and command files.');
-  if(res.notice)lines.push(res.notice);
-  if(lines.length)setFileNote('development/onboarding.md',lines);
+/* ---------------- Setup view (BL-103) ----------------
+   A project without .specs/ (Open, Clone, a folder named on the command line) and #new: the user's AI IDE
+   sets it up over /mcp, and this view says how. It sends no answers and writes no spec; the only request
+   is #new's pending path (POST /api/projects/pending). The Progress rows move with BL-104's tools. */
+const mono=t=>`<span class="mono" translate="no">${esc(t)}</span>`;
+const clonedFrom={}; // root → the URL this page cloned it from since it loaded: the Clone lead
+const pend={name:'',parent:'',target:null,seq:0,timer:null}; // #new's fields and its registered target
+const MCP_ON=!!(TOKEN&&MCP);
+function suStatus(){
+  const c=DATA&&DATA.mcp&&DATA.mcp.client,el=$('#suStatus');
+  el.textContent=!MCP_ON?'':c?(c.name?'Connected · '+c.name:'Connected'):'Waiting for a connection';
+  el.classList.toggle('ok',!!c);
 }
-async function getQuestions(url){
-  try{const r=await fetch(url,{cache:'no-store'});if(r.ok)return await r.json();return r.status===404?null:{error:(await r.json().catch(()=>({}))).error||'HTTP '+r.status};}
-  catch(e){return {error:'The server did not answer.'};}
+function suPrompt(){
+  const isNew=curView==='new';
+  $('#suPrompt').textContent=isNew?`Start a SpecPilot project called ${pend.name} in ${pend.parent}`:'Set up SpecPilot for '+DATA.project.root;
+  $('#suPromptCopy').disabled=!MCP_ON||isNew&&!pend.target;
+  const c=$('#crumb');c.hidden=isNew&&!pend.target;c.textContent=(isNew?pend.target:DATA.project.root)+' · no specs yet';
 }
-/* The page's own question of a new project; every other one is the server's or the chat core's. */
-const PARENT_Q={key:'parent',message:'Parent folder',label:'Folder',required:true,chat:"Nice, {name}. Where should it live? I'll create {name}/ inside this folder.",placeholder:'~/dev'};
-const CC=window.SpecPilotChat; // the chat core (BL-PM-004b): src/core/chatFlow.ts, served as /assets/chat-core.js
-/* Answers live in the page only: saved setups were removed on purpose (BL-PM-016); a key an older page left is removed once. */
-try{localStorage.removeItem('sp-setups');}catch(e){}
-// `seed`: what the detector filled in for guided setup (REQ-002.H.35), a normal answer the user can change
-const freshSetup=(kind,root,id,seed={})=>({id:id||(kind==='setup'?'s:'+root:'n'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),kind,root,answers:{...JSON.parse(JSON.stringify(seed))},seed,editing:null,started:false,seeded:{},preview:{done:false,changed:false},finished:false});
-const live={}; // the setups open in this page, by id
-let curNew=null; // the new-project setup #new shows
-let chat=null,chatBusy=false,comp=null;
-/* Shown by go(): the chat for a new project, or for the project without .specs/. */
-async function renderChat(isNew){
-  const pj=PROJECT,note=$('#chatNote');
-  $('#intro').hidden=$('#thread').hidden=$('#composer').hidden=note.hidden=true;$('#chatRestart').hidden=$('#chatClose').hidden=true;$('#cbody').hidden=true;
-  chat=null;comp=null;
-  if(!TOKEN){note.textContent='Started with --read-only, so nothing can be set up here.';note.hidden=false;return;}
-  const q=await getQuestions(isNew?'/api/projects/new':'/api/setup?project='+pj);
-  if(PROJECT!==pj||curView!==(isNew?'new':'setup'))return;
-  if(!q)return; // 404: not a folder named on the command line, so nothing to set up
-  if(q.error){note.textContent=q.error;note.hidden=false;return;}
-  let st;
-  if(isNew){
-    if(!curNew||!live[curNew]){st=freshSetup('new');curNew=st.id;live[st.id]=st;}
-    st=live[curNew];
-  }else{
-    const root=DATA.projects[pj].root,id='s:'+root;
-    st=live[id]||(live[id]=freshSetup('setup',root,id,seededAnswers(q.detected)));
-  }
-  chat={id:st.id,isNew,project:pj,q,st};
-  $('#cbody').hidden=false;
-  drawChat();
+function renderSetup(){
+  const isNew=curView==='new',p=DATA.project,v=$('#v-setup');
+  const named=isNew||p.named!==false; // the current-directory default keeps REQ-002.H.17's heading only
+  $('#title').textContent=!named?`No .specs/ folder in ${DATA.projects[PROJECT].root}`:isNew?'Start a new project with SpecPilot':'Set up SpecPilot for this project';
+  const off=!TOKEN||!named;
+  [...v.children].forEach(el=>{if(el.id!=='suNote')el.hidden=off;});
+  $('#suNote').hidden=TOKEN||!named;$('#suNote').textContent='Started with --read-only, so nothing can be set up here.';
+  if(off){$('#crumb').hidden=!named;if(named)$('#crumb').textContent=p.root+' · no specs yet';return;}
+  const name=String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root,url=clonedFrom[p.root];
+  const tail=' Your AI IDE sets them up: it reads the code, answers what it can, and asks you the rest.';
+  $('#suLead').innerHTML=isNew?'Name the project and choose where it goes. Your AI IDE creates it and writes the specs from your answers.'
+    :url?`Cloned ${mono(url)}. It has no SpecPilot specs yet.${tail}`:`${mono(name)} has no SpecPilot specs yet.${tail}`;
+  $('#suNew').hidden=!isNew;
+  if(isNew){$('#suName').value=pend.name;$('#suParent').value=pend.parent;}
+  $('#suOff').hidden=MCP_ON;
+  $$('#v-setup .step').forEach(el=>{el.classList.toggle('off',!MCP_ON);el.inert=!MCP_ON;});
+  $('#suConfigBox').hidden=!MCP_ON;
+  if(MCP_ON){const env=MCP==='env',line=mcpConfigLine(location.host,env?'${SPECPILOT_MCP_TOKEN}':TOKEN);
+    $('#suConfig').textContent=JSON.stringify(JSON.parse(line),null,2);$('#suConfig').dataset.line=line;$('#suMcpNote').textContent=$('#mcpNote').textContent;}
+  else $('#suMcpNote').textContent='';
+  $('#suFoot').innerHTML=`Prefer the terminal? ${mono(isNew?'specpilot init':'specpilot add-specs')} in that folder asks the same questions one by one.`;
+  suStatus();suPrompt();
 }
-/* The questions to ask now: the server's (the CLI's) through flowQuestions(), placed and completed by the chat core. */
-function chatAsk(){
-  const st=chat.st,first=chat.isNew?[{...PARENT_Q,step:chat.q.steps[0]}]:[];
-  return CC.chatQuestions([...first,...chat.q.questions],flowQuestions(chat.q,st.answers,first),st.answers,chat.isNew?'new':'setup',chat.q.files.outside);
-}
-/* What fills {name} and {language} in the bot lines. */
-function chatCtx(){
-  const a=chat.st.answers,lq=chat.q.questions.find(x=>x.key==='language'),c=lq&&lq.choices.find(x=>x.value===a.language);
-  return {name:chat.isNew?a.name:projectLabel(DATA.projects[chat.project]),language:c?c.name:(chat.q.detected?chat.q.detected.language:'')};
-}
-/* What the detector filled in, for threadRows() and recapCards(): its rows, and the seeded answers not changed since. */
-const chatDet=()=>chat.isNew?null:{rows:chat.q.detected?chat.q.detected.rows||[]:[],keys:detectedKeys(chat.st.seed,chat.st.answers)};
-function drawChat(){
-  const st=chat.st,isNew=chat.isNew,ctx=chatCtx();
-  $('#chatRestart').hidden=!st.started;$('#chatClose').hidden=!isNew;
-  $('#title').textContent=isNew?(st.answers.name||'New project'):projectLabel(DATA.projects[chat.project]);
-  if(!st.started){ // the intro
-    $('#intro').hidden=false;$('#thread').hidden=$('#composer').hidden=true;$('#chatSub').textContent='';$('#barI').style.width='0';$('#v-chat .bar').setAttribute('aria-valuenow','0');
-    const mono=t=>`<span class="mono" translate="no">${esc(t)}</span>`;
-    // guided setup opens with its paragraph as the heading and no fine print (BL-PM-016); the New Project intro is as before
-    const setupLine=`There is no ${mono('.specs/')} folder in ${mono(DATA.projects[chat.project].root)} yet. I'll ask the same questions as ${mono('specpilot add-specs')}, one at a time, then write it and the files for your AI IDE. Existing files are never changed.`;
-    $('#introH').innerHTML=isNew?"Hey, I'm SpecPilot 👋":setupLine;$('#introH').classList.toggle('para',!isNew);
-    $('#introText').hidden=!isNew;$('#introText').innerHTML=isNew?'I turn your project requirements into a complete, structured spec suite - requirements, architecture, tests - and keep it in sync as you build.':'';
-    $('#introFine').hidden=!isNew;
-    $('#introText2').hidden=!isNew;$('#introText2').innerHTML=`I write your ${mono('.specs/')} folder, filled in from your answers, plus the files that keep your AI IDE following it.`;
-    const det=$('#introDetected');det.hidden=!(chat.q.detected);det.textContent=chat.q.detected?chat.q.detected.line:'';
-    $('#nameLbl').hidden=$('#nameIn').parentElement.hidden=!isNew;$('#setupStart').hidden=isNew;$('#nameErr').textContent='';
-    if(isNew){$('#nameIn').value=st.answers.name||'';$('#nameGo').disabled=!$('#nameIn').value.trim();}
-    setTimeout(()=>{if(chat&&!chat.st.started)(isNew?$('#nameIn'):$('#setupStart')).focus();},50);
-    return;
-  }
-  $('#intro').hidden=true;$('#thread').hidden=$('#composer').hidden=false;
-  const list=chatAsk(),cur=nextQuestion(list,st.answers,st.editing),steps=[...new Set(list.map(x=>x.step))],done=list.filter(x=>answered(x,st.answers)).length;
-  st.finished=!cur;
-  const bar=$('#v-chat .bar'),pct=Math.round(done/list.length*100);$('#barI').style.width=pct+'%';bar.setAttribute('aria-valuenow',pct);
-  $('#chatSub').textContent=cur?`Step ${steps.indexOf(cur.step)+1} of ${steps.length} · ${cur.step}`:'Review';
-  const det=chatDet(),detTag='<span class="det">detected</span>';
-  let html=threadRows(chat.q,list,st.answers,cur,ctx,isNew,det).map(r=>
-    r.kind==='divider'?`<div class="divider"><span>${esc(r.text)}</span></div>`
-    :r.kind==='note'?`<p class="cnote">${esc(r.text)}</p>`
-    :r.kind==='bot'?`<div class="bot"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="msg">${esc(r.text)}${r.cli?`<span class="cli" translate="no">${esc(r.cli)}</span>`:''}${r.caption?`<span class="cap" translate="no">${esc(r.caption)}</span>`:''}</div></div>`
-    :r.key===null?`<div class="me fixed"><span class="b">${esc(r.text)}</span>${detTag}</div>` // detected, not editable
-    :`<div class="me${r.skipped?' skipped':''}"><button type="button" class="b${r.mono?' mono':''}" data-k="${esc(r.key)}" aria-label="Your answer: ${esc(r.text)}${r.detected?', detected':''}. Edit">${esc(r.text)}</button><span class="ed" aria-hidden="true">${r.detected?detTag+' ':''}✎ tap to edit</span></div>`).join('');
-  if(!cur){
-    const files=previewFiles(chat.q,st.answers),pv=st.preview,again=pv.done&&pv.changed;
-    html+=`<div class="recap"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><div class="card">That's everything I need. Here's a quick recap:<div class="pen">✎ Click any answer to change it. You come straight back here.</div><div class="grid">${recapCards(list,st.answers,det).map(c=>`<div class="rc"><div class="t">${esc(c.title)}</div>${c.rows.map(r=>r.key===null?`<div class="l fixed"><span>${esc(r.label)} ${detTag}</span><span translate="no">${esc(r.value)}</span></div>`:`<button type="button" class="l" data-k="${esc(r.key)}"><span>${esc(r.label)}${r.detected?' '+detTag:''}</span><span translate="no">${esc(r.value)}</span></button>`).join('')}</div>`).join('')}</div>${again?'<p class="chg">Answers changed since the last preview. Preview again to see the new files.</p>':''}<details id="pv"><summary>${again?'Preview again':'Preview files'} (${files.length})</summary><ul translate="no" id="pvList">${files.map(f=>`<li>${esc(f.path)}${f.kept?' <span class="kept">Already here, will be kept</span>':''}</li>`).join('')}</ul></details><button type="button" class="btn pri" id="chatCreate">${isNew?'Create Project':'Create .specs/'}</button><p class="err" id="chatErr" role="alert"></p></div></div>`;
-  }
-  $('#msgs').innerHTML=html;
-  const pvEl=$('#pv');if(pvEl)pvEl.addEventListener('toggle',()=>{if(pvEl.open)loadPreview();});
-  drawComposer(cur);
-  const th=$('#thread');th.scrollTop=th.scrollHeight;
-}
-/* The request body of a create or a preview: the CLI's answers, the optional fields and the folded context answers. */
-function chatBody(){
-  const asked=chatAsk(),st=chat.st;
-  const body={...flowBody(asked.filter(x=>!x.core),st.answers),...CC.requestFields(asked,st.answers,chat.isNew?'new':'setup')};
-  if(chat.isNew)body.name=st.answers.name;
-  return body;
-}
-/* The recap's preview: POST /api/preview with the create body, each file then shown as render() gives it. */
-async function loadPreview(){
-  const c=chat,body=chatBody(),list=$('#pvList');if(!list)return;
-  if(c.isNew)delete body.parent;
+function copyText(text){(navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(()=>toast('Copied.'),()=>toast('Could not copy. Select the line and copy it.'));}
+$('#suConfigCopy').onclick=()=>copyText($('#suConfig').dataset.line);
+$('#suPromptCopy').onclick=()=>copyText($('#suPrompt').textContent);
+/* #new: when the name passes init's rule and a parent is typed, register <parent>/<name> as the one pending path. */
+async function registerPending(){
+  const seq=++pend.seq,body={parent:pend.parent.trim(),name:pend.name};
   let r,res={};
-  try{r=await fetch(c.isNew?'/api/preview':'/api/preview?project='+c.project,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});res=await r.json().catch(()=>({}));}
+  try{r=await fetch('/api/projects/pending',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});res=await r.json().catch(()=>({}));}
   catch(e){r=null;}
-  if(chat!==c||!$('#pvList'))return;
-  if(!r||r.status!==200){$('#pvList').insertAdjacentHTML('beforebegin',`<p class="err">${esc(r?res.error||`The preview could not be made (HTTP ${r.status}).`:'The server did not answer.')}</p>`);return;}
-  const kept=new Set(res.kept||[]);
-  $('#pvList').outerHTML=`<div class="pvl" id="pvList" translate="no">${res.files.map(f=>`<details class="pf"><summary>${esc(f.path)}${kept.has(f.path)?' <span class="kept">Already here, will be kept</span>':''}</summary>${kept.has(f.path)?'':/\.md$/.test(f.path)?`<div class="md">${md(f.content)}</div>`:`<pre>${esc(f.content)}</pre>`}</details>`).join('')}</div>`;
-  if(c.st.preview.changed||!c.st.preview.done)c.st.preview={done:true,changed:false};
-  const chg=$('#msgs .chg');if(chg)chg.remove();const sum=$('#pv summary');if(sum)sum.textContent=`Preview files (${res.files.length})`;
+  if(seq!==pend.seq)return; // the fields changed meanwhile
+  pend.target=r&&r.status===200?res.target:null;
+  $('#suErr').textContent=!r?'The server did not answer.':r.status===200?'':res.error||`The folder was not accepted (HTTP ${r.status}).`;
+  if(curView==='new')suPrompt();
 }
-
-/* ---- the composer: one state per shown question (`comp`), drawn from the question and redrawn on every change */
-const isMulti=t=>t==='multi'||t==='grouped-multi'||t==='platform-grid';
-function initComp(cur){
-  const a=chat.st.answers,stored=cur.answered?a[cur.key]:undefined,seed=stored===undefined?cur.seed:stored;
-  const c={key:cur.key,tab:null,custom:'',showCustom:false};
-  if(cur.type==='categorized')c.v=JSON.parse(JSON.stringify(seed||{}));
-  else if(isMulti(cur.type))c.v=Array.isArray(seed)?[...seed]:[];
-  else if(cur.type==='text'||cur.type==='tabbed-chips')c.v=typeof stored==='string'&&stored!==cur.todo?stored:'';
-  else{c.v=typeof seed==='string'?seed:'';const ids=compOptions(cur).map(o=>o.id);if(cur.custom&&c.v&&!ids.includes(c.v)){c.custom=c.v;c.showCustom=true;c.v='';}}
-  const opts=compOptions(cur),sel=Array.isArray(c.v)?c.v:[c.v];
-  const withSel=opts.find(o=>o.group&&sel.includes(o.id))||opts.find(o=>o.group&&o.badge==='recommended')||opts.find(o=>o.group);
-  c.tab=cur.type==='categorized'?(cur.categories[0]&&cur.categories[0].id):withSel?withSel.group:null;
-  if(cur.type==='platform-grid'){const tabs=CC.platformGridGroups(a.projectCategory||null,c.v);c.tab=tabs.find(t=>c.v.some(id=>CC.PLATFORM_GROUPS.find(g=>g.group===t).items.some(i=>i.id===id)))||tabs[0];}
-  return c;
+function fieldsChanged(){
+  pend.name=$('#suName').value.trim();pend.parent=$('#suParent').value;pend.target=null;pend.seq++;clearTimeout(pend.timer);
+  const e=pend.name?projectNameError(pend.name):null;
+  $('#suErr').textContent=e?e.message+'.':'';
+  suPrompt();
+  if(!e&&pend.name&&pend.parent.trim())pend.timer=setTimeout(registerPending,400);
 }
-const compOptions=cur=>cur.core?(cur.options||[]):choiceOptions(cur);
-function drawComposer(cur){
-  const st=chat.st,c=$('#comp'),editing=!!st.editing;
-  if(!cur){comp=null;c.innerHTML=`<div class="act"><span class="hint">All answered. Review above, then ${chat.isNew?'Create Project':'Create .specs/'}.</span></div>`;return;}
-  if(!comp||comp.key!==cur.key)comp=initComp(cur);
-  const label=esc(cur.message||cur.chat||cur.label),k=comp,acts=(extra,ok)=>`<div class="act"><span class="hint">${editing?'Changing an earlier answer':''}</span><span class="err" id="compErr" role="alert"></span>${editing?'<button type="button" class="btn" id="chatCancel">Cancel</button>':''}${extra||''}<button type="submit" class="btn pri" id="chatGo"${ok?'':' disabled'}>${isMulti(cur.type)&&k.v.length?`Continue (${k.v.length+(k.custom.trim()?1:0)})`:'Continue'}</button></div>`;
-  const skip=cur.required?'':'<button type="button" class="btn" id="chatSkip">Skip</button>';
-  const other=cur.custom?`<button type="button" class="chip other" id="chatOther" aria-pressed="${k.showCustom}"><b>${cur.type==='grouped-multi'?'Add custom user type':'Other: ___'}</b></button>`:'';
-  const customIn=k.showCustom?`<div class="crow"><input type="text" id="chatCustom" maxlength="100" placeholder="Type your own" aria-label="Your own answer" value="${esc(k.custom)}"></div>`:'';
-  const note=cur.note?`<p class="cnote">${esc(cur.note)}</p>`:'';
-  let h='';
-  if(cur.type==='text'){
-    const max=cur.key==='parent'?4096:cur.key==='handle'?39:cur.key==='nonGoals'?870:1000;
-    h=`<div class="crow"><input type="text" id="chatIn" class="${cur.key==='parent'||cur.key==='handle'?'mono':''}" placeholder="${esc(cur.placeholder||'')}" aria-label="${label}" aria-describedby="compErr" maxlength="${max}"${cur.required?' aria-required="true"':''} value="${esc(k.v)}">${cur.key==='parent'?'<button type="button" class="btn" id="chatBrowse">Browse…</button>':''}</div>`
-      +acts((cur.todo?'<button type="button" class="btn" id="chatTodo">Not sure - skip for now</button>':'')+skip,true);
-  }else if(cur.type==='tabbed-chips'){
-    const groups=[...new Set(cur.options.map(o=>o.group))],tab=k.tab||groups[0];
-    h=`<p class="lbl">Pick a starter project type from below</p>${tabsHtml(groups.map(g=>({id:g,label:g})),tab)}<div class="chips" role="group" aria-label="${label}">${cur.options.filter(o=>o.group===tab).map(o=>optionHtml(o,k.v===o.id)).join('')}</div><p class="lbl">Or describe your project idea in plain words below</p><div class="crow"><input type="text" id="chatIn" placeholder="${esc(cur.placeholder||'')}" aria-label="${label}" aria-describedby="compErr" maxlength="1000" aria-required="true" value="${esc(k.v)}"></div>`+acts('',true);
-  }else if(cur.type==='platform-grid'){
-    const tabs=CC.platformGridGroups(st.answers.projectCategory||null,k.v),tab=tabs.includes(k.tab)?k.tab:tabs[0],g=CC.PLATFORM_GROUPS.find(x=>x.group===tab);
-    const line=CC.bundleLine(k.v);
-    h=tabsHtml(tabs.map(t=>{const grp=CC.PLATFORM_GROUPS.find(x=>x.group===t);return {id:t,label:`${grp.emoji} ${t}`,count:k.v.filter(id=>grp.items.some(i=>i.id===id)).length};}),tab)
-      +`<div class="chips grid2" role="group" aria-label="${label}">${g?g.items.map(i=>optionHtml({id:i.id,label:i.label,emoji:i.emoji,description:`[${i.lang}]`},k.v.includes(i.id))).join(''):''}</div>${line?`<p class="cnote">${esc(line)}</p>`:''}`+acts('',k.v.length>0);
-  }else if(cur.type==='categorized'){
-    const cats=cur.categories,tab=cats.some(x=>x.id===k.tab)?k.tab:cats[0]&&cats[0].id,cat=cats.find(x=>x.id===tab);
-    h=tabsHtml(cats.map(x=>({id:x.id,label:`${x.emoji} ${x.label}`,count:(k.v[x.id]||[]).length})),tab)
-      +`<div class="chips" role="group" aria-label="${label}">${cat?cat.options.map(o=>optionHtml({id:o,label:o,emoji:o==='None'?'➖':''},(k.v[cat.id]||[]).includes(o))).join(''):''}</div>`+acts('<button type="button" class="btn" id="chatNone">None of these apply →</button>',true);
-  }else{
-    const opts=compOptions(cur),sel=isMulti(cur.type)?k.v:[k.v],extra=isMulti(cur.type)?k.v.filter(v=>!opts.some(o=>o.id===v)).map(v=>({id:v,label:v})):[];
-    const grouped=cur.type!=='grouped-multi'&&opts.some(o=>o.group),groups=[...new Set(opts.filter(o=>o.group).map(o=>o.group))],tab=groups.includes(k.tab)?k.tab:groups[0];
-    let body;
-    if(cur.type==='grouped-multi')body=groups.map(g=>`<p class="lbl">${esc(g)}</p><div class="chips">${opts.filter(o=>o.group===g).map(o=>optionHtml(o,sel.includes(o.id))).join('')}</div>`).join('')
-      +`<div class="chips">${[...opts.filter(o=>!o.group),...extra].map(o=>optionHtml(o,sel.includes(o.id))).join('')}${other}</div>`;
-    else body=(grouped?tabsHtml(groups.map(g=>({id:g,label:g,count:opts.filter(o=>o.group===g&&sel.includes(o.id)).length})),tab):'')
-      +`<div class="chips${cur.type==='cards'||opts.some(o=>o.description)?' grid2':''}" role="group" aria-label="${label}">${opts.filter(o=>!grouped||o.group===tab).map(o=>optionHtml(o,sel.includes(o.id))).join('')}</div>`
-      +`<div class="chips">${(grouped?opts.filter(o=>!o.group):[]).concat(extra).map(o=>optionHtml(o,sel.includes(o.id))).join('')}${other}</div>`;
-    const any=isMulti(cur.type)?k.v.length>0||!!k.custom.trim():!!k.v||!!(k.showCustom&&k.custom.trim());
-    h=note+body+customIn+acts(isMulti(cur.type)?'':skip,any||isMulti(cur.type)&&!cur.required);
-  }
-  c.innerHTML=h;
-}
-/* An answer: stored, stale seeds replaced, the preview marked out of date, the setup saved, and the chat moves on. */
-function chatAnswer(cur,value){
-  const st=chat.st;
-  Object.assign(st.answers,cur.core?CC.answerPatch(cur.key,value,st.answers):{[cur.key]:value});
-  if(cur.seed!==undefined&&JSON.stringify(value)===JSON.stringify(cur.seed))st.seeded[cur.key]=value;else delete st.seeded[cur.key];
-  const r=CC.reseed(chatAsk(),st.answers,st.seeded);st.answers=r.answers;st.seeded=r.seeded;
-  if(st.preview.done)st.preview.changed=true;
-  st.editing=null;comp=null;drawChat();
-}
-function chatEdit(key){
-  if(chatBusy)return;
-  comp=null;
-  if(key==='name'){chat.st.started=false;drawChat();return;}
-  chat.st.editing=key;drawChat();
-}
-/* The same POST the forms sent: /api/setup for a folder without .specs/, /api/projects/new for a new project. */
-async function chatCreate(){
-  if(chatBusy)return;
-  const c=chat,root=DATA.projects[c.project].root,btn=$('#chatCreate'),err=$('#chatErr');
-  chatBusy=true;btn.disabled=true;err.textContent='';
-  const body=chatBody();
-  let r,res={};
-  try{
-    r=await fetch(c.isNew?'/api/projects/new':'/api/setup?project='+c.project,{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify(body)});
-    res=await r.json().catch(()=>({}));
-  }catch(e){r=null;}
-  chatBusy=false;
-  if(chat!==c)return; // the view changed meanwhile
-  btn.disabled=false;
-  if(!r){err.textContent=c.isNew?'The server did not answer.':'The server did not answer. Nothing was set up.';return;}
-  const done=()=>{delete live[c.st.id];if(curNew===c.st.id)curNew=null;};
-  if(c.isNew){
-    const o=openOutcome(r.status,res,true);
-    if(o.project===null){err.textContent=r.status===413?'The answers are too long to send. Shorten the longest ones and try again.':o.toast;return;}
-    if(r.status===200)done();
-    await showOutcome(o);
-    if(r.status===200)noteCreated(res);
-    return;
-  }
-  if(r.status!==200&&!(r.status===409&&res.specs)){err.textContent=res.error||`Nothing was set up (HTTP ${r.status}).`;return;}
-  done();
-  if(PROJECT!==c.project)return;
-  await apply(res.specs,null);
-  if(r.status!==200){toast(res.error||`Nothing was set up (HTTP ${r.status}).`);return;}
-  toast('.specs/ created in '+root);
-  noteCreated(res);
-  $('#content').focus();
-}
-$('#introForm').onsubmit=e=>{
-  e.preventDefault();if(!chat)return;
-  if(chat.isNew){
-    const v=$('#nameIn').value.trim(),problem=answerError({key:'name',required:true},v);
-    if(problem){$('#nameErr').textContent=problem;$('#nameIn').focus();return;}
-    chat.st.answers.name=v;
-  }
-  chat.st.started=true;chat.st.editing=null;drawChat();
-};
-$('#nameIn').addEventListener('input',()=>{$('#nameGo').disabled=!$('#nameIn').value.trim();$('#nameErr').textContent='';});
-$('#setupStart').onclick=()=>$('#introForm').requestSubmit();
-const curQuestion=()=>chat&&nextQuestion(chatAsk(),chat.st.answers,chat.st.editing);
-$('#comp').onsubmit=e=>{
-  e.preventDefault();if(!chat||chatBusy||!comp)return;
-  const cur=curQuestion();if(!cur||cur.key!==comp.key)return;
-  const fail=m=>{$('#compErr').textContent=m;const i=$('#chatIn');if(i){i.setAttribute('aria-invalid','true');i.focus();}};
-  if(cur.type==='text'||cur.type==='tabbed-chips'){
-    const v=$('#chatIn').value,problem=answerError(cur,v);
-    if(problem)return fail(problem);
-    return chatAnswer(cur,v.trim());
-  }
-  const custom=comp.custom.trim();
-  if(cur.type==='categorized')return chatAnswer(cur,comp.v);
-  if(isMulti(cur.type)){
-    const v=custom&&!comp.v.includes(custom)?[...comp.v,custom]:comp.v;
-    if(cur.required&&!v.length)return;
-    return chatAnswer(cur,v);
-  }
-  const v=comp.showCustom&&custom?custom:comp.v;
-  if(v)chatAnswer(cur,v);
-};
-$('#comp').addEventListener('click',e=>{
-  if(!chat||!comp)return;
-  const cur=curQuestion();if(!cur)return;
-  const t=e.target.closest('button');if(!t)return;
-  const redraw=sel=>{drawComposer(cur);const el=sel&&$(`#comp ${sel}`);if(el)el.focus();};
-  if(t.dataset.tab!==undefined){comp.tab=t.dataset.tab;return redraw(`.tab[data-tab="${CSS.escape(t.dataset.tab)}"]`);}
-  if(t.id==='chatOther'){comp.showCustom=!comp.showCustom;if(!isMulti(cur.type)&&comp.showCustom)comp.v='';return redraw(comp.showCustom?'#chatCustom':'#chatOther');}
-  if(t.id==='chatSkip'){if(!cur.required)chatAnswer(cur,isMulti(cur.type)?[]:'');return;}
-  if(t.id==='chatTodo'){chatAnswer(cur,cur.todo);return;}
-  if(t.id==='chatBrowse'){const k=comp;browseFolder(t,()=>comp===k?$('#chatIn'):null,p=>{k.v=p;});return;}
-  if(t.id==='chatNone'){chatAnswer(cur,CC.noneOfThese(comp.v,CC.visibleCategories(chat.st.answers.projectCategory||null,CC.hasMobilePlatform(chat.st.answers.platforms||[]))));return;}
-  if(t.id==='chatCancel'){const k=chat.st.editing;chat.st.editing=null;comp=null;drawChat();const b=$(`#msgs [data-k="${k}"]`);if(b)b.focus();return;}
-  const v=t.dataset.v;if(v===undefined)return;
-  if(cur.type==='tabbed-chips'){comp.v=v;$('#chatIn').value=v;}
-  else if(cur.type==='platform-grid')comp.v=CC.togglePlatform(comp.v,v);
-  else if(cur.type==='categorized')comp.v=CC.toggleIntegration(comp.v,comp.tab||cur.categories[0].id,v);
-  else if(isMulti(cur.type))comp.v=comp.v.includes(v)?comp.v.filter(x=>x!==v):[...comp.v,v];
-  else{comp.v=v;comp.showCustom=false;}
-  redraw(`.chip[data-v="${CSS.escape(v)}"]`);
-});
-$('#comp').addEventListener('input',e=>{
-  if(!comp)return;
-  if(e.target.id==='chatIn'){$('#compErr').textContent='';e.target.removeAttribute('aria-invalid');comp.v=e.target.value;}
-  if(e.target.id==='chatCustom'){comp.custom=e.target.value;const go=$('#chatGo');if(go&&comp.custom.trim())go.disabled=false;}
-});
-$('#msgs').addEventListener('click',e=>{
-  if(e.target.id==='chatCreate'){chatCreate();return;}
-  const b=e.target.closest('[data-k]');if(b)chatEdit(b.dataset.k);
-});
-$('#chatRestart').onclick=()=>{if(!chat||chatBusy)return;chat.st=live[chat.st.id]=freshSetup(chat.st.kind,chat.st.root,chat.st.id,chat.st.seed);comp=null;drawChat();};
-$('#chatClose').onclick=()=>{if(!chatBusy)go('home');};
+$('#suName').addEventListener('input',fieldsChanged);
+$('#suParent').addEventListener('input',fieldsChanged);
+$('#suBrowse').onclick=()=>browseFolder($('#suBrowse'),()=>curView==='new'?$('#suParent'):null,()=>fieldsChanged());
 
 /* ---------------- live reload (BL-052) ----------------
    On a change event: re-fetch, redraw in place. Route, scroll, open inspector, selected row
@@ -843,6 +616,7 @@ function listen(){
   if(es)es.close(); // one stream, for the shown project
   es=new EventSource('/api/events?'+pq());let dropped=false;
   es.addEventListener('clone',e=>onCloneEvent(e.data));
+  es.addEventListener('mcp',e=>{let d=null;try{d=JSON.parse(e.data);}catch(_){}if(d&&DATA){DATA.mcp=d;if(curView==='setup'||curView==='new')suStatus();}});
   es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
   es.onerror=()=>{dropped=true;};          // EventSource retries by itself
   es.onopen=()=>{if(dropped){dropped=false;refresh(null);}}; // catch up on anything missed
@@ -870,7 +644,7 @@ $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-proj
 /* ---------------- open a project (BL-067) ----------------
    The + tile opens the mockup's sheet on its Folder tab. The list is GET /api/projects; opening is
    POST /api/projects, which serves one more folder and remembers it; Remove from list edits the
-   registry only. A new project (BL-PM-003) starts in the setup chat above since BL-PM-004. The Clone tab
+   registry only. A new project starts in the Setup view above (BL-103). The Clone tab
    (BL-PM-002) POSTs /api/projects/clone, which runs git clone and opens the folder; closing the sheet
    meanwhile aborts the request, and the server then removes what was downloaded. Nothing here is
    file content; the strings are the ones REQ-002.H.21, H.24 and H.26 list. */
@@ -880,7 +654,6 @@ let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,brow
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 /* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, only with --mcp. No status:
    the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
-const MCP=(document.querySelector('meta[name="specpilot-mcp"]')||{}).content||null;
 if(TOKEN&&MCP){
   const env=MCP==='env';
   $('#mcpLine').textContent=mcpConfigLine(location.host,env?'${SPECPILOT_MCP_TOKEN}':TOKEN);
@@ -978,6 +751,7 @@ async function cloneRepo(){
   }catch(e){setCloning(null);if(!ctl.signal.aborted)toast('The server did not answer.');return;}
   setCloning(null);
   if(ctl.signal.aborted)return; // the sheet was closed: the server removes the clone
+  if(r.status===200)clonedFrom[res.specs.project.root]=body.url; // the Setup view's Clone lead (BL-103)
   await showOutcome(openOutcome(r.status,res,'cloned'));
 }
 /* Browse… (BL-PM-011, BL-097): the server opens the system's folder dialog; the folder picked fills the
@@ -987,7 +761,7 @@ function setBrowsing(ctl,btn){
   const b=browseBtn;b.disabled=!!ctl||(b.id==='cloneBrowseBtn'&&!!cloneCtl); // a running clone keeps its sheet's button off
   if(ctl)b.setAttribute('aria-busy','true');else b.removeAttribute('aria-busy');
 }
-/* `field()` is looked up after the answer: the chat may have redrawn its text box meanwhile. `pick` also sees the path. */
+/* `field()` is looked up after the answer: the view may have changed meanwhile. `pick` also sees the path. */
 async function browseFolder(btn,field,pick){
   if(browseCtl)return;
   const ctl=new AbortController();setBrowsing(ctl,btn);
@@ -998,7 +772,7 @@ async function browseFolder(btn,field,pick){
     res=await r.json().catch(()=>({}));
   }catch(e){setBrowsing(null);if(!ctl.signal.aborted){toast('The server did not answer.');back();}return;}
   setBrowsing(null);
-  if(ctl.signal.aborted)return; // the sheet was closed or the chat left: the server closes the dialog
+  if(ctl.signal.aborted)return; // the sheet was closed or #new left: the server closes the dialog
   if(r.status!==200){toast(res.error||`Nothing was chosen (HTTP ${r.status}).`);back();return;}
   const f=res.path&&field();
   if(f){f.value=res.path;if(pick)pick(res.path);f.focus();}else back();

@@ -13,7 +13,6 @@ import {
 } from './addSpecsQuestions';
 import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, InitAnswers, projectNameError } from './initQuestions';
 import { checkOpenPath, HOME_OR_ROOT_ERROR, pathShapeError } from './projectRegistry';
-import { render, RenderedFile } from '../core/render';
 import { OptionalFields } from '../core/templateEngine';
 import { INTEGRATION_CATEGORY_IDS, MAX_LIST_ITEMS, OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 
@@ -302,37 +301,6 @@ async function setupOptions(root: string, body: Record<string, unknown>): Promis
   );
 }
 
-/** What a create would write, nothing written (BL-PM-004b `POST /api/preview`). */
-export interface Preview {
-  files: RenderedFile[];
-  kept: string[];
-  onboardingPrompt: string;
-}
-
-const previewOf = (options: SpecGeneratorOptions, kept: (path: string) => boolean): Preview => {
-  const out = render(options); // targetDir is the writer's; render() ignores it
-  return { files: out.files, kept: out.files.map(f => f.path).filter(p => !p.startsWith('.specs/') && kept(p)), onboardingPrompt: out.onboardingPrompt };
-};
-
-/** The guided-setup preview for `root` (shape already checked): what `setupProject()` would write. */
-export async function previewSetup(root: string, body: Record<string, unknown>): Promise<Preview | { status: 409 | 422; error: string }> {
-  if (!specsMissing(root)) return { status: 409, error: '.specs/ already exists in this folder, so there is nothing to set up.' };
-  const options = await setupOptions(root, body);
-  return 'status' in options ? options : previewOf(options, rel => exists(join(root, ...rel.split('/'))));
-}
-
-/** The new-project preview (shape already checked, `parent` not needed): what `createProject()` would write. */
-export function previewNewProject(body: Record<string, unknown>): Preview | { status: 422; error: string } {
-  const { name, ...answers } = body as Record<string, string>;
-  let handle = answers.handle.trim();
-  try {
-    handle = handle || os.userInfo().username;
-  } catch (err) {
-    return { status: 422, error: `The OS username could not be read: ${(err as Error).message}` };
-  }
-  return previewOf(newProjectOptions('', name, { ...answers, handle }, body), () => false);
-}
-
 /**
  * Generate with `options` into a marked staging folder inside `root`, then create each staged file in
  * place with an exclusive create: the one writer behind guided setup and a new project. Existing files
@@ -441,18 +409,33 @@ const CONTEXT_KEYS = CONTEXT_QUESTIONS.map(q => q.key as string);
 const NEW_KEYS = ['parent', 'name', ...KEYS, ...CONTEXT_KEYS];
 /** Longest project-context answer a request may send. */
 export const MAX_CONTEXT_LENGTH = 1000;
-/** Shape of a new-project body, checked before the lock (a preview's has no `parent`). Null when fine. */
-export function newProjectShapeError(body: unknown, preview = false): string | null {
+/** Shape of the Setup view's pending path, `{parent, name}` (BL-103): the new-project rules for those two keys. Null when fine. */
+export function pendingShapeError(body: unknown): string | null {
+  const b = body as Record<string, unknown> | null;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with parent and name.';
+  for (const key of Object.keys(b)) if (key !== 'parent' && key !== 'name') return `Unexpected field "${key}".`;
+  for (const key of ['parent', 'name']) {
+    if (!(key in b)) return `"${key}" is missing.`;
+    if (typeof b[key] !== 'string') return `"${key}" must be a string.`;
+  }
+  const parentProblem = pathShapeError({ path: b.parent });
+  if (parentProblem) return parentProblem.replace('"path"', '"parent"');
+  const nameProblem = projectNameError(b.name as string);
+  return nameProblem ? `${nameProblem.message}.` : null;
+}
+
+/** Shape of a new-project body, checked before the lock. Null when fine. */
+export function newProjectShapeError(body: unknown): string | null {
   const b = body as Record<string, unknown> | null;
   if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with parent, name and the answers to the questions.';
-  const keys = preview ? NEW_KEYS.filter(k => k !== 'parent') : NEW_KEYS;
+  const keys = NEW_KEYS;
   for (const key of Object.keys(b)) if (!keys.includes(key) && !FIELD_KEYS.includes(key)) return `Unexpected field "${key}".`;
   // The context answers are required for Greenfield only: `init` writes them nowhere for Brownfield (BL-PM-004).
-  const required = [...(preview ? [] : ['parent']), 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', ...(b.projectType === 'brownfield' ? [] : ['whatItDoes'])];
+  const required = ['parent', 'name', 'projectType', 'language', 'apiParadigm', 'handle', 'ide', ...(b.projectType === 'brownfield' ? [] : ['whatItDoes'])];
   for (const key of required) if (!(key in b)) return `"${key}" is missing.`;
   for (const key of keys) if (key in b && typeof b[key] !== 'string') return `"${key}" must be a string.`;
   const s = b as Record<string, string>;
-  const parentProblem = preview ? null : pathShapeError({ path: s.parent });
+  const parentProblem = pathShapeError({ path: s.parent });
   if (parentProblem) return parentProblem.replace('"path"', '"parent"');
   const nameProblem = projectNameError(s.name);
   if (nameProblem) return `${nameProblem.message}.`;
@@ -487,13 +470,15 @@ export type Reserved =
   | { target: string; created: boolean }
   | { status: 409 | 422; error: string; project?: number; notEmpty?: string };
 
+export type CheckedTarget = { target: string; exists: boolean } | Exclude<Reserved, { target: string }>;
+
 /**
- * The folder a request names as parent + name (REQ-002.H.23 steps 2 to 4), for a new project and for a
- * clone (BL-PM-002): the parent through `checkOpenPath()`, the target `<parent>/<name>` made with one
- * non-recursive `mkdir` when it is missing, or used when it is an empty folder. `cloning` is the folder
- * a running clone holds. Synchronous; nothing that exists is changed.
+ * The folder a request names as parent + name (REQ-002.H.23 steps 2 and 3), checked and nothing created:
+ * the parent through `checkOpenPath()`, the target `<parent>/<name>` missing or an empty real folder.
+ * `cloning` is the folder a running clone holds. Behind `reserveTarget()` and, alone, the pending path of
+ * the Setup view (BL-103, SEC-004.26).
  */
-export function reserveTarget(parent: string, name: string, roots: string[], home: string, cloning: string | null = null): Reserved {
+export function checkTarget(parent: string, name: string, roots: string[], home: string, cloning: string | null = null): CheckedTarget {
   const check = checkOpenPath(parent, [], home);
   if ('status' in check) return { status: check.status, error: check.error === HOME_OR_ROOT_ERROR ? 'Pick a folder inside your home folder, like ~/dev.' : check.error };
   if (check.root.split(sep).some(segment => segment.toLowerCase() === '.specs')) return { status: 422, error: 'A project cannot be created inside a .specs/ folder.' };
@@ -508,21 +493,31 @@ export function reserveTarget(parent: string, name: string, roots: string[], hom
     st = lstatSync(target);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return { status: 422, error: `${target} could not be created (${(err as NodeJS.ErrnoException).code}).` };
+    return { target, exists: false };
   }
-  if (st) {
-    if (st.isSymbolicLink()) return { status: 409, error: `${target} is a symbolic link, so nothing was created.` };
-    if (!st.isDirectory()) return { status: 409, error: `${target} exists and is not a folder, so nothing was created.` };
-    const open = checkOpenPath(target, roots, home);
-    if ('status' in open) return open;
-    let entries: string[];
-    try {
-      entries = readdirSync(target);
-    } catch (err) {
-      return { status: 422, error: `${target} could not be read (${(err as NodeJS.ErrnoException).code}).` };
-    }
-    if (entries.length) return { status: 409, error: `${target} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.`, notEmpty: target };
-    return { target, created: false };
+  if (st.isSymbolicLink()) return { status: 409, error: `${target} is a symbolic link, so nothing was created.` };
+  if (!st.isDirectory()) return { status: 409, error: `${target} exists and is not a folder, so nothing was created.` };
+  const open = checkOpenPath(target, roots, home);
+  if ('status' in open) return open;
+  let entries: string[];
+  try {
+    entries = readdirSync(target);
+  } catch (err) {
+    return { status: 422, error: `${target} could not be read (${(err as NodeJS.ErrnoException).code}).` };
   }
+  if (entries.length) return { status: 409, error: `${target} already exists and is not empty. Use Open a Project Folder to open it and add .specs/ there.`, notEmpty: target };
+  return { target, exists: true };
+}
+
+/**
+ * `checkTarget()`, then the target made with one non-recursive `mkdir` when it is missing, for a new
+ * project and for a clone (BL-PM-002). Synchronous; nothing that exists is changed.
+ */
+export function reserveTarget(parent: string, name: string, roots: string[], home: string, cloning: string | null = null): Reserved {
+  const checked = checkTarget(parent, name, roots, home, cloning);
+  if ('status' in checked) return checked;
+  const { target } = checked;
+  if (checked.exists) return { target, created: false };
   try {
     mkdirSync(target); // not recursive: fails when anything is there, and never makes a parent
   } catch (err) {

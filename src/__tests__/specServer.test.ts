@@ -12,16 +12,12 @@ import { watchedFiles } from '../utils/specPoller';
 import { serveCommand, STOP_CLONE_MS } from '../commands/serve';
 import * as gitClone from '../utils/gitClone';
 import * as specServerModule from '../utils/specServer';
-import * as specSetup from '../utils/specSetup';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
 import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
 import { initOptions, InitAnswers } from '../utils/initQuestions';
 import { render } from '../core/render';
 import { ALL_FIELDS } from './fixtures/allFields';
-// The chat's fields: ALL_FIELDS without BL-095's detection-only four, which no request may carry (REQ-002.H.39).
-const DETECTION_ONLY = ['packageManager', 'testFramework', 'repository', 'license'];
-const CHAT_FIELDS = Object.fromEntries(Object.entries(ALL_FIELDS).filter(([k]) => !DETECTION_ONLY.includes(k)));
 import { SpecBackfiller } from '../utils/specBackfiller';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
 
@@ -585,7 +581,7 @@ describe('serveCommand', () => {
 
   it(`waits at most ${STOP_CLONE_MS / 1000} seconds for a clone's clean-up, ignoring further signals meanwhile, then exits anyway`, async () => {
     const close = jest.fn(async () => {});
-    jest.spyOn(specServerModule, 'startSpecServer').mockResolvedValue({ server: {} as never, mcpToken: null, streams: () => 0, stopClone: () => new Promise<void>(() => {}), close });
+    jest.spyOn(specServerModule, 'startSpecServer').mockResolvedValue({ server: {} as never, mcpToken: null, streams: () => 0, pending: () => null, stopClone: () => new Promise<void>(() => {}), close });
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
     let exited: (code: number) => void;
     const exitCode = new Promise<number>(r => (exited = r));
@@ -1100,7 +1096,7 @@ describe('UI routing (ui/route.js)', () => {
         '<use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div>',
       );
       expect(home).toContain(
-        '<use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? The guided setup writes one for you.</div>',
+        '<use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? Your AI IDE writes one for you.</div>',
       );
       expect(home.match(/class="ic2"/g)).toHaveLength(2); // two benefit rows, not the mockup's three
       expect(home).toContain('Server running on <span class="mono" id="homeAddr" translate="no"></span> · <span id="homeVer" translate="no"></span>'); // filled by the script with the real values
@@ -1114,19 +1110,15 @@ describe('UI routing (ui/route.js)', () => {
       const sheet = page.slice(page.indexOf('<div class="veil" id="openVeil">'), page.indexOf('<!-- PALETTE'));
       expect(sheet).toContain('<div class="tabs" id="openTabs" role="tablist" aria-labelledby="openTitle"><button type="button" class="on" role="tab" id="tabFolder" data-t="folder" aria-controls="paneFolder" aria-selected="true">Folder</button><button type="button" role="tab" id="tabClone" data-t="clone" aria-controls="paneClone" aria-selected="false" tabindex="-1">Clone</button></div>');
       for (const gone of ['id="tabNew"', 'id="paneNew"', '>New<', 'Create Project', 'Runs what specpilot init runs']) expect(page).not.toContain(gone);
-      // BL-PM-004: the setup chat, with only its own strings in the markup (the questions, their chat lines and choices come from the server)
-      const chat = page.slice(page.indexOf('<section class="view chat" id="v-chat">'), page.indexOf('<!-- FILE: any .specs/ file'));
-      expect(chat).toContain('<div class="bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="barI"></i></div>');
-      expect(chat).toContain('<h2 id="introH">Hey, I\'m SpecPilot</h2>');
-      expect(chat).toContain('<div class="fine" id="introFine">Runs on this machine. Nothing leaves it.</div>');
-      expect(chat).toContain('<div class="lbl" id="nameLbl">Name your project to start</div>');
-      expect(chat).toContain('<input class="cfield mono" id="nameIn" name="project-name" type="text" placeholder="e.g. parcel-track" spellcheck="false" maxlength="214" aria-labelledby="nameLbl" aria-describedby="nameErr"><button type="submit" class="send" id="nameGo" aria-label="Start">→</button>');
-      expect(chat).toContain('<button type="button" class="btn pri" id="setupStart" hidden>Start Guided Setup</button>');
-      expect(chat).toContain('<section class="thread" id="thread" hidden><div class="col" id="msgs"></div></section>');
-      expect(chat).toContain('<section class="composer" id="composer" hidden><form class="col" id="comp" autocomplete="off"></form></section>');
-      expect(page).toContain('<button type="button" class="btn" id="chatRestart" hidden>Start over</button><button type="button" class="btn" id="chatClose" hidden>Close</button>');
-      expect(page).toContain('<span id="chatSub" aria-live="polite" hidden></span>');
-      for (const never of ['id="v-setup"', 'id="setupVeil"', 'id="stepRail"', 'id="qNext"', 'Next Question', 'Review Answers', 'Steps', 'Enter an answer.', 'Create .specs/ and Open Project', 'Save and Close', 'Skip step', 'Start Over', 'Download', 'id="setupForm"', 'Runs what specpilot add-specs runs']) expect(page).not.toContain(never);
+      // BL-103: the Setup view in place of the chat, with only its own strings; the rows are not started
+      const setup = page.slice(page.indexOf('<section class="view setupv" id="v-setup">'), page.indexOf('<!-- FILE: any .specs/ file'));
+      expect(setup).toContain('<p class="note">Nothing is created yet. The folder is made by your IDE in step 3, only at this path.</p>');
+      expect(setup).toContain('<span class="n">1</span>Connect your AI IDE<span class="st" id="suStatus" role="status"></span>');
+      expect(setup).toContain('<span class="n">2</span>Tell it what to do</div>');
+      expect(setup).toContain('<span class="n">3</span>Progress</div><p class="note">Updates by itself as your IDE calls the server. Nothing here to click.</p>');
+      expect(setup.match(/<li class="wait">/g)).toHaveLength(4);
+      expect(setup).toContain('This server was started with <span class="mono" translate="no">--no-mcp</span>, so your IDE cannot reach it. Restart with <span class="mono" translate="no">specpilot serve</span> and come back here.');
+      for (const gone of ['id="v-chat"', 'chat-core', 'id="chatRestart"', 'id="chatSub"', 'Hey, I\'m SpecPilot', 'Start Guided Setup', 'id="fileNote"']) expect(page).not.toContain(gone);
       // BL-PM-002: the Clone tab's own strings, its three fields in order, no browser URL check on the field
       expect(sheet).toContain('<div class="pane" id="paneClone" role="tabpanel" aria-labelledby="tabClone" hidden>');
       expect(sheet).toContain('<p class="note">Runs git clone on this machine, then opens the folder. Submodules are not cloned.</p>');
@@ -1140,7 +1132,7 @@ describe('UI routing (ui/route.js)', () => {
       // BL-PM-011 and BL-097: a Browse… button at the end of the Folder tab's field and of the Clone tab's Parent folder, no other
       expect(sheet).toContain('aria-label="Folder path" placeholder="/path/to/project or ~/project"><button type="button" class="btn" id="browseBtn">Browse…</button></div>');
       expect(sheet).toContain('aria-label="Parent folder" placeholder="/path/to/folder or ~/folder"><button type="button" class="btn" id="cloneBrowseBtn">Browse…</button></div>');
-      expect(page.split('Browse…').length - 1).toBe(2);
+      expect(page.split('Browse…').length - 1).toBe(3); // and #new's Parent folder (BL-103)
       for (const left of ['Browse Folders', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
       // BL-PM-007: the card is in the markup but hidden, and without --mcp nothing tells the script to show it
       expect(page).toContain('<div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional, one line</span></div>');
@@ -2036,9 +2028,8 @@ function snapshot(root: string, rel = ''): Record<string, string> {
   return out;
 }
 
-const ANSWERS = JSON.stringify({ projectType: 'brownfield', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode' });
 
-describe('guided setup over HTTP', () => {
+describe('Setup view server (BL-103)', () => {
   let e: ReturnType<typeof makeEmpty>;
   let p: ReturnType<typeof makeProject>;
   let spec: SpecServer;
@@ -2051,217 +2042,153 @@ describe('guided setup over HTTP', () => {
     'X-SpecPilot-Token': token,
     ...over,
   });
+  const pending = (body: unknown, headers = good()) => post(port, JSON.stringify(body), headers, '/api/projects/pending');
+  const start = async (opts: Parameters<typeof startSpecServer>[3] = {}) => {
+    spec = await startSpecServer([e.root, p.root], 0, '0.0.0-test', { registry: regFile(), ...opts });
+    port = (spec.server.address() as AddressInfo).port;
+    token = (/<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body) || [])[1];
+  };
+  const specsOf = async (n: number) => JSON.parse((await hit(port, `/api/specs?project=${n}`)).body);
 
   beforeEach(async () => {
     e = makeEmpty();
     p = makeProject();
-    spec = await startSpecServer([e.root, p.root], 0, '0.0.0-test');
-    port = (spec.server.address() as AddressInfo).port;
-    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+    await start();
   });
   afterEach(async () => {
     await spec.close();
     e.cleanup();
     p.cleanup();
-    jest.restoreAllMocks();
   });
 
-  it('reports project.specs, and GET /api/setup answers only for the project without .specs/, writing nothing', async () => {
-    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).project.specs).toBe(false);
-    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).project.specs).toBe(true);
-    const before = snapshot(e.root);
-    const res = await hit(port, '/api/setup?project=0');
-    expect(res.status).toBe(200);
-    expect(res.headers['content-security-policy']).toBe("default-src 'self'");
-    const q = JSON.parse(res.body);
-    expect(q.questions.map((x: { key: string }) => x.key)).toEqual(['projectType', 'apiParadigm', 'handle', 'ide']);
-    expect(q.detected.line).toBe('✅ Detected typescript/react project');
-    expect(q.keep.vscode).toEqual([]);
-    expect(snapshot(e.root)).toEqual(before);
-    expect((await hit(port, '/api/setup?project=1')).status).toBe(404);
-    expect((await hit(port, '/api/setup?project=2')).status).toBe(404);
-    expect((await hit(port, '/api/setup?project=0', { host: 'evil.example:80' })).status).toBe(403);
-    expect((await hit(port, '/api/setup?project=0', { method: 'PUT' })).status).toBe(405);
-    expect((await hit(port, '/api/setup?project=0', { method: 'DELETE' })).status).toBe(405);
-  });
-
-  it('GET answers 422 with the reason when the folder cannot be read', async () => {
-    writeFileSync(join(e.root, 'package.json'), '{not json');
-    const res = await hit(port, '/api/setup?project=0');
-    expect(res.status).toBe(422);
-    expect(JSON.parse(res.body).error).toContain('This folder could not be read');
-  });
-
-  it('creates what add-specs creates, answers with the fresh payload, and the event stream reports the new paths', async () => {
-    const events = await openEvents(port, undefined, '/api/events?project=0');
-    const res = await post(port, ANSWERS, good(), '/api/setup?project=0');
-    expect(res.status).toBe(200);
-    expect(res.json.kept).toEqual([]);
-    expect(res.json.notice).toBeNull();
-    expect(res.json.specs.project.specs).toBe(true);
-    expect(res.json.specs.tasks).not.toBeNull();
-    expect(readFileSync(join(e.root, '.specs/project/project.yaml'), 'utf-8')).toContain('devPrefix: "jsmith"');
-    expect(readFileSync(join(e.root, '.github/copilot-instructions.md'), 'utf-8')).toContain('No commit unless asked.');
-    expect(readFileSync(join(e.root, '.gitattributes'), 'utf-8')).toContain('merge=union');
-    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).project.specs).toBe(true);
-    expect((await hit(port, '/api/setup?project=0')).status).toBe(404);
-    await events.waitFor(/event: change\ndata: .*\.specs\/planning\/tasks\.md/, 4000);
-    events.close();
-  });
-
-  it('returns the Codex notice for that choice and prints nothing itself', async () => {
-    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
-    const res = await post(port, JSON.stringify({ ...JSON.parse(ANSWERS), ide: 'Codex' }), good(), '/api/setup?project=0');
-    expect(res.status).toBe(200);
-    expect(res.json.notice).toContain('~/.codex/prompts/');
-    expect(log).not.toHaveBeenCalled();
-    expect(readFileSync(join(e.root, 'CODEX_INSTRUCTIONS.md'), 'utf-8')).toContain('new-app');
-  });
-
-  it('keeps existing files and lists them before (GET) and after (POST)', async () => {
-    write(e.root, '.gitattributes', '* text=auto\n');
-    write(e.root, '.vscode/settings.json', '{"mine": true}\n');
-    const q = JSON.parse((await hit(port, '/api/setup?project=0')).body);
-    expect(q.keep.vscode).toEqual(['.vscode/settings.json', '.gitattributes']);
-    expect(q.keep.Cursor).toEqual(['.gitattributes']);
-    write(e.root, '.github/copilot-instructions.md', 'appeared after GET\n'); // between GET and POST
-    const res = await post(port, ANSWERS, good(), '/api/setup?project=0');
-    expect(res.status).toBe(200);
-    expect(res.json.kept).toEqual(['.vscode/settings.json', '.github/copilot-instructions.md', '.gitattributes']);
-    expect(readFileSync(join(e.root, '.gitattributes'), 'utf-8')).toBe('* text=auto\n');
-    expect(readFileSync(join(e.root, '.vscode/settings.json'), 'utf-8')).toBe('{"mine": true}\n');
-    expect(readFileSync(join(e.root, '.github/copilot-instructions.md'), 'utf-8')).toBe('appeared after GET\n');
-    expect(readFileSync(join(e.root, '.vscode/extensions.json'), 'utf-8')).toContain('recommendations');
-  });
-
-  it.each([
-    ['a missing token', () => good({ 'X-SpecPilot-Token': undefined }), 403],
-    ['a wrong token', () => good({ 'X-SpecPilot-Token': 'f'.repeat(64) }), 403],
-    ['a short token', () => good({ 'X-SpecPilot-Token': 'abc' }), 403],
-    ['a foreign Origin', () => good({ Origin: 'http://evil.example' }), 403],
-    ['no Origin', () => good({ Origin: undefined }), 403],
-    ['Host localhost with Origin 127.0.0.1', () => good({ Host: `localhost:${port}` }), 403],
-    ['a foreign Host', () => good({ Host: 'evil.example:80', Origin: 'http://evil.example:80' }), 403],
-    ['a form content type', () => good({ 'Content-Type': 'application/x-www-form-urlencoded' }), 415],
-    ['a text content type', () => good({ 'Content-Type': 'text/plain' }), 415],
-  ])('refuses a POST with %s and writes nothing', async (_what, headers, status) => {
-    const before = snapshot(e.root);
-    expect((await post(port, ANSWERS, headers(), '/api/setup?project=0')).status).toBe(status);
-    expect(snapshot(e.root)).toEqual(before);
-  });
-
-  it('refuses a body over 64 KB (413), a bad project with a bad token (403, not 404), a bad project (404), and a project with .specs/ (409)', async () => {
-    const before = snapshot(e.root);
-    expect((await post(port, JSON.stringify({ projectType: 'x'.repeat(65 * 1024) }), good(), '/api/setup?project=0')).status).toBe(413);
-    // up to 64 KB is read (BL-PM-004b): a 17 KB body now reaches the shape check
-    expect((await post(port, JSON.stringify({ projectType: 'x'.repeat(17 * 1024) }), good(), '/api/setup?project=0')).status).toBe(422);
-    expect((await post(port, ANSWERS, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }), '/api/setup?project=9')).status).toBe(403);
-    expect((await post(port, ANSWERS, good(), '/api/setup?project=9')).status).toBe(404);
-    expect((await post(port, ANSWERS, good(), '/api/setup?project=01')).status).toBe(404);
-    const taken = await post(port, ANSWERS, good(), '/api/setup?project=1');
-    expect(taken.status).toBe(409);
-    expect(taken.json.specs.project.name).toBe('Fixture Project');
-    expect(snapshot(e.root)).toEqual(before);
-    expect(readFileSync(join(p.root, '.specs/project/project.yaml'), 'utf-8')).toContain('Fixture Project');
-  });
-
-  it.each([
-    ['not JSON', '{', 400, 'not valid JSON'],
-    ['an array', '[]', 422, 'JSON object'],
-    ['null', 'null', 422, 'JSON object'],
-    ['a string', '"x"', 422, 'JSON object'],
-    ['a missing key', JSON.stringify({ projectType: 'brownfield', apiParadigm: 'rest', ide: 'vscode' }), 422, '"handle" is missing'],
-    ['a non-string value', JSON.stringify({ ...JSON.parse(ANSWERS), ide: 1 }), 422, '"ide" must be a string'],
-    ['an extra key', JSON.stringify({ ...JSON.parse(ANSWERS), path: '/etc' }), 422, 'Unexpected field "path"'],
-    ['a choice not offered', JSON.stringify({ ...JSON.parse(ANSWERS), ide: 'vim' }), 422, '"ide" must be one of'],
-    ['a language when detected', JSON.stringify({ ...JSON.parse(ANSWERS), language: 'python' }), 422, '"language" must not be sent'],
-    ['a handle with a space', JSON.stringify({ ...JSON.parse(ANSWERS), handle: 'j smith' }), 422, 'The handle must be'],
-  ])('refuses a body that is %s and writes nothing', async (_what, body, status, message) => {
-    const before = snapshot(e.root);
-    const res = await post(port, body, good(), '/api/setup?project=0');
-    expect(res.status).toBe(status);
-    expect(res.json.error).toContain(message);
-    expect(snapshot(e.root)).toEqual(before);
-    expect(readdirSync(e.root).some((n: string) => n.startsWith('.specpilot-setup-'))).toBe(false);
-  });
-
-  it('two simultaneous setups: one 200, one 409; and the lock chain survives a 500', async () => {
-    const [x, y] = await Promise.all([post(port, ANSWERS, good(), '/api/setup?project=0'), post(port, ANSWERS, good(), '/api/setup?project=0')]);
-    expect([x.status, y.status].sort()).toEqual([200, 409]);
-    expect(readdirSync(e.root).some((n: string) => n.startsWith('.specpilot-setup-'))).toBe(false);
-
-    const f = makeEmpty();
-    const other = await startSpecServer([f.root, p.root], 0, 'x');
-    try {
-      const port2 = (other.server.address() as AddressInfo).port;
-      const token2 = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port2, '/')).body)![1];
-      const h = (over: Record<string, string> = {}) => ({ Host: `127.0.0.1:${port2}`, Origin: `http://127.0.0.1:${port2}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token2, ...over });
-      jest.spyOn(specSetup, 'setupProject').mockRejectedValueOnce(new Error('boom'));
-      const broken = await post(port2, ANSWERS, h(), '/api/setup?project=0');
-      expect(broken.status).toBe(500);
-      writeFileSync(join(p.root, '.specs/planning/tasks.md'), MOVE_TASKS);
-      const hashOf = createHash('sha256').update(readFileSync(join(p.root, '.specs/planning/tasks.md'))).digest('hex');
-      const move = await post(port2, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), h({ 'If-Match': hashOf }), '/api/tasks/move?project=1');
-      expect(move.status).toBe(200);
-    } finally {
-      await other.close();
-      f.cleanup();
+  it('the chat\'s routes and its script are gone: they answer as any unknown path', async () => {
+    for (const path of ['/api/setup?project=0', '/api/projects/new', '/api/preview', '/assets/chat-core.js']) {
+      expect((await hit(port, path)).status).toBe(404);
+      const r = await hit(port, path, { method: 'POST' });
+      expect(r.status).toBe(405);
+      expect(r.headers.allow).toBe('GET');
     }
+    expect((await hit(port, '/')).body).not.toContain('chat-core');
   });
 
-  it('a setup and a task move in another project both succeed, one after the other', async () => {
-    writeFileSync(join(p.root, '.specs/planning/tasks.md'), MOVE_TASKS);
-    const h = createHash('sha256').update(readFileSync(join(p.root, '.specs/planning/tasks.md'))).digest('hex');
-    const [setup, move] = await Promise.all([
-      post(port, ANSWERS, good(), '/api/setup?project=0'),
-      post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': h }), '/api/tasks/move?project=1'),
-    ]);
-    expect([setup.status, move.status]).toEqual([200, 200]);
-    expect(readFileSync(join(p.root, '.specs/planning/tasks.md'), 'utf-8')).not.toBe(MOVE_TASKS);
-    expect(existsSync(join(e.root, '.specs/planning/tasks.md'))).toBe(true);
+  it('reports project.specs and named, and a .specs/ made outside the server flips specs', async () => {
+    expect((await specsOf(0)).project).toMatchObject({ specs: false, named: true });
+    expect((await specsOf(1)).project).toMatchObject({ specs: true, named: true });
+    mkdirSync(join(e.root, '.specs'));
+    expect((await specsOf(0)).project.specs).toBe(true);
   });
 
-  it('answers 404 for a root that was not named on the command line (the current-directory default)', async () => {
-    const d = makeEmpty();
-    const unnamed = await startSpecServer([d.root], 0, 'x', { named: [false] });
+  it('keeps the current-directory default out of the Setup view (named false)', async () => {
+    await spec.close();
+    await start({ named: [false, false] });
+    expect((await specsOf(0)).project).toMatchObject({ specs: false, named: false });
+  });
+
+  it('POST /api/projects/pending registers a missing or empty folder and creates nothing; the next replaces it', async () => {
+    const before = readdirSync(e.base);
+    const r = await pending({ parent: e.base, name: 'demo' });
+    expect(r.status).toBe(200);
+    expect(r.json).toEqual({ target: join(realpathSync(e.base), 'demo') });
+    expect(readdirSync(e.base)).toEqual(before);
+    expect(spec.pending()).toBe(join(realpathSync(e.base), 'demo'));
+    mkdirSync(join(e.base, 'empty'));
+    expect((await pending({ parent: e.base, name: 'empty' })).status).toBe(200);
+    expect(spec.pending()).toBe(join(realpathSync(e.base), 'empty'));
+    expect(readdirSync(join(e.base, 'empty'))).toEqual([]);
+  });
+
+  it('refuses a request that fails the write checks, or of the wrong shape, keeping the pending path', async () => {
+    await pending({ parent: e.base, name: 'demo' });
+    const body = { parent: e.base, name: 'other' };
+    expect((await pending(body, good({ Origin: 'http://evil.example' }))).status).toBe(403);
+    expect((await pending(body, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }))).status).toBe(403);
+    expect((await pending(body, good({ 'Content-Type': 'text/plain' }))).status).toBe(415);
+    expect((await post(port, JSON.stringify({ parent: 'x'.repeat(17 * 1024), name: 'a' }), good(), '/api/projects/pending')).status).toBe(413);
+    expect((await post(port, '{not json', good(), '/api/projects/pending')).status).toBe(400);
+    expect((await pending({ parent: e.base })).json.error).toBe('"name" is missing.');
+    expect((await pending({ ...body, extra: 1 })).json.error).toBe('Unexpected field "extra".');
+    expect((await pending({ parent: e.base, name: 'demo app' })).json.error).toBe('Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores.');
+    expect((await pending({ parent: 'a\0b', name: 'x' })).json.error).toBe('"parent" must not contain a NUL character.');
+    expect(spec.pending()).toBe(join(realpathSync(e.base), 'demo'));
+  });
+
+  it('refuses a served root, a link, a file, a non-empty folder, the home folder and a .specs/ parent with the existing messages', async () => {
+    const real = realpathSync(e.base);
+    const served = await pending({ parent: e.base, name: 'proj' });
+    expect(served.status).toBe(409);
+    expect(served.json).toEqual({ error: `${join(real, 'proj')} is already open as project 0.`, project: 0 });
+    symlinkSync(p.root, join(e.base, 'link'));
+    expect((await pending({ parent: e.base, name: 'link' })).json.error).toBe(`${join(real, 'link')} is a symbolic link, so nothing was created.`);
+    writeFileSync(join(e.base, 'file'), 'x');
+    expect((await pending({ parent: e.base, name: 'file' })).json.error).toBe(`${join(real, 'file')} exists and is not a folder, so nothing was created.`);
+    write(e.base, 'full/a.txt', 'x');
+    const full = await pending({ parent: e.base, name: 'full' });
+    expect(full.status).toBe(409);
+    expect(full.json.error).toBe(`${join(real, 'full')} already exists and is not empty. Use Open a Project Folder to open it and add .specs/ there.`);
+    expect((await pending({ parent: HOME, name: 'x' })).json.error).toBe('Pick a folder inside your home folder, like ~/dev.');
+    expect((await pending({ parent: '/', name: 'x' })).json.error).toBe('Pick a folder inside your home folder, like ~/dev.');
+    mkdirSync(join(e.base, '.specs'));
+    expect((await pending({ parent: join(e.base, '.specs'), name: 'x' })).json.error).toBe('A project cannot be created inside a .specs/ folder.');
+    expect(spec.pending()).toBeNull();
+  });
+
+  it(`refuses with ${MAX_PROJECTS} projects served`, async () => {
+    await spec.close();
+    const many = Array.from({ length: MAX_PROJECTS }, () => makeProject());
     try {
-      const port2 = (unnamed.server.address() as AddressInfo).port;
-      const token2 = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port2, '/')).body)![1];
-      expect((await hit(port2, '/api/setup?project=0')).status).toBe(404);
-      const res = await post(port2, ANSWERS, { Host: `127.0.0.1:${port2}`, Origin: `http://127.0.0.1:${port2}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token2 }, '/api/setup?project=0');
-      expect(res.status).toBe(404);
-      expect(specSetup.specsMissing(d.root)).toBe(true);
-    } finally {
-      await unnamed.close();
-      d.cleanup();
-    }
-  });
-
-  it('a .specs/ created outside the server flips project.specs', async () => {
-    write(e.root, '.specs/project/project.yaml', 'name: "By hand"\n');
-    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).project.specs).toBe(true);
-    expect((await hit(port, '/api/setup?project=0')).status).toBe(404);
-  });
-});
-
-describe('guided setup with --read-only', () => {
-  it('has no setup routes, reports project.specs false and no token', async () => {
-    const e = makeEmpty();
-    const spec = await startSpecServer([e.root], 0, 'x', { readOnly: true });
-    try {
-      const port = (spec.server.address() as AddressInfo).port;
-      expect((await hit(port, '/')).body).not.toContain('specpilot-token" content=');
-      expect(JSON.parse((await hit(port, '/api/specs')).body).project.specs).toBe(false);
-      expect((await hit(port, '/api/setup?project=0')).status).toBe(405);
-      const res = await post(port, ANSWERS, { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64) }, '/api/setup?project=0');
-      expect(res.status).toBe(405);
-      expect(specSetup.specsMissing(e.root)).toBe(true);
+      spec = await startSpecServer(many.map(m => m.root), 0, '0.0.0-test', { registry: regFile() });
+      port = (spec.server.address() as AddressInfo).port;
+      token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+      expect((await pending({ parent: e.base, name: 'demo' })).status).toBe(409);
     } finally {
       await spec.close();
-      e.cleanup();
+      many.forEach(m => m.cleanup());
+      await start();
     }
   });
+
+  it('has no pending route with --read-only', async () => {
+    await spec.close();
+    await start({ readOnly: true, registry: undefined });
+    const r = await hit(port, '/api/projects/pending', { method: 'POST' });
+    expect(r.status).toBe(405);
+    expect(r.headers.allow).toBe('');
+  });
+
+  it('mcp.client: null until an initialize, then its sanitized name, sent to open streams as event: mcp', async () => {
+    await spec.close();
+    await start({ mcp: true });
+    const rpc = (msg: unknown, over: Record<string, string> = {}) =>
+      post(port, JSON.stringify(msg), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': spec.mcpToken!, ...over }, '/mcp');
+    expect((await specsOf(0)).mcp).toEqual({ client: null });
+    const events = await openEvents(port, `127.0.0.1:${port}`, '/api/events?project=0');
+    await rpc({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
+    expect((await specsOf(0)).mcp).toEqual({ client: null }); // only an initialize (or a 2026-07-28 request) connects
+    await rpc({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '1' } } });
+    expect((await specsOf(0)).mcp).toEqual({ client: { name: 'claude-code' } });
+    expect(await events.waitFor(/event: mcp\ndata: .*\n/)).toBe('event: mcp\ndata: {"client":{"name":"claude-code"}}\n');
+    await rpc({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {} } });
+    expect((await specsOf(0)).mcp).toEqual({ client: { name: '' } });
+    await rpc({ jsonrpc: '2.0', id: 3, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: '‮\u0007⁦' } } });
+    expect((await specsOf(0)).mcp).toEqual({ client: { name: '' } });
+    const meta = { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {}, 'io.modelcontextprotocol/clientInfo': { name: 'Cursor', version: '2' } };
+    const modern = await rpc({ jsonrpc: '2.0', id: 4, method: 'server/discover', params: { _meta: meta } }, { 'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': 'server/discover' });
+    expect(modern.status).toBe(200);
+    expect((await specsOf(0)).mcp).toEqual({ client: { name: 'Cursor' } });
+    events.close();
+    expect(events.text()).not.toMatch(/event: mcp\ndata: .*(\/|https?:)/);
+  });
+
+  it('a refused MCP request connects nothing', async () => {
+    await spec.close();
+    await start({ mcp: true });
+    const r = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: { name: 'x' } } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64) }, '/mcp');
+    expect(r.status).toBe(403);
+    expect((await specsOf(0)).mcp).toEqual({ client: null });
+  });
 });
+
+
 
 describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
   let a: ReturnType<typeof makeProject>;
@@ -2460,16 +2387,10 @@ describe('project registry over HTTP', () => {
     expect(mv.json.error).toContain('Current Sprint');
   });
 
-  it('opens a folder without .specs/ and offers guided setup there (it counts as named)', async () => {
+  it('opens a folder without .specs/ for the Setup view (it counts as named)', async () => {
     const r = await open(e.root);
     expect(r.status).toBe(200);
-    expect(r.json.specs.project.specs).toBe(false);
-    const qs = await hit(port, '/api/setup?project=1');
-    expect(qs.status).toBe(200);
-    expect(JSON.parse(qs.body).questions.some((x: { key: string }) => x.key === 'ide')).toBe(true);
-    const setup = await post(port, ANSWERS, good(), '/api/setup?project=1');
-    expect(setup.status).toBe(200);
-    expect(existsSync(join(e.root, '.specs/project/project.yaml'))).toBe(true);
+    expect(r.json.specs.project).toMatchObject({ specs: false, named: true });
   });
 
   it('expands ~/ against the temp home', async () => {
@@ -2714,266 +2635,6 @@ const NEW_ANSWERS = {
   whatItDoes: 'Tracks parcels', targetUsers: '', expectedScale: '', constraints: '',
 };
 
-describe('a new project over HTTP (BL-PM-003)', () => {
-  let p: ReturnType<typeof makeProject>;
-  let base: string; // where projects are created: a real path outside the temp home
-  let spec: SpecServer;
-  let port: number;
-  let token: string;
-  const good = (over: Record<string, string | undefined> = {}) => ({
-    Host: `127.0.0.1:${port}`,
-    Origin: `http://127.0.0.1:${port}`,
-    'Content-Type': 'application/json',
-    'X-SpecPilot-Token': token,
-    ...over,
-  });
-  const create = (over: Record<string, unknown> = {}, headers = good()) =>
-    post(port, JSON.stringify({ parent: base, name: 'demo', ...NEW_ANSWERS, ...over }), headers, '/api/projects/new');
-  const start = async (roots: string[]) => {
-    spec = await startSpecServer(roots, 0, '0.0.0-test', { registry: regFile() });
-    port = (spec.server.address() as AddressInfo).port;
-    token = (/<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body) || [])[1];
-  };
-
-  beforeEach(async () => {
-    p = makeProject();
-    base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-new-')));
-    await start([p.root]);
-  });
-  afterEach(async () => {
-    jest.restoreAllMocks();
-    await spec.close();
-    p.cleanup();
-    rmSync(base, { recursive: true, force: true });
-  });
-
-  it('GET returns init\'s questions, reads no project parameter and writes nothing', async () => {
-    const r = await hit(port, '/api/projects/new?project=7');
-    expect(r.status).toBe(200);
-    const q = JSON.parse(r.body);
-    expect(Object.keys(q)).toEqual(['questions', 'steps', 'frameworks', 'files']); // steps and files since BL-PM-004
-    expect(q.questions.map((x: { key: string }) => x.key)).toEqual(['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide', 'whatItDoes', 'targetUsers', 'expectedScale', 'constraints']);
-    expect(q.questions[0].choices[0].value).toBe('greenfield');
-    expect(q.frameworks.python).toContain('django');
-    expect(readdirSync(base)).toEqual([]);
-    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
-    expect((await hit(port, '/api/projects/new', { host: 'evil.example' })).status).toBe(403);
-  });
-
-  it('GET answers 422 when the OS username cannot be read', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    jest.spyOn(require('os') as typeof os, 'userInfo').mockImplementation(() => {
-      throw new Error('no passwd entry');
-    });
-    const r = await hit(port, '/api/projects/new');
-    expect(r.status).toBe(422);
-    expect(JSON.parse(r.body)).toEqual({ error: 'The OS username could not be read: no passwd entry' });
-  });
-
-  it('answers 405 with Allow: GET, POST to other methods', async () => {
-    for (const method of ['PUT', 'DELETE', 'PATCH']) {
-      const r = await hit(port, '/api/projects/new', { method });
-      expect(r.status).toBe(405);
-      expect(r.headers.allow).toBe('GET, POST');
-    }
-  });
-
-  it('refuses a POST that fails the write checks, creating nothing', async () => {
-    expect((await create({}, good({ Host: 'evil.example' }))).status).toBe(403);
-    expect((await create({}, good({ Origin: undefined }))).status).toBe(403);
-    expect((await create({}, good({ Origin: 'http://evil.example' }))).status).toBe(403);
-    expect((await create({}, good({ 'X-SpecPilot-Token': undefined }))).status).toBe(403);
-    expect((await create({}, good({ 'X-SpecPilot-Token': 'f'.repeat(64) }))).status).toBe(403);
-    expect((await create({}, good({ 'Content-Type': 'text/plain' }))).status).toBe(415);
-    expect((await create({ constraints: 'x'.repeat(65 * 1024) })).status).toBe(413);
-    // 16 KB fits the 64 KB limit since BL-PM-004b, and is refused for its length instead
-    expect((await create({ constraints: 'x'.repeat(16 * 1024) })).status).toBe(422);
-    expect((await post(port, '{not json', good(), '/api/projects/new')).status).toBe(400);
-    expect(readdirSync(base)).toEqual([]);
-    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
-  });
-
-  it('refuses a body of the wrong shape with 422 and the reason, creating nothing', async () => {
-    for (const [over, error] of [
-      [{ name: '../x' }, 'Project name must start with a letter or number and contain only letters, numbers, dots, hyphens, and underscores.'],
-      [{ parent: '' }, '"parent" must be 1 to 4096 characters.'],
-      [{ ide: 'vim' }, '"ide" must be one of: vscode, Cursor, Windsurf, Antigravity, claude-code, Codex.'],
-      [{ whatItDoes: ' ' }, '"whatItDoes" must not be empty.'],
-      [{ targetUsers: 'a\nb' }, '"targetUsers" must be one line of text, without control characters.'],
-      [{ path: '/x' }, 'Unexpected field "path".'],
-    ] as const) {
-      const r = await create(over);
-      expect([r.status, r.json]).toEqual([422, { error }]);
-    }
-    expect(readdirSync(base)).toEqual([]);
-  });
-
-  it('creates a Brownfield project without the four context answers (BL-PM-004)', async () => {
-    const { whatItDoes, targetUsers, expectedScale, constraints, ...rest } = NEW_ANSWERS;
-    void [whatItDoes, targetUsers, expectedScale, constraints];
-    const r = await create({ ...rest, projectType: 'brownfield' });
-    expect(r.status).toBe(200);
-    expect(existsSync(join(base, 'demo', '.specs', 'development', 'onboarding.md'))).toBe(true);
-    const missing = await post(port, JSON.stringify({ parent: base, name: 'other', ...rest }), good(), '/api/projects/new');
-    expect([missing.status, missing.json.error]).toEqual([422, '"whatItDoes" is missing.']);
-    expect(existsSync(join(base, 'other'))).toBe(false);
-  });
-
-  it('creates the folder, writes the project, serves it as the next index and records it', async () => {
-    const before = JSON.parse((await hit(port, '/api/specs')).body);
-    delete before.projects;
-    const r = await create({ ide: 'Codex' });
-    expect(r.status).toBe(200);
-    expect(Object.keys(r.json).sort()).toEqual(['kept', 'notice', 'project', 'registry', 'specs']);
-    expect(r.json.project).toBe(1);
-    expect(r.json.kept).toEqual([]);
-    expect(r.json.notice).toBe(specSlash.CODEX_PROMPTS_NOTICE);
-    expect(r.json.specs.project).toMatchObject({ name: 'demo', root: join(base, 'demo'), specs: true });
-    expect(r.json.specs.projects).toHaveLength(2);
-    expect(r.json.registry.entries).toEqual([expect.objectContaining({ path: join(base, 'demo'), project: 1, exists: true, pinned: false })]);
-    expect(readRegistry(regFile()).entries).toEqual([expect.objectContaining({ path: join(base, 'demo') })]);
-    expect(readFileSync(join(base, 'demo/.specs/development/onboarding.md'), 'utf-8')).toContain('- **What it does:** Tracks parcels\n');
-    expect(readdirSync(join(base, 'demo')).some(n => n.startsWith('.specpilot-setup-'))).toBe(false);
-    // served like any project; project 0 unchanged; setup is not offered (it has .specs/)
-    const { projects, ...rest } = JSON.parse((await hit(port, '/api/specs')).body);
-    expect(rest).toEqual(before);
-    expect(projects).toHaveLength(2);
-    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).project.root).toBe(join(base, 'demo'));
-    expect((await hit(port, '/api/file?project=1&p=.specs/development/onboarding.md')).status).toBe(200);
-    expect((await hit(port, '/api/setup?project=1')).status).toBe(404);
-    // the same target again: already open, nothing touched
-    const snap = snapshot(join(base, 'demo'));
-    const again = await create({ ide: 'Codex' });
-    expect([again.status, again.json]).toEqual([409, { error: `${join(base, 'demo')} is already open as project 1.`, project: 1 }]);
-    expect(snapshot(join(base, 'demo'))).toEqual(snap);
-  });
-
-  it('uses an existing empty folder, and ~/ for the parent resolves under the temp home', async () => {
-    mkdirSync(join(HOME, 'dev', 'empty'), { recursive: true });
-    const r = await create({ parent: '~/dev', name: 'empty' });
-    expect(r.status).toBe(200);
-    expect(r.json.specs.project.root).toBe(join(HOME, 'dev', 'empty'));
-    expect(r.json.registry.entries[0].root).toBe('~/dev/empty');
-    expect(existsSync(join(HOME, 'dev/empty/.specs/project/project.yaml'))).toBe(true);
-  });
-
-  it('refuses, with nothing created or changed: a non-empty folder, a parent under .specs/, the home folder as parent, a missing parent', async () => {
-    mkdirSync(join(base, 'full'));
-    writeFileSync(join(base, 'full', 'README.md'), 'mine\n');
-    const before = snapshot(base);
-    const pBefore = snapshot(p.root);
-    let r = await create({ name: 'full' });
-    expect([r.status, r.json]).toEqual([409, { error: `${join(base, 'full')} already exists and is not empty. Use the Folder tab to open it and add .specs/ there.` }]);
-    r = await create({ parent: join(p.root, '.specs', 'planning') });
-    expect([r.status, r.json]).toEqual([422, { error: 'A project cannot be created inside a .specs/ folder.' }]);
-    r = await create({ parent: join(p.root, '.specs') });
-    expect(r.status).toBe(422);
-    r = await create({ parent: '~' });
-    expect([r.status, r.json]).toEqual([422, { error: 'Pick a folder inside your home folder, like ~/dev.' }]);
-    r = await create({ parent: join(base, 'nope') });
-    expect([r.status, r.json]).toEqual([422, { error: `Folder not found: ${join(base, 'nope')}` }]);
-    r = await create({ parent: 'relative/path' });
-    expect(r.status).toBe(422);
-    expect(snapshot(base)).toEqual(before);
-    expect(snapshot(p.root)).toEqual(pBefore);
-    expect(readdirSync(HOME)).toEqual([]);
-    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
-  });
-
-  it('allows a folder inside a served project as the parent', async () => {
-    mkdirSync(join(p.root, 'packages'));
-    const r = await create({ parent: join(p.root, 'packages') });
-    expect(r.status).toBe(200);
-    expect(r.json.specs.project.root).toBe(join(realpathSync(p.root), 'packages', 'demo'));
-  });
-
-  it('refuses a served root whose folder was deleted, instead of making it a second project', async () => {
-    expect((await create()).status).toBe(200);
-    rmSync(join(base, 'demo'), { recursive: true });
-    const r = await create();
-    expect([r.status, r.json]).toEqual([409, { error: `${join(base, 'demo')} is already open as project 1.`, project: 1 }]);
-    expect(readdirSync(base)).toEqual([]);
-  });
-
-  it('answers a failed write with 500 and {error} only, and removes what it created; a later move still works', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const realFs = require('fs') as typeof import('fs');
-    const real = realFs.openSync;
-    let opens = 0;
-    jest.spyOn(realFs, 'openSync').mockImplementation(((path: import('fs').PathLike, flags: import('fs').OpenMode, mode?: import('fs').Mode) => {
-      if (flags === 'wx' && String(path).startsWith(join(base, 'demo')) && !String(path).includes('.specpilot-setup-') && ++opens === 3) throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
-      return real(path, flags, mode);
-    }) as typeof realFs.openSync);
-    const r = await create();
-    expect([r.status, r.json]).toEqual([500, { error: 'Setup could not finish: disk full. The files it had created were removed.' }]);
-    expect(readdirSync(base)).toEqual([]);
-    jest.restoreAllMocks();
-    expect(existsSync(regFile())).toBe(false);
-    const hash = JSON.parse((await hit(port, '/api/specs')).body).tasks.sha256;
-    const mv = await post(port, JSON.stringify({ id: 'BL-001', toSection: 'backlog', toIndex: 0 }), { ...good(), 'If-Match': hash });
-    expect(mv.status).toBe(200);
-    expect((await create()).status).toBe(200); // and the lock is free for the next create
-  });
-
-  it('answers 500 when createProject() throws, and keeps the lock usable', async () => {
-    jest.spyOn(specSetup, 'createProject').mockRejectedValueOnce(new Error('boom'));
-    const r = await create();
-    expect([r.status, r.json]).toEqual([500, { error: 'The server could not finish this request.' }]);
-    expect((await create()).status).toBe(200);
-  });
-
-  it('leaves the created files and serves nothing when the new folder cannot be read afterwards', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const realFs = require('fs') as typeof import('fs');
-    const realRead = realFs.readFileSync;
-    let armed = false;
-    jest.spyOn(specSetup, 'createProject').mockImplementationOnce(async (...args) => {
-      const out = await jest.requireActual<typeof specSetup>('../utils/specSetup').createProject(...args);
-      armed = true; // only the payload read that follows the create fails
-      return out;
-    });
-    jest.spyOn(realFs, 'readFileSync').mockImplementation(((path: import('fs').PathOrFileDescriptor, options?: unknown) => {
-      if (armed && String(path) === join(base, 'demo', '.specs', 'project', 'project.yaml')) throw Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' });
-      return realRead(path, options as BufferEncoding);
-    }) as typeof realFs.readFileSync);
-    const r = await create();
-    armed = false;
-    expect([r.status, r.json]).toEqual([422, { error: 'This folder could not be read: EACCES: permission denied' }]);
-    jest.restoreAllMocks();
-    expect(existsSync(join(base, 'demo/.specs/project/project.yaml'))).toBe(true);
-    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(1);
-    expect(existsSync(regFile())).toBe(false);
-  });
-
-  it('two requests for one target at once: one creates it, the other finds it open', async () => {
-    const [a, b] = await Promise.all([create(), create()]);
-    expect([a.status, b.status].sort()).toEqual([200, 409]);
-    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(2);
-  });
-
-  it('refuses the 21st project before anything is created', async () => {
-    await spec.close();
-    const many = Array.from({ length: MAX_PROJECTS }, (_, i) => {
-      const d = join(base, `served-${i}`);
-      mkdirSync(d);
-      return d;
-    });
-    await start(many);
-    const r = await create();
-    expect([r.status, r.json]).toEqual([409, { error: `This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.` }]);
-    expect(existsSync(join(base, 'demo'))).toBe(false);
-  });
-
-  it('still creates and serves when the registry is refused, and says so', async () => {
-    mkdirSync(join(HOME, '.specpilot'));
-    writeFileSync(regFile(), '{broken');
-    const r = await create();
-    expect(r.status).toBe(200);
-    expect(r.json.registry.error).toContain('not valid JSON');
-    expect(readFileSync(regFile(), 'utf-8')).toBe('{broken');
-    expect(existsSync(join(base, 'demo/.specs'))).toBe(true);
-  });
-});
 
 describe('project registry with --read-only', () => {
   let p: ReturnType<typeof makeProject>;
@@ -2991,8 +2652,8 @@ describe('project registry with --read-only', () => {
     p.cleanup();
   });
 
-  it('answers 405 with an empty Allow on all five routes and puts no token in the page', async () => {
-    for (const [path, method] of [['/api/projects', 'GET'], ['/api/projects', 'POST'], ['/api/projects/remove', 'POST'], ['/api/projects/new', 'GET'], ['/api/projects/new', 'POST']] as const) {
+  it('answers 405 with an empty Allow on all four routes and puts no token in the page', async () => {
+    for (const [path, method] of [['/api/projects', 'GET'], ['/api/projects', 'POST'], ['/api/projects/remove', 'POST'], ['/api/projects/pending', 'POST']] as const) {
       const r = await hit(port, path, { method });
       expect(r.status).toBe(405);
       expect(r.headers.allow).toBe('');
@@ -3094,117 +2755,6 @@ describe('serveCommand and the registry (BL-067)', () => {
   });
 });
 
-describe('the full chat\'s answers over HTTP (BL-PM-004b)', () => {
-  let e: ReturnType<typeof makeEmpty>;
-  let base: string;
-  let spec: SpecServer;
-  let port: number;
-  let token: string;
-  const good = (over: Record<string, string | undefined> = {}) => ({
-    Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token, ...over,
-  });
-  const create = (over: Record<string, unknown> = {}) =>
-    post(port, JSON.stringify({ parent: base, name: 'demo', ...NEW_ANSWERS, ...over }), good(), '/api/projects/new');
-  const preview = (body: Record<string, unknown>, path = '/api/preview', headers = good()) => post(port, JSON.stringify(body), headers, path);
-
-  beforeEach(async () => {
-    e = makeEmpty();
-    base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-chat-')));
-    spec = await startSpecServer([e.root], 0, '0.0.0-test', { registry: regFile() });
-    port = (spec.server.address() as AddressInfo).port;
-    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
-  });
-  afterEach(async () => {
-    await spec.close();
-    e.cleanup();
-    rmSync(base, { recursive: true, force: true });
-  });
-
-  it('a new project with every optional field writes what render() gives for them: the phase 2 recording\'s content', async () => {
-    const r = await create(CHAT_FIELDS);
-    expect(r.status).toBe(200);
-    const target = join(base, 'demo');
-    for (const f of render(initOptions(target, 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', CHAT_FIELDS)).files) expect([f.path, readFileSync(join(target, ...f.path.split('/')), 'utf-8')]).toEqual([f.path, f.content]);
-    expect(readFileSync(join(target, '.specs', 'project', 'project.yaml'), 'utf-8')).toContain('platforms:\n  - iOS Native\n  - Node.js / Express\n');
-  });
-
-  it('refuses each optional field of the wrong shape with 422 naming it, creating nothing', async () => {
-    for (const [over, error] of [
-      [{ platforms: 'iOS' }, '"platforms" must be a list.'],
-      [{ platforms: Array(26).fill('a') }, '"platforms" must have at most 25 items.'],
-      [{ platforms: ['a'.repeat(101)] }, '"platforms" items must be at most 100 characters.'],
-      [{ platforms: [1] }, '"platforms" items must be text.'],
-      [{ accessControl: ['a'] }, '"accessControl" must be text.'],
-      [{ accessControl: 'a'.repeat(101) }, '"accessControl" must be at most 100 characters.'],
-      [{ otherApis: 'a'.repeat(1001) }, '"otherApis" must be at most 1000 characters.'],
-      [{ otherApis: 'two\nlines' }, '"otherApis" must be one line of text, without control characters.'],
-      [{ otherApis: 'a b' }, '"otherApis" must be one line of text, without control characters.'],
-      [{ databases: ['a b'] }, '"databases" items must be one line of text, without control characters.'],
-      [{ integrations: ['Stripe'] }, '"integrations" must be an object of lists.'],
-      [{ integrations: { crm: ['HubSpot'] } }, '"integrations" keys must be one of: payments, email, storage, analytics, errors, push, maps, ai.'],
-      [{ integrations: { payments: 'Stripe' } }, '"integrations.payments" must be a list.'],
-      [{ languageOverride: 'Dart' }, 'Unexpected field "languageOverride".'],
-    ] as [Record<string, unknown>, string][]) {
-      const r = await create(over);
-      expect([over, r.status, r.json.error]).toEqual([over, 422, error]);
-    }
-    expect(readdirSync(base)).toEqual([]);
-  });
-
-  it('accepts a body up to 64 KB on the setup routes, and keeps 16 KB on the others', async () => {
-    // about 34 KB, over the old 16 KB, within every field limit: eight full lists and a two-byte character in each item
-    const list = Array(25).fill('é' + 'a'.repeat(99));
-    const big = { otherApis: 'a'.repeat(1000), platforms: list, specialConsiderations: list, deploymentTargets: list, localDatabases: list, databases: list, compliance: list, cicd: list, securityConcerns: list };
-    expect(Buffer.byteLength(JSON.stringify(big))).toBeGreaterThan(16 * 1024);
-    expect((await preview({ name: 'demo', ...NEW_ANSWERS, ...big })).status).toBe(200);
-    expect((await create(big)).status).toBe(200);
-    expect((await post(port, JSON.stringify({ path: '/' + 'a'.repeat(17 * 1024) }), good(), '/api/projects')).status).toBe(413);
-    expect((await preview({ name: 'p', ...NEW_ANSWERS, pad: 'x'.repeat(65 * 1024) })).status).toBe(413);
-  });
-
-  it.each(DETECTION_ONLY)('refuses the detection-only %s in a body (BL-095), creating nothing', async key => {
-    const r = await create({ ...CHAT_FIELDS, [key]: 'x' });
-    expect(r.status).toBe(422);
-    expect(r.json.error).toBe(`Unexpected field "${key}".`);
-    expect(readdirSync(base)).toEqual([]);
-  });
-
-  it('POST /api/preview renders a new project without writing, taking no parent', async () => {
-    const r = await preview({ name: 'demo', ...NEW_ANSWERS, ...CHAT_FIELDS });
-    expect(r.status).toBe(200);
-    const out = r.json;
-    expect(out.files).toEqual(render(initOptions('', 'demo', { ...NEW_ANSWERS, framework: 'react' } as InitAnswers, '.specs', CHAT_FIELDS)).files);
-    expect(out.kept).toEqual([]);
-    expect(readdirSync(base)).toEqual([]);
-    expect((await preview({ name: 'demo', parent: base, ...NEW_ANSWERS })).status).toBe(422); // no parent in a preview
-    expect((await preview({ name: '../x', ...NEW_ANSWERS })).status).toBe(422);
-    expect((await preview({ name: 'demo', ...NEW_ANSWERS }, '/api/preview', good({ 'X-SpecPilot-Token': 'f'.repeat(64) }))).status).toBe(403);
-    expect((await hit(port, '/api/preview')).status).toBe(405);
-  });
-
-  it('guided setup: the fields reach the files, and its preview lists what would be kept', async () => {
-    writeFileSync(join(e.root, 'CLAUDE.md'), 'mine\n');
-    const body = { ...JSON.parse(ANSWERS), ide: 'claude-code', platforms: ['iOS Native'], integrations: { payments: ['Stripe'] } };
-    const pv = await preview(body, '/api/preview?project=0');
-    expect(pv.status).toBe(200);
-    expect(pv.json.kept).toEqual(['CLAUDE.md']);
-    expect(existsSync(join(e.root, '.specs'))).toBe(false);
-    expect((await preview(body, '/api/preview?project=9')).status).toBe(404);
-    const r = await post(port, JSON.stringify(body), good(), '/api/setup?project=0');
-    expect(r.status).toBe(200);
-    expect(readFileSync(join(e.root, '.specs', 'project', 'project.yaml'), 'utf-8')).toContain('platforms:\n  - iOS Native\n');
-    expect(readFileSync(join(e.root, '.specs', 'architecture', 'architecture.md'), 'utf-8')).toContain('- **payments**: Stripe');
-    expect(readFileSync(join(e.root, 'CLAUDE.md'), 'utf-8')).toBe('mine\n');
-    expect((await preview(body, '/api/preview?project=0')).status).toBe(409); // .specs/ exists now
-  });
-
-  it('with --read-only there is no preview route', async () => {
-    await spec.close();
-    spec = await startSpecServer([e.root], 0, '0.0.0-test', { readOnly: true });
-    port = (spec.server.address() as AddressInfo).port;
-    expect((await post(port, '{}', good(), '/api/preview')).status).toBe(405);
-  });
-});
 
 describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
   let a: ReturnType<typeof makeProject>;

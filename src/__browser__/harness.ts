@@ -10,7 +10,7 @@ export const REPO = join(__dirname, '..', '..');
 const VERSION: string = require(join(REPO, 'package.json')).version;
 const PLAYWRIGHT: string = require('playwright-core/package.json').version;
 
-// The built modules, so the server serves what ships (dist/core/chatFlow.js is the page's chat core).
+// The built modules, so the server serves what ships.
 if (!existsSync(join(REPO, 'dist', 'utils', 'specServer.js'))) throw new Error('dist/ is missing: run `npm run test:browser`, which builds first.');
 type ServerModule = typeof import('../utils/specServer');
 type RegistryModule = typeof import('../utils/projectRegistry');

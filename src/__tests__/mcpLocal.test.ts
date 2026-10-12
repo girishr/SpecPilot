@@ -1,4 +1,4 @@
-import { answerMcp, McpHeaders, MCP_ALL_VERSIONS, MCP_TOOLS, MCP_VERSIONS, mirroredHeaders, ToolRefusal } from '../utils/mcpLocal';
+import { answerMcp, mcpClientName, McpHeaders, MCP_ALL_VERSIONS, MCP_TOOLS, MCP_VERSIONS, mirroredHeaders, ToolRefusal } from '../utils/mcpLocal';
 
 // BL-PM-007: the protocol of POST /mcp without a server. The tools are stubbed; specServer.test.ts runs the real ones.
 const calls: Array<[string, Record<string, unknown>]> = [];
@@ -319,5 +319,31 @@ describe('mirroredHeaders', () => {
       'mcp-method': ['tools/call', 'ping'],
       'mcp-name': ['n'],
     });
+  });
+});
+
+describe('mcpClientName() (BL-103): the name the Setup view shows', () => {
+  const init = (clientInfo?: unknown) => ({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-11-25', capabilities: {}, ...(clientInfo === undefined ? {} : { clientInfo }) } });
+  const modern = (clientInfo?: unknown) => ({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28', 'io.modelcontextprotocol/clientCapabilities': {}, ...(clientInfo === undefined ? {} : { 'io.modelcontextprotocol/clientInfo': clientInfo }) } } });
+
+  it('reads clientInfo.name of an initialize, or of a 2026-07-28 request\'s _meta', () => {
+    expect(mcpClientName(init({ name: 'claude-code', version: '2' }))).toBe('claude-code');
+    expect(mcpClientName(modern({ name: 'Cursor' }))).toBe('Cursor');
+  });
+
+  it('gives "" when none is sent or nothing is left after removing controls, separators and bidi formats; cuts to 100', () => {
+    expect(mcpClientName(init())).toBe('');
+    expect(mcpClientName(modern())).toBe('');
+    expect(mcpClientName(init({ name: 7 }))).toBe('');
+    expect(mcpClientName(init({ name: '\u0000\u001f\u007f\u0085\u2028\u2029\u200e\u200f\u202a\u202e\u2066\u2069' }))).toBe('');
+    expect(mcpClientName(init({ name: 'a\u202eb\nc' }))).toBe('abc');
+    expect(mcpClientName(init({ name: 'x'.repeat(150) }))).toBe('x'.repeat(100));
+  });
+
+  it('is undefined for any other message: no connection is claimed', () => {
+    expect(mcpClientName({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).toBeUndefined();
+    expect(mcpClientName({ jsonrpc: '2.0', method: 'notifications/initialized' })).toBeUndefined();
+    expect(mcpClientName([init({ name: 'x' })])).toBeUndefined();
+    expect(mcpClientName(null)).toBeUndefined();
   });
 });

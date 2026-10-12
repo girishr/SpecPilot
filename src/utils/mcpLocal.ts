@@ -46,6 +46,28 @@ function headerMismatch(header: string, sent: string[], body: unknown, decode = 
   return undefined;
 }
 
+/** Controls, line and paragraph separators and bidi format characters: never shown from a client's name (SEC-004.26). */
+// eslint-disable-next-line no-control-regex
+const UNSHOWN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+
+/**
+ * The client a message names, for the Setup view's Connected status (BL-103): `clientInfo.name` of an
+ * `initialize`, or of a 2026-07-28 request's `_meta` `io.modelcontextprotocol/clientInfo`; '' when it names
+ * none or nothing is left after sanitizing; undefined for any other message. Display only, never trusted.
+ */
+export function mcpClientName(msg: unknown): string | undefined {
+  const m = msg as { id?: unknown; method?: unknown; params?: unknown } | null;
+  if (!m || typeof m !== 'object' || Array.isArray(m) || m.id === undefined) return undefined;
+  const params = (m.params && typeof m.params === 'object' ? m.params : {}) as Record<string, unknown>;
+  const meta = params._meta && typeof params._meta === 'object' ? (params._meta as Record<string, unknown>) : {};
+  let info: unknown;
+  if (`${META}protocolVersion` in meta) info = meta[`${META}clientInfo`];
+  else if (m.method === 'initialize') info = params.clientInfo;
+  else return undefined;
+  const name = info && typeof info === 'object' ? (info as { name?: unknown }).name : undefined;
+  return typeof name === 'string' ? name.replace(UNSHOWN, '').trim().slice(0, 100) : '';
+}
+
 /** A refused tool call: shown to the agent as a tool result with `isError: true`. */
 export class ToolRefusal extends Error {}
 

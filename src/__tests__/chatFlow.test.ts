@@ -1,11 +1,6 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
-import * as vm from 'vm';
-import * as ts from 'typescript';
 import * as core from '../core/chatFlow';
 import { Answers, ChatQuestion, CliQuestion } from '../core/chatFlow';
 import { render } from '../core/render';
-import { chatCoreScript } from '../utils/specServer';
 import { newProjectQuestions } from '../utils/specSetup';
 
 // What the chat core adds for the App (BL-PM-004b, REQ-002.H.28, REQ-002.I.7); the web's own rules are
@@ -15,11 +10,6 @@ import { newProjectQuestions } from '../utils/specSetup';
 const route = require('../../ui/route.js') as {
   flowQuestions: (q: unknown, answers: Answers, first?: unknown[]) => CliQuestion[];
   flowBody: (list: unknown[], answers: Answers) => Record<string, string>;
-  threadRows: (q: unknown, list: unknown[], answers: Answers, cur: unknown, ctx: { name: string; language: string }, named: boolean, det?: unknown) => { kind: string; key?: string | null; text: string; caption?: string; detected?: boolean }[];
-  optionHtml: (o: unknown, pressed: boolean) => string;
-  seededAnswers: (detected: unknown) => Record<string, unknown>;
-  detectedKeys: (seed: Record<string, unknown>, answers: Answers) => string[];
-  recapCards: (list: unknown[], answers: Answers, det?: unknown) => { title: string; rows: { key: string | null; label: string; value: string; detected?: boolean }[] }[];
 };
 
 const server = newProjectQuestions();
@@ -248,62 +238,10 @@ describe('the field-to-file table is what render() changes (REQ-002.I.7)', () =>
   });
 });
 
-describe('the served chat core (/assets/chat-core.js)', () => {
-  it('runs alone in a page and exposes the module\'s functions', () => {
-    const compiled = ts.transpileModule(readFileSync(join(__dirname, '..', 'core', 'chatFlow.ts'), 'utf-8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
-    const sandbox: { window: Record<string, unknown> } = { window: {} };
-    vm.runInNewContext(chatCoreScript(compiled + '\n//# sourceMappingURL=chatFlow.js.map'), sandbox);
-    const page = sandbox.window.SpecPilotChat as Record<string, unknown>;
-    expect(Object.keys(page).sort()).toEqual(Object.keys(core).sort());
-    expect((page.languageHints as typeof core.languageHints)(['ios', 'node']).language).toBe('typescript');
-    expect(chatCoreScript('x\n//# sourceMappingURL=a.map')).not.toContain('sourceMappingURL');
-  });
-});
-
-describe('the page\'s pieces (ui/route.js)', () => {
-  it('one renderer: a chip, a card with a description, the two badges, a warning, escaped', () => {
-    expect(route.optionHtml({ id: 'a', label: 'A <b>' }, false)).toBe('<button type="button" class="chip" aria-pressed="false" data-v="a"><b>A &lt;b&gt;</b></button>');
-    const card = route.optionHtml({ id: 'm', label: 'Monolith', emoji: '🧱', description: 'One deploy', badge: 'recommended', warning: 'Hmm' }, true);
-    expect(card).toContain('class="chip card"');
-    expect(card).toContain('aria-pressed="true"');
-    expect(card).toContain('<span class="bdg">Recommended</span>');
-    expect(card).toContain('<small>One deploy</small><small class="wn">⚠ Hmm</small>');
-    expect(route.optionHtml({ id: 'x', label: 'X', badge: 'flagged' }, false)).toContain('<span class="bdg fl">Check this</span>');
-  });
-
-  it('the thread shows skip notes, the caption and the note after an answer', () => {
-    const list = ask({ projectDescription: 'CLI Tool', projectCategory: 'cli', parent: '~/dev', projectType: 'greenfield', handle: '', platforms: ['commander'] });
-    const rows = route.threadRows(server, list, { parent: '~/dev', projectDescription: 'CLI Tool', projectType: 'greenfield', handle: '', platforms: ['commander'] }, null, { name: 'x', language: '' }, true);
-    expect(rows.find(r => r.kind === 'bot' && r.text.startsWith('Which platforms'))!.caption).toBe('For project/project.yaml');
-    expect(rows.some(r => r.kind === 'note' && r.text.startsWith('Skipping architecture pattern'))).toBe(true);
-  });
-
+describe('the question list the chat core takes (ui/route.js)', () => {
   it('the create body: the CLI\'s answers from flowBody(), the rest from the core', () => {
     const a: Answers = { parent: '~/dev', projectDescription: 'CRM System', projectType: 'greenfield', handle: '', language: 'typescript', framework: 'none', ide: 'vscode', apiParadigm: 'rest' };
     const list = ask(a);
     expect(route.flowBody(list.filter(q => !q.core), a)).toEqual({ parent: '~/dev', projectType: 'greenfield', handle: '', language: 'typescript', framework: 'none', ide: 'vscode', apiParadigm: 'rest' });
-  });
-
-
-  it('guided setup on existing code: detected answers seeded, marked while unchanged, detected rows shown and not editable (BL-PM-016)', () => {
-    expect(route.seededAnswers({ platform: 'ios' })).toEqual({ platforms: ['ios'] });
-    expect(route.seededAnswers({ platform: null })).toEqual({});
-    expect(route.seededAnswers(null)).toEqual({});
-    const seed = { platforms: ['ios'] };
-    expect(route.detectedKeys(seed, { platforms: ['ios'] })).toEqual(['platforms']);
-    expect(route.detectedKeys(seed, { platforms: ['ios', 'android'] })).toEqual([]); // edited: the mark goes
-    expect(route.detectedKeys({}, {})).toEqual([]);
-    const rows = [{ key: 'name', step: 'Project identity', label: 'Project name', value: 'Demo' }, { key: 'language', step: 'Platform & IDE', label: 'Language', value: 'swift' }];
-    const list = [{ key: 'projectType', step: 'Project identity', label: 'Type', choices: [{ name: 'Brownfield', value: 'brownfield' }] }, { key: 'platforms', step: 'Platform & IDE', label: 'Platforms' }];
-    const det = { rows, keys: ['platforms'] };
-    const cards = route.recapCards(list, { projectType: 'brownfield', platforms: ['ios'] }, det);
-    expect(cards.map(c => c.rows.map(r => [r.key, r.label, !!r.detected]))).toEqual([
-      [[null, 'Project name', true], ['projectType', 'Type', false]],
-      [[null, 'Language', true], ['platforms', 'Platforms', true]],
-    ]);
-    expect(route.recapCards(list, { projectType: 'brownfield' })[0].rows).toEqual([{ key: 'projectType', label: 'Type', value: 'Brownfield' }]); // no det: as before
-    const thread = route.threadRows({}, list, { projectType: 'brownfield' }, list[1], { name: 'Demo', language: 'swift' }, false, det);
-    expect(thread.filter(r => r.kind === 'user' && r.key === null).map(r => r.text)).toEqual(['Project name: Demo', 'Language: swift']);
-    expect(thread[1]).toMatchObject({ kind: 'user', key: null, detected: true }); // right under its step's divider
   });
 });

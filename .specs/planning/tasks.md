@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-12 (v2.14.0 shipped)
-version: 6.65
+lastUpdated: 2026-10-12 (BL-103 Spec Report)
+version: 6.66
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -67,6 +67,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-103 | Setup view replaces the New Project chat and the guided-setup chat (REQ-002.H.41, ARCH-004.56, SEC-004.26, SEC-002.10; Architectural; Day brief 2026-10-12, Girish decisions D1 to D3): one view for Open, Clone and Start a New Project that sends the user to their AI IDE over the local MCP (connect card with a Connected status, the line to give the IDE, a Progress list, rows not started; `event: setup` and running/done in BL-104); `POST /api/projects/pending` holds one pending target; the chat, its five routes, `/assets/chat-core.js` and its browser tests removed; README, GUIDE, CHANGELOG. Running and done states ship with BL-104. No release until BL-103, BL-104 and BL-105 are all on `main` (the MCP-off text names `--no-mcp`). Spec Report on `feat/bl-103-setup-view`; spec-reviewer A ESCALATE, architect DECIDE. |
 
 ## Completed
 

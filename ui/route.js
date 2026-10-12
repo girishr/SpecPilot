@@ -127,7 +127,8 @@ function cloneProgress(data){
    segment of its root), never the whole path, which stays in the tooltip and the sub-line. */
 function projectLabel(p){return p.name!==null&&p.name!==undefined?p.name:String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root;}
 
-/* ---- the setup chat (BL-PM-004): one question at a time over GET /api/setup or /api/projects/new ---- */
+/* ---- the question rules: the name and handle rules (init, the server, the Setup view), and the CLI's question
+   list as the chat core takes it (BL-PM-004; since BL-103 read on the server, for the setup tools of BL-104) ---- */
 
 /* What is wrong with a project name, in `specpilot init`'s words (`hint` is the terminal's extra line), or
    null. The one copy of the rule: init and the server load it from here, the page checks with it. */
@@ -180,71 +181,6 @@ function flowQuestions(q,answers,first){
   return out.sort((a,b)=>(a.order??-1)-(b.order??-1));
 }
 
-/* The question the composer shows: the one being edited, else the first asked question without an answer,
-   else null, which means the recap. */
-function nextQuestion(list,answers,editing){
-  if(editing){const qu=list.find(x=>x.key===editing);if(qu)return qu;}
-  return list.find(x=>!answered(x,answers))||null;
-}
-
-/* What Continue shows under the answer, or null: a required text left empty, a project name or a handle
-   the server would refuse (its own message; never the terminal's hint). */
-function answerError(qu,value){
-  const v=String(value).trim();
-  if(qu.choices)return null;
-  if(!v)return qu.required?'This one is required.':null;
-  if(qu.key==='name'){const e=projectNameError(v);return e?e.message+'.':null;}
-  return qu.key==='handle'?handleError(v):null;
-}
-
-/* The bot bubble's line: `chat` with `{name}` and `{language}` filled. `ctx` is {name, language}: the project
-   name (the folder's label in guided setup) and the language choice's text, or the detected language. */
-function chatText(qu,ctx){return String(qu.chat||'').replace(/\{name\}/g,ctx.name||'').replace(/\{language\}/g,ctx.language||'');}
-
-/* The answer as a bubble or a recap row shows it: the choice's own text up to its " — " part (the chips
-   keep the whole), the typed text, or Skipped. */
-function answerText(qu,answers){
-  if(typeof qu.text==='string')return qu.text; // the chat core's own (BL-PM-004b)
-  const v=answers[qu.key];
-  if(qu.choices){const c=qu.choices.find(x=>x.value===v);return c?c.name.split(' — ')[0]:'';}
-  return String(v===undefined?'':v).trim()||'Skipped';
-}
-
-/* The thread up to the current question: the name bubble (a new project only: `named`), a divider per step,
-   the skip notes before a question (BL-PM-004b), a bot row per asked question (with its file caption) and an
-   answer row per answered one, then the note after it; after the last answer a Review divider. */
-function threadRows(q,list,answers,cur,ctx,named,det){
-  const facts=step=>det&&det.rows?det.rows.filter(f=>f.step===step):[],marked=k=>!!det&&(det.keys||[]).includes(k);
-  const steps=[...new Set(list.map(x=>x.step))],rows=[];
-  if(named)rows.push({kind:'user',key:'name',text:ctx.name,mono:true,skipped:false});
-  let last=null;
-  for(const qu of list){
-    if(qu.step!==last){
-      rows.push({kind:'divider',text:`Step ${steps.indexOf(qu.step)+1} · ${qu.step}`});last=qu.step;
-      // what the detector found for this step: answered, never asked, not editable (BL-PM-016)
-      for(const f of facts(qu.step))rows.push({kind:'user',key:null,text:`${f.label}: ${f.value}`,mono:false,skipped:false,detected:true});
-    }
-    for(const n of qu.notesBefore||[])rows.push({kind:'note',text:n});
-    rows.push({kind:'bot',key:qu.key,text:chatText(qu,ctx),cli:qu.message,caption:qu.caption||''});
-    if(cur&&qu.key===cur.key)break;
-    if(answered(qu,answers)){
-      const text=answerText(qu,answers);
-      rows.push({kind:'user',key:qu.key,text,mono:qu.key==='parent'||qu.key==='handle',skipped:text==='Skipped'||text==='None'&&!qu.choices,...(marked(qu.key)?{detected:true}:{})});
-      if(qu.noteAfter)rows.push({kind:'note',text:qu.noteAfter});
-    }
-  }
-  if(!cur)rows.push({kind:'divider',text:'Review'});
-  return rows;
-}
-
-/* The recap: one card per step in use, the detector's rows first (no key: not editable), then one row per asked question. */
-function recapCards(list,answers,det){
-  const steps=[...new Set(list.map(x=>x.step))],keys=det&&det.keys||[];
-  return steps.map(step=>({title:step,rows:[
-    ...(det&&det.rows||[]).filter(f=>f.step===step).map(f=>({key:null,label:f.label,value:f.value,detected:true})),
-    ...list.filter(x=>x.step===step).map(qu=>({key:qu.key,label:qu.label,value:answerText(qu,answers),...(keys.includes(qu.key)?{detected:true}:{})}))]}));
-}
-
 /* The POST body: the answer of every question asked, text trimmed. */
 function flowBody(list,answers){
   const body={};
@@ -252,46 +188,12 @@ function flowBody(list,answers){
   return body;
 }
 
-/* The files that will be written for the answers so far: .specs/ for the API paradigm, then the files
-   outside it for the IDE; `kept` marks one that is already in the folder (guided setup's `keep`). */
-function previewFiles(q,answers){
-  const pick=k=>{const x=q.questions.find(y=>y.key===k);return x?flowValue(x,answers):undefined;};
-  const ide=pick('ide'),keep=q.keep&&q.keep[ide]||[];
-  return [...(q.files.specs[pick('apiParadigm')]||[]),...(q.files.outside[ide]||[])].map(path=>({path,kept:keep.includes(path)}));
-}
-
-/* ---- the full chat (BL-PM-004b): one renderer for every option, and tabs ---- */
-
-/* One option as a chip, or a card when it has a description: emoji, label, a Recommended or Check this badge,
-   the description and a warning line. `pressed` is its state; `data-v` its value. */
-function optionHtml(o,pressed){
-  const badge=o.badge==='recommended'?'<span class="bdg">Recommended</span>':o.badge==='flagged'?'<span class="bdg fl">Check this</span>':'';
-  return `<button type="button" class="chip${o.description?' card':''}${o.todo?' todo':''}" aria-pressed="${!!pressed}" data-v="${esc(o.id)}"><b>${o.emoji?`<span class="em" aria-hidden="true">${esc(o.emoji)}</span>`:''}${esc(o.label)}${badge}</b>${o.description?`<small>${esc(o.description)}</small>`:''}${o.warning?`<small class="wn">⚠ ${esc(o.warning)}</small>`:''}</button>`;
-}
-
-/* A tab strip: `tabs` as [{id, label, count}], the active one selected. */
-function tabsHtml(tabs,active){
-  return `<div class="ctabs" role="tablist">${tabs.map(t=>`<button type="button" role="tab" class="tab" aria-selected="${t.id===active}" data-tab="${esc(t.id)}">${esc(t.label)}${t.count?` <span class="cnt">${t.count}</span>`:''}</button>`).join('')}</div>`;
-}
-
-/* A CLI question's choices as options: the text up to " — " as the label, the rest as the description,
-   with the chat core's badges. */
-function choiceOptions(qu){
-  return (qu.choices||[]).map(c=>{const [label,description]=c.name.split(' — ');return {id:c.value,label,description,badge:qu.badges&&qu.badges[c.value]};});
-}
-
-/* Guided setup's answers the detector fills in (REQ-002.H.35): the platforms, from direct evidence only. */
-function seededAnswers(detected){return detected&&detected.platform?{platforms:[detected.platform]}:{};}
-/* The keys whose answer is still the one the detector filled in: they show `detected`. */
-function detectedKeys(seed,answers){return Object.keys(seed||{}).filter(k=>JSON.stringify(answers[k])===JSON.stringify(seed[k]));}
-
 /* The one line an IDE's MCP settings take (BL-PM-007); serve.ts prints the same line. */
 function mcpConfigLine(host,token){
   return JSON.stringify({mcpServers:{'specpilot-local':{type:'http',url:`http://${host}/mcp`,headers:{'X-SpecPilot-Token':token}}}});
 }
 
 const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,CLONE_STAGES,cloneStatus,cloneProgress,projectLabel,
-  projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,nextQuestion,answerError,chatText,answerText,threadRows,recapCards,flowBody,previewFiles,
-  optionHtml,tabsHtml,choiceOptions,seededAnswers,detectedKeys};
+  projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,flowBody};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);
 })(this);

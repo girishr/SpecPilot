@@ -1,4 +1,4 @@
-// Browse… beside Clone's Parent folder and the New Project chat's parent folder (BL-097, REQ-002.H.38),
+// Browse… beside Clone's Parent folder and the Setup view's New Parent folder (BL-097, REQ-002.H.38; BL-103),
 // TESTS-002.4. The stand-in dialog of BL-PM-011's tests first on PATH (`osascript` on macOS, `zenity` on
 // Linux; a shell script, so POSIX only), so no real dialog opens. STUB_MODE picks what it does.
 import { Browser, Page } from 'playwright-core';
@@ -78,29 +78,12 @@ const openClone = async (page: Page) => {
   await page.click('#homeClone');
   await page.waitForFunction(() => document.querySelector('#openVeil')!.classList.contains('open'));
 };
-/** Start a New Project and answer until the parent-folder question; no Browse… on any question before it. */
-const toParent = async (page: Page) => {
+/** Start a New Project: the Setup view's New form (BL-103), whose Parent folder has Browse…. */
+const toNew = async (page: Page) => {
   await waitView(page, 'v-home');
   await page.click('#homeNew');
-  await waitView(page, 'v-chat');
-  await page.fill('#nameIn', 'browse-demo');
-  await page.click('#nameGo');
-  await page.locator('#composer').waitFor({ state: 'visible' });
-  for (let n = 0; n < 40; n++) {
-    if ((await page.getAttribute('#chatIn', 'placeholder').catch(() => null)) === '~/dev') return;
-    expect(await page.locator('#chatBrowse').count()).toBe(0);
-    const before = await page.evaluate(() => document.querySelector('#comp')!.innerHTML);
-    if (await page.locator('#chatSkip').count()) await page.click('#chatSkip');
-    else if (await page.locator('#chatIn').count()) {
-      if (!(await page.inputValue('#chatIn'))) await page.fill('#chatIn', 'jsmith');
-      await page.click('#chatGo');
-    } else {
-      if (await page.locator('#chatGo').isDisabled()) await page.locator('#comp .chip[data-v]').first().click();
-      await page.click('#chatGo');
-    }
-    await page.waitForFunction(prev => document.querySelector('#comp')!.innerHTML !== prev, before);
-  }
-  throw new Error('the chat did not ask for the parent folder');
+  await waitView(page, 'v-setup');
+  await page.locator('#suParent').waitFor({ state: 'visible' });
 };
 
 (process.platform === 'darwin' || process.platform === 'linux' ? describe : describe.skip)('Browse… for the parent folder (BL-097)', () => {
@@ -144,28 +127,22 @@ const toParent = async (page: Page) => {
     await until(() => !alive(pid), 'the dialog to be closed with the sheet');
    }, [/Failed to load resource/]);
 
-  browserTest("the chat's Browse… is only on the parent-folder question, fills its answer, and leaving the chat closes the dialog", b, async open => {
+  browserTest("#new's Browse… fills Parent folder and registers the path; leaving #new closes the dialog", b, async open => {
     const { page } = await open(srv, '#home');
-    await toParent(page);
-    expect(await page.locator('#chatBrowse').count()).toBe(1);
-    await page.click('#chatBrowse');
-    await focused(page, 'chatIn');
-    expect(await page.inputValue('#chatIn')).toBe(PICKED());
-    const before = await page.evaluate(() => document.querySelector('#comp')!.innerHTML);
-    await page.click('#chatGo'); // the picked folder is the answer
-    await page.waitForFunction(prev => document.querySelector('#comp')!.innerHTML !== prev, before);
-    expect(await page.locator('#msgs').textContent()).toContain(PICKED());
-
-    await page.click('#msgs [data-k="parent"]'); // back to the question
-    await page.locator('#chatBrowse').waitFor();
+    await toNew(page);
+    await page.fill('#suName', 'browse-demo');
+    await page.click('#suBrowse');
+    await focused(page, 'suParent');
+    expect(await page.inputValue('#suParent')).toBe(PICKED());
+    await until(() => srv.handle.pending() === join(PICKED(), 'browse-demo'), 'the picked folder to be registered');
     rmSync(pidFile(), { force: true });
     process.env.STUB_MODE = 'hang';
-    await page.click('#chatBrowse');
+    await page.click('#suBrowse');
     const pid = await dialogStarted();
-    await waiting(page, 'chatBrowse');
+    await waiting(page, 'suBrowse');
     await page.click('#homeBtn');
     await waitView(page, 'v-home');
-    await until(() => !alive(pid), 'the dialog to be closed on leaving the chat');
+    await until(() => !alive(pid), 'the dialog to be closed on leaving #new');
   });
 
   browserTest('at 420px each field and its Browse… stay on one row with no sideways scroll: idle, waiting and after an error', b, async open => {
@@ -187,16 +164,16 @@ const toParent = async (page: Page) => {
     await page.click('#openCancel');
 
     delete process.env.STUB_MODE;
-    await toParent(page);
-    await check('chatIn', 'chatBrowse');
+    await toNew(page); // the sheet closed onto Home
+    await check('suParent', 'suBrowse');
     rmSync(pidFile(), { force: true });
     process.env.STUB_MODE = 'hang';
-    await page.click('#chatBrowse');
+    await page.click('#suBrowse');
     pid = await dialogStarted();
-    await waiting(page, 'chatBrowse');
-    await check('chatIn', 'chatBrowse');
+    await waiting(page, 'suBrowse');
+    await check('suParent', 'suBrowse');
     process.kill(pid);
     await waitToast(page, /^The folder dialog could not be opened/);
-    await check('chatIn', 'chatBrowse');
+    await check('suParent', 'suBrowse');
    }, [/Failed to load resource/]);
 });

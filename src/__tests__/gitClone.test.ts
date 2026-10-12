@@ -671,7 +671,6 @@ function call(port: number, path: string, method: string, headers: Record<string
 
 (process.platform === 'win32' ? describe.skip : describe)('POST /api/projects/clone (BL-PM-002)', () => {
   const URL = 'https://github.com/owner/repo.git';
-  const NEW_ANSWERS = { projectType: 'greenfield', language: 'typescript', framework: 'react', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode', whatItDoes: 'Tracks parcels' };
   let served: string; // project 0
   let parent: string; // where clones go
   let log: string;
@@ -863,14 +862,14 @@ function call(port: number, path: string, method: string, headers: Record<string
     expect(logged('env')).toContain('GIT_SSH_COMMAND=ssh -i mine');
   });
 
-  it('a repository without .specs/ is served for guided setup, in an existing empty folder under the given name', async () => {
+  it('a repository without .specs/ is served for the Setup view, in an existing empty folder under the given name', async () => {
     process.env.STUB_MODE = 'nospecs';
     mkdirSync(join(parent, 'mine'));
     const r = await clone({ name: 'mine' });
     expect(r.status).toBe(200);
     expect(r.json.specs.project.root).toBe(join(parent, 'mine'));
     expect(r.json.specs.project.specs).toBe(false);
-    expect((await get('/api/setup?project=1')).status).toBe(200);
+    expect(r.json.specs.project.named).toBe(true); // the Setup view, not the current-directory default (BL-103)
     expect(readdirSync(join(parent, 'mine')).sort()).toEqual(['.git', 'README.md']);
   });
 
@@ -925,14 +924,14 @@ function call(port: number, path: string, method: string, headers: Record<string
     const opened = await post('/api/projects', { path: target }).answer;
     expect(opened.status).toBe(409);
     expect(opened.json).toEqual(busy);
-    const created = await post('/api/projects/new', { parent, name: 'repo', ...NEW_ANSWERS }).answer;
+    const created = await post('/api/projects/pending', { parent, name: 'repo' }).answer;
     expect(created.status).toBe(409);
     expect(created.json).toEqual(busy);
     expect(readdirSync(target)).toEqual(['partial']);
 
     // nor anything inside it: the clean-up would remove a served folder
     expect((await post('/api/projects', { path: target }).answer).status).toBe(409);
-    const inside = await post('/api/projects/new', { parent: target, name: 'inner', ...NEW_ANSWERS }).answer;
+    const inside = await post('/api/projects/pending', { parent: target, name: 'inner' }).answer;
     expect(inside.status).toBe(409);
     expect(inside.json).toEqual(busy);
     expect(readdirSync(target)).toEqual(['partial']);
@@ -979,7 +978,7 @@ function call(port: number, path: string, method: string, headers: Record<string
     const opened = await post('/api/projects', { path: extra }).answer;
     expect(opened.status).toBe(409);
     expect(opened.json).toEqual(tooMany);
-    const created = await post('/api/projects/new', { parent, name: 'fresh', ...NEW_ANSWERS }).answer;
+    const created = await post('/api/projects/pending', { parent, name: 'fresh' }).answer;
     expect(created.status).toBe(409);
     expect(created.json).toEqual(tooMany);
     expect(existsSync(join(parent, 'fresh'))).toBe(false);

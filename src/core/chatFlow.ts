@@ -1,7 +1,7 @@
 // The chat core (BL-PM-004b, REQ-002.I.7): what init.specpilot.dev's setup chat decides, ported from
 // SpecPilot.Init/src/components/chat/flow.ts and flowOptions/*.ts (at 2c694db) with the same behaviour,
-// plus what only `specpilot serve` needs. It imports nothing at all: the server also sends tsc's output of
-// this file to the page as /assets/chat-core.js, so the page and the tests run the same functions.
+// plus what only `specpilot serve` needs. It imports nothing at all (the core's purity rule). Since BL-103
+// the page has no chat; the setup tools of BL-104 read the flow on the server.
 
 // ---------------------------------------------------------------- answers
 

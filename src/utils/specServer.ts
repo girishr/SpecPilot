@@ -9,7 +9,7 @@ import { readSpecs } from './specReader';
 import { moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
-import { answersShapeError, createProject, newProjectQuestions, newProjectShapeError, previewNewProject, previewSetup, reserveTarget, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { checkTarget, pendingShapeError, reserveTarget, specsMissing } from './specSetup';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
@@ -18,7 +18,7 @@ import { isSpecPilotCommand, isSpecPilotSkill, SkillRefresh, SlashCommandGenerat
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
 import { agentTargets } from '../core/agentConfig';
 import { SpecValidator } from './specValidator';
-import { answerMcp, MCP_TOOLS, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
+import { answerMcp, MCP_TOOLS, mcpClientName, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
@@ -29,14 +29,6 @@ import { answerMcp, MCP_TOOLS, mirroredHeaders, rpcError, ToolRefusal } from './
 
 /** Resolved from this module's own location, never from cwd: dist/utils → <package>/ui. */
 const UI_DIR = join(__dirname, '..', '..', 'ui');
-/** The chat core's compiled file, which the page runs as /assets/chat-core.js (BL-PM-004b, REQ-002.I.7). */
-const CHAT_CORE = join(__dirname, '..', 'core', 'chatFlow.js');
-
-/** tsc's CommonJS output of `src/core/chatFlow.ts` as a page script: `exports` supplied, the source map line dropped. */
-export function chatCoreScript(compiled: string): string {
-  return `(function (exports) {\n${compiled.replace(/^\/\/# sourceMappingURL=.*$/m, '')}\n})(window.SpecPilotChat = {});\n`;
-}
-
 const UI_ROUTES: Record<string, [file: string, type: string]> = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/assets/app.css': ['app.css', 'text/css; charset=utf-8'],
@@ -229,8 +221,6 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 
 /** Largest accepted request body for a move (BL-053) and the other write routes. */
 export const MAX_MOVE_BODY = 16 * 1024;
-/** Largest accepted body for a setup, a new project or a preview, which carry the 23 optional fields (BL-PM-004b). */
-export const MAX_SETUP_BODY = 64 * 1024;
 
 /** Where index.html receives the per-start CSRF token (nothing with --read-only). */
 const TOKEN_SLOT = '<!-- specpilot-token -->';
@@ -273,6 +263,8 @@ export interface SpecServer {
   mcpToken: string | null;
   /** Open event streams right now. */
   streams(): number;
+  /** The Setup view's pending path (BL-103), or null: the one place outside a served root the setup tool may write. */
+  pending(): string | null;
   /** Kill a running clone and remove what it downloaded (BL-PM-002), and close an open folder dialog (BL-PM-011); resolves when that is done. */
   stopClone(): Promise<void>;
   /** Stop a running clone, end every event stream, clear every timer, then close the listener. */
@@ -324,7 +316,13 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   // /mcp's token (BL-PM-007): its own variable, because a null `token` is what turns the page's writes off.
   const mcpToken = !opts.mcp ? null : (opts.mcpToken ?? token ?? randomBytes(32).toString('hex'));
   let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
-  const payload = (i: number) => ({ ...buildSpecsPayload(roots[i], specpilotVersion), projects: projectList(roots) });
+  // The MCP client whose initialize /mcp last answered (BL-103): null until then; `name` sanitized, '' when none was sent.
+  let mcpClient: { name: string } | null = null;
+  // `named`: whether the Setup view is offered there (REQ-002.H.15's current-directory rule, BL-103).
+  const payload = (i: number) => {
+    const p = buildSpecsPayload(roots[i], specpilotVersion);
+    return { ...p, project: { ...p.project, named: namedFlags[i] }, projects: projectList(roots), mcp: { client: mcpClient } };
+  };
   /** Run `fn` under the write lock and settle with its outcome; a throw never breaks the chain for later writes. */
   const locked = <T>(fn: () => T | Promise<T>): Promise<T> => {
     const run = writeLock.then(fn);
@@ -459,60 +457,6 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     });
   };
 
-  // ---- guided setup (BL-055): only for a named root (command line, or opened from the page) that has no .specs/
-  const named = (i: number) => namedFlags[i];
-  const setupIndex = (url: URL): number | null => {
-    const i = projectIndex(url, roots.length);
-    return i !== null && named(i) && specsMissing(roots[i]) ? i : null;
-  };
-
-  const handleSetupGet = (res: ServerResponse, url: URL) => {
-    const i = setupIndex(url);
-    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
-    setupQuestions(roots[i]).then(
-      q => sendJson(res, 200, q),
-      err => sendJson(res, 422, { error: `This folder could not be read: ${(err as Error).message}` }),
-    );
-  };
-
-  const handleSetupPost = (req: IncomingMessage, res: ServerResponse, url: URL) => {
-    if (!writeAllowed(req, res, MAX_SETUP_BODY)) return;
-    const i = projectIndex(url, roots.length);
-    if (i === null || !named(i)) return send(res, 404, TEXT, 'Not Found\n');
-    readJson(req, res, body => {
-      const problem = answersShapeError(body);
-      if (problem) return sendJson(res, 422, { error: problem });
-      writeLock = writeLock
-        .then(() => setupProject(roots[i], body as Record<string, unknown>))
-        .then(out => {
-          if (out.status === 200) return sendJson(res, 200, { specs: payload(i), kept: out.kept, notice: out.notice });
-          if (out.status === 409 && out.specsExists) return sendJson(res, 409, { error: out.error, specs: payload(i) });
-          return sendJson(res, out.status, { error: out.error });
-        })
-        .catch(() => {
-          if (!res.headersSent) sendJson(res, 500, { error: 'Setup could not finish.' });
-        });
-    }, MAX_SETUP_BODY);
-  };
-
-  // ---- preview (BL-PM-004b): what a create would write, rendered and returned; no lock, nothing written
-  const handlePreview = (req: IncomingMessage, res: ServerResponse, url: URL) => {
-    if (!writeAllowed(req, res, MAX_SETUP_BODY)) return;
-    const guided = url.searchParams.has('project');
-    const i = guided ? projectIndex(url, roots.length) : null;
-    if (guided && (i === null || !named(i))) return send(res, 404, TEXT, 'Not Found\n');
-    if (!guided && !registry) return send(res, 404, TEXT, 'Not Found\n');
-    readJson(req, res, body => {
-      const problem = guided ? answersShapeError(body) : newProjectShapeError(body, true);
-      if (problem) return sendJson(res, 422, { error: problem });
-      const b = body as Record<string, unknown>;
-      Promise.resolve(guided ? previewSetup(roots[i!], b) : previewNewProject(b)).then(
-        out => ('status' in out ? sendJson(res, out.status, { error: out.error }) : sendJson(res, 200, out)),
-        () => sendJson(res, 500, { error: 'The preview could not be made.' }),
-      );
-    }, MAX_SETUP_BODY);
-  };
-
   // ---- project registry (BL-067): list, open a folder, forget an entry; all absent with --read-only
   const registry = token && opts.registry ? opts.registry : null;
   const home = homeDir();
@@ -569,7 +513,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     namedFlags.push(true);
     projects.push(project);
     const error = changeRegistry(entries => upsertEntry(entries, root, new Date()));
-    return { project: n, specs: { ...specs, projects: projectList(roots) }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
+    return { project: n, specs: { ...specs, project: { ...specs.project, named: true }, projects: projectList(roots), mcp: { client: mcpClient } }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
   };
 
   const handleProjectAdd = (req: IncomingMessage, res: ServerResponse) => {
@@ -588,29 +532,23 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     });
   };
 
-  // ---- a new project (BL-PM-003): what `init` does in <parent>/<name>, then served like an opened folder
-  const handleProjectNewGet = (res: ServerResponse) => {
-    try {
-      sendJson(res, 200, newProjectQuestions());
-    } catch (err) {
-      sendJson(res, 422, { error: `The OS username could not be read: ${(err as Error).message}` });
-    }
-  };
-
-  const handleProjectNew = (req: IncomingMessage, res: ServerResponse) => {
-    if (!writeAllowed(req, res, MAX_SETUP_BODY)) return;
+  // ---- the Setup view's pending path (BL-103, SEC-004.26): where a new project may be made, checked, nothing
+  // created; one slot for the run, replaced by the next registration, never written anywhere.
+  let pendingTarget: string | null = null;
+  const handlePending = (req: IncomingMessage, res: ServerResponse) => {
+    if (!writeAllowed(req, res)) return;
     readJson(req, res, body => {
-      const problem = newProjectShapeError(body);
+      const problem = pendingShapeError(body);
       if (problem) return sendJson(res, 422, { error: problem });
-      const { parent, name, ...answers } = body as Record<string, unknown> as { parent: string; name: string } & Record<string, unknown>;
-      underLock(res, async () => {
-        if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS }); // before anything is created
-        const out = await createProject(parent, name, answers, roots, home, cloningTarget);
-        if (out.status !== 200) return sendJson(res, out.status, out.project === undefined ? { error: out.error } : { error: out.error, project: out.project });
-        const body200 = serveRoot(res, out.root);
-        if (body200) sendJson(res, 200, { ...body200, kept: out.kept, notice: out.notice });
+      const { parent, name } = body as { parent: string; name: string };
+      underLock(res, () => {
+        if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
+        const out = checkTarget(parent, name, roots, home, cloningTarget);
+        if ('status' in out) return sendJson(res, out.status, out.project === undefined ? { error: out.error } : { error: out.error, project: out.project });
+        pendingTarget = out.target;
+        sendJson(res, 200, { target: out.target });
       });
-    }, MAX_SETUP_BODY);
+    });
   };
 
   // ---- clone a repository (BL-PM-002): the user's git fills <parent>/<name>, then served like an opened folder.
@@ -810,6 +748,13 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     );
   };
 
+  /** An answered client (BL-103): kept for /api/specs, and sent as `event: mcp` to every open stream when it changes. */
+  const seeClient = (name: string) => {
+    if (mcpClient?.name === name) return;
+    mcpClient = { name };
+    allStreams().forEach(st => st.write(`event: mcp\ndata: ${JSON.stringify({ client: mcpClient })}\n\n`));
+  };
+
   /** POST /mcp: the page's write checks in the same order, but Origin may be absent. A bad token is 403 too, never 401,
    * which Claude Code takes for an OAuth challenge (SEC-004.20). */
   const handleMcp = (req: IncomingMessage, res: ServerResponse) => {
@@ -833,6 +778,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       body =>
         answerMcp(body, mirroredHeaders(req.rawHeaders), mcpTools, specpilotVersion, callTool).then(
           reply => {
+            const name = mcpClientName(body);
+            if (name !== undefined && reply.status === 200 && 'result' in (reply.body as object)) seeClient(name);
             if (reply.status !== 202) return sendJson(res, reply.status, reply.body);
             res.writeHead(202, SECURITY_HEADERS);
             res.end();
@@ -870,10 +817,9 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         res.setHeader('Allow', registry ? 'GET, POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
-      if (url.pathname === '/api/projects/new') {
-        if (registry && req.method === 'GET') return handleProjectNewGet(res);
-        if (registry && req.method === 'POST') return handleProjectNew(req, res);
-        res.setHeader('Allow', registry ? 'GET, POST' : '');
+      if (url.pathname === '/api/projects/pending') {
+        if (registry && req.method === 'POST') return handlePending(req, res);
+        res.setHeader('Allow', registry ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
       if (url.pathname === '/api/projects/clone') {
@@ -911,17 +857,6 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
-      if (url.pathname === '/api/preview') {
-        if (token && req.method === 'POST') return handlePreview(req, res, url);
-        res.setHeader('Allow', token ? 'POST' : '');
-        return send(res, 405, TEXT, 'Method Not Allowed\n');
-      }
-      if (url.pathname === '/api/setup') {
-        if (token && req.method === 'GET') return handleSetupGet(res, url);
-        if (token && req.method === 'POST') return handleSetupPost(req, res, url);
-        res.setHeader('Allow', token ? 'GET, POST' : '');
-        return send(res, 405, TEXT, 'Method Not Allowed\n');
-      }
       if (req.method !== 'GET') {
         res.setHeader('Allow', 'GET');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
@@ -931,7 +866,6 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         const mcpMeta = token && mcpToken ? `<meta name="specpilot-mcp" content="${opts.mcpToken ? 'env' : 'page'}">` : '';
         return send(res, 200, UI_ROUTES['/'][1], page.replace(TOKEN_SLOT, token ? `<meta name="specpilot-token" content="${token}">` : '').replace(MCP_SLOT, mcpMeta));
       }
-      if (url.pathname === '/assets/chat-core.js') return send(res, 200, 'text/javascript; charset=utf-8', chatCoreScript(readFileSync(CHAT_CORE, 'utf-8')));
       const ui = UI_ROUTES[url.pathname];
       if (ui) return send(res, 200, ui[1], readFileSync(join(UI_DIR, ui[0])));
       if (url.pathname !== '/api/specs' && url.pathname !== '/api/file' && url.pathname !== '/api/events') return send(res, 404, TEXT, 'Not Found\n');
@@ -959,6 +893,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     server,
     mcpToken,
     streams: () => allStreams().length,
+    pending: () => pendingTarget,
     stopClone,
     close: async () => {
       await stopClone();

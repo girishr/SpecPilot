@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-12 (BL-103 Spec Report)
-version: 6.66
+lastUpdated: 2026-10-12 (BL-103 completed)
+version: 6.67
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -67,7 +67,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-103 | Setup view replaces the New Project chat and the guided-setup chat (REQ-002.H.41, ARCH-004.56, SEC-004.26, SEC-002.10; Architectural; Day brief 2026-10-12, Girish decisions D1 to D3): one view for Open, Clone and Start a New Project that sends the user to their AI IDE over the local MCP (connect card with a Connected status, the line to give the IDE, a Progress list, rows not started; `event: setup` and running/done in BL-104); `POST /api/projects/pending` holds one pending target; the chat, its five routes, `/assets/chat-core.js` and its browser tests removed; README, GUIDE, CHANGELOG. Running and done states ship with BL-104. No release until BL-103, BL-104 and BL-105 are all on `main` (the MCP-off text names `--no-mcp`). Spec Report on `feat/bl-103-setup-view`; spec-reviewer A ESCALATE, architect DECIDE. |
 
 ## Completed
 
@@ -108,3 +107,4 @@ Notes
 | 194 | [CD-girishr-103] [BL-PM-012] | The Claude Code skill from project context (REQ-002.H.40, ARCH-004.55, SEC-004.25; Architectural, architect DECIDE on all): `.claude/skills/specpilot-project/SKILL.md` renders the name, language, framework (filled at last), platforms, package manager, test framework, repository URL and license from `project.yaml`, a value with a control character left out; Regenerate All and `specpilot backfill` add it when missing (with `CLAUDE.md`) and replace it only when its bytes are SpecPilot's render (the two released templates, frozen, or the current one), else keep it with its reason; the Skills view groups it by that rule; the MCP tool stays commands-only; backfill's stale check removed. BL-102 filed for Codex. Jest 1603 → 1618, browser 49 → 52. Commit `577409e`. |
 | 195 | [CD-girishr-104] | v2.14.0 release prepared and shipped (BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.14.0]`, annotated tag `v2.14.0`; pushed and published (row 196) |
 | 196 | [CD-girishr-105] | v2.14.0 shipped (BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md): pushed, npm `specpilot@2.14.0` latest, GitHub release live (2026-10-12) |
+| 197 | [CD-girishr-106] [BL-103] | `specpilot serve` Setup view replaces the New Project chat and the guided-setup chat (REQ-002.H.41, ARCH-004.56, SEC-004.26, SEC-002.10; Architectural; Day brief 2026-10-12, Girish decisions D1 to D3; spec-reviewer A ESCALATE, architect DECIDE: `named` kept, running and done to BL-104, state-only events, `add-specs` footer for Open and Clone): one view for Open, Clone and Start a New Project with the connect card (Connected · <client>, from `initialize` or the 2026-07-28 `_meta` clientInfo, sanitized), the line to give the IDE and four Progress rows not started; `POST /api/projects/pending` holds one checked target in memory, creating nothing; the chat, `/api/setup`, `/api/projects/new`, `/api/preview` and `/assets/chat-core.js` removed. Jest 1618 → 1566, browser 52 → 54 (three runs). No release until BL-104 and BL-105 are on `main`. Commit `782aa4c`. |

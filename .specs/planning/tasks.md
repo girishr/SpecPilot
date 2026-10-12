@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-12 (BL-103 completed)
-version: 6.67
+lastUpdated: 2026-10-12 (BL-104 Spec Report)
+version: 6.68
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -62,11 +62,14 @@ Notes
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
+| BL-106 | Archive `.specs/planning/tasks.md`'s Completed rows: `specpilot validate` warns that the Completed section exceeds its 40-line limit (already so on `main` after BL-103). Trivial; `specpilot archive`, or by hand with its rule if the CLI refuses. Filed by the architect during BL-104 (2026-10-12). |
+| BL-107 | `specpilot validate` reports an error on a fresh project whose API paradigm is None: `SpecValidator.requiredFiles` lists `architecture/api.yaml`, which the generator leaves out for None (REQ-002.I.4), so `init`, `add-specs` and the setup tools write a project that fails validation (seen in BL-104's browser test: `1 errors, 7 warnings`). Make the validator require `api.yaml` only when the project has an API. Found during BL-104 (2026-10-12); not part of it. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
+| BL-104 | Setup tools on the local MCP endpoint (REQ-002.H.42, ARCH-004.57, SEC-004.27, SEC-002.11; Architectural; Day brief 2026-10-12, Girish decisions D2, D3): `specpilot_setup_questions(path)` and `specpilot_setup_project(path, answers, asked?)` over the existing writers, D2 path rule checked again at write time, the new folder served and recorded; server `instructions`; `event: setup` (state only) with the Progress rows running and done and the `#new` switch, moved here from BL-103 by the architect; nine tools, four with `--read-only`. Spec Report on `feat/bl-104-setup-tools`; spec-reviewer A ESCALATE, architect DECIDE. |
 
 ## Completed
 

@@ -79,7 +79,13 @@ export interface McpTool {
   annotations: Record<string, boolean>;
   /** Writes a file: absent with `--read-only`. */
   writes: boolean;
+  /** A setup tool (BL-104): absent with `--read-only` too (D3), though it may only read. */
+  setup?: boolean;
 }
+
+/** The order an agent should follow to set up a folder (BL-104): the `instructions` of initialize and server/discover. */
+export const SETUP_INSTRUCTIONS =
+  'To set up SpecPilot for a folder: call specpilot_setup_questions with its path; answer every question you can from the code; ask the user only what is left, in one go; call specpilot_setup_project with the answers and, in asked, the keys the user answered; then report the validate result.';
 
 const project = { type: 'integer', minimum: 0, description: 'Index of the served project, as specpilot_list_projects gives it. Default 0.' };
 const sha256 = { type: 'string', description: 'The tasks.md hash specpilot_list_tasks returned. A stale hash is refused and nothing is written.' };
@@ -145,6 +151,37 @@ export const MCP_TOOLS: McpTool[] = [
     annotations: WRITE,
     writes: true,
   },
+  {
+    name: 'specpilot_setup_questions',
+    title: 'SpecPilot: setup questions',
+    description:
+      'Step 1 of setting up SpecPilot in a folder the SpecPilot page is setting up (path as the page shows it). Returns what was detected in the code and every question specpilot_setup_project takes, with choices and suggestions. ' +
+      'Answer what you can from the code, ask the user only what is left, then call specpilot_setup_project. Writes nothing.',
+    inputSchema: { type: 'object', properties: { path: { type: 'string', description: 'The folder, as the page shows it, e.g. /Users/you/dev/app or ~/dev/app' } }, required: ['path'], additionalProperties: false },
+    annotations: READ,
+    writes: false,
+    setup: true,
+  },
+  {
+    name: 'specpilot_setup_project',
+    title: 'SpecPilot: set up a project',
+    description:
+      'Step 2: write .specs/, the instruction files and the skill into the folder from specpilot_setup_questions (a new project\'s folder is created), then run specpilot validate. ' +
+      'answers: one value per question key (choices by value; optional fields as text, lists or the integrations map). asked: the keys the user answered. Report the validate result to the user.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string' },
+        answers: { type: 'object', description: 'Answers by question key, from specpilot_setup_questions.' },
+        asked: { type: 'array', items: { type: 'string' }, description: 'The answer keys the user answered (the rest came from the code).' },
+      },
+      required: ['path', 'answers'],
+      additionalProperties: false,
+    },
+    annotations: WRITE,
+    writes: true,
+    setup: true,
+  },
 ];
 
 export interface McpReply {
@@ -156,6 +193,9 @@ export interface McpReply {
 export const rpcError = (id: unknown, code: number, message: string) => ({ jsonrpc: '2.0', id: id ?? null, error: { code, message } });
 
 type Call = (name: string, args: Record<string, unknown>) => Promise<{ text: string; data?: Record<string, unknown> }>;
+
+/** The setup order, only while the setup tools are offered (not with `--read-only`). */
+const instructionsFor = (tools: McpTool[]) => (tools.some(t => t.setup) ? { instructions: SETUP_INSTRUCTIONS } : {});
 
 const listTools = (tools: McpTool[]) => tools.map(t => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations }));
 
@@ -207,6 +247,7 @@ export async function answerMcp(msg: unknown, headers: McpHeaders, tools: McpToo
       protocolVersion: typeof asked === 'string' && MCP_VERSIONS.includes(asked) ? asked : MCP_VERSIONS[0],
       capabilities: { tools: {} },
       serverInfo: { name: 'specpilot-local', version },
+      ...instructionsFor(tools),
     });
   }
   if (m.method === 'ping') return ok({});
@@ -244,7 +285,7 @@ async function answerModern(
   // ttlMs 0 and private: the list holds for one run of serve only, and comes from a token-guarded endpoint.
   const cache = { ttlMs: 0, cacheScope: 'private' };
   const ok = (result: Record<string, unknown>): McpReply => ({ status: 200, body: { jsonrpc: '2.0', id, result: { resultType: 'complete', ...result, _meta: serverInfo } } });
-  if (method === 'server/discover') return ok({ supportedVersions: MCP_ALL_VERSIONS, capabilities: { tools: {} }, ...cache });
+  if (method === 'server/discover') return ok({ supportedVersions: MCP_ALL_VERSIONS, capabilities: { tools: {} }, ...instructionsFor(tools), ...cache });
   if (method === 'tools/list') return ok({ tools: listTools(tools), ...cache });
   if (method === 'tools/call') {
     const reply = await runTool(id, params, tools, call);

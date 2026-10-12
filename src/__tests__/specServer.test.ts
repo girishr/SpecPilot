@@ -14,9 +14,11 @@ import * as gitClone from '../utils/gitClone';
 import * as specServerModule from '../utils/specServer';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
+import { SETUP_INSTRUCTIONS } from '../utils/mcpLocal';
 import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
 import { initOptions, InitAnswers } from '../utils/initQuestions';
 import { render } from '../core/render';
+import { OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 import { ALL_FIELDS } from './fixtures/allFields';
 import { SpecBackfiller } from '../utils/specBackfiller';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
@@ -2029,6 +2031,209 @@ function snapshot(root: string, rel = ''): Record<string, string> {
 }
 
 
+describe('setup tools on /mcp (BL-104)', () => {
+  let e: ReturnType<typeof makeEmpty>;
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let events: Awaited<ReturnType<typeof openEvents>> | null = null;
+  const start = async (roots: string[], opts: Parameters<typeof startSpecServer>[3] = {}) => {
+    spec = await startSpecServer(roots, 0, '0.0.0-test', { registry: regFile(), mcp: true, ...opts });
+    port = (spec.server.address() as AddressInfo).port;
+  };
+  const page = (path: string, body: unknown) =>
+    post(port, JSON.stringify(body), { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': spec.mcpToken! }, path);
+  const call = async (name: string, args: Record<string, unknown>) => {
+    const r = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': spec.mcpToken! }, '/mcp');
+    expect(r.status).toBe(200);
+    if (r.json.error) return { error: r.json.error as { code: number; message: string } };
+    const res = r.json.result as { content: { text: string }[]; structuredContent?: any; isError?: boolean };
+    return res.isError ? { refused: res.content[0].text } : { data: res.structuredContent };
+  };
+  const ANSWERS = { projectType: 'brownfield', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode' };
+  const NEW = { projectType: 'greenfield', language: 'typescript', framework: 'none', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode', whatItDoes: 'Tracks parcels' };
+  /** The setup events seen on the stream so far, parsed. */
+  const setupEvents = () => [...events!.text().matchAll(/event: setup\ndata: (.*)\n/g)].map(m => JSON.parse(m[1]) as Record<string, unknown>);
+
+  beforeEach(() => {
+    e = makeEmpty();
+    p = makeProject();
+  });
+  afterEach(async () => {
+    events?.close();
+    events = null;
+    await spec.close();
+    e.cleanup();
+    p.cleanup();
+    jest.restoreAllMocks();
+  });
+
+  it('with --read-only neither tool is listed and calling one is -32602 (D3)', async () => {
+    await start([e.root, p.root], { readOnly: true, registry: undefined });
+    for (const name of ['specpilot_setup_questions', 'specpilot_setup_project']) expect((await call(name, { path: e.root })).error?.code).toBe(-32602);
+  });
+
+  it('the path rule: a named root without .specs/, the pending target, and nothing else (D2)', async () => {
+    await start([e.root, p.root]);
+    const real = realpathSync(e.root);
+    expect((await call('specpilot_setup_questions', { path: e.root })).data.mode).toBe('existing');
+    expect((await call('specpilot_setup_questions', { path: realpathSync(p.root) })).refused).toBe(`${realpathSync(p.root)} already has .specs/. To add missing SpecPilot sections there, run specpilot backfill.`);
+    expect((await call('specpilot_setup_questions', { path: join(real, '..') })).refused).toBe(`${realpathSync(e.base)} is not a folder this SpecPilot page is setting up. Open it in the page (Open a Project Folder, Clone, or Start a New Project) first.`);
+    expect((await call('specpilot_setup_questions', { path: '' })).refused).toBe('path is required: the folder as the SpecPilot page shows it.');
+    mkdirSync(join(HOME, 'dev'), { recursive: true });
+    expect((await page('/api/projects/pending', { parent: '~/dev', name: 'fresh' })).status).toBe(200);
+    const q = (await call('specpilot_setup_questions', { path: '~/dev/fresh' })).data;
+    expect([q.mode, q.path, q.name, q.detected]).toEqual(['new', join(HOME, 'dev', 'fresh'), 'fresh', []]);
+    expect(existsSync(join(HOME, 'dev', 'fresh'))).toBe(false); // the questions write nothing
+  });
+
+  it('refuses the current-directory default, which is not named', async () => {
+    await start([e.root, p.root], { named: [false, false] });
+    expect((await call('specpilot_setup_questions', { path: e.root })).refused).toMatch(/is not a folder this SpecPilot page is setting up/);
+  });
+
+  it('a pending target registered over HTTP by a token holder is accepted: D2 limits agent mistakes, not a local token holder (architect Q1)', async () => {
+    await start([e.root, p.root]);
+    expect((await page('/api/projects/pending', { parent: e.base, name: 'agent-chose' })).status).toBe(200);
+    expect((await call('specpilot_setup_questions', { path: join(e.base, 'agent-chose') })).data.mode).toBe('new');
+  });
+
+  it('specpilot_setup_questions for a folder: detected rows, add-specs\'s questions, the optional fields; writes nothing', async () => {
+    await start([e.root, p.root]);
+    const before = snapshot(e.root);
+    const q = (await call('specpilot_setup_questions', { path: e.root })).data;
+    expect(q.name).toBe('new-app');
+    expect(q.detected).toEqual(expect.arrayContaining([{ label: 'Project name', value: 'new-app' }, { label: 'Language', value: 'typescript' }]));
+    expect(q.detected.map((r: { label: string }) => r.label)).not.toContain('Platforms'); // a seeded value is never a detected row
+    const keys = q.questions.map((x: { key: string }) => x.key);
+    expect(keys).toEqual(expect.arrayContaining(['projectType', 'apiParadigm', 'handle', 'ide', 'platforms', 'databases', 'integrations']));
+    expect(keys).not.toContain('language'); // detected, so not asked
+    expect(q.questions.find((x: { key: string }) => x.key === 'ide').choices.map((c: { value: string }) => c.value)).toContain('vscode');
+    expect(q.questions.find((x: { key: string }) => x.key === 'platforms')).toMatchObject({ kind: 'list', max: 100 });
+    expect(q.questions.find((x: { key: string }) => x.key === 'integrations').categories.length).toBeGreaterThan(0);
+    for (const k of Object.keys(OPTIONAL_FIELD_LIMITS)) expect([k, keys.includes(k)]).toEqual([k, true]); // all 23, whatever the answers turn out to be
+    expect(snapshot(e.root)).toEqual(before);
+  });
+
+  it('specpilot_setup_questions for a new project: init\'s questions, the context questions only for Greenfield', async () => {
+    await start([e.root, p.root]);
+    await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
+    const q = (await call('specpilot_setup_questions', { path: join(e.base, 'fresh') })).data;
+    expect(q.questions.find((x: { key: string }) => x.key === 'whatItDoes')).toMatchObject({ when: { projectType: 'greenfield' } });
+    expect(q.questions.find((x: { key: string }) => x.key === 'language').choices.map((c: { value: string }) => c.value)).toContain('typescript');
+  });
+
+  it('specpilot_setup_project in a folder: what add-specs writes, validate, and state-only events in order', async () => {
+    await start([e.root, p.root]);
+    events = await openEvents(port, `127.0.0.1:${port}`, '/api/events?project=1');
+    await call('specpilot_setup_questions', { path: e.root });
+    const r = await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, platforms: ['Web'] }, asked: ['handle', 'ide', 'handle', 'nope'] });
+    expect(r.data.project).toBe(0);
+    expect(r.data.written).toEqual(expect.arrayContaining(['.specs/project/project.yaml', '.vscode/settings.json']));
+    expect(Array.isArray(r.data.validate.errors) && Array.isArray(r.data.validate.warnings)).toBe(true);
+    expect(existsSync(join(e.root, '.specs/project/project.yaml'))).toBe(true);
+    await events.waitFor(/"row":"validate","state":"done"/);
+    const ev = setupEvents();
+    expect(ev.map(x => `${x.row}:${x.state}`)).toEqual(['read:running', 'read:done', 'questions:running', 'questions:done', 'write:running', 'write:done', 'validate:running', 'validate:done']);
+    expect(ev.every(x => x.project === 0 && !('pending' in x))).toBe(true);
+    expect(ev[3]).toMatchObject({ fromCode: 3, fromUser: 2, topics: ['Handle', 'AI IDE'] }); // duplicates once, unknown keys ignored
+    expect(ev[5].files).toBe(r.data.written.length);
+    expect(ev[7]).toMatchObject({ errors: r.data.validate.errors.length, warnings: r.data.validate.warnings.length });
+    // state only: no served root, no written file name, no detected value in any event's data
+    const text = events.text().split('\n').filter(l => l.startsWith('data: {"project"') || l.startsWith('data: {"pending"')).join('\n');
+    for (const leak of [realpathSync(e.root), realpathSync(p.root), 'new-app', ...r.data.written]) expect(text).not.toContain(leak);
+    const labels = (await call('specpilot_setup_questions', { path: e.root })).refused; // .specs/ exists now
+    expect(labels).toMatch(/already has \.specs\//);
+  });
+
+  it('refuses answers of the wrong shape, asked that is not a list, and a detected language sent anyway; writes nothing', async () => {
+    await start([e.root, p.root]);
+    const before = snapshot(e.root);
+    expect((await call('specpilot_setup_project', { path: e.root, answers: [] })).refused).toBe('answers must be an object: one value per question key from specpilot_setup_questions.');
+    expect((await call('specpilot_setup_project', { path: e.root, answers: ANSWERS, asked: 'handle' })).refused).toBe('asked must be a list of answer keys.');
+    expect((await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, ide: 'Emacs' } })).refused).toMatch(/^"ide" must be one of/);
+    expect((await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, language: 'python' } })).refused).toBe('The language was detected, so "language" must not be sent.');
+    expect(snapshot(e.root)).toEqual(before);
+  });
+
+  it('a write that fails sends write idle and is a tool error with the writer\'s text', async () => {
+    await start([e.root, p.root]);
+    events = await openEvents(port, `127.0.0.1:${port}`, '/api/events?project=1');
+    symlinkSync(p.outside, join(e.root, '.vscode'));
+    const r = await call('specpilot_setup_project', { path: e.root, answers: ANSWERS });
+    expect(r.refused).toBe('.vscode is a symbolic link, so nothing was written.');
+    await events.waitFor(/"row":"write","state":"idle"/);
+    expect(existsSync(join(e.root, '.specs'))).toBe(false);
+  });
+
+  it('a new project: created at the pending target, served and recorded, the slot cleared, the last event names it', async () => {
+    await start([e.root, p.root]);
+    events = await openEvents(port, `127.0.0.1:${port}`, '/api/events?project=1');
+    await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
+    const target = join(realpathSync(e.base), 'fresh');
+    expect((await call('specpilot_setup_project', { path: target, answers: { ...NEW, parent: '/x' } })).refused).toBe('"parent" and "name" come from the path; leave them out of answers.');
+    const r = await call('specpilot_setup_project', { path: target, answers: NEW, asked: ['whatItDoes'] });
+    expect([r.data.path, r.data.project]).toEqual([target, 2]);
+    expect(existsSync(join(target, '.specs/project/project.yaml'))).toBe(true);
+    expect(spec.pending()).toBeNull();
+    expect(readRegistry(regFile()).entries!.map(x => x.path)).toContain(target);
+    await events.waitFor(/"row":"validate","state":"done"/);
+    const last = setupEvents().pop()!;
+    expect(last).toMatchObject({ pending: true, project: 2 });
+    expect(events.text()).not.toContain(target);
+    expect((await call('specpilot_setup_project', { path: target, answers: NEW })).refused).toBe(`${target} already has .specs/. To add missing SpecPilot sections there, run specpilot backfill.`);
+  });
+
+  it('checks the target again at write time: a folder that filled up after registration is refused', async () => {
+    await start([e.root, p.root]);
+    await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
+    write(e.base, 'fresh/notes.txt', 'mine\n');
+    const r = await call('specpilot_setup_project', { path: join(e.base, 'fresh'), answers: NEW });
+    expect(r.refused).toBe(`${join(realpathSync(e.base), 'fresh')} already exists and is not empty. Use Open a Project Folder to open it and add .specs/ there.`);
+    expect(readdirSync(join(e.base, 'fresh'))).toEqual(['notes.txt']);
+  });
+
+  it('checks the project cap again under the lock', async () => {
+    const many = Array.from({ length: MAX_PROJECTS - 3 }, () => makeProject());
+    try {
+      await start([e.root, p.root, ...many.map(m => m.root)]);
+      expect((await page('/api/projects/pending', { parent: e.base, name: 'fresh' })).status).toBe(200); // 19 served
+      const extra = makeProject();
+      many.push(extra);
+      expect((await page('/api/projects', { path: extra.root })).status).toBe(200); // 20 served
+      const r = await call('specpilot_setup_project', { path: join(e.base, 'fresh'), answers: NEW });
+      expect(r.refused).toBe(`This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.`);
+      expect(existsSync(join(e.base, 'fresh'))).toBe(false);
+    } finally {
+      many.forEach(m => m.cleanup());
+    }
+  });
+
+  it('written but not readable to be served: a tool error naming the folder and the files, the slot cleared, no project', async () => {
+    await start([e.root, p.root]);
+    await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
+    const target = join(realpathSync(e.base), 'fresh');
+    const fs = require('fs') as typeof import('fs');
+    const real = fs.readFileSync;
+    jest.spyOn(fs, 'readFileSync').mockImplementation(((path: unknown, ...rest: unknown[]) => {
+      if (String(path).startsWith(join(target, '.specs') + '/')) throw new Error('EIO');
+      return (real as (...a: unknown[]) => unknown)(path, ...rest);
+    }) as typeof fs.readFileSync);
+    const r = await call('specpilot_setup_project', { path: target, answers: NEW });
+    expect(r.refused).toMatch(new RegExp(`^${target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} was set up, but it could not be read to be served \\(This folder could not be read: EIO\\)\\. Open it with Open a Project Folder\\. Written: .*\\.specs/project/project\\.yaml`));
+    expect(spec.pending()).toBeNull();
+    expect(JSON.parse((await hit(port, '/api/specs')).body).projects).toHaveLength(2);
+  });
+
+  it('a refused pending registration clears the slot (BL-104)', async () => {
+    await start([e.root, p.root]);
+    await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
+    expect(spec.pending()).not.toBeNull();
+    expect((await page('/api/projects/pending', { parent: e.base, name: 'proj' })).status).toBe(409); // a served root
+    expect(spec.pending()).toBeNull();
+  });
+});
+
 describe('Setup view server (BL-103)', () => {
   let e: ReturnType<typeof makeEmpty>;
   let p: ReturnType<typeof makeProject>;
@@ -2828,7 +3033,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     const init = await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } }, { 'MCP-Protocol-Version': undefined });
     expect(init.status).toBe(200);
     expect(init.headers['content-type']).toBe('application/json; charset=utf-8');
-    expect(init.json.result).toEqual({ protocolVersion: '2025-11-25', capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '0.0.0-test' } });
+    expect(init.json.result).toEqual({ protocolVersion: '2025-11-25', capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '0.0.0-test' }, instructions: SETUP_INSTRUCTIONS });
     for (const method of ['notifications/initialized', 'notifications/cancelled']) {
       const n = await post(port, JSON.stringify({ jsonrpc: '2.0', method }), headers(), '/mcp');
       expect(n.status).toBe(202);
@@ -2875,19 +3080,20 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(r.json).toEqual({ jsonrpc: '2.0', id: null, error: { code: -32000, message: 'This request did not carry a valid X-SpecPilot-Token header, so it was refused. Copy the config line again from the page or the terminal.' } });
   });
 
-  it('refuses another content type (415), a body over 16 KB (413) and a body that is not JSON (400, -32700)', async () => {
+  it('refuses another content type (415), a body over 64 KB (413, BL-104) and a body that is not JSON (400, -32700)', async () => {
     await start();
     expect((await rpc('ping', undefined, { 'Content-Type': 'text/plain' })).status).toBe(415);
-    const big = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping', params: { pad: 'x'.repeat(17 * 1024) } }), headers(), '/mcp');
+    const big = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping', params: { pad: 'x'.repeat(65 * 1024) } }), headers(), '/mcp');
     expect(big.status).toBe(413);
+    expect((await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping', params: { pad: 'x'.repeat(60 * 1024) } }), headers(), '/mcp')).status).toBe(200);
     const bad = await post(port, '{nope', headers(), '/mcp');
     expect(bad.status).toBe(400);
     expect(bad.json.error.code).toBe(-32700);
   });
 
-  it('lists seven tools', async () => {
+  it('lists nine tools (BL-104)', async () => {
     await start();
-    expect((await rpc('tools/list')).json.result.tools.map((t: any) => t.name)).toHaveLength(7);
+    expect((await rpc('tools/list')).json.result.tools.map((t: any) => t.name)).toHaveLength(9);
   });
 
   it('lists projects and tasks as /api/specs gives them', async () => {
@@ -3051,11 +3257,12 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
       resultType: 'complete',
       supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'],
       capabilities: { tools: {} },
+      instructions: SETUP_INSTRUCTIONS,
       ttlMs: 0,
       cacheScope: 'private',
       _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'specpilot-local', version: '0.0.0-test' } },
     });
-    expect((await modern('tools/list')).json.result.tools).toHaveLength(7);
+    expect((await modern('tools/list')).json.result.tools).toHaveLength(9);
     const add = await modern('tools/call', { name: 'specpilot_new_task', arguments: { description: ' Ship the MCP card ', section: 'currentSprint', sha256: hashOf(a.root) } });
     expect(add.status).toBe(200);
     expect(add.json.result.resultType).toBe('complete');
@@ -3089,7 +3296,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect((await modern('tools/list', {}, { Origin: 'https://evil.com' })).status).toBe(403);
     expect((await modern('tools/list', {}, { 'Content-Type': 'text/plain' })).status).toBe(415);
     expect((await modern('tools/list', {}, { Host: 'evil.com' })).status).toBe(403);
-    expect((await modern('tools/list', { pad: 'x'.repeat(17 * 1024) })).status).toBe(413);
+    expect((await modern('tools/list', { pad: 'x'.repeat(65 * 1024) })).status).toBe(413);
   });
 
   it('with --read-only lists four tools on 2026-07-28 and refuses a write tool with -32602 and HTTP 200', async () => {

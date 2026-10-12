@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-12 (BL-105 Spec Report)
-version: 6.70
+lastUpdated: 2026-10-12 (BL-105 completed)
+version: 6.71
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -69,7 +69,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-105 | MCP on by default in `specpilot serve`, `--no-mcp` turns it off (REQ-002.H.43, SEC-004.28; Day brief 2026-10-12, Girish decision D3; small): token rules unchanged, `--mcp` still accepted, the terminal prints the config line on every start, Home's card stays; README, GUIDE, CHANGELOG. Spec Report on `feat/bl-105-mcp-default`. |
 
 ## Completed
 
@@ -112,3 +111,4 @@ Notes
 | 196 | [CD-girishr-105] | v2.14.0 shipped (BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md): pushed, npm `specpilot@2.14.0` latest, GitHub release live (2026-10-12) |
 | 197 | [CD-girishr-106] [BL-103] | `specpilot serve` Setup view replaces the New Project chat and the guided-setup chat (REQ-002.H.41, ARCH-004.56, SEC-004.26, SEC-002.10; Architectural; Day brief 2026-10-12, Girish decisions D1 to D3; spec-reviewer A ESCALATE, architect DECIDE: `named` kept, running and done to BL-104, state-only events, `add-specs` footer for Open and Clone): one view for Open, Clone and Start a New Project with the connect card (Connected · <client>, from `initialize` or the 2026-07-28 `_meta` clientInfo, sanitized), the line to give the IDE and four Progress rows not started; `POST /api/projects/pending` holds one checked target in memory, creating nothing; the chat, `/api/setup`, `/api/projects/new`, `/api/preview` and `/assets/chat-core.js` removed. Jest 1618 → 1566, browser 52 → 54 (three runs). No release until BL-104 and BL-105 are on `main`. Commit `782aa4c`. |
 | 198 | [CD-girishr-107] [BL-104] | `specpilot serve --mcp` setup tools (REQ-002.H.42, ARCH-004.57, SEC-004.27, SEC-002.11; Architectural; Day brief 2026-10-12, Girish decisions D2, D3; spec-reviewer A ESCALATE, architect DECIDE: Q1 accept and document, `asked` unknown keys ignored, registration on `change`): `specpilot_setup_questions` and `specpilot_setup_project` over the existing writers, D2 path rule and the project cap checked again under the lock, a new folder served and recorded, `instructions` on `initialize` and `server/discover`, `event: setup` state-only with the Setup view's Progress rows and the `#new` switch; nine tools, four with `--read-only`; `/mcp` 64 KB. BL-106 and BL-107 filed. Jest 1566 → 1580, browser 54 → 56 (three runs). Commit `b312489`. |
+| 199 | [CD-girishr-108] [BL-105] | `specpilot serve` serves the local MCP endpoint by default, `--no-mcp` turns it off (REQ-002.H.43, SEC-004.28; small; Day brief 2026-10-12, Girish decision D3): `--mcp` still accepted, the config line printed on every start, Home's card and the Setup view's step 1 whenever MCP is on, token rules unchanged, `--read-only` four read tools; threat model SEC-002.9 brought up to date (`--no-mcp`, 64 KB). Jest 1580 → 1583, browser 56 (three runs). Commit `2d6ae09`. |

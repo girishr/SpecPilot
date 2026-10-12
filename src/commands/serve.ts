@@ -113,7 +113,7 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
 
   if (options.stop) {
     const pollGiven = command ? command.getOptionValueSource('poll') === 'cli' : options.poll !== undefined;
-    if (folders.length || options.readOnly || options.open || options.mcp || pollGiven) {
+    if (folders.length || options.readOnly || options.open || options.mcp !== undefined || pollGiven) {
       logger.error('--stop takes only --port. Run `specpilot serve --stop` or `specpilot serve --stop --port <n>`.');
       return process.exit(1);
     }
@@ -162,8 +162,10 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
     return process.exit(1);
   }
 
+  // MCP is on unless --no-mcp (BL-105, D3); Commander leaves `mcp` undefined without either flag.
+  const mcp = options.mcp !== false;
   // Read here, never written anywhere: with it the IDE's config line survives restarts (BL-PM-007).
-  const envToken = options.mcp ? process.env.SPECPILOT_MCP_TOKEN : undefined;
+  const envToken = mcp ? process.env.SPECPILOT_MCP_TOKEN : undefined;
   if (envToken !== undefined && !MCP_TOKEN_PATTERN.test(envToken)) {
     logger.error('SPECPILOT_MCP_TOKEN must be at least 32 characters, with no spaces or other invisible characters. Set a longer one, or unset it to get a new token each run.');
     return process.exit(1);
@@ -193,7 +195,7 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
 
   let handle: SpecServer;
   try {
-    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, mcp: !!options.mcp, mcpToken: envToken, log: m => logger.warn(m), onQuit: () => stop() });
+    handle = await startSpecServer(roots, port, packageJson.version, { pollMs, readOnly: !!options.readOnly, named, registry, mcp, mcpToken: envToken, log: m => logger.warn(m), onQuit: () => stop() });
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE') {
       logger.error(`Port ${port} is already in use. Pick another with --port, e.g. \`specpilot serve --port ${port === 65535 ? 4322 : port + 1}\`.`);
@@ -222,7 +224,7 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
   );
   if (registry) console.log(chalk.gray(`Folders opened in the page are remembered in ${displayRoot(registry, home)}.`));
   if (registryNote) console.log(registryNote);
-  if (options.mcp) {
+  if (mcp) {
     console.log(`MCP endpoint: ${url}/mcp${options.readOnly ? ' (read tools only)' : ''}`);
     console.log(`Add to your IDE's MCP settings: ${mcpConfigLine(`127.0.0.1:${port}`, envToken !== undefined ? '${SPECPILOT_MCP_TOKEN}' : handle.mcpToken!)}`);
   }

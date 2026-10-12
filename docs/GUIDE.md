@@ -348,7 +348,7 @@ Serve a local web UI over the `.specs/` of this project (or of each folder named
 ```bash
 specpilot serve                 # this project
 specpilot serve ../api ../web   # two projects on one server
-specpilot serve --mcp           # also a local MCP endpoint for your AI IDE
+specpilot serve --no-mcp        # without the local MCP endpoint for your AI IDE
 ```
 
 **Options:**
@@ -357,9 +357,9 @@ specpilot serve --mcp           # also a local MCP endpoint for your AI IDE
 - `--poll <ms>`: Change-detection interval, 250 or more · default: `1000`
 - `--read-only`: The page only reads: no task moves, new tasks, Setup view steps, opening folders or registry
 - `--open`: Open the UI in the default browser
-- `--mcp`: Also serve MCP at `/mcp` (below)
+- `--no-mcp`: Leave out the MCP endpoint at `/mcp`, which is served by default (below); `--mcp` is still accepted and changes nothing
 
-**Connecting your AI IDE (`--mcp`):** the terminal prints, and the Connect Your AI IDE card on Home shows, one line such as
+**Connecting your AI IDE:** on every start (unless `--no-mcp`) the terminal prints, and the Connect Your AI IDE card on Home and the Setup view show, one line such as
 
 ```json
 {"mcpServers":{"specpilot-local":{"type":"http","url":"http://127.0.0.1:4321/mcp","headers":{"X-SpecPilot-Token":"<token>"}}}}

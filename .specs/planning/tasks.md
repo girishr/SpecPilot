@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-12 (BL-104 completed)
-version: 6.69
+lastUpdated: 2026-10-12 (BL-105 Spec Report)
+version: 6.70
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -69,6 +69,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-105 | MCP on by default in `specpilot serve`, `--no-mcp` turns it off (REQ-002.H.43, SEC-004.28; Day brief 2026-10-12, Girish decision D3; small): token rules unchanged, `--mcp` still accepted, the terminal prints the config line on every start, Home's card stays; README, GUIDE, CHANGELOG. Spec Report on `feat/bl-105-mcp-default`. |
 
 ## Completed
 

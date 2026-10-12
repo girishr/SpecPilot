@@ -687,7 +687,7 @@ const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
 let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,browseCtl=null,browseBtn=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
-/* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, only with --mcp. No status:
+/* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, unless --no-mcp (BL-105). No status here:
    the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
 if(TOKEN&&MCP){
   const env=MCP==='env';

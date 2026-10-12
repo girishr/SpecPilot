@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-11 (v2.14.0 prepared)
-version: 2.102
+lastUpdated: 2026-10-12 (v2.14.0 shipped)
+version: 2.103
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-12: v2.14.0 recorded as shipped on the developer's word that it is shipped, checked first: `origin/main` = `4417b61`, tag `v2.14.0` on origin = the local annotated tag `8e8f3a2` (peeled `4417b61`), npm `latest` 2.14.0, `gh release view v2.14.0` published 2026-10-12T03:01:27Z, not draft or prerelease. The release-prep entry below ends before the tag: the tag was then made on the developer's typed `yes proceed` at its gate, `--cleanup=verbatim`, `cmp` against the CHANGELOG section clean, spec-reviewer D ESCALATE with nothing to fix. Row 195 reworded, row 196 added, in `docs(tasks): v2.14.0 shipped`.
 - 2026-10-11: release Day brief (pasted, then the developer's typed `yes, proceed for today's brief`; the version bump on the typed `yes proceed` at its gate): v2.14.0 prepared on `main` (`8c436fc`) by `docs/RELEASING.md`: `npm version 2.14.0 --no-git-tag-version`, project.yaml, api.yaml `cli.version`, CHANGELOG `[2.14.0] - 2026-10-11`, roadmap heading and Timeline line (the brief's list without BL-094, which was investigated and not fixed), step 5 marks, CTX-002, release row 195 (CD-girishr-104); checks, release commit, then stop before the tag (its own gate).
 - 2026-10-11: BL-PM-012 built on `feat/bl-pm-012-skill-context`: `agentConfig.ts` (`SKILL_V2`, `SKILL_V1`, `KNOWN_SKILL_TEMPLATES`, `fillReleasedSkill()`, `skillValue()`, the new render), `slashCommandGenerator.ts` (`readSkillContext()`, `refreshSkill()`, `isSpecPilotSkill()`), `specServer.ts` (route, report, grouping), `specBackfiller.ts` and `backfill.ts` (the stale check removed, the skill's own lines), README; tests in four Jest files, two recordings, `regenerate.browser.test.ts` and `views.browser.test.ts`. Jest 1603 → 1617, browser 49 → 52 three times, lint as on `main`, validate clean. spec-reviewer B FIX (a value holding `{{projectName}}` was rewritten): fixed and tested, Jest 1618.
 - 2026-10-11: evening Day brief (pasted, then the developer's typed `yes, proceed for today's brief`), BL-PM-012 Spec Report (Architectural, approved by the brief) on `feat/bl-pm-012-skill-context` from `main` (`e8614bf`), specs only: REQ-002.H.40, H.30's two skill sentences superseded, ARCH-004.55 (004.24 noted), SEC-004.25, tests.md (planned), BL-PM-012 to Current Sprint, CTX-003 defaults (nine), CHANGELOG. Read first: a survey of `agentConfig.ts`, `slashCommandGenerator.ts`, the Regenerate route and Skills view, `checkSkillFile()`, `project.yaml`'s template and the template history across tags. spec-reviewer A ESCALATE with fixes; the architect's DECIDE on all (no escaping exists: control characters make a value absent; one reason for an unmatched skill; no second button; BL-102 for Codex), applied.

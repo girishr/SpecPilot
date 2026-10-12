@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-12 (BL-103 Spec Report)
-version: 1.23
+lastUpdated: 2026-10-12 (BL-104 Spec Report)
+version: 1.24
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -319,6 +319,17 @@ This file records security-related architectural and implementation decisions ma
   - Writing the pending path to `~/.specpilot` — rejected: the registry stays the one file SpecPilot writes outside a project (SEC-002.7).
   - Paths or file names on the event streams — rejected, as for `event: clone` (SEC-004.9).
 - **Reference**: SEC-002.10, SEC-004.9, SEC-004.20, REQ-002.H.41, ARCH-004.56
+
+### [SEC-004.27] Setup over MCP writes only where D2 allows, checked again at write time
+
+- **Date**: 2026-10-12 (BL-104 Spec Report; Girish decisions D2, D3)
+- **Decision**: `specpilot_setup_project` reaches the two writers the page's setup routes used (SEC-004.12, SEC-004.14) through `/mcp`'s guards (SEC-004.20). The tool's `path` must be a served root named on the command line or opened or cloned from the page with no `.specs`, or exactly the pending target the page registered (SEC-004.26); `.specs` present is refused (backfill's job). The rule runs on each call, and for a new project `createProject()` re-runs every target check against the disk under the write lock after the target is compared with the pending target as the same absolute string, so a registration authorizes nothing on its own; the project cap is checked again under the lock with a running clone counted. Answers pass the same shape checks as the old routes; no text from the request reaches a file except what those routes allowed. With `--read-only` neither setup tool exists (D3). `/mcp` bodies may be 64 KB, the old setup routes' limit. A refused pending registration clears the slot. Events carry state only (SEC-004.9).
+- **Rationale**: the writer and its checks are unchanged; only the caller moves from the page to the IDE, behind a token the user copied into it.
+- **Alternatives considered**:
+  - Any folder the agent names — rejected (D2).
+  - Trusting the registration without a re-check — rejected: the folder can change between registration and write.
+  - A separate `/mcp` token, so a `/mcp` caller cannot reach the page's routes — rejected (architect decision Q1): any local process can read the page token from `GET /` (SEC-004.20), so it would stop nothing, and D3 keeps the token rules unchanged. D2 guards against an agent's mistakes, not against a local token holder.
+- **Reference**: SEC-004.12, SEC-004.14, SEC-004.20, SEC-004.26, SEC-002.11, REQ-002.H.42, ARCH-004.57
 
 ## Open Questions [SEC-005]
 

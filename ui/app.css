@@ -385,9 +385,16 @@ input.txt{width:100%}
 .setupv .warnbox[hidden]{display:none}
 .setupv .step.off{opacity:.45}
 .setupv .steps{list-style:none;margin:6px 0 0;padding:0}
-.setupv .steps li{display:flex;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--sep);color:var(--label-3)}
+.setupv .steps li{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--sep);color:var(--label-3)}
 .setupv .steps li:first-child{border-top:0}
 .setupv .steps i{width:18px;height:18px;border-radius:50%;border:1.5px dashed var(--sep-2);flex:none}
+.setupv .steps li.run,.setupv .steps li.done{color:var(--label)}
+.setupv .steps li.run i{border:1.5px solid var(--focus);border-top-color:transparent;animation:suspin .9s linear infinite}
+.setupv .steps li.done i{border:0;background:var(--accent-fill);display:grid;place-items:center}
+.setupv .steps li.done i::after{content:"✓";color:var(--on-accent);font-size:11px;font-style:normal}
+.setupv .steps .d{margin-left:auto;font-size:12.5px;color:var(--label-3);text-align:right;overflow-wrap:anywhere;min-width:0}
+@keyframes suspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.setupv .steps li.run i{animation:none;border-top-color:var(--focus)}}
 .setupv .sufoot{color:var(--label-3)}
 @media (max-width:720px){.setupv .fields{grid-template-columns:1fr}}
 

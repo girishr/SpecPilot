@@ -249,7 +249,7 @@ function answersDetectionError(b: Record<string, string>, info: ProjectInfo | nu
 }
 
 export type SetupOutcome =
-  | { status: 200; kept: string[]; notice: string | null }
+  | { status: 200; written: string[]; kept: string[]; notice: string | null }
   | { status: 409; error: string; specsExists: boolean }
   | { status: 422; error: string }
   | { status: 500; error: string };
@@ -377,7 +377,7 @@ async function placeGenerated(root: string, options: SpecGeneratorOptions): Prom
         closeSync(fd);
       }
     }
-    return { status: 200, kept, notice: ide.toLowerCase() === 'codex' ? CODEX_PROMPTS_NOTICE : null };
+    return { status: 200, written: files.filter(rel => !kept.includes(rel)), kept, notice: ide.toLowerCase() === 'codex' ? CODEX_PROMPTS_NOTICE : null };
   } catch (err) {
     rollback();
     return { status: 500, error: `Setup could not finish: ${(err as Error).message}. The files it had created were removed.` };
@@ -463,7 +463,7 @@ export function newProjectShapeError(body: unknown): string | null {
 }
 
 export type NewProjectOutcome =
-  | { status: 200; root: string; kept: string[]; notice: string | null }
+  | { status: 200; root: string; written: string[]; kept: string[]; notice: string | null }
   | { status: 409 | 422 | 500; error: string; project?: number };
 
 export type Reserved =
@@ -552,7 +552,7 @@ export async function createProject(parent: string, name: string, body: Record<s
     // Also when placeGenerated() itself throws: the folder this call made goes, if it is empty again.
     if (out?.status !== 200 && created) try { rmdirSync(target); } catch { /* something else put a file there: the folder stays */ }
   }
-  if (out.status === 200) return { status: 200, root: target, kept: out.kept, notice: out.notice };
+  if (out.status === 200) return { status: 200, root: target, written: out.written, kept: out.kept, notice: out.notice };
   return { status: out.status, error: out.error };
 }
 

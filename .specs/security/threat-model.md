@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-12 (BL-103 Spec Report)
-version: 1.28
+lastUpdated: 2026-10-12 (BL-104 Spec Report)
+version: 1.29
 contributors: [girishr]
 relatedFiles:
   [
@@ -146,6 +146,19 @@ The page registers where a new project may be made, and shows which MCP client i
 | **Mitigation**    | (1) Every write-route check, then REQ-002.H.23 steps (1) to (3) under the lock (a); the BL-104 writer runs them again at write time and compares paths as the same absolute string, so registration alone authorizes nothing. (2) One pending path, replaced by the next registration, kept in memory only (b). (3) C0/C1 controls, U+2028/U+2029 and bidi format characters removed, then cut to 100 characters, drawn with `textContent` (c). |
 | **Residual risk** | Low. A local process with the page token could set the pending path, as it could already create a project through the removed route. |
 
+### Setup tools on `/mcp` (BL-104) [SEC-002.11]
+
+An AI IDE with the token can set up a folder (REQ-002.H.42).
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Write outside the chosen folder**: the agent names another path. (b) **Race**: the pending folder changes between registration and write. (c) **Prompt-injected agent** sends unexpected answers. |
+| **Impact**        | Medium for (a): files created in a folder the user did not choose. Low for (b), (c): the writer creates new files only and checks every answer's shape. |
+| **Likelihood**    | Low: needs a local process holding the `/mcp` token, the same trust model as SEC-004.20: by default it is the page token, which any local process can read from `GET /`. |
+| **Entry point**   | `tools/call` of `specpilot_setup_questions` and `specpilot_setup_project`: `path`, `answers`, `asked`. |
+| **Mitigation**    | (1) D2's path rule on each call: a named served root without `.specs`, or exactly the pending target (a). (2) `createProject()` re-runs the target checks under the lock (b). (3) The old routes' shape checks, the staging and exclusive creates, nothing overwritten (c). (4) Not offered with `--read-only`. |
+| **Residual risk** | Low. The agent can set up the folder the user pointed it at with answers the user did not see; the files are new, under version control, and can be deleted. A local token holder can register its own pending target through the page's route (architect decision Q1): D2 limits an agent's mistakes, not a hostile local process, which can write files directly anyway. |
+
 ## Attack Surface Summary [SEC-003]
 
 | Entry Point                          | Data Type            | Validated?                     | Used In                                  |
@@ -178,6 +191,7 @@ The page registers where a new project may be made, and shows which MCP client i
 | `POST /api/projects/browse` (BL-PM-011) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; body exactly `{}`; one dialog at a time; 405 with `--read-only` | One system folder dialog started without a shell, constant arguments, 5 minutes at most; its output returned as text, never read or opened by the server (SEC-002.5 n) |
 | `POST /api/projects/pending` (BL-103) | JSON `{parent, name}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; two keys, the new-project parent and name rules, `checkTarget()` under the lock; 405 with `--read-only` | One pending target in memory; nothing read inside it or written (SEC-002.10) |
 | MCP client name (BL-103) | `clientInfo.name` from `/mcp` | ✅ after `/mcp`'s token check; controls, U+2028/U+2029 and bidi format characters removed, ≤ 100 characters; shown with `textContent` | Block 1 status of the Setup view (SEC-002.10) |
+| `specpilot_setup_questions`, `specpilot_setup_project` (BL-104, `/mcp`) | `path`, `answers` (the old setup bodies), `asked` | ✅ `/mcp` guards, ≤ 64 KB; D2 path rule each call; the old routes' shape checks; target checks again under the lock; not listed with `--read-only` | Setup in a named served root or the pending target; new files only (SEC-002.11) |
 | `~/.specpilot/projects.json`         | Disk read (JSON, `lstat`) | ✅ `.specpilot` a real folder, file a regular file, valid JSON of the one shape, absolute paths; anything else → refused for the run, never rewritten | Recent projects list; never a served root by itself (SEC-002.5 k) |
 | Existing `specpilot-*` command files (`backfill`) | Disk read (bytes, `lstat`) | ✅ Exact SHA-256 match per target path, regular files only | Replaced or kept (SEC-002.6) |
 | Optional template fields (REQ-002.I.4) | Strings, lists, a map of lists | ⚠️ As typed in markdown (no HTML escaping since BL-PM-004b), `yaml`/`yamlList` in YAML; from BL-PM-004b also checked at the two create routes (type, length, list size, category keys, one line; SEC-002.8) | The phase 2 sections of `.specs/` files (SEC-002.2, SEC-002.7) |

@@ -1,7 +1,7 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { AddressInfo } from 'net';
-import { readFileSync, statSync } from 'fs';
-import { join, resolve, sep } from 'path';
+import { existsSync, readFileSync, realpathSync, statSync } from 'fs';
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'path';
 import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
@@ -9,7 +9,8 @@ import { readSpecs } from './specReader';
 import { moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
-import { checkTarget, pendingShapeError, reserveTarget, specsMissing } from './specSetup';
+import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
+import { chatQuestions, CliQuestion, OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
@@ -226,6 +227,13 @@ export const MAX_MOVE_BODY = 16 * 1024;
 const TOKEN_SLOT = '<!-- specpilot-token -->';
 /** Where index.html learns that /mcp is on, and whose token it takes: `page` or `env` (BL-PM-007). */
 const MCP_SLOT = '<!-- specpilot-mcp -->';
+
+/** Largest accepted body on /mcp: the setup answers, as the page's setup routes took them (BL-104). */
+export const MAX_MCP_BODY = 64 * 1024;
+
+// The CLI's question list as the chat core takes it: the page's own rule, also read here since BL-104.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { flowQuestions } = require('../../ui/route.js') as { flowQuestions: (q: unknown, answers: Record<string, unknown>, first?: unknown[]) => CliQuestion[] };
 
 /** Most `/api/events` streams open at once; the next one gets 503 (SEC-004.9). */
 export const MAX_EVENT_STREAMS = 8;
@@ -499,13 +507,12 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
    * Serve `root` as the next index and record it in the registry: the success body of an open, or null
    * after answering 422 because the folder's allowlisted files cannot be read (it is then not half-opened).
    */
-  const serveRoot = (res: ServerResponse, root: string) => {
+  const addRoot = (root: string) => {
     let specs;
     try {
       specs = buildSpecsPayload(root, specpilotVersion);
     } catch (err) {
-      sendJson(res, 422, { error: `This folder could not be read: ${(err as Error).message}` });
-      return null;
+      return { error: `This folder could not be read: ${(err as Error).message}` };
     }
     const project = projectFor(root); // built before anything is pushed, so the three lists never disagree
     const n = roots.length;
@@ -514,6 +521,15 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     projects.push(project);
     const error = changeRegistry(entries => upsertEntry(entries, root, new Date()));
     return { project: n, specs: { ...specs, project: { ...specs.project, named: true }, projects: projectList(roots), mcp: { client: mcpClient } }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
+  };
+  /** `addRoot()` for a route: answers 422 itself when the folder cannot be read (it is then not half-opened). */
+  const serveRoot = (res: ServerResponse, root: string) => {
+    const out = addRoot(root);
+    if ('error' in out) {
+      sendJson(res, 422, { error: out.error });
+      return null;
+    }
+    return out;
   };
 
   const handleProjectAdd = (req: IncomingMessage, res: ServerResponse) => {
@@ -544,6 +560,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       underLock(res, () => {
         if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
         const out = checkTarget(parent, name, roots, home, cloningTarget);
+        if ('status' in out) pendingTarget = null; // a refusal leaves no path writable that the page no longer shows (BL-104)
         if ('status' in out) return sendJson(res, out.status, out.project === undefined ? { error: out.error } : { error: out.error, project: out.project });
         pendingTarget = out.target;
         sendJson(res, 200, { target: out.target });
@@ -674,7 +691,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     [STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it. The move was not made.',
     [NEW_STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it, so the task was not added. Call specpilot_list_tasks for the current sha256, then try again.',
   };
-  const mcpTools = MCP_TOOLS.filter(t => token || !t.writes); // --read-only: no write tools
+  const mcpTools = MCP_TOOLS.filter(t => token || (!t.writes && !t.setup)); // --read-only: no write tools, no setup tools (D3)
   const mcpProject = (args: Record<string, unknown>): number => {
     const n = args.project ?? 0;
     if (!Number.isInteger(n) || (n as number) < 0 || (n as number) >= roots.length) throw new ToolRefusal(`No project ${String(n)} is served. specpilot_list_projects lists them.`);
@@ -699,7 +716,122 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     }
     return out as T & { status: 200 };
   };
+  // ---- setup over MCP (BL-104, REQ-002.H.42, SEC-004.27): D2's path rule, the questions, the writer, Progress events
+  type SetupTarget = { kind: 'existing'; root: string; index: number } | { kind: 'new'; target: string };
+  const BACKFILL = (p: string) => `${p} already has .specs/. To add missing SpecPilot sections there, run specpilot backfill.`;
+  /** D2: a served root named or opened from the page without .specs/, or exactly the pending target. Run on every call and again under the lock. */
+  const setupTarget = (path: unknown): SetupTarget => {
+    if (typeof path !== 'string' || !path.trim() || path.includes('\0')) throw new ToolRefusal('path is required: the folder as the SpecPilot page shows it.');
+    const expanded = path === '~' ? home : path.startsWith('~/') ? join(home, path.slice(2)) : path;
+    const abs = resolve(expanded);
+    let norm = abs;
+    try {
+      norm = existsSync(abs) ? realpathSync(abs) : join(realpathSync(dirname(abs)), basename(abs));
+    } catch {
+      /* a parent that is gone: compared as given */
+    }
+    // A served root as given or by its real path (the command line's roots are real paths already).
+    const real = (r: string) => {
+      try {
+        return realpathSync(r);
+      } catch {
+        return r;
+      }
+    };
+    const index = roots.findIndex(r => r === norm || real(r) === norm);
+    if (index >= 0 && namedFlags[index]) {
+      if (!specsMissing(roots[index])) throw new ToolRefusal(BACKFILL(norm));
+      return { kind: 'existing', root: roots[index], index };
+    }
+    if (pendingTarget !== null && norm === pendingTarget && isAbsolute(norm)) {
+      if (existsSync(norm) && !specsMissing(norm)) throw new ToolRefusal(BACKFILL(norm));
+      return { kind: 'new', target: norm };
+    }
+    throw new ToolRefusal(`${norm} is not a folder this SpecPilot page is setting up. Open it in the page (Open a Project Folder, Clone, or Start a New Project) first.`);
+  };
+  /** `event: setup` to every open stream: state and counts only, never a path (SEC-004.9). */
+  const emitSetup = (t: SetupTarget, data: Record<string, unknown>) => {
+    const line = JSON.stringify({ ...(t.kind === 'existing' ? { project: t.index } : { pending: true }), ...data });
+    allStreams().forEach(st => st.write(`event: setup\ndata: ${line}\n\n`));
+  };
+  /** The questions for a target: the CLI's, then the 23 optional fields with the chat core's wording, labels and options. */
+  const setupQuestionList = async (t: SetupTarget) => {
+    let q: SetupQuestions | ReturnType<typeof newProjectQuestions>;
+    try {
+      q = t.kind === 'existing' ? await setupQuestions(t.root) : newProjectQuestions();
+    } catch (err) {
+      throw new ToolRefusal(t.kind === 'existing' ? `This folder could not be read: ${(err as Error).message}` : `The OS username could not be read: ${(err as Error).message}`);
+    }
+    const mode = t.kind === 'existing' ? 'setup' : 'new';
+    // Answers that open every optional field's question: databases and realtime follow a REST or GraphQL API, sync
+    // follows an offline store, constraint detail follows a technical constraint. The agent answers what applies.
+    const open = { apiParadigm: 'rest', localDatabases: ['SQLite'], technicalConstraints: ['Budget cap'] };
+    const core = chatQuestions(q.questions as unknown as CliQuestion[], flowQuestions(q, {}, []), open, mode, q.files.outside);
+    const cli = (q.questions as unknown as CliQuestion[]).map(x => ({
+      key: x.key, label: x.label ?? x.key, question: x.message, required: !!x.required,
+      ...(x.choices ? { choices: x.choices.map(c => ({ value: c.value, text: c.name })) } : {}),
+      ...(x.key === 'framework' && !x.choices && q.frameworks ? { choicesByLanguage: q.frameworks } : {}),
+      ...(x.when ? { when: x.when } : {}),
+    }));
+    const fields = core.filter(c => c.core && c.key in OPTIONAL_FIELD_LIMITS).map(c => ({
+      key: c.key, label: c.label, question: c.chat, kind: OPTIONAL_FIELD_LIMITS[c.key].kind, max: OPTIONAL_FIELD_LIMITS[c.key].max,
+      ...(c.options?.length ? { options: c.options.filter(o => !o.todo).map(o => o.label) } : {}),
+      ...(c.categories ? { categories: c.categories.map(k => ({ id: k.id, label: k.label, options: k.options })) } : {}),
+    }));
+    const detected = 'detected' in q && q.detected ? q.detected.rows.map(r => ({ label: r.label, value: r.value })) : [];
+    const name = t.kind === 'new' ? basename(t.target) : ('detected' in q && q.detected ? q.detected.name : basename(t.root));
+    return { questions: [...cli, ...fields], detected, name };
+  };
+  const setupProjectTool = async (args: Record<string, unknown>) => {
+    const first = setupTarget(args.path);
+    const answers = args.answers;
+    if (!answers || typeof answers !== 'object' || Array.isArray(answers)) throw new ToolRefusal('answers must be an object: one value per question key from specpilot_setup_questions.');
+    if (args.asked !== undefined && (!Array.isArray(args.asked) || args.asked.some(k => typeof k !== 'string'))) throw new ToolRefusal('asked must be a list of answer keys.');
+    const a = answers as Record<string, unknown>;
+    if (first.kind === 'new' && ('parent' in a || 'name' in a)) throw new ToolRefusal('"parent" and "name" come from the path; leave them out of answers.');
+    const problem = first.kind === 'existing' ? answersShapeError(a) : newProjectShapeError({ parent: dirname(first.target), name: basename(first.target), ...a });
+    if (problem) throw new ToolRefusal(problem);
+    const labels = new Map((await setupQuestionList(first)).questions.map(x => [x.key, x.label]));
+    const asked = [...new Set((args.asked as string[] | undefined) ?? [])].filter(k => k in a);
+    const counts = { fromCode: Object.keys(a).length - asked.length, fromUser: asked.length, topics: asked.flatMap(k => (labels.has(k) ? [labels.get(k)!] : [])) };
+
+    const written = await locked(async () => {
+      const t = setupTarget(args.path); // again under the lock: the folder may have changed since (SEC-004.27)
+      if (t.kind !== first.kind) throw new ToolRefusal(`${t.kind === 'new' ? t.target : t.root} changed while it was being set up. Call specpilot_setup_questions again.`);
+      emitSetup(t, { row: 'questions', state: 'done', ...counts });
+      emitSetup(t, { row: 'write', state: 'running' });
+      let out;
+      if (t.kind === 'existing') out = await setupProject(t.root, a);
+      else if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) out = { status: 409 as const, error: TOO_MANY_PROJECTS };
+      else out = await createProject(dirname(t.target), basename(t.target), a, roots, home, cloningTarget);
+      if (out.status !== 200) {
+        emitSetup(t, { row: 'write', state: 'idle' });
+        throw new ToolRefusal(out.error);
+      }
+      emitSetup(t, { row: 'write', state: 'done', files: out.written.length });
+      if (t.kind === 'existing') return { t, root: t.root, project: t.index, out };
+      pendingTarget = null;
+      const served = addRoot(t.target);
+      if ('error' in served) throw new ToolRefusal(`${t.target} was set up, but it could not be read to be served (${served.error}). Open it with Open a Project Folder. Written: ${out.written.join(', ')}`);
+      return { t, root: t.target, project: served.project, out };
+    });
+    emitSetup(written.t, { row: 'validate', state: 'running' });
+    const r = await new SpecValidator().validate(written.root, { fix: false, verbose: false });
+    emitSetup(written.t, { row: 'validate', state: 'done', errors: r.errors.length, warnings: r.warnings.length, ...(written.t.kind === 'new' ? { project: written.project } : {}) });
+    const { out } = written;
+    return asJson({ path: written.root, project: written.project, written: out.written, kept: out.kept, notice: out.notice, validate: { errors: r.errors, warnings: r.warnings } });
+  };
+
   const callTool = async (name: string, args: Record<string, unknown>) => {
+    if (name === 'specpilot_setup_questions') {
+      const t = setupTarget(args.path);
+      emitSetup(t, { row: 'read', state: 'running' });
+      const list = await setupQuestionList(t);
+      emitSetup(t, { row: 'read', state: 'done', detected: list.detected.length });
+      emitSetup(t, { row: 'questions', state: 'running' });
+      return asJson({ mode: t.kind, path: t.kind === 'existing' ? t.root : t.target, name: list.name, detected: list.detected, questions: list.questions });
+    }
+    if (name === 'specpilot_setup_project') return setupProjectTool(args);
     if (name === 'specpilot_list_projects') {
       return asJson({
         projects: roots.map((root, n) => {
@@ -771,7 +903,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       return sendJson(res, 403, rpcError(null, -32000, 'This request did not carry a valid X-SpecPilot-Token header, so it was refused. Copy the config line again from the page or the terminal.'));
     }
     if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) return sendJson(res, 415, rpcError(null, -32000, 'Send JSON-RPC as application/json.'));
-    if (Number(req.headers['content-length'] ?? 0) > MAX_MOVE_BODY) return sendJson(res, 413, rpcError(null, -32000, 'The request is too large.'));
+    if (Number(req.headers['content-length'] ?? 0) > MAX_MCP_BODY) return sendJson(res, 413, rpcError(null, -32000, 'The request is too large.'));
     readJson(
       req,
       res,
@@ -788,7 +920,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
             if (!res.headersSent) sendJson(res, 500, rpcError(null, -32603, 'The server could not finish this request.'));
           },
         ),
-      MAX_MOVE_BODY,
+      MAX_MCP_BODY,
       () => sendJson(res, 400, rpcError(null, -32700, 'Parse error: the body is not valid JSON.')),
     );
   };

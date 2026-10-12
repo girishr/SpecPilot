@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Two setup tools on `specpilot serve --mcp`** (BL-104): `specpilot_setup_questions` and `specpilot_setup_project` let your AI IDE set up a folder the Setup view points at: it reads what SpecPilot detects, answers what it can from the code, asks you the rest, then writes `.specs/` and the instruction files (and creates a new project's folder) and runs `specpilot validate`. They only work on a folder you named, opened or cloned that has no `.specs/`, or on the new project's folder you entered on the page. The server sends the IDE the order to follow.
+
 ### Changed
 
-- **A folder without `.specs/` is set up by your AI IDE** (BL-103): in `specpilot serve`, opening or cloning such a folder, or Start a New Project, shows the Setup view: connect your AI IDE to the local MCP endpoint (with a Connected status that names the IDE), paste one line into it, and follow the Progress rows. For a new project the page checks the name and parent folder as you type; the folder is created only by your IDE, and only there. When `.specs/` appears the page opens the project.
+- **A folder without `.specs/` is set up by your AI IDE** (BL-103): in `specpilot serve`, opening or cloning such a folder, or Start a New Project, shows the Setup view: connect your AI IDE to the local MCP endpoint (with a Connected status that names the IDE), paste one line into it, and follow the Progress rows (Read the code, Answer the questions, Write the files, Validate), which follow your IDE's calls (BL-104). For a new project the page checks the name and parent folder as you type; the folder is created only by your IDE, and only there. When `.specs/` appears the page opens the project.
+- **`specpilot serve --mcp` takes requests up to 64 KB and offers nine tools** (BL-104), four with `--read-only` as before.
 
 ### Removed
 

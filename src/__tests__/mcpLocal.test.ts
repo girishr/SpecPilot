@@ -1,4 +1,4 @@
-import { answerMcp, mcpClientName, McpHeaders, MCP_ALL_VERSIONS, MCP_TOOLS, MCP_VERSIONS, mirroredHeaders, ToolRefusal } from '../utils/mcpLocal';
+import { answerMcp, mcpClientName, McpHeaders, SETUP_INSTRUCTIONS, MCP_ALL_VERSIONS, MCP_TOOLS, MCP_VERSIONS, mirroredHeaders, ToolRefusal } from '../utils/mcpLocal';
 
 // BL-PM-007: the protocol of POST /mcp without a server. The tools are stubbed; specServer.test.ts runs the real ones.
 const calls: Array<[string, Record<string, unknown>]> = [];
@@ -23,7 +23,7 @@ describe('initialize', () => {
     const r = await ask(req('initialize', { protocolVersion: v, capabilities: {}, clientInfo: { name: 't', version: '1' } }));
     expect(r).toEqual({
       status: 200,
-      body: { jsonrpc: '2.0', id: 1, result: { protocolVersion: v, capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '9.9.9' } } },
+      body: { jsonrpc: '2.0', id: 1, result: { protocolVersion: v, capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '9.9.9' }, instructions: SETUP_INSTRUCTIONS } },
     });
   });
 
@@ -83,7 +83,7 @@ describe('messages', () => {
 });
 
 describe('tools', () => {
-  it('lists the seven tools with the hosted server naming, titles, schemas and annotations, and nothing internal', async () => {
+  it('lists the nine tools with the hosted server naming, titles, schemas and annotations, and nothing internal', async () => {
     const tools = ((await ask(req('tools/list'))).body as any).result.tools;
     expect(tools.map((t: any) => t.name)).toEqual([
       'specpilot_list_projects',
@@ -93,6 +93,8 @@ describe('tools', () => {
       'specpilot_move_task',
       'specpilot_validate_specs',
       'specpilot_regenerate_commands',
+      'specpilot_setup_questions',
+      'specpilot_setup_project',
     ]);
     for (const t of tools) {
       expect(Object.keys(t)).toEqual(['name', 'title', 'description', 'inputSchema', 'annotations']);
@@ -109,15 +111,19 @@ describe('tools', () => {
       specpilot_move_task: false,
       specpilot_validate_specs: true,
       specpilot_regenerate_commands: false,
+      specpilot_setup_questions: true,
+      specpilot_setup_project: false,
     });
+    expect(tools.find((t: any) => t.name === 'specpilot_setup_project').inputSchema.required).toEqual(['path', 'answers']);
     expect(tools.find((t: any) => t.name === 'specpilot_new_task').inputSchema.required).toEqual(['description', 'section', 'sha256']);
     expect(tools.find((t: any) => t.name === 'specpilot_move_task').inputSchema.required).toEqual(['id', 'toSection', 'toIndex', 'sha256']);
   });
 
-  it('lists only the tools it is given (the server drops the writes with --read-only)', async () => {
-    const reads = MCP_TOOLS.filter(t => !t.writes);
+  it('lists only the tools it is given (the server drops the writes and the setup tools with --read-only), with no instructions then', async () => {
+    const reads = MCP_TOOLS.filter(t => !t.writes && !t.setup);
     expect(reads).toHaveLength(4);
     expect(((await ask(req('tools/list'), undefined, reads)).body as any).result.tools).toHaveLength(4);
+    expect(((await ask(req('initialize', { protocolVersion: '2025-11-25' }), undefined, reads)).body as any).result.instructions).toBeUndefined();
     const r = await ask(req('tools/call', { name: 'specpilot_new_task', arguments: {} }), undefined, reads);
     expect(r.body).toEqual({ jsonrpc: '2.0', id: 1, error: { code: -32602, message: 'Unknown tool: specpilot_new_task' } });
     expect(calls).toEqual([]);
@@ -187,7 +193,7 @@ describe('revision 2026-07-28', () => {
       body: {
         jsonrpc: '2.0',
         id: 1,
-        result: { resultType: 'complete', supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'], capabilities: { tools: {} }, ttlMs: 0, cacheScope: 'private', _meta: serverInfo },
+        result: { resultType: 'complete', supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'], capabilities: { tools: {} }, instructions: SETUP_INSTRUCTIONS, ttlMs: 0, cacheScope: 'private', _meta: serverInfo },
       },
     });
   });
@@ -196,7 +202,7 @@ describe('revision 2026-07-28', () => {
     const r = (await send(modern('tools/list'))).body as any;
     const legacy = ((await ask(req('tools/list'))).body as any).result;
     expect(r.result).toEqual({ resultType: 'complete', tools: legacy.tools, ttlMs: 0, cacheScope: 'private', _meta: serverInfo });
-    const reads = MCP_TOOLS.filter(t => !t.writes);
+    const reads = MCP_TOOLS.filter(t => !t.writes && !t.setup);
     expect(((await send(modern('tools/list'), {}, reads)).body as any).result.tools).toHaveLength(4);
     const w = await send(modern('tools/call', { name: 'specpilot_new_task', arguments: {} }), {}, reads);
     expect(w).toEqual({ status: 200, body: { jsonrpc: '2.0', id: 1, error: { code: -32602, message: 'Unknown tool: specpilot_new_task' } } });

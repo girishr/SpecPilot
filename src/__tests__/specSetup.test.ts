@@ -195,7 +195,7 @@ describe('setupProject() writes what add-specs writes', () => {
   it.each(IDES)('byte for byte, for %s, in a detected project', async ide => {
     const [a, b] = [folder(NODE_REACT), folder(NODE_REACT)];
     const out = await setupProject(a, { ...FULL, ide });
-    expect(out).toEqual({ status: 200, kept: [], notice: ide === 'Codex' ? CODEX_PROMPTS_NOTICE : null });
+    expect(out).toEqual({ status: 200, written: expect.any(Array), kept: [], notice: ide === 'Codex' ? CODEX_PROMPTS_NOTICE : null });
     const expected = await cliOutput(b, { ...FULL, ide });
     const got = tree(a);
     expect(Object.keys(got).sort()).toEqual(Object.keys(expected).sort());
@@ -276,11 +276,17 @@ describe('setupProject() keeps every existing file outside .specs/', () => {
     const out = await setupProject(root, { ...FULL, ide: 'claude-code' });
     expect(out).toEqual({
       status: 200,
+      written: expect.any(Array),
       kept: ['CLAUDE.md', '.claude/commands/specpilot-status.md', '.claude/commands/specpilot-report.md', '.claude/commands/specpilot-sync.md', '.claude/commands/specpilot-refine.md', '.gitattributes'],
       notice: null,
     });
     const after = tree(root);
     for (const p of Object.keys(before)) expect([p, after[p].equals(before[p])]).toEqual([p, true]);
+    // `written` (BL-104) is exactly the new files: every generated path not kept, and nothing that was there before
+    const w = (out as { written: string[] }).written;
+    expect(w.filter(p => (out as { kept: string[] }).kept.includes(p) || p in before)).toEqual([]);
+    expect(w.every(p => existsSync(join(root, p)))).toBe(true);
+    expect(w.filter(p => p.startsWith('.specs/')).length).toBeGreaterThan(5);
     expect(readFileSync(join(root, '.gitattributes'), 'utf-8')).toBe('* text=auto\n');
     expect(readFileSync(outside, 'utf-8')).toBe('outside\n');
     expect(lstatSync(join(root, '.claude/commands/specpilot-sync.md')).isSymbolicLink()).toBe(true);
@@ -293,7 +299,7 @@ describe('setupProject() keeps every existing file outside .specs/', () => {
 
   it('uses an existing real folder on the way as it is (Copilot choice beside .github/workflows/)', async () => {
     const root = folder({ ...NODE_REACT, '.github/workflows/ci.yml': 'on: push\n' });
-    expect(await setupProject(root, FULL)).toEqual({ status: 200, kept: [], notice: null });
+    expect(await setupProject(root, FULL)).toMatchObject({ status: 200, kept: [], notice: null });
     expect(readFileSync(join(root, '.github/workflows/ci.yml'), 'utf-8')).toBe('on: push\n');
     expect(tree(root)['.github/copilot-instructions.md']).toBeDefined();
   });
@@ -469,7 +475,7 @@ describe('createProject() writes what specpilot init writes', () => {
   it.each(IDES)('byte for byte, for %s, in a folder it creates', async ide => {
     const [a, b] = [makeBase(), makeBase()];
     const out = await createProject(a.base, 'demo', { ...NEW, ide }, [], a.home);
-    expect(out).toEqual({ status: 200, root: join(a.base, 'demo'), kept: [], notice: ide === 'Codex' ? CODEX_PROMPTS_NOTICE : null });
+    expect(out).toEqual({ status: 200, root: join(a.base, 'demo'), written: expect.any(Array), kept: [], notice: ide === 'Codex' ? CODEX_PROMPTS_NOTICE : null });
     sameTree(tree(join(a.base, 'demo')), await initOutput(b.base, 'demo', { ...NEW, ide }));
     expect(readdirSync(join(a.base, 'demo')).some(n => n.startsWith('.specpilot-setup-'))).toBe(false);
     expect(readdirSync(a.base)).toEqual(['demo']);

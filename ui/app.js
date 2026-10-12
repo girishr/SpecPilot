@@ -488,10 +488,39 @@ $('#taskForm').onsubmit=e=>{e.preventDefault();addTask();};
 /* ---------------- Setup view (BL-103) ----------------
    A project without .specs/ (Open, Clone, a folder named on the command line) and #new: the user's AI IDE
    sets it up over /mcp, and this view says how. It sends no answers and writes no spec; the only request
-   is #new's pending path (POST /api/projects/pending). The Progress rows move with BL-104's tools. */
+   is #new's pending path (POST /api/projects/pending). The Progress rows follow `event: setup`, which the
+   server's setup tools send (BL-104): state and counts only, kept in the page, so a reload starts them over. */
 const mono=t=>`<span class="mono" translate="no">${esc(t)}</span>`;
 const clonedFrom={}; // root → the URL this page cloned it from since it loaded: the Clone lead
-const pend={name:'',parent:'',target:null,seq:0,timer:null}; // #new's fields and its registered target
+const pend={name:'',parent:'',target:null,seq:0}; // #new's fields and its registered target
+const ROWS=['read','questions','write','validate'];
+const progress={}; // 'p<n>' or 'pending' → {row: {state, data}}
+const progressKey=()=>curView==='new'?'pending':'p'+PROJECT;
+function rowText(row,d){
+  if(row==='read')return `${d.detected} detected`;
+  if(row==='questions')return `${d.fromCode} from the code, ${d.fromUser} from you`+(d.fromUser&&d.topics&&d.topics.length?` (${d.topics.join(', ')})`:'');
+  if(row==='write')return `${d.files} files`;
+  return `${d.errors} errors, ${d.warnings} warnings`;
+}
+function drawProgress(){
+  const p=progress[progressKey()]||{};
+  $$('#suProgress li').forEach((li,i)=>{const r=p[ROWS[i]],st=r?r.state:'idle';
+    li.className=st==='running'?'run':st==='done'?'done':'wait';
+    let d=li.querySelector('.d');if(!d){d=document.createElement('span');d.className='d';li.appendChild(d);}
+    d.textContent=st==='done'?rowText(ROWS[i],r.data):'';});
+}
+/* An `event: setup` from the stream: the row of the folder it names; the last one of a new project opens it. */
+function onSetupEvent(raw){
+  let d;try{d=JSON.parse(raw);}catch(_){return;}
+  if(!d||ROWS.indexOf(d.row)<0)return;
+  const key=d.pending?'pending':typeof d.project==='number'?'p'+d.project:null;if(!key)return;
+  (progress[key]=progress[key]||{})[d.row]={state:d.state,data:d};
+  if((curView==='setup'||curView==='new')&&key===progressKey())drawProgress();
+  if(d.pending&&typeof d.project==='number'&&d.row==='validate'&&d.state==='done'){
+    delete progress.pending;pend.target=null;pend.name=pend.parent='';
+    if(curView==='new')switchProject(d.project);
+  }
+}
 const MCP_ON=!!(TOKEN&&MCP);
 function suStatus(){
   const c=DATA&&DATA.mcp&&DATA.mcp.client,el=$('#suStatus');
@@ -525,7 +554,7 @@ function renderSetup(){
     $('#suConfig').textContent=JSON.stringify(JSON.parse(line),null,2);$('#suConfig').dataset.line=line;$('#suMcpNote').textContent=$('#mcpNote').textContent;}
   else $('#suMcpNote').textContent='';
   $('#suFoot').innerHTML=`Prefer the terminal? ${mono(isNew?'specpilot init':'specpilot add-specs')} in that folder asks the same questions one by one.`;
-  suStatus();suPrompt();
+  suStatus();suPrompt();drawProgress();
 }
 function copyText(text){(navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(()=>toast('Copied.'),()=>toast('Could not copy. Select the line and copy it.'));}
 $('#suConfigCopy').onclick=()=>copyText($('#suConfig').dataset.line);
@@ -538,18 +567,23 @@ async function registerPending(){
   catch(e){r=null;}
   if(seq!==pend.seq)return; // the fields changed meanwhile
   pend.target=r&&r.status===200?res.target:null;
+  delete progress.pending; // a new target starts its rows over
   $('#suErr').textContent=!r?'The server did not answer.':r.status===200?'':res.error||`The folder was not accepted (HTTP ${r.status}).`;
   if(curView==='new')suPrompt();
 }
-function fieldsChanged(){
-  pend.name=$('#suName').value.trim();pend.parent=$('#suParent').value;pend.target=null;pend.seq++;clearTimeout(pend.timer);
+/* While typing: the line follows the fields and Copy waits; on `change` (or a Browse… pick) the path is registered (BL-104). */
+function fieldsTyped(){
+  pend.name=$('#suName').value.trim();pend.parent=$('#suParent').value;pend.target=null;pend.seq++;
   const e=pend.name?projectNameError(pend.name):null;
   $('#suErr').textContent=e?e.message+'.':'';
   suPrompt();
-  if(!e&&pend.name&&pend.parent.trim())pend.timer=setTimeout(registerPending,400);
+  return !e&&pend.name&&pend.parent.trim();
 }
-$('#suName').addEventListener('input',fieldsChanged);
-$('#suParent').addEventListener('input',fieldsChanged);
+function fieldsChanged(){if(fieldsTyped())registerPending();}
+$('#suName').addEventListener('input',fieldsTyped);
+$('#suParent').addEventListener('input',fieldsTyped);
+$('#suName').addEventListener('change',fieldsChanged);
+$('#suParent').addEventListener('change',fieldsChanged);
 $('#suBrowse').onclick=()=>browseFolder($('#suBrowse'),()=>curView==='new'?$('#suParent'):null,()=>fieldsChanged());
 
 /* ---------------- live reload (BL-052) ----------------
@@ -616,6 +650,7 @@ function listen(){
   if(es)es.close(); // one stream, for the shown project
   es=new EventSource('/api/events?'+pq());let dropped=false;
   es.addEventListener('clone',e=>onCloneEvent(e.data));
+  es.addEventListener('setup',e=>onSetupEvent(e.data));
   es.addEventListener('mcp',e=>{let d=null;try{d=JSON.parse(e.data);}catch(_){}if(d&&DATA){DATA.mcp=d;if(curView==='setup'||curView==='new')suStatus();}});
   es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
   es.onerror=()=>{dropped=true;};          // EventSource retries by itself

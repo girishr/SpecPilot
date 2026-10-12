@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-12 (BL-103 completed)
-version: 6.67
+lastUpdated: 2026-10-12 (BL-104 completed)
+version: 6.69
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -62,6 +62,8 @@ Notes
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
+| BL-106 | Archive `.specs/planning/tasks.md`'s Completed rows: `specpilot validate` warns that the Completed section exceeds its 40-line limit (already so on `main` after BL-103). Trivial; `specpilot archive`, or by hand with its rule if the CLI refuses. Filed by the architect during BL-104 (2026-10-12). |
+| BL-107 | `specpilot validate` reports an error on a fresh project whose API paradigm is None: `SpecValidator.requiredFiles` lists `architecture/api.yaml`, which the generator leaves out for None (REQ-002.I.4), so `init`, `add-specs` and the setup tools write a project that fails validation (seen in BL-104's browser test: `1 errors, 7 warnings`). Make the validator require `api.yaml` only when the project has an API. Found during BL-104 (2026-10-12); not part of it. |
 
 ## Current Sprint
 
@@ -108,3 +110,4 @@ Notes
 | 195 | [CD-girishr-104] | v2.14.0 release prepared and shipped (BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.14.0]`, annotated tag `v2.14.0`; pushed and published (row 196) |
 | 196 | [CD-girishr-105] | v2.14.0 shipped (BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md): pushed, npm `specpilot@2.14.0` latest, GitHub release live (2026-10-12) |
 | 197 | [CD-girishr-106] [BL-103] | `specpilot serve` Setup view replaces the New Project chat and the guided-setup chat (REQ-002.H.41, ARCH-004.56, SEC-004.26, SEC-002.10; Architectural; Day brief 2026-10-12, Girish decisions D1 to D3; spec-reviewer A ESCALATE, architect DECIDE: `named` kept, running and done to BL-104, state-only events, `add-specs` footer for Open and Clone): one view for Open, Clone and Start a New Project with the connect card (Connected · <client>, from `initialize` or the 2026-07-28 `_meta` clientInfo, sanitized), the line to give the IDE and four Progress rows not started; `POST /api/projects/pending` holds one checked target in memory, creating nothing; the chat, `/api/setup`, `/api/projects/new`, `/api/preview` and `/assets/chat-core.js` removed. Jest 1618 → 1566, browser 52 → 54 (three runs). No release until BL-104 and BL-105 are on `main`. Commit `782aa4c`. |
+| 198 | [CD-girishr-107] [BL-104] | `specpilot serve --mcp` setup tools (REQ-002.H.42, ARCH-004.57, SEC-004.27, SEC-002.11; Architectural; Day brief 2026-10-12, Girish decisions D2, D3; spec-reviewer A ESCALATE, architect DECIDE: Q1 accept and document, `asked` unknown keys ignored, registration on `change`): `specpilot_setup_questions` and `specpilot_setup_project` over the existing writers, D2 path rule and the project cap checked again under the lock, a new folder served and recorded, `instructions` on `initialize` and `server/discover`, `event: setup` state-only with the Setup view's Progress rows and the `#new` switch; nine tools, four with `--read-only`; `/mcp` 64 KB. BL-106 and BL-107 filed. Jest 1566 → 1580, browser 54 → 56 (three runs). Commit `b312489`. |

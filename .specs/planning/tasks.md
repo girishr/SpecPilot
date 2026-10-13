@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-13 (BL-106 completed)
-version: 6.73
+lastUpdated: 2026-10-13 (BL-107 completed)
+version: 6.74
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -62,7 +62,7 @@ Notes
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
-| BL-107 | `specpilot validate` reports an error on a fresh project whose API paradigm is None: `SpecValidator.requiredFiles` lists `architecture/api.yaml`, which the generator leaves out for None (REQ-002.I.4), so `init`, `add-specs` and the setup tools write a project that fails validation (seen in BL-104's browser test: `1 errors, 7 warnings`). Make the validator require `api.yaml` only when the project has an API. Found during BL-104 (2026-10-12); not part of it. |
+| BL-108 | The `specpilot-validate` command (every IDE's copy) lists `.specs/architecture/api.yaml` among its required files, so it reports `MISSING` for a project whose API paradigm is None, which `specpilot validate` accepts since BL-107 (REQ-002.F.11). Make the command's list match; this changes the command template, the golden recordings and `KNOWN_COMMAND_HASHES` (Spec Report). Split from BL-107 on the developer's choice (a), 2026-10-13. |
 
 ## Current Sprint
 
@@ -97,3 +97,4 @@ Notes
 | 199 | [CD-girishr-108] [BL-105] | `specpilot serve` serves the local MCP endpoint by default, `--no-mcp` turns it off (REQ-002.H.43, SEC-004.28; small; Day brief 2026-10-12, Girish decision D3): `--mcp` still accepted, the config line printed on every start, Home's card and the Setup view's step 1 whenever MCP is on, token rules unchanged, `--read-only` four read tools; threat model SEC-002.9 brought up to date (`--no-mcp`, 64 KB). Jest 1580 → 1583, browser 56 (three runs). Commit `2d6ae09`. |
 | 200 | [CD-girishr-109] | Trivial: this repo's own generated files brought up to what 2.14.0 ships (the developer's working-tree changes, committed on request): the MCP Tasks process mandate in `CLAUDE.md` and `.github/copilot-instructions.md` (BL-088); the `specpilot-archive` command's `$(0)` record and leading-date rule (BL-092, BL-093) and the `specpilot-backfill` command's `"$f"` checks (BL-093), in `.claude/commands/` and `.github/prompts/`. No code or template change. |
 | 201 | [CD-girishr-110] [BL-106] | Trivial: `specpilot archive` moved Completed rows 165 to 180 (16 lines) to `tasks-archive.md`; `specpilot validate` shows no warnings. Commit `e870790`. |
+| 202 | [CD-girishr-111] [BL-107] | `specpilot validate` treats `architecture/api.yaml` as optional (REQ-002.F.11; Feature; the developer's choice (a), CLI only): not required, not created by `--fix`, `requirements.md` asked to reference it only while it exists, so a project with API paradigm None validates; also for the MCP validate tool and the setup tools. The `specpilot-validate` command is BL-108. Jest 1583 → 1586. Commit `7a94d02`. |

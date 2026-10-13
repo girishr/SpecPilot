@@ -1,4 +1,5 @@
 import { SpecValidator } from '../utils/specValidator';
+import { SpecGenerator } from '../utils/specGenerator';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
 import * as os from 'os';
@@ -182,7 +183,36 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.isValid).toBe(false);
     const missingErrors = result.errors.filter(e => e.startsWith('Missing required file'));
-    expect(missingErrors.length).toBe(10); // all 10 required files missing
+    expect(missingErrors.length).toBe(9); // all 9 required files missing (api.yaml is optional, BL-107)
+  });
+
+  // ─── api.yaml is optional (BL-107, REQ-002.F.11) ──────────────────────────
+
+  it('does not require api.yaml, offer to create it, or ask requirements.md to reference it while it is missing', async () => {
+    createValidSpecsDir(testDir);
+    rmSync(join(testDir, '.specs', 'architecture', 'api.yaml'));
+    writeFileSync(join(testDir, '.specs', 'project', 'requirements.md'), readFileSync(join(testDir, '.specs', 'project', 'requirements.md'), 'utf-8').replace(' api.yaml', ''));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.errors.filter(e => e.includes('api.yaml'))).toEqual([]);
+    expect(result.warnings.filter(w => w.includes('api.yaml'))).toEqual([]);
+    expect(result.fixable).not.toContain('create-architecture/api.yaml');
+    await validator.validate(testDir, { fix: true, verbose: false });
+    expect(existsSync(join(testDir, '.specs', 'architecture', 'api.yaml'))).toBe(false);
+  });
+
+  it('still expects requirements.md to reference api.yaml when api.yaml exists', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(join(testDir, '.specs', 'project', 'requirements.md'), readFileSync(join(testDir, '.specs', 'project', 'requirements.md'), 'utf-8').replace(' api.yaml', ''));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.warnings).toContain('project/requirements.md should reference architecture/api.yaml');
+  });
+
+  it('a project generated with API paradigm None validates with no errors', async () => {
+    await new SpecGenerator().generateSpecs({ projectName: 'no-api', language: 'python', apiParadigm: 'none', targetDir: testDir, specsName: '.specs' });
+    expect(existsSync(join(testDir, '.specs', 'architecture', 'api.yaml'))).toBe(false);
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.errors).toEqual([]);
+    expect(result.warnings.filter(w => w.includes('api.yaml'))).toEqual([]);
   });
 
   it('counts only files that exist in filesChecked', async () => {

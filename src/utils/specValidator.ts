@@ -60,12 +60,14 @@ export interface ValidationResult {
   mandatesVerified: number;
 }
 
+/** Written only when the API paradigm is not None, which no file records, so never required (BL-107). */
+const API_YAML = 'architecture/api.yaml';
+
 export class SpecValidator {
   private requiredFiles = [
     'project/project.yaml',
     'architecture/architecture.md',
     'project/requirements.md',
-    'architecture/api.yaml',
     'quality/tests.md',
     'planning/tasks.md',
     'development/context.md',
@@ -447,6 +449,7 @@ export class SpecValidator {
         }
         if (crossRefs) {
           for (const ref of crossRefs) {
+            if (ref === API_YAML && !existsSync(join(specsDir, API_YAML))) continue; // nothing to reference (BL-107)
             if (missingCrossRefs(content, [ref]).length) {
               result.warnings.push(`${file} should reference ${ref}`);
               result.fixPrompts.push({

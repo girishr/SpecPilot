@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-13: on the developer's typed `do 1,2,3`: (1) `chore/refresh-own-generated-files` merged into `main` (`962cba7`), tests green, pushed; (2) BL-106 on `chore/bl-106-archive`: `specpilot archive` moved Completed rows 165 to 180 (`e870790`), validate clean; (3) BL-107 next.
 - 2026-10-13: on the developer's typed `commit`: the six working-tree files on `main` (the Tasks mandate in `CLAUDE.md` and `.github/copilot-instructions.md`; the archive and backfill command files in `.claude/commands/` and `.github/prompts/`, BL-088, BL-092, BL-093) committed on `chore/refresh-own-generated-files` with trivial row 200; merge and push not asked.
 - 2026-10-12: BL-105 built on `feat/bl-105-mcp-default` after spec-reviewer A FIX then PASS: `src/cli.ts` (`--no-mcp`), `serve.ts` (MCP unless `--no-mcp`; `--stop` with either flag refused), UI comments, README, GUIDE, CHANGELOG. Jest 1583/1583, lint the two BL-068 errors, browser 56/56 three times.
 - 2026-10-12: Day brief item 3, BL-105 Spec Report (small) on `feat/bl-105-mcp-default` from `main` (`94ecca2`), specs only: REQ-002.H.43 and notes on H.3 and H.33, ARCH-004.50, SEC-004.28 and the SEC-004.20 title, threat model SEC-002.9 and its surface row, api.yaml `--mcp`/`--no-mcp` and `/mcp`, tests.md, tasks.md row, context.md with five defaults.

@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-12 (BL-103 Spec Report)
-version: 2.104
+lastUpdated: 2026-10-13 (v2.15.0 prepared)
+version: 2.105
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-13: on the developer's typed `yes proceed` for the release: v2.15.0 prepared by docs/RELEASING.md (BL-103, BL-104, BL-105, BL-106, BL-107; BL-108 not in it): version bumped, CHANGELOG `[2.15.0]`, roadmap Timeline line, CTX-002 Phase, release row 205, annotated tag `v2.15.0`; checks; nothing pushed or published (step 4 is the developer's).
 - 2026-10-13: v2.15.0 release checks found `npm run lint` at 66 warnings (61 before BL-103): the five new ones, all in BL-103/BL-104 test files, removed on `fix/lint-new-test-warnings`, row 204; the release prep set aside as a patch and reapplied after.
 - 2026-10-13: during the v2.15.0 release checks (the developer's typed `yes proceed`) two flaky Jest tests failed once each under the full suite: `folderPicker.test.ts` (the stub killed before it wrote its pid) fixed on `fix/folderpicker-flake`, row 203; a `gitClone.test.ts` one not reproduced in 16 more runs, BL-109. The release prep was saved as a patch, the fix merged into `main` (not pushed), the prep reapplied after it.
 - 2026-10-13: BL-107 on `fix/bl-107-validate-api-yaml`, the developer's choice (a) (CLI only): REQ-002.F.11, tests.md, context.md, BL-108 filed for the `specpilot-validate` command; `specValidator.ts` makes `architecture/api.yaml` optional (not required, not created by `--fix`, the `requirements.md` reference expected only while it exists); +3 tests; api.yaml `validate` behaviour line and CHANGELOG `Fixed` (spec-reviewer B FIX). Jest 1586/1586.

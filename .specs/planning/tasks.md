@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-13 (folderPicker flake fixed)
-version: 6.75
+lastUpdated: 2026-10-13 (test lint warnings removed)
+version: 6.76
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -100,3 +100,4 @@ Notes
 | 201 | [CD-girishr-110] [BL-106] | Trivial: `specpilot archive` moved Completed rows 165 to 180 (16 lines) to `tasks-archive.md`; `specpilot validate` shows no warnings. Commit `e870790`. |
 | 202 | [CD-girishr-111] [BL-107] | `specpilot validate` treats `architecture/api.yaml` as optional (REQ-002.F.11; Feature; the developer's choice (a), CLI only): not required, not created by `--fix`, `requirements.md` asked to reference it only while it exists, so a project with API paradigm None validates; also for the MCP validate tool and the setup tools. The `specpilot-validate` command is BL-108. Jest 1583 → 1586. Commit `7a94d02`. |
 | 203 | [CD-girishr-112] | Trivial, test-only: `folderPicker.test.ts` "the time limit kills the dialog" failed once under the full suite with colour on (2026-10-13, release checks): the 300 ms limit killed the stub dialog before it wrote its pid file, and the test read that file. The test now checks the pid only when the stub wrote one; either way nothing was left running. |
+| 204 | [CD-girishr-113] | Trivial, test-only: the five lint warnings BL-103 and BL-104 added in test files (found by the v2.15.0 release checks, `npm run lint` 61 → 66 warnings) removed: the setup tools' result typed in `specServer.test.ts` and `setupview.browser.test.ts`, two `any`s in `mcpLocal.test.ts` typed, and the one `require('fs')` (the module object the spy must reach) given a disable line with its reason. Back to 61 warnings and the 2 known BL-068 errors. |

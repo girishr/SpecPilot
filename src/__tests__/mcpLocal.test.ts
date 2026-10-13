@@ -114,7 +114,7 @@ describe('tools', () => {
       specpilot_setup_questions: true,
       specpilot_setup_project: false,
     });
-    expect(tools.find((t: any) => t.name === 'specpilot_setup_project').inputSchema.required).toEqual(['path', 'answers']);
+    expect(tools.find((t: { name: string }) => t.name === 'specpilot_setup_project').inputSchema.required).toEqual(['path', 'answers']);
     expect(tools.find((t: any) => t.name === 'specpilot_new_task').inputSchema.required).toEqual(['description', 'section', 'sha256']);
     expect(tools.find((t: any) => t.name === 'specpilot_move_task').inputSchema.required).toEqual(['id', 'toSection', 'toIndex', 'sha256']);
   });
@@ -123,7 +123,7 @@ describe('tools', () => {
     const reads = MCP_TOOLS.filter(t => !t.writes && !t.setup);
     expect(reads).toHaveLength(4);
     expect(((await ask(req('tools/list'), undefined, reads)).body as any).result.tools).toHaveLength(4);
-    expect(((await ask(req('initialize', { protocolVersion: '2025-11-25' }), undefined, reads)).body as any).result.instructions).toBeUndefined();
+    expect(((await ask(req('initialize', { protocolVersion: '2025-11-25' }), undefined, reads)).body as { result: { instructions?: string } }).result.instructions).toBeUndefined();
     const r = await ask(req('tools/call', { name: 'specpilot_new_task', arguments: {} }), undefined, reads);
     expect(r.body).toEqual({ jsonrpc: '2.0', id: 1, error: { code: -32602, message: 'Unknown tool: specpilot_new_task' } });
     expect(calls).toEqual([]);

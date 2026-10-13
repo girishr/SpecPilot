@@ -2065,12 +2065,23 @@ describe('setup tools on /mcp (BL-104)', () => {
   };
   const page = (path: string, body: unknown) =>
     post(port, JSON.stringify(body), { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': spec.mcpToken! }, path);
-  const call = async (name: string, args: Record<string, unknown>) => {
+  /** What the setup tools return, as the tests read it. */
+  interface ToolData {
+    mode: string;
+    path: string;
+    name: string;
+    project: number;
+    detected: { label: string; value: string }[];
+    questions: { key: string; label: string; kind?: string; max?: number; when?: unknown; choices?: { value: string }[]; categories?: unknown[] }[];
+    written: string[];
+    validate: { errors: string[]; warnings: string[] };
+  }
+  const call = async (name: string, args: Record<string, unknown>): Promise<{ error?: { code: number; message: string }; refused?: string; data: ToolData }> => {
     const r = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': spec.mcpToken! }, '/mcp');
     expect(r.status).toBe(200);
-    if (r.json.error) return { error: r.json.error as { code: number; message: string } };
-    const res = r.json.result as { content: { text: string }[]; structuredContent?: any; isError?: boolean };
-    return res.isError ? { refused: res.content[0].text } : { data: res.structuredContent };
+    if (r.json.error) return { error: r.json.error as { code: number; message: string }, data: {} as ToolData };
+    const res = r.json.result as { content: { text: string }[]; structuredContent?: ToolData; isError?: boolean };
+    return res.isError ? { refused: res.content[0].text, data: {} as ToolData } : { data: res.structuredContent! };
   };
   const ANSWERS = { projectType: 'brownfield', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode' };
   const NEW = { projectType: 'greenfield', language: 'typescript', framework: 'none', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode', whatItDoes: 'Tracks parcels' };
@@ -2130,9 +2141,9 @@ describe('setup tools on /mcp (BL-104)', () => {
     const keys = q.questions.map((x: { key: string }) => x.key);
     expect(keys).toEqual(expect.arrayContaining(['projectType', 'apiParadigm', 'handle', 'ide', 'platforms', 'databases', 'integrations']));
     expect(keys).not.toContain('language'); // detected, so not asked
-    expect(q.questions.find((x: { key: string }) => x.key === 'ide').choices.map((c: { value: string }) => c.value)).toContain('vscode');
+    expect(q.questions.find((x: { key: string }) => x.key === 'ide')!.choices!.map((c: { value: string }) => c.value)).toContain('vscode');
     expect(q.questions.find((x: { key: string }) => x.key === 'platforms')).toMatchObject({ kind: 'list', max: 100 });
-    expect(q.questions.find((x: { key: string }) => x.key === 'integrations').categories.length).toBeGreaterThan(0);
+    expect(q.questions.find((x: { key: string }) => x.key === 'integrations')!.categories!.length).toBeGreaterThan(0);
     for (const k of Object.keys(OPTIONAL_FIELD_LIMITS)) expect([k, keys.includes(k)]).toEqual([k, true]); // all 23, whatever the answers turn out to be
     expect(snapshot(e.root)).toEqual(before);
   });
@@ -2142,7 +2153,7 @@ describe('setup tools on /mcp (BL-104)', () => {
     await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
     const q = (await call('specpilot_setup_questions', { path: join(e.base, 'fresh') })).data;
     expect(q.questions.find((x: { key: string }) => x.key === 'whatItDoes')).toMatchObject({ when: { projectType: 'greenfield' } });
-    expect(q.questions.find((x: { key: string }) => x.key === 'language').choices.map((c: { value: string }) => c.value)).toContain('typescript');
+    expect(q.questions.find((x: { key: string }) => x.key === 'language')!.choices!.map((c: { value: string }) => c.value)).toContain('typescript');
   });
 
   it('specpilot_setup_project in a folder: what add-specs writes, validate, and state-only events in order', async () => {
@@ -2235,6 +2246,7 @@ describe('setup tools on /mcp (BL-104)', () => {
     await start([e.root, p.root]);
     await page('/api/projects/pending', { parent: e.base, name: 'fresh' });
     const target = join(realpathSync(e.base), 'fresh');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires -- the module object itself: a namespace import is a copy the server never calls
     const fs = require('fs') as typeof import('fs');
     const real = fs.readFileSync;
     jest.spyOn(fs, 'readFileSync').mockImplementation(((path: unknown, ...rest: unknown[]) => {

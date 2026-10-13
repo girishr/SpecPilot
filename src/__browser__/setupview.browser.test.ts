@@ -34,7 +34,7 @@ const mcp = (srv: Served, msg: unknown) =>
   });
 /** One tools/call to /mcp, as an IDE sends it: the parsed result. */
 const tool = (srv: Served, name: string, args: Record<string, unknown>) =>
-  new Promise<{ structuredContent?: any; isError?: boolean; content: { text: string }[] }>((resolve, reject) => {
+  new Promise<{ structuredContent: { project: number; written: string[]; validate: { errors: string[]; warnings: string[] } }; isError?: boolean; content: { text: string }[] }>((resolve, reject) => {
     const body = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } });
     const req = request(`${srv.url}/mcp`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-SpecPilot-Token': srv.handle.mcpToken!, 'Content-Length': Buffer.byteLength(body) } }, res => {
       let text = '';

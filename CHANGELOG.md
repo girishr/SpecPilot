@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The New Project chat and the guided-setup chat in `specpilot serve`** (BL-103), with their routes (`/api/setup`, `/api/projects/new`, `/api/preview`) and the page's copy of the chat rules (`/assets/chat-core.js`): the Setup view above replaces them. `specpilot init` and `specpilot add-specs` are unchanged.
 
+### Fixed
+
+- **`specpilot validate` no longer fails a project set up with API paradigm None** (BL-107): `architecture/api.yaml`, which such a project never gets, is now optional, so a fresh project validates without errors. The `specpilot-validate` slash command still lists it as required (BL-108).
+
 ## [2.14.0] - 2026-10-11
 
 ### Added

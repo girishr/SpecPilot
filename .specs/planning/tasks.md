@@ -63,6 +63,7 @@ Notes
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
 | BL-107 | `specpilot validate` reports an error on a fresh project whose API paradigm is None: `SpecValidator.requiredFiles` lists `architecture/api.yaml`, which the generator leaves out for None (REQ-002.I.4), so `init`, `add-specs` and the setup tools write a project that fails validation (seen in BL-104's browser test: `1 errors, 7 warnings`). Make the validator require `api.yaml` only when the project has an API. Found during BL-104 (2026-10-12); not part of it. |
+| BL-108 | The `specpilot-validate` command (every IDE's copy) lists `.specs/architecture/api.yaml` among its required files, so it reports `MISSING` for a project whose API paradigm is None, which `specpilot validate` accepts since BL-107 (REQ-002.F.11). Make the command's list match; this changes the command template, the golden recordings and `KNOWN_COMMAND_HASHES` (Spec Report). Split from BL-107 on the developer's choice (a), 2026-10-13. |
 
 ## Current Sprint
 

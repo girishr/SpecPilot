@@ -110,6 +110,7 @@ commands:
         description: Show detailed validation results
     behavior:
       - "project.yaml with no rules key on its parsed root mapping (generated since 2.0.0): no rules warning and no prompt-tracking mandate error, so a fresh project passes this check; with a rules key (any value) both checks apply as before (BL-066)"
+      - "architecture/api.yaml is optional (BL-107, REQ-002.F.11): a missing one is not an error and not a --fix target, and project/requirements.md must reference it only while it exists (the generator omits it for API paradigm None, which no file records)"
     exit-codes:
       0: Valid (may have warnings)
       1: Validation errors found

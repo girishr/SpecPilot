@@ -73,7 +73,8 @@ archive_prompts() {
       for (i = 1; i <= 24; i++) MON[nm[i]] = nv[i] + 0
       for (i = 1; i < 256; i++) ORD[sprintf("%c", i)] = i
     }
-    { line[NR] = $0; tl[NR] = trim($0) }
+    # The record is spelled $(0): Claude Code replaces a dollar sign before a digit with a command argument (BL-093).
+    { line[NR] = $(0); tl[NR] = trim($(0)) }
     END {
       L = total + 1
       if (L <= limit) exit
@@ -87,7 +88,13 @@ archive_prompts() {
           else if (cur && line[i] ~ /^[ \t\r]+[^ \t\r]/) en[n] = i
           else cur = 0
         }
-        for (k = 1; k <= n; k++) { txt = line[st[k]]; for (i = st[k] + 1; i <= en[k]; i++) txt = txt "\n" line[i]; dt[k] = lastdate(txt) }
+        # An entry is dated by its leading YYYY-MM-DD, else by the last date in it, as the CLI (BL-092).
+        for (k = 1; k <= n; k++) {
+          txt = line[st[k]]; for (i = st[k] + 1; i <= en[k]; i++) txt = txt "\n" line[i]
+          lead = substr(line[st[k]], 3, 10)
+          if (lead ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ && substr(line[st[k]], 13, 1) !~ /[A-Za-z0-9_]/) dt[k] = lastdate(lead)
+          else dt[k] = lastdate(txt)
+        }
       } else {
         for (i = 1; i <= NR; i++) if (index(tl[i], "## Prompt History") == 1) { s = i; break }
         if (!s) { print "REFUSE development/prompts.md has no \"## Latest Entries\" list or \"## Prompt History\" table, so there is nothing SpecPilot can archive safely."; exit }
@@ -144,7 +151,7 @@ archive_prompts() {
     echo; echo "---"; echo
   } >> "$archive"
   if [ "$at_end" = 1 ]; then
-    awk -v n=$((first - 1)) 'NR <= n { printf "%s%s", (NR > 1 ? "\n" : ""), $0 }' "$file" > "$file.tmp"
+    awk -v n=$((first - 1)) 'NR <= n { printf "%s%s", (NR > 1 ? "\n" : ""), $(0) }' "$file" > "$file.tmp"
   else
     { sed -n "1,$((first - 1))p" "$file"; sed -n "$((last + 1)),\$p" "$file"; } > "$file.tmp"
   fi
@@ -165,7 +172,7 @@ archive_tasks() {
   # Prints "<shape> <first> <last> <header>" as 1-based lines to move, or nothing.
   local plan
   plan=$(awk -v total="$(wc -l < "$file")" -v limit="$COMPLETED_LINE_LIMIT" -v keep_max="$COMPLETED_KEEP_ENTRIES" '
-    { line[NR] = $0; t = $0; gsub(/^[ \t]+|[ \t]+$/, "", t); trimmed[NR] = t }
+    { line[NR] = $(0); t = $(0); gsub(/^[ \t]+|[ \t]+$/, "", t); trimmed[NR] = t }
     END {
       for (i = 1; i <= NR; i++) if (trimmed[i] == "## Completed") { start = i; break }
       if (!start) exit

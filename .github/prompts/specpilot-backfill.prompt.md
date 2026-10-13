@@ -16,13 +16,15 @@ CANDIDATE_FILES=(
   ".antigravity/rules.md"
 )
 
-has_critical() { grep -qF "Critical Mandates" "$1"; }
-has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$1"; }
-has_rules() { grep -qF "## Code Rules" "$1"; }
-has_reanchor() { grep -qF "## Re-Anchor" "$1"; }
+# Each check and append works on the loop's file, "$f": no positional parameters, since Claude Code
+# replaces a dollar sign before a digit in a command file with a command argument (BL-093).
+has_critical() { grep -qF "Critical Mandates" "$f"; }
+has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$f"; }
+has_rules() { grep -qF "## Code Rules" "$f"; }
+has_reanchor() { grep -qF "## Re-Anchor" "$f"; }
 
 append_critical() {
-  cat <<'BLOCK' >> "$1"
+  cat <<'BLOCK' >> "$f"
 
 ## 🔴 Critical Mandates — Never violate, no exceptions
 
@@ -44,7 +46,7 @@ BLOCK
 }
 
 append_philosophy() {
-  cat <<'BLOCK' >> "$1"
+  cat <<'BLOCK' >> "$f"
 
 ## Code Philosophy — Write Only What Needed
 
@@ -59,7 +61,7 @@ BLOCK
 }
 
 append_rules() {
-  cat <<'BLOCK' >> "$1"
+  cat <<'BLOCK' >> "$f"
 
 ## Code Rules
 
@@ -74,7 +76,7 @@ BLOCK
 }
 
 append_reanchor() {
-  cat <<'BLOCK' >> "$1"
+  cat <<'BLOCK' >> "$f"
 
 ## Re-Anchor
 
@@ -90,10 +92,10 @@ for f in "${CANDIDATE_FILES[@]}"; do
   fi
 
   added=()
-  has_critical "$f" || { append_critical "$f"; added+=("Critical Mandates"); }
-  has_philosophy "$f" || { append_philosophy "$f"; added+=("Code Philosophy"); }
-  has_rules "$f" || { append_rules "$f"; added+=("Code Rules"); }
-  has_reanchor "$f" || { append_reanchor "$f"; added+=("Re-Anchor"); }
+  has_critical || { append_critical; added+=("Critical Mandates"); }
+  has_philosophy || { append_philosophy; added+=("Code Philosophy"); }
+  has_rules || { append_rules; added+=("Code Rules"); }
+  has_reanchor || { append_reanchor; added+=("Re-Anchor"); }
 
   if [ ${#added[@]} -eq 0 ]; then
     echo "ALREADY CURRENT: $f"

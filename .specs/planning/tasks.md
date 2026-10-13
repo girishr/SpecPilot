@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-13 (BL-107 completed)
-version: 6.74
+lastUpdated: 2026-10-13 (folderPicker flake fixed)
+version: 6.75
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -63,6 +63,7 @@ Notes
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
 | BL-108 | The `specpilot-validate` command (every IDE's copy) lists `.specs/architecture/api.yaml` among its required files, so it reports `MISSING` for a project whose API paradigm is None, which `specpilot validate` accepts since BL-107 (REQ-002.F.11). Make the command's list match; this changes the command template, the golden recordings and `KNOWN_COMMAND_HASHES` (Spec Report). Split from BL-107 on the developer's choice (a), 2026-10-13. |
+| BL-109 | Flaky Jest test in `gitClone.test.ts`: one failure under the full suite with `FORCE_COLOR=1` (2026-10-13, v2.15.0 release checks), test name not kept; not reproduced in 10 more full runs or 6 runs of the file alone. On the next failure, keep the output and fix the cause (likely a timing assumption under load, as in `folderPicker.test.ts`, row 203). |
 
 ## Current Sprint
 
@@ -98,3 +99,4 @@ Notes
 | 200 | [CD-girishr-109] | Trivial: this repo's own generated files brought up to what 2.14.0 ships (the developer's working-tree changes, committed on request): the MCP Tasks process mandate in `CLAUDE.md` and `.github/copilot-instructions.md` (BL-088); the `specpilot-archive` command's `$(0)` record and leading-date rule (BL-092, BL-093) and the `specpilot-backfill` command's `"$f"` checks (BL-093), in `.claude/commands/` and `.github/prompts/`. No code or template change. |
 | 201 | [CD-girishr-110] [BL-106] | Trivial: `specpilot archive` moved Completed rows 165 to 180 (16 lines) to `tasks-archive.md`; `specpilot validate` shows no warnings. Commit `e870790`. |
 | 202 | [CD-girishr-111] [BL-107] | `specpilot validate` treats `architecture/api.yaml` as optional (REQ-002.F.11; Feature; the developer's choice (a), CLI only): not required, not created by `--fix`, `requirements.md` asked to reference it only while it exists, so a project with API paradigm None validates; also for the MCP validate tool and the setup tools. The `specpilot-validate` command is BL-108. Jest 1583 → 1586. Commit `7a94d02`. |
+| 203 | [CD-girishr-112] | Trivial, test-only: `folderPicker.test.ts` "the time limit kills the dialog" failed once under the full suite with colour on (2026-10-13, release checks): the 300 ms limit killed the stub dialog before it wrote its pid file, and the test read that file. The test now checks the pid only when the stub wrote one; either way nothing was left running. |

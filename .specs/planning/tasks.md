@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (BL-074 Spec Report)
-version: 6.89
+lastUpdated: 2026-10-14 (BL-074 done)
+version: 6.90
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -65,7 +65,6 @@ Notes
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
-| BL-074 | `specpilot add-specs --no-analysis` has no effect and `--deep-analysis` is never read: commander stores `--no-analysis` as `options.analysis === false`, but `add-specs.ts` tests `options.noAnalysis`, which is always undefined, so the analysis always runs (checked 2026-10-02 on the built CLI: `add-specs --lang typescript --no-analysis --no-prompts` in a scratch folder printed "Analyzing codebase..." and "Found 1 TODOs/FIXMEs"); `deepAnalysis` appears only in the options interface (REQ-002.D.5). Found during BL-055; not part of it (setup offers neither flag). |
 
 ## Completed
 
@@ -105,3 +104,4 @@ Notes
 | 209 | [CD-girishr-118] [BL-108] | The `specpilot-validate` command (every IDE's copy) no longer lists `architecture/api.yaml` as required, matching `specpilot validate` since BL-107 (REQ-002.E.12, REQ-002.F.11; Feature): one line out of the template, six hashes added to `KNOWN_COMMAND_HASHES`, golden recordings re-recorded (only the `specpilot-validate` hashes and the script line), three tests run the script under `bash`, this repo's two copies refreshed, CHANGELOG `[Unreleased]`. Jest 1586 → 1589. Commit `da6ba4c`. |
 | 210 | [CD-girishr-119] [BL-083] | `specpilot init --dry-run` lists the files `init` writes from `SpecGenerator.targetsInSpecs()` and `targetsOutsideSpecs()`, not a hard-coded copy (REQ-002.F.12, new; Feature): what `--no-prompts` writes (API paradigm unset, VS Code), `api.yaml` marked as not written for None, the VS Code files under a note; now also the eight command files and `.gitattributes` (25 files, 11 directories; was 16 and 10). The `--dry-run` snapshot re-recorded, two pinning tests, CHANGELOG `[Unreleased]`. Jest 1589 → 1591. Commit `ae2df26`. |
 | 211 | [CD-girishr-120] [BL-068] | Trivial: the two ESLint errors removed, so `npm run lint` reports 0 errors (61 warnings, unchanged): `let json: any;` without the overwritten `= null` in `specServer.test.ts`'s `post()` (`no-useless-assignment`), and `system\'s` to `system's` in `specValidator.ts`'s default `threat-model.md` (`no-useless-escape`; a template literal, so the text is byte for byte the same). |
+| 212 | [CD-girishr-121] [BL-074] | `specpilot add-specs --no-analysis` skips the codebase analysis (Commander's `analysis: false` is now what `add-specs.ts` reads), and `--deep-analysis`, which never did anything, is removed (REQ-002.D.5; Feature; architect decision: removed, not deprecated, CHANGELOG `Removed`; the CLI parse tested in-process). README, `docs/GUIDE.md`, `api.yaml`, CHANGELOG `[Unreleased]`; new `addSpecs.test.ts` (4). Jest 1591 → 1595. Commit `6a92b76`. |

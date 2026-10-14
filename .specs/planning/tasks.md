@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (BL-083 Spec Report)
-version: 6.86
+lastUpdated: 2026-10-14 (BL-083 done)
+version: 6.87
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -67,7 +67,6 @@ Notes
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
-| BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
 
 ## Completed
 
@@ -105,3 +104,4 @@ Notes
 | 207 | [CD-girishr-116] [BL-110] | Trivial, specs only: `.specs/development/prompts.md` archived with `specpilot archive --force` (it was at its 100-line limit): the 21 oldest entries (2026-10-09 to 2026-10-10) moved verbatim to `prompts-archive.md`, 79 lines left; `specpilot validate` clean. |
 | 208 | [CD-girishr-117] [BL-109] | Trivial, test-only: the flaky `gitClone.test.ts` test was "kills the whole process group at the time limit and leaves no timer" (2 of 7 full runs on `main`, 2026-10-14, `ENOENT … stub.pid`): under load the 400 ms limit killed the stub git before it wrote its pid file, the cause row 203 found in `folderPicker.test.ts`. The test now checks the pid, the child and the `partial` file only when the stub got that far; either way nothing was left running. The process-group kill is still checked every run by "kills it when the signal aborts", which waits for the child. 8 full runs 1586/1586; lint unchanged. |
 | 209 | [CD-girishr-118] [BL-108] | The `specpilot-validate` command (every IDE's copy) no longer lists `architecture/api.yaml` as required, matching `specpilot validate` since BL-107 (REQ-002.E.12, REQ-002.F.11; Feature): one line out of the template, six hashes added to `KNOWN_COMMAND_HASHES`, golden recordings re-recorded (only the `specpilot-validate` hashes and the script line), three tests run the script under `bash`, this repo's two copies refreshed, CHANGELOG `[Unreleased]`. Jest 1586 → 1589. Commit `da6ba4c`. |
+| 210 | [CD-girishr-119] [BL-083] | `specpilot init --dry-run` lists the files `init` writes from `SpecGenerator.targetsInSpecs()` and `targetsOutsideSpecs()`, not a hard-coded copy (REQ-002.F.12, new; Feature): what `--no-prompts` writes (API paradigm unset, VS Code), `api.yaml` marked as not written for None, the VS Code files under a note; now also the eight command files and `.gitattributes` (25 files, 11 directories; was 16 and 10). The `--dry-run` snapshot re-recorded, two pinning tests, CHANGELOG `[Unreleased]`. Jest 1589 → 1591. Commit `ae2df26`. |

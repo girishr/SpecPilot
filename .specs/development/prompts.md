@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-14 (BL-083 built)
-version: 2.115
+lastUpdated: 2026-10-14 (BL-083 done)
+version: 2.116
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-14: BL-083 spec-reviewer B FIX (tests.md Init Command count 12 → 14, a missing sentence break) then PASS; feature commit `ae2df26`, completion commit (row 210, CD-girishr-119), `--no-ff` merge into `main`, both suites on `main` before the push.
 - 2026-10-14: BL-083 built after spec-reviewer A PASS: `init --dry-run` lists from the generator (25 files for VS Code, `api.yaml` marked), the dry-run snapshot re-recorded, two pinning tests, CHANGELOG. spec-reviewer B next.
 - 2026-10-14: on the developer's `do 1,2,3` (BL-083, BL-068, BL-074 in that order): BL-083 Spec-First gate on `fix/bl-083-dry-run-file-list` from `main` (`0cff7e0`): REQ-002.F.12 (new), tests.md (planned), context.md (six defaults), BL-083 to Current Sprint; Feature; spec-reviewer next. No code.
 - 2026-10-14: BL-108 spec-reviewer B PASS; feature commit `da6ba4c`, completion commit (row 209, CD-girishr-118), `--no-ff` merge into `main`, both suites on `main` before the push.

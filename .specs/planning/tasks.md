@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (CS-092 committed)
-version: 6.83
+lastUpdated: 2026-10-14 (BL-108 Spec Report)
+version: 6.84
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -62,13 +62,13 @@ Notes
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
-| BL-108 | The `specpilot-validate` command (every IDE's copy) lists `.specs/architecture/api.yaml` among its required files, so it reports `MISSING` for a project whose API paradigm is None, which `specpilot validate` accepts since BL-107 (REQ-002.F.11). Make the command's list match; this changes the command template, the golden recordings and `KNOWN_COMMAND_HASHES` (Spec Report). Split from BL-107 on the developer's choice (a), 2026-10-13. |
 
 ## Current Sprint
 
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
+| BL-108 | The `specpilot-validate` command (every IDE's copy) lists `.specs/architecture/api.yaml` among its required files, so it reports `MISSING` for a project whose API paradigm is None, which `specpilot validate` accepts since BL-107 (REQ-002.F.11). Make the command's list match; this changes the command template, the golden recordings and `KNOWN_COMMAND_HASHES` (Spec Report). Split from BL-107 on the developer's choice (a), 2026-10-13. |
 
 ## Completed
 

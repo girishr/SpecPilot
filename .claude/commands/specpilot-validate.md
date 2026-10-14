@@ -12,7 +12,6 @@ REQUIRED_FILES=(
   ".specs/project/project.yaml"
   ".specs/architecture/architecture.md"
   ".specs/project/requirements.md"
-  ".specs/architecture/api.yaml"
   ".specs/quality/tests.md"
   ".specs/planning/tasks.md"
   ".specs/development/context.md"

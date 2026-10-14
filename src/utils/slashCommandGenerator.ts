@@ -109,6 +109,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   ],
   '.agent/workflows/specpilot-validate.md': [
     '13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721',
+    'b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0',
   ],
   '.claude/commands/specpilot-archive.md': [
     '37bfbac4c2632512de5d0e3e3a68e0904d8cce8cdd9925f53432cdb3066dbe51',
@@ -139,6 +140,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   ],
   '.claude/commands/specpilot-validate.md': [
     'c4bc7798f2eef780257a6b91652c4222db3e6b4566da85fc1c2d4552032db269',
+    'bc05b32520d372d79482c979f8209217e82c12168cf1c38e3e8e20b6c991794c',
   ],
   '.codex/prompts/specpilot-archive.md': [
     'dea17f5a6cc488bc95be76413f9ce602082a112835e9395be4aee1e8e463164b',
@@ -169,6 +171,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   ],
   '.codex/prompts/specpilot-validate.md': [
     '13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721',
+    'b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0',
   ],
   '.cursor/commands/specpilot-archive.md': [
     'dea17f5a6cc488bc95be76413f9ce602082a112835e9395be4aee1e8e463164b',
@@ -199,6 +202,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   ],
   '.cursor/commands/specpilot-validate.md': [
     '13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721',
+    'b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0',
   ],
   '.github/prompts/specpilot-archive.prompt.md': [
     '3b669bfe482b6e36bde07eee44d018ba1f66a5996a6069df4180ff8d367c2046',
@@ -229,6 +233,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   ],
   '.github/prompts/specpilot-validate.prompt.md': [
     '265ac29d8c2cdf8688dfbfac6b67c266ef1a477ffb608e5222679595bff8d32a',
+    '643800dbd14bae0d6507c8b85d452beb9f72e30e39936330dc751c4fc93da3bb',
   ],
   '.windsurf/workflows/specpilot-archive.md': [
     'dea17f5a6cc488bc95be76413f9ce602082a112835e9395be4aee1e8e463164b',
@@ -259,6 +264,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   ],
   '.windsurf/workflows/specpilot-validate.md': [
     '13094f8c85dfa06fdcc12ee1ae0ee795a1145f2d4aa8e7bff3ba289c0f6b2721',
+    'b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0',
   ],
 };
 

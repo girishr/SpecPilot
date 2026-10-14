@@ -6,7 +6,7 @@ import { initOptions } from '../utils/initQuestions';
 import { addSpecsOptions } from '../utils/addSpecsQuestions';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { dirname, join } from 'path';
 
 // A pass-through copy of fs whose functions can be spied on (the real module's cannot be redefined).
 jest.mock('fs', () => ({ ...jest.requireActual('fs') }));
@@ -513,5 +513,40 @@ describe('the Claude Code skill from project context (BL-PM-012)', () => {
     } finally {
       rmSync(outside, { recursive: true, force: true });
     }
+  });
+});
+
+describe('the specpilot-validate script (BL-108, REQ-002.E.12)', () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'specpilot-validate-'));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  const API = '.specs/architecture/api.yaml';
+  const write = (apiParadigm: string) => {
+    for (const f of render(initOptions('', 'app', { projectType: 'greenfield', language: 'typescript', framework: 'react', apiParadigm, handle: 'jsmith', ide: 'claude-code', whatItDoes: '', targetUsers: '', expectedScale: '', constraints: '' } as never)).files) {
+      mkdirSync(dirname(join(dir, f.path)), { recursive: true });
+      writeFileSync(join(dir, f.path), f.content);
+    }
+  };
+  /** The "Missing required files" section of the script's output, run exactly as generated. */
+  const missing = () => {
+    const script = /```bash\n([\s\S]*?)```/.exec(SLASH_COMMANDS.find(c => c.name === 'validate')!.body)![1];
+    return /== Missing required files ==\n([\s\S]*?)\n\n/.exec(execFileSync('bash', ['-c', script], { cwd: dir, encoding: 'utf-8' }))![1];
+  };
+
+  it.each(['none', 'rest'])('reports no missing file for a project the generator wrote with API paradigm %s', apiParadigm => {
+    write(apiParadigm);
+    expect(existsSync(join(dir, API))).toBe(apiParadigm !== 'none');
+    expect(missing()).toBe('none');
+  });
+
+  it('does not miss api.yaml when it is removed, and still reports another required file', () => {
+    write('rest');
+    rmSync(join(dir, API));
+    expect(missing()).toBe('none');
+    rmSync(join(dir, '.specs/planning/tasks.md'));
+    expect(missing()).toBe('MISSING: .specs/planning/tasks.md');
   });
 });

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (CS-092 committed)
-version: 6.83
+lastUpdated: 2026-10-14 (BL-108 done)
+version: 6.85
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -62,7 +62,6 @@ Notes
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
-| BL-108 | The `specpilot-validate` command (every IDE's copy) lists `.specs/architecture/api.yaml` among its required files, so it reports `MISSING` for a project whose API paradigm is None, which `specpilot validate` accepts since BL-107 (REQ-002.F.11). Make the command's list match; this changes the command template, the golden recordings and `KNOWN_COMMAND_HASHES` (Spec Report). Split from BL-107 on the developer's choice (a), 2026-10-13. |
 
 ## Current Sprint
 
@@ -105,3 +104,4 @@ Notes
 | 206 | [CD-girishr-115] | v2.15.0 shipped (BL-103, BL-104, BL-105, BL-106, BL-107): pushed, npm `specpilot@2.15.0` latest, GitHub release live (2026-10-13) |
 | 207 | [CD-girishr-116] [BL-110] | Trivial, specs only: `.specs/development/prompts.md` archived with `specpilot archive --force` (it was at its 100-line limit): the 21 oldest entries (2026-10-09 to 2026-10-10) moved verbatim to `prompts-archive.md`, 79 lines left; `specpilot validate` clean. |
 | 208 | [CD-girishr-117] [BL-109] | Trivial, test-only: the flaky `gitClone.test.ts` test was "kills the whole process group at the time limit and leaves no timer" (2 of 7 full runs on `main`, 2026-10-14, `ENOENT … stub.pid`): under load the 400 ms limit killed the stub git before it wrote its pid file, the cause row 203 found in `folderPicker.test.ts`. The test now checks the pid, the child and the `partial` file only when the stub got that far; either way nothing was left running. The process-group kill is still checked every run by "kills it when the signal aborts", which waits for the child. 8 full runs 1586/1586; lint unchanged. |
+| 209 | [CD-girishr-118] [BL-108] | The `specpilot-validate` command (every IDE's copy) no longer lists `architecture/api.yaml` as required, matching `specpilot validate` since BL-107 (REQ-002.E.12, REQ-002.F.11; Feature): one line out of the template, six hashes added to `KNOWN_COMMAND_HASHES`, golden recordings re-recorded (only the `specpilot-validate` hashes and the script line), three tests run the script under `bash`, this repo's two copies refreshed, CHANGELOG `[Unreleased]`. Jest 1586 → 1589. Commit `da6ba4c`. |

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-13 (v2.15.0 shipped)
-version: 6.78
+lastUpdated: 2026-10-14 (BL-110 done)
+version: 6.81
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -103,3 +103,4 @@ Notes
 | 204 | [CD-girishr-113] | Trivial, test-only: the five lint warnings BL-103 and BL-104 added in test files (found by the v2.15.0 release checks, `npm run lint` 61 → 66 warnings) removed: the setup tools' result typed in `specServer.test.ts` and `setupview.browser.test.ts`, two `any`s in `mcpLocal.test.ts` typed, and the one `require('fs')` (the module object the spy must reach) given a disable line with its reason. Back to 61 warnings and the 2 known BL-068 errors. |
 | 205 | [CD-girishr-114] | v2.15.0 release prepared and shipped (BL-103, BL-104, BL-105, BL-106, BL-107): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.15.0]`, annotated tag `v2.15.0`; pushed and published (row 206) |
 | 206 | [CD-girishr-115] | v2.15.0 shipped (BL-103, BL-104, BL-105, BL-106, BL-107): pushed, npm `specpilot@2.15.0` latest, GitHub release live (2026-10-13) |
+| 207 | [CD-girishr-116] [BL-110] | Trivial, specs only: `.specs/development/prompts.md` archived with `specpilot archive --force` (it was at its 100-line limit): the 21 oldest entries (2026-10-09 to 2026-10-10) moved verbatim to `prompts-archive.md`, 79 lines left; `specpilot validate` clean. |

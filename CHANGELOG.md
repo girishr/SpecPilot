@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.16.0] - 2026-10-14
+
 ### Fixed
 
 - **The `specpilot-validate` slash command no longer reports `architecture/api.yaml` as missing** (BL-108): like `specpilot validate` since 2.15.0, it treats the file as optional, so a project set up with API paradigm None passes. `specpilot backfill` and Regenerate All update an unedited copy of the command.

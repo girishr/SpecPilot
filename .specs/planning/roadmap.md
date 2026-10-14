@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-13 (v2.15.0 prepared)
-version: 1.42
+lastUpdated: 2026-10-14 (v2.16.0 prepared)
+version: 1.43
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -77,7 +77,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-08-02: v2.2.3 — two "Press Enter" pauses on the `init` success screen, skipped under `--no-prompts` (CS-091)
 - 2026-09-27: v2.2.4 — `archive` handles a table-shaped `## Completed` (BL-057); a shared section-bounds helper and a pure spec reader
 
-### v2.3.0–v2.15.0 - `specpilot serve` (September–October 2026)
+### v2.3.0–v2.16.0 - `specpilot serve` (September–October 2026)
 
 - 2026-09-29: v2.3.0 — `specpilot serve`, a read-only local web UI over `.specs/` with live reload (BL-051, BL-052); `fs-extra` removed
 - 2026-09-29: v2.4.0 — move tasks in `specpilot serve` (BL-053); `archive` takes the oldest `prompts.md` entries (BL-061)
@@ -93,6 +93,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-10-10: v2.13.0 — the local MCP endpoint and the Connect Your AI IDE card (BL-PM-007) with MCP revision `2026-07-28` (BL-089) and a build that cleans `dist/` first (BL-087); Open in AI IDE for Cursor (BL-PM-010) and per-file Open in VS Code (BL-PM-013); clone progress (BL-PM-009); guided setup on existing code with detected answers, saved setups removed (BL-PM-016); browser tests for the page (BL-079)
 - 2026-10-11: v2.14.0 — Stage 4 closed: BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md
 - 2026-10-13: v2.15.0 — setup through your AI IDE: the Setup view replaces the chat (BL-103), setup tools on the local MCP endpoint (BL-104), MCP on by default with `--no-mcp` (BL-105); `api.yaml` optional in `specpilot validate` (BL-107); tasks archived (BL-106)
+- 2026-10-14: v2.16.0 — command fixes: the `specpilot-validate` command treats `api.yaml` as optional (BL-108), `init --dry-run` lists the files `init` writes (BL-083), `add-specs --no-analysis` works and `--deep-analysis` is removed (BL-074); lint errors fixed (BL-068), a flaky clone test fixed (BL-109), prompts archived (BL-110)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 

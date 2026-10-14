@@ -91,6 +91,14 @@ describe('specpilot init: terminal output (BL-075)', () => {
     expect(await run('demo', options({ dryRun: true }))).toMatchSnapshot();
   });
 
+  it.each(['.specs', 'docs/specs'])('lists for --dry-run exactly the files the generator writes with --no-prompts (specs folder %s, BL-083)', async specsName => {
+    const out = await run('demo', options({ dryRun: true, specsName }));
+    const listed = out.split('\n').filter(l => l.startsWith('  <dir>/demo/') && !l.endsWith('/')).map(l => l.slice('  <dir>/demo/'.length));
+    const generator = new SpecGenerator();
+    const api = `${specsName}/architecture/api.yaml`;
+    expect(listed).toEqual([...generator.targetsInSpecs('', specsName), ...generator.targetsOutsideSpecs('vscode')].map(f => (f === api ? `${f}  (not written for API paradigm None)` : f)));
+  });
+
   it.each([['empty', ' '], ['too long', 'a'.repeat(215)], ['outside the allowlist', 'my project'], ['a path', '../x']])(
     'refuses a name that is %s with the same text', async (_label, name) => {
       expect(await run(name, options())).toMatchSnapshot();

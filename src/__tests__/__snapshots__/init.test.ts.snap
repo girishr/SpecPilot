@@ -327,26 +327,38 @@ Files that would be created:
   <dir>/demo/.specs/project/requirements.md
   <dir>/demo/.specs/architecture/
   <dir>/demo/.specs/architecture/architecture.md
-  <dir>/demo/.specs/architecture/api.yaml
+  <dir>/demo/.specs/architecture/api.yaml  (not written for API paradigm None)
   <dir>/demo/.specs/planning/
   <dir>/demo/.specs/planning/tasks.md
   <dir>/demo/.specs/planning/roadmap.md
-  <dir>/demo/.specs/quality/
-  <dir>/demo/.specs/quality/tests.md
   <dir>/demo/.specs/development/
   <dir>/demo/.specs/development/context.md
   <dir>/demo/.specs/development/prompts.md
   <dir>/demo/.specs/development/onboarding.md
+  <dir>/demo/.specs/quality/
+  <dir>/demo/.specs/quality/tests.md
   <dir>/demo/.specs/security/
   <dir>/demo/.specs/security/threat-model.md
   <dir>/demo/.specs/security/security-decisions.md
+
+  For VS Code; the IDE you choose decides these:
   <dir>/demo/.vscode/
   <dir>/demo/.vscode/settings.json
   <dir>/demo/.vscode/extensions.json
   <dir>/demo/.github/
-  <dir>/demo/.github/copilot-instructions.md  (or IDE-native equivalent)
+  <dir>/demo/.github/copilot-instructions.md
+  <dir>/demo/.github/prompts/
+  <dir>/demo/.github/prompts/specpilot-status.prompt.md
+  <dir>/demo/.github/prompts/specpilot-reanchor.prompt.md
+  <dir>/demo/.github/prompts/specpilot-report.prompt.md
+  <dir>/demo/.github/prompts/specpilot-sync.prompt.md
+  <dir>/demo/.github/prompts/specpilot-refine.prompt.md
+  <dir>/demo/.github/prompts/specpilot-validate.prompt.md
+  <dir>/demo/.github/prompts/specpilot-archive.prompt.md
+  <dir>/demo/.github/prompts/specpilot-backfill.prompt.md
+  <dir>/demo/.gitattributes
 
-(16 files, 10 directories)
+(25 files, 11 directories)
 
 💡 Run without --dry-run to create these files."
 `;

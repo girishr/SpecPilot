@@ -1202,7 +1202,7 @@ function post(port: number, body: string, headers: Record<string, string | strin
       res.setEncoding('utf8');
       res.on('data', c => (text += c));
       res.on('end', () => {
-        let json: any = null;
+        let json: any;
         try {
           json = JSON.parse(text);
         } catch {

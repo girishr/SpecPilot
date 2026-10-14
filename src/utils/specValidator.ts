@@ -591,7 +591,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 
 > Describe the attack surface: what the system does, what it reads/writes, and what it does NOT do.
 
-[TODO: Summarise the system\'s threat surface — input sources, outputs, and offline/online constraints.]
+[TODO: Summarise the system's threat surface — input sources, outputs, and offline/online constraints.]
 
 ## Threat Model [SEC-002]
 

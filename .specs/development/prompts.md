@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-14 (BL-068 done)
-version: 2.117
+lastUpdated: 2026-10-14 (BL-074 built)
+version: 2.119
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-14: BL-074 spec-reviewer A ESCALATE (remove `--deep-analysis` or keep it as a no-op) with three fixes; the architect decided: remove it, and test the CLI in-process (recorded in context.md); fixes applied, reviewer A re-check PASS; built: `--no-analysis` works, `--deep-analysis` removed, `addSpecs.test.ts` (4), README, GUIDE, CHANGELOG. spec-reviewer B next.
+- 2026-10-14: BL-074 (item 3 of `do 1,2,3`) Spec-First gate on `fix/bl-074-add-specs-options` from `main` (`63efa42`): REQ-002.D.5 reworded, tests.md (planned `addSpecs.test.ts`), context.md (four defaults, one open question: remove `--deep-analysis` or keep it as a no-op), BL-074 to Current Sprint; Feature; spec-reviewer next. No code.
 - 2026-10-14: BL-068 (item 2 of `do 1,2,3`) as a trivial row on `fix/bl-068-lint-errors`: the two ESLint errors fixed, lint 0 errors and 61 warnings, Jest 1591/1591, row 211.
 - 2026-10-14: BL-083 spec-reviewer B FIX (tests.md Init Command count 12 → 14, a missing sentence break) then PASS; feature commit `ae2df26`, completion commit (row 210, CD-girishr-119), `--no-ff` merge into `main`, both suites on `main` before the push.
 - 2026-10-14: BL-083 built after spec-reviewer A PASS: `init --dry-run` lists from the generator (25 files for VS Code, `api.yaml` marked), the dry-run snapshot re-recorded, two pinning tests, CHANGELOG. spec-reviewer B next.

@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-10-14 (BL-083 Spec Report)
+lastUpdated: 2026-10-14 (BL-074 Spec Report)
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.64
+version: 1.65
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -52,7 +52,7 @@ relatedFiles:
 - Detect test frameworks (Jest, Pytest, Mocha, etc.) and count test cases [REQ-002.D.2]
 - Extract architecture information (components, directories) [REQ-002.D.3]
 - Display folder structure as nested tree with proper indentation (max depth 3) [REQ-002.D.4]
-- Support `--no-analysis` and `--deep-analysis` flags [REQ-002.D.5]
+- Support the `--no-analysis` flag: with it, `add-specs` skips the codebase analysis (prints no analysis lines and passes no analysis to the generator); without it, the analysis runs as before (BL-074). `--deep-analysis` is removed: no deeper analysis ever existed behind it, and a real one belongs to BL-009 [REQ-002.D.5]
 
 ### IDE & Agent Configuration [REQ-002.E]
 

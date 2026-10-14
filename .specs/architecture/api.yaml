@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-10-13 (v2.15.0 prepared)
-# version: 2.44
+# lastUpdated: 2026-10-14 (BL-074 Spec Report)
+# version: 2.45
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -74,9 +74,6 @@ commands:
       --no-analysis:
         type: boolean
         description: Skip codebase analysis (TODOs, tests, architecture)
-      --deep-analysis:
-        type: boolean
-        description: Enable deep codebase analysis
       --no-prompts:
         type: boolean
         description: Skip interactive prompts

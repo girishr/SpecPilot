@@ -94,7 +94,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `list`      | `--lang` · `--verbose`                                                              |
 | `refine`    | `--update` · `--no-prompts`                                                         |
 | `archive`   | `--dry-run` · `--force`                                                             |
-| `add-specs` | `--no-analysis` · `--deep-analysis` · `--no-prompts`                                |
+| `add-specs` | `--no-analysis` · `--no-prompts`                                                    |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
 | `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--no-mcp` · `--stop`              |
 

@@ -94,7 +94,6 @@ program
   .option('-l, --lang <language>', 'Programming language (typescript, python)')
   .option('-f, --framework <framework>', 'Framework (react, express, django, etc.)')
   .option('--no-analysis', 'Skip codebase analysis')
-  .option('--deep-analysis', 'Perform thorough codebase analysis')
   .option('--no-prompts', 'Skip interactive prompts')
   .action(addSpecsCommand);
 

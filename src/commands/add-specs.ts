@@ -17,8 +17,7 @@ import {
 export interface AddSpecsOptions {
   lang?: string;
   framework?: string;
-  noAnalysis: boolean;
-  deepAnalysis: boolean;
+  analysis?: boolean; // false with --no-analysis (Commander's negatable option, BL-074)
   prompts: boolean;
 }
 
@@ -128,7 +127,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     
     // Analyze codebase if requested
     let analysis = null;
-    if (!options.noAnalysis) {
+    if (options.analysis !== false) {
       logger.info('📊 Analyzing codebase...');
       const analyzer = new CodeAnalyzer();
       analysis = await analyzer.analyzeCodebase(projectDir);

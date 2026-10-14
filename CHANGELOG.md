@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The `specpilot-validate` slash command no longer reports `architecture/api.yaml` as missing** (BL-108): like `specpilot validate` since 2.15.0, it treats the file as optional, so a project set up with API paradigm None passes. `specpilot backfill` and Regenerate All update an unedited copy of the command.
 - **`specpilot init --dry-run` lists the files `init` really writes** (BL-083): the list now comes from the generator, so it includes the eight `.github/prompts/specpilot-*.prompt.md` commands and `.gitattributes`, marks `architecture/api.yaml` as not written for API paradigm None, and says the files outside `.specs/` are VS Code's (the IDE you choose decides them).
+- **`specpilot add-specs --no-analysis` skips the codebase analysis** (BL-074): the flag had no effect, so the analysis always ran.
+
+### Removed
+
+- **`specpilot add-specs --deep-analysis`** (BL-074): it never changed what `add-specs` did; there is no deeper analysis behind it. Passing it now fails with `error: unknown option '--deep-analysis'`, so drop it from scripts: the output is the same without it.
 
 ## [2.15.0] - 2026-10-13
 

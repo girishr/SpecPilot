@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-14 (BL-110 done)
-version: 2.108
+lastUpdated: 2026-10-14 (BL-109 done)
+version: 2.109
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-14: BL-110 merged into `main` (`6a63f82`) but not pushed: `npm test` on `main` failed 2 of 7 runs on the BL-109 test (output kept); on the developer's `fix BL-109 first`: fixed on `fix/bl-109-gitclone-race` as in row 203 (pid, child and `partial` checked only when the stub got that far), 8 full runs 1586/1586, row 208.
 - 2026-10-14: BL-110 on the developer's `do BL-110`: on `chore/archive-prompts`, `specpilot archive --force` moved the 21 oldest entries of this file to `prompts-archive.md` (79 lines left), `specpilot validate` clean; row 207. The uncommitted CS-092 row stays out of the commit.
 - 2026-10-14: on the developer's requests, CS-092 added to Current Sprint (their by-hand check of the setup flow with Claude Code, not done yet) and BL-110 to Backlog (archive this file, at its 100-line limit). Not committed.
 - 2026-10-13: v2.15.0 recorded as shipped on the developer's word (`done`), checked first: `origin/main` = `6e4cd6b`, tag `v2.15.0` on origin = the local tag object (`b6baef0`), npm `specpilot` latest 2.15.0, GitHub release v2.15.0 published 2026-10-13T15:53:20Z; rows 205 reworded and 206 added.

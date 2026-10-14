@@ -602,8 +602,10 @@ const until = async (test: () => boolean | Promise<boolean>, ms = 15000) => {
     process.env.STUB_MODE = 'hang';
     const out = await cloneRepository('https://github.com/owner/repo.git', target, { timeoutMs: 400 });
     expect(out).toEqual({ ok: false, aborted: false, error: 'The clone was stopped after 10 minutes. What it had downloaded was removed.' });
-    expect(await until(() => !alive(Number(logged('pid'))) && !alive(Number(logged('child'))))).toBe(true);
-    expect(readdirSync(target)).toEqual(['partial']); // the caller cleans up; this function only stops git
+    // Under load the stub can be killed before it writes its pid or starts its child: then nothing was left running either.
+    const ran = (what: string) => existsSync(`${log}.${what}`) && Number(logged(what)) > 0;
+    expect(await until(() => !(ran('pid') && alive(Number(logged('pid')))) && !(ran('child') && alive(Number(logged('child')))))).toBe(true);
+    if (ran('child')) expect(readdirSync(target)).toEqual(['partial']); // the caller cleans up; this function only stops git
   });
 
   it('kills it when the signal aborts', async () => {

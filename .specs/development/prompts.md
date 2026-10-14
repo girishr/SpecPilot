@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-14 (v2.16.0 prepared)
-version: 2.121
+lastUpdated: 2026-10-14 (v2.16.0 shipped)
+version: 2.122
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-14: v2.16.0 recorded as shipped on the developer's word (`done`, then `check now`), checked first: `origin/main` = `6d30d93`, tag `v2.16.0` on origin = the local tag object (`063387f`), GitHub release v2.16.0 published 2026-10-14T17:41:36Z; npm had no 2.16.0 at the first check (404, `latest` 2.15.0), and at the second `latest` 2.16.0, published 2026-10-14T17:42:51Z; rows 213 reworded and 214 added.
 - 2026-10-14: on the developer's typed `yes proceed` for the release: v2.16.0 prepared by docs/RELEASING.md (BL-108, BL-083, BL-074; minor, the `--deep-analysis` removal marked breaking in CHANGELOG `Removed`, as the architect decided): version bumped, CHANGELOG `[2.16.0]`, roadmap Timeline line, CTX-002 Phase, release row 213, annotated tag `v2.16.0`; checks (`specpilot validate` warned that row 213 took Completed past 40 lines, so `specpilot archive --force` moved rows 181 to 193 to `tasks-archive.md`); nothing pushed or published (step 4 is the developer's).
 - 2026-10-14: BL-074 spec-reviewer B PASS; feature commit `6a92b76`, completion commit (row 212, CD-girishr-121), `--no-ff` merge into `main`, both suites on `main` before the push.
 - 2026-10-14: BL-074 spec-reviewer A ESCALATE (remove `--deep-analysis` or keep it as a no-op) with three fixes; the architect decided: remove it, and test the CLI in-process (recorded in context.md); fixes applied, reviewer A re-check PASS; built: `--no-analysis` works, `--deep-analysis` removed, `addSpecs.test.ts` (4), README, GUIDE, CHANGELOG. spec-reviewer B next.

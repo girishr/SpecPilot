@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (v2.16.0 prepared)
-version: 6.91
+lastUpdated: 2026-10-14 (v2.16.0 shipped)
+version: 6.92
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -92,4 +92,5 @@ Notes
 | 210 | [CD-girishr-119] [BL-083] | `specpilot init --dry-run` lists the files `init` writes from `SpecGenerator.targetsInSpecs()` and `targetsOutsideSpecs()`, not a hard-coded copy (REQ-002.F.12, new; Feature): what `--no-prompts` writes (API paradigm unset, VS Code), `api.yaml` marked as not written for None, the VS Code files under a note; now also the eight command files and `.gitattributes` (25 files, 11 directories; was 16 and 10). The `--dry-run` snapshot re-recorded, two pinning tests, CHANGELOG `[Unreleased]`. Jest 1589 → 1591. Commit `ae2df26`. |
 | 211 | [CD-girishr-120] [BL-068] | Trivial: the two ESLint errors removed, so `npm run lint` reports 0 errors (61 warnings, unchanged): `let json: any;` without the overwritten `= null` in `specServer.test.ts`'s `post()` (`no-useless-assignment`), and `system\'s` to `system's` in `specValidator.ts`'s default `threat-model.md` (`no-useless-escape`; a template literal, so the text is byte for byte the same). |
 | 212 | [CD-girishr-121] [BL-074] | `specpilot add-specs --no-analysis` skips the codebase analysis (Commander's `analysis: false` is now what `add-specs.ts` reads), and `--deep-analysis`, which never did anything, is removed (REQ-002.D.5; Feature; architect decision: removed, not deprecated, CHANGELOG `Removed`; the CLI parse tested in-process). README, `docs/GUIDE.md`, `api.yaml`, CHANGELOG `[Unreleased]`; new `addSpecs.test.ts` (4). Jest 1591 → 1595. Commit `6a92b76`. |
-| 213 | [CD-girishr-122] | v2.16.0 release prepared (BL-108, BL-083, BL-074; also BL-068, BL-109, BL-110): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.16.0]`, annotated tag `v2.16.0`; the Completed section archived (`specpilot archive --force`: rows 181 to 193 to `tasks-archive.md`, this row having taken it past 40 lines); not pushed or published |
+| 213 | [CD-girishr-122] | v2.16.0 release prepared and shipped (BL-108, BL-083, BL-074; also BL-068, BL-109, BL-110): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.16.0]`, annotated tag `v2.16.0`; the Completed section archived (`specpilot archive --force`: rows 181 to 193 to `tasks-archive.md`, this row having taken it past 40 lines); pushed and published (row 214) |
+| 214 | [CD-girishr-123] | v2.16.0 shipped (BL-108, BL-083, BL-074): pushed, npm `specpilot@2.16.0` latest, GitHub release live (2026-10-14) |

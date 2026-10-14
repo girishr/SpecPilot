@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-14 (BL-108 built)
-version: 2.112
+lastUpdated: 2026-10-14 (BL-108 done)
+version: 2.113
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-14: BL-108 spec-reviewer B PASS; feature commit `da6ba4c`, completion commit (row 209, CD-girishr-118), `--no-ff` merge into `main`, both suites on `main` before the push.
 - 2026-10-14: BL-108 built after spec-reviewer A PASS: the template line, six new known hashes, goldens re-recorded (validate hashes only), three bash tests, the repo's two command copies refreshed, CHANGELOG; Jest 1586 → 1589. spec-reviewer B next; not committed.
 - 2026-10-14: on the developer's `do BL-108`: Spec-First gate on `fix/bl-108-validate-command-api-yaml` from `main` (`4c61c16`): BL-108 to Current Sprint, REQ-002.E.12 and F.11, tests.md (planned), context.md (six defaults); Feature; spec-reviewer next. No code.
 - 2026-10-14: on the developer's `commit`: the CS-092 Current Sprint row (added earlier today, left out of the BL-110 and BL-109 commits) committed on `main`; not pushed.

@@ -43,47 +43,40 @@ export async function initCommand(name: string, options: InitOptions) {
     // Dry-run: list files that would be created without writing them
     if (options.dryRun) {
       const targetDir = resolve(options.dir, projectName);
-      const specsName = options.specsName;
-      const specsDir = join(targetDir, specsName);
-      const ideDir = '.vscode'; // default for dry-run (IDE is chosen interactively)
-
-      const entries: string[] = [
-        targetDir + '/',
-        specsDir + '/',
-        join(specsDir, 'README.md'),
-        join(specsDir, 'project') + '/',
-        join(specsDir, 'project', 'project.yaml'),
-        join(specsDir, 'project', 'requirements.md'),
-        join(specsDir, 'architecture') + '/',
-        join(specsDir, 'architecture', 'architecture.md'),
-        join(specsDir, 'architecture', 'api.yaml'),
-        join(specsDir, 'planning') + '/',
-        join(specsDir, 'planning', 'tasks.md'),
-        join(specsDir, 'planning', 'roadmap.md'),
-        join(specsDir, 'quality') + '/',
-        join(specsDir, 'quality', 'tests.md'),
-        join(specsDir, 'development') + '/',
-        join(specsDir, 'development', 'context.md'),
-        join(specsDir, 'development', 'prompts.md'),
-        join(specsDir, 'development', 'onboarding.md'),
-        join(specsDir, 'security') + '/',
-        join(specsDir, 'security', 'threat-model.md'),
-        join(specsDir, 'security', 'security-decisions.md'),
-        join(targetDir, ideDir) + '/',
-        join(targetDir, ideDir, 'settings.json'),
-        join(targetDir, ideDir, 'extensions.json'),
-        join(targetDir, '.github') + '/',
-        join(targetDir, '.github', 'copilot-instructions.md') + '  (or IDE-native equivalent)',
-      ];
+      // No question has been asked yet, so this is what --no-prompts writes: API paradigm unset, VS Code (BL-083).
+      const generator = new SpecGenerator();
+      const apiYaml = `${options.specsName}/architecture/api.yaml`;
+      const seen = new Set<string>();
+      let files = 0;
+      const list = (rels: string[]) => {
+        const entries: string[] = [];
+        for (const rel of rels) {
+          const parts = rel.split('/');
+          for (let i = 1; i < parts.length; i++) {
+            const dir = parts.slice(0, i).join('/');
+            if (!seen.has(dir)) {
+              seen.add(dir);
+              entries.push(join(targetDir, dir) + '/');
+            }
+          }
+          entries.push(join(targetDir, rel) + (rel === apiYaml ? '  (not written for API paradigm None)' : ''));
+          files++;
+        }
+        return entries.map(e => chalk.white('  ' + e));
+      };
 
       const content = [
         chalk.blue('🚀 Dry run — no files will be written'),
         '',
         chalk.blue.bold('Files that would be created:'),
         '',
-        ...entries.map(e => chalk.white('  ' + e)),
+        chalk.white('  ' + targetDir + '/'),
+        ...list(generator.targetsInSpecs('', options.specsName)),
         '',
-        chalk.gray(`(${entries.filter(e => !e.endsWith('/')).length} files, ${entries.filter(e => e.endsWith('/')).length} directories)`),
+        chalk.gray('  For VS Code; the IDE you choose decides these:'),
+        ...list(generator.targetsOutsideSpecs('vscode')),
+        '',
+        chalk.gray(`(${files} files, ${seen.size + 1} directories)`),
         '',
         chalk.cyan(`💡 Run without --dry-run to create these files.`),
       ];

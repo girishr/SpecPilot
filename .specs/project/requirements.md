@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-10-14 (BL-108 Spec Report)
+lastUpdated: 2026-10-14 (BL-083 Spec Report)
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.63
+version: 1.64
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -87,6 +87,7 @@ relatedFiles:
 - `specpilot add-specs` must prompt for IDE/Agent preference using the same 6-choice list as `specpilot init` (vscode, Cursor, Windsurf, Antigravity, Claude Code, Codex); selected IDE must be passed to `SpecGenerator.generateSpecs()` so the correct AI context file is generated for the existing project; must respect `--no-prompts` flag by defaulting to `vscode` [REQ-002.F.9]
 - All generated AI instruction files must include `## Code Philosophy — Write Only What Needed` (7 items) and `## Code Rules` (7 rules) in caveman style; injected into every IDE/agent output: `CLAUDE.md`, `copilot-instructions.md`, Cursor rules, Windsurf rules, Antigravity rules, `SKILL.md`, `CODEX_INSTRUCTIONS.md`; `specpilot backfill` must detect missing sections and append them to existing IDE files [REQ-002.F.10]
 - `specpilot validate` treats `architecture/api.yaml` as optional (BL-107): the generator writes it only when the API paradigm is not None (REQ-002.I.4), and the paradigm is stored nowhere, so a missing `api.yaml` is neither an error nor a `--fix` target, and `project/requirements.md` is not asked to reference it while it does not exist (it still is when it exists). Every other required file and check is unchanged. The `specpilot-validate` command's script matches since BL-108 (REQ-002.E.12) [REQ-002.F.11]
+- `specpilot init <name> --dry-run` lists the files `init` would write, read from the generator's own tables (`targetsInSpecs()`, `targetsOutsideSpecs()`), never a copy of them (BL-083). It runs before any question, so it lists what `--no-prompts` writes (API paradigm unset, VS Code); `architecture/api.yaml` is marked as not written for API paradigm None, and the files outside the specs folder are marked as the VS Code set, which the IDE choice changes. Directories are the folders of the listed files. Nothing is asked and nothing is written [REQ-002.F.12]
 
 ### Plugin Distribution [REQ-002.G]
 

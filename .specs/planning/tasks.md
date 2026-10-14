@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (BL-108 done)
-version: 6.85
+lastUpdated: 2026-10-14 (BL-083 Spec Report)
+version: 6.86
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -55,7 +55,6 @@ Notes
 | BL-080 | `specpilot serve` with no arguments in a folder without `.specs/` starts on Home instead of exiting 1 (reverses REQ-002.H.1; needs a server with zero projects, which every route's project 0 default assumes today). Asked during BL-PM-003; the developer kept REQ-002.H.1 for that item. |
 | BL-081 | `specpilot serve` on a case-insensitive volume (macOS default): `realpath` keeps the spelling it is given, so a folder already served as `Foo` and opened or created again as `foo` is not seen as the same folder and gets a second index (two tiles, two pollers); nothing is overwritten. Affects `POST /api/projects` since BL-067 and `POST /api/projects/new` (BL-PM-003); compare served roots by `realpathSync.native` or by device and inode. Found by spec-reviewer during BL-PM-003; not part of it. |
 | BL-082 | `specpilot init` asks a Brownfield project its four project-context questions (the first is required) but writes the answers nowhere: `specFileGenerator.ts` puts them into `onboarding.md` only in the Greenfield branch of the onboarding prompt. Either use them in the Brownfield prompt or do not ask. Since BL-PM-004 `specpilot serve` does not ask a Brownfield new project these questions. Found by spec-reviewer during BL-PM-004; not part of it. |
-| BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
 | BL-086 | Remove `SlashCommandGenerator.generate()` and `targets()` from `src/utils/slashCommandGenerator.ts`: since BL-032 the writer goes through `render()` and `writeNew()`, so neither has a caller outside `src/__tests__/` (15 call sites in `slashCommandGenerator.test.ts`, which test the per-IDE routing on disk); move those tests to `render()` or `commandFiles()`. Found by spec-reviewer on the BL-032 build (2026-10-06). |
 | BL-PM-015 | Open in Windsurf: a `windsurf://file/<root>` link (and a prompt link if Windsurf has one) beside BL-PM-010's Cursor item, when the project has `.windsurfrules`. Windsurf documents no URL scheme; held until tested on a machine with Windsurf installed. Dropped from BL-PM-010 by the developer (2026-10-10). |
 | BL-094 | Flaky browser test: `with --mcp the card holds the config line and Copy puts it on the clipboard` (`src/__browser__/mcp.browser.test.ts`) failed once in about 30 runs (2026-10-10, on `fix/bl-pm-009-narrow-status`, which does not touch the card): on its 420px page, after the `Copied.` toast, so either `navigator.clipboard.readText()` or the no-sideways-scroll check failed; the error text was not kept (the harness saves it since the fix that added this row). Not reproduced in 15 runs of that file and 9 more full runs. Headless Chromium keeps its own clipboard, so the system clipboard is not the cause. On the next failure, read `<test>-error.txt` and fix the cause. 2026-10-11, on the checked-in fixture (BL-099): 30 runs of 30 passed, light and dark (60 passes); not reproduced, nothing to fix. |
@@ -68,6 +67,7 @@ Notes
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
+| BL-083 | `specpilot init --dry-run` prints a hard-coded copy of the `.specs/` file list and always lists `api.yaml`, also for an API paradigm of None; read the list from `SpecGenerator.targetsInSpecs()` (added by BL-PM-004) instead. Found by spec-reviewer during BL-PM-004; not part of it. |
 
 ## Completed
 

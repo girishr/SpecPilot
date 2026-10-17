@@ -58,15 +58,21 @@ function initials(n){const w=String(n).split(/[^A-Za-z0-9]+/).filter(Boolean);
   if(w.length>1)return (w[0][0]+w[1][0]).toUpperCase();
   return w[0].slice(0,2).toUpperCase();}
 function renderProject(){
-  const p=DATA.project, name=projectLabel(p), where=p.root+(p.branch?' · '+p.branch:'');
+  $('#footAddr').textContent=$('#homeAddr').textContent=location.host;$('#footVer').textContent=$('#homeVer').textContent='v'+DATA.specpilotVersion;
+  const p=DATA.project;
+  if(!p){ // no project served (BL-080): an empty rail and top bar; Home is the view
+    $('#projList').innerHTML='';$('#curGrp').textContent='';$('#curGrp').title='';$('#curBranch').textContent='';
+    $('#subName').textContent='';$('#subPath').textContent='';document.title='SpecPilot Local';return;}
+  const name=projectLabel(p), where=p.root+(p.branch?' · '+p.branch:'');
   $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=projectLabel(q),cur=i===PROJECT&&!NOPROJ.includes(curView);
     return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
   $('#subName').textContent=name;$('#subPath').textContent=where;$('#editorBtn').href=editorUrl(p.root);syncIde();
-  $('#footAddr').textContent=$('#homeAddr').textContent=location.host;$('#footVer').textContent=$('#homeVer').textContent='v'+p.specpilotVersion;
   document.title=name+' · SpecPilot Local';
 }
+/* Everything a payload draws; with no project served (BL-080) only the rail, bar and footer. */
+function renderAll(){renderProject();if(!DATA.project)return;renderTasks();renderIde();renderAgentFiles();}
 
 /* ---------------- views ---------------- */
 const homeBtn=$('#homeBtn');
@@ -88,7 +94,8 @@ function go(v,keep,sub){
   if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
   else if(NOPROJ.includes(v)){if(!TOKEN)v='board';} // no Home and no #new with --read-only
   else if(!VIEWS[v]||v==='setup')v='board';
-  if(!NOPROJ.includes(v)&&DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route of the project shows the setup view (BL-055)
+  if(!NOPROJ.includes(v)&&DATA&&!DATA.project)v='home'; // no project served: Home is the only view (BL-080)
+  else if(!NOPROJ.includes(v)&&DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route of the project shows the setup view (BL-055)
   curView=v;
   $('#win').classList.toggle('home',v==='home');$('#win').classList.toggle('insetup',v==='new'||v==='setup');
   $$('.content>.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+(v==='new'?'setup':v))); // one Setup view for both (BL-103)
@@ -541,7 +548,7 @@ function renderSetup(){
   [...v.children].forEach(el=>{if(el.id!=='suNote')el.hidden=off;});
   $('#suNote').hidden=TOKEN||!named;$('#suNote').textContent='Started with --read-only, so nothing can be set up here.';
   if(off){$('#crumb').hidden=!named;if(named)$('#crumb').textContent=p.root+' · no specs yet';return;}
-  const name=String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root,url=clonedFrom[p.root];
+  const name=p?String(p.root).split(/[/\\]/).filter(Boolean).pop()||p.root:'',url=p?clonedFrom[p.root]:null; // #new has no project behind it when none is served (BL-080)
   const tail=' Your AI IDE sets them up: it reads the code, answers what it can, and asks you the rest.';
   $('#suLead').innerHTML=isNew?'Name the project and choose where it goes. Your AI IDE creates it and writes the specs from your answers.'
     :url?`Cloned ${mono(url)}. It has no SpecPilot specs yet.${tail}`:`${mono(name)} has no SpecPilot specs yet.${tail}`;
@@ -626,10 +633,10 @@ async function apply(d,paths){
   const key=focusKey(document.activeElement);
   const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;
   const was=inspOpen;
-  const hadSpecs=!(DATA&&DATA.project.specs===false);
+  const hadSpecs=!(DATA&&DATA.project&&DATA.project.specs===false);
   DATA=d;
-  renderProject();renderTasks();renderIde();renderAgentFiles();
-  const to=reloadView(curView,hadSpecs,d.project.specs!==false); // .specs/ gone: offer setup; appeared another way: Tasks; Home stays
+  renderAll();
+  const to=reloadView(curView,hadSpecs,!d.project||d.project.specs!==false); // .specs/ gone: offer setup; appeared another way: Tasks; Home stays
   if(to){go(to);return;}
   if(curView==='file')await renderFile(curFile);
   if(curView==='explorer')renderExplorer();
@@ -648,7 +655,7 @@ let es=null;
 function listen(){
   if(stopped||!window.EventSource)return;
   if(es)es.close(); // one stream, for the shown project
-  es=new EventSource('/api/events?'+pq());let dropped=false;
+  es=new EventSource(DATA&&!DATA.project?'/api/events':'/api/events?'+pq());let dropped=false; // no project served: the server-level stream (BL-080)
   es.addEventListener('clone',e=>onCloneEvent(e.data));
   es.addEventListener('setup',e=>onSetupEvent(e.data));
   es.addEventListener('mcp',e=>{let d=null;try{d=JSON.parse(e.data);}catch(_){}if(d&&DATA){DATA.mcp=d;if(curView==='setup'||curView==='new')suStatus();}});
@@ -670,7 +677,7 @@ async function switchProject(n,keepRoute){
 function showProject(d,keepRoute){
   Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
   DATA=d;selected=null;setRegenNote([]);
-  renderProject();renderTasks();renderIde();renderAgentFiles();listen();
+  renderAll();listen();
   if(keepRoute)route();else go('board');
 }
 $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-project]');if(!b)return;
@@ -850,9 +857,10 @@ $('#recentBox').addEventListener('keydown',e=>{const row=e.target.closest&&e.tar
 insp.setAttribute('aria-hidden','true');
 $('#gDone').classList.add('closed');
 PROJECT=resolveRoute(curHash(),{},Infinity).project;
-fetch('/api/specs?'+pq(),{cache:'no-store'})
-  .then(r=>{if(!r.ok&&PROJECT){PROJECT=0;return fetch('/api/specs?'+pq(),{cache:'no-store'});}return r;})
+const bootQ=()=>PROJECT?'?'+pq():''; // project 0 is asked for without the parameter: with nothing served the server answers the no-project state (BL-080)
+fetch('/api/specs'+bootQ(),{cache:'no-store'})
+  .then(r=>{if(!r.ok&&PROJECT){PROJECT=0;return fetch('/api/specs'+bootQ(),{cache:'no-store'});}return r;})
   .then(r=>{if(!r.ok)throw new Error('/api/specs: HTTP '+r.status);return r.json();})
-  .then(d=>{DATA=d;renderProject();renderTasks();renderIde();renderAgentFiles();route();listen();})
+  .then(d=>{DATA=d;renderAll();route();listen();})
   .catch(e=>showErr('Could not load the project: '+e.message));
 })();

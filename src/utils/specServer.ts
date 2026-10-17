@@ -133,11 +133,11 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       name: projectName(contents['project/project.yaml']),
       root,
       branch: readBranch(root),
-      specpilotVersion,
       specs: !specsMissing(root), // false → the page offers guided setup (BL-055)
       // the file SpecPilot writes for Cursor; checked, never served (BL-PM-010, SEC-004.8)
       cursor: resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
     },
+    specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,
     tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root) } : null,
     nav: {
@@ -194,10 +194,10 @@ function projectList(roots: string[]) {
   });
 }
 
-/** `?project=<n>` → index into the served roots: omitted = 0; one canonical whole number in range, else null (404). */
+/** `?project=<n>` → index into the served roots: omitted = 0 when a project 0 exists (BL-080); one canonical whole number in range, else null (404). */
 function projectIndex(url: URL, count: number): number | null {
   const given = url.searchParams.getAll('project');
-  if (given.length === 0) return 0;
+  if (given.length === 0) return 0 < count ? 0 : null;
   if (given.length > 1 || !/^(0|[1-9][0-9]*)$/.test(given[0])) return null;
   const n = Number(given[0]);
   return n < count ? n : null;
@@ -298,24 +298,33 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     return { streams, poller };
   };
   const projects = roots.map(projectFor);
-  const allStreams = () => projects.flatMap(p => [...p.streams]);
+  // Streams opened while no project is served (BL-080): server-level events only (mcp, setup, clone,
+  // the heartbeat), never a change; no poller; counted against the cap like any other stream.
+  const serverStreams = new Set<ServerResponse>();
+  const allStreams = () => [...serverStreams, ...projects.flatMap(p => [...p.streams])];
   let heartbeat: NodeJS.Timeout | null = null;
-  const drop = (i: number, res: ServerResponse) => {
-    const { streams, poller } = projects[i];
-    if (!streams.delete(res)) return;
-    if (!streams.size) poller.stop();
+  const drop = (i: number | null, res: ServerResponse) => {
+    if (i === null) serverStreams.delete(res);
+    else {
+      const { streams, poller } = projects[i];
+      if (!streams.delete(res)) return;
+      if (!streams.size) poller.stop();
+    }
     if (allStreams().length || !heartbeat) return;
     clearInterval(heartbeat);
     heartbeat = null;
   };
-  const openStream = (i: number, req: IncomingMessage, res: ServerResponse) => {
+  const openStream = (i: number | null, req: IncomingMessage, res: ServerResponse) => {
     if (allStreams().length >= MAX_EVENT_STREAMS) return send(res, 503, TEXT, 'Too many open event streams\n');
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', ...SECURITY_HEADERS });
     res.write('retry: 2000\n\n');
-    const { streams, poller } = projects[i];
-    streams.add(res);
     req.on('close', () => drop(i, res));
-    if (streams.size === 1) poller.start();
+    if (i === null) serverStreams.add(res);
+    else {
+      const { streams, poller } = projects[i];
+      streams.add(res);
+      if (streams.size === 1) poller.start();
+    }
     if (!heartbeat) heartbeat = setInterval(() => allStreams().forEach(s => s.write(': heartbeat\n\n')), opts.heartbeatMs ?? 25000);
   };
 
@@ -1001,6 +1010,12 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const ui = UI_ROUTES[url.pathname];
       if (ui) return send(res, 200, ui[1], readFileSync(join(UI_DIR, ui[0])));
       if (url.pathname !== '/api/specs' && url.pathname !== '/api/file' && url.pathname !== '/api/events') return send(res, 404, TEXT, 'Not Found\n');
+      // No project served yet (BL-080): the page learns the state from /api/specs and listens for the
+      // server-level events; the one place the omitted-project rule bends (REQ-002.H.44).
+      if (!roots.length && !url.searchParams.has('project')) {
+        if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ project: null, projects: [], files: {}, specpilotVersion, mcp: { client: mcpClient } }));
+        if (url.pathname === '/api/events') return openStream(null, req, res);
+      }
       const i = projectIndex(url, roots.length);
       if (i === null) return send(res, 404, TEXT, 'Not Found\n');
       if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(payload(i)));

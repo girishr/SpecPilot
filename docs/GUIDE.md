@@ -339,10 +339,10 @@ specpilot backfill --dry-run
 
 #### `specpilot serve [folders...] [options]`
 
-Serve a local web UI over the `.specs/` of this project (or of each folder named) at `http://127.0.0.1:4321`: tasks, spec files, instruction files, commands and skills, updated live as files change. Task moves, new tasks and Regenerate All write `.specs/planning/tasks.md` and `specpilot-*` command files only. See the README's `specpilot serve` section for everything the page does.
+Serve a local web UI over the `.specs/` of this project (or of each folder named) at `http://127.0.0.1:4321`: tasks, spec files, instruction files, commands and skills, updated live as files change. Task moves, new tasks and Regenerate All write `.specs/planning/tasks.md` and `specpilot-*` command files only. In a folder without `.specs/`, `specpilot serve` starts with no project open and shows Home, where you open, clone or start a project (the folder itself is not served; `specpilot serve .` names it); every served project is remembered in `~/.specpilot/projects.json`. See the README's `specpilot serve` section for everything the page does.
 
 ```bash
-specpilot serve                 # this project
+specpilot serve                 # this project (no .specs/ here: no project open, Home to open one)
 specpilot serve ../api ../web   # two projects on one server
 specpilot serve --no-mcp        # without the local MCP endpoint for your AI IDE
 ```

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-14 (v2.16.0 shipped)
-version: 6.92
+lastUpdated: 2026-10-17 (BL-080 revived)
+version: 6.93
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -50,7 +50,6 @@ Notes
 | BL-077 | `init`, `add-specs` and `refine --update` create IDE files inside existing folders with `mkdirSync({ recursive: true })`, so a `.vscode/`, `.github/`, `.claude/commands/` (etc.) that is a symbolic link to a folder outside the project gets new files written outside it. Guided setup refuses this (REQ-002.H.16 step 5, 409, nothing written). Apply the same check in the CLI: refuse before writing anything when a folder on the way is a symbolic link or not a folder. Found by spec-reviewer during BL-073; not part of it (BL-073 guards only the file's own path). |
 | BL-076 | `specpilot backfill` does not add the three `merge=union` lines to an existing `.gitattributes` (`specBackfiller.ts` never touches the file), so a project whose `.gitattributes` BL-055's guided setup keeps, or that was initialised before the lines existed, never gets them from backfill. Add a `.gitattributes` check to backfill, append-only as `IdeConfigGenerator.generateGitAttributes()` does. Found during BL-055's review; not part of it. |
 | BL-078 | `specpilot serve` Home: when a Home row points at a folder that is already open as another project and that project then fails to load, the "already open" toast replaces the "Could not load the project" one and focus moves to the content area while Home is still shown (`openPath()` in `ui/app.js`). Keep the load error on screen and leave focus where it is. Found by spec-reviewer during BL-PM-001; not part of it. |
-| BL-080 | `specpilot serve` with no arguments in a folder without `.specs/` starts on Home instead of exiting 1 (reverses REQ-002.H.1; needs a server with zero projects, which every route's project 0 default assumes today). Asked during BL-PM-003; the developer kept REQ-002.H.1 for that item. |
 | BL-081 | `specpilot serve` on a case-insensitive volume (macOS default): `realpath` keeps the spelling it is given, so a folder already served as `Foo` and opened or created again as `foo` is not seen as the same folder and gets a second index (two tiles, two pollers); nothing is overwritten. Affects `POST /api/projects` since BL-067 and `POST /api/projects/new` (BL-PM-003); compare served roots by `realpathSync.native` or by device and inode. Found by spec-reviewer during BL-PM-003; not part of it. |
 | BL-082 | `specpilot init` asks a Brownfield project its four project-context questions (the first is required) but writes the answers nowhere: `specFileGenerator.ts` puts them into `onboarding.md` only in the Greenfield branch of the onboarding prompt. Either use them in the Brownfield prompt or do not ask. Since BL-PM-004 `specpilot serve` does not ask a Brownfield new project these questions. Found by spec-reviewer during BL-PM-004; not part of it. |
 | BL-086 | Remove `SlashCommandGenerator.generate()` and `targets()` from `src/utils/slashCommandGenerator.ts`: since BL-032 the writer goes through `render()` and `writeNew()`, so neither has a caller outside `src/__tests__/` (15 call sites in `slashCommandGenerator.test.ts`, which test the per-IDE routing on disk); move those tests to `render()` or `commandFiles()`. Found by spec-reviewer on the BL-032 build (2026-10-06). |
@@ -65,6 +64,7 @@ Notes
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
+| BL-080 | `specpilot serve` with no folder named, in a folder without `.specs/`, starts with no project open (the page on Home) instead of exiting 1; `--read-only` keeps the exit 1. The current directory is not served (REQ-002.H.15 stands); the first project opened, cloned or created from Home gets index 0. `~/.specpilot/projects.json` is created at startup and every served root recorded, so the desktop app's project list exists from the first run (supersedes BL-067's "only when the file already exists"). Revived from Won't do 2026-10-17 on the developer's plan for the desktop version (D4, D5 in context.md); REQ-002.H.44, ARCH-004.58. |
 
 ## Completed
 

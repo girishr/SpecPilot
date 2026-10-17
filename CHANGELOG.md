@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`specpilot serve` in a folder without `.specs/` no longer exits 1** (BL-080): it starts with no project open and the page shows Home, where you open, clone or start a project; the current directory is not served (`specpilot serve .` names it). `--read-only` still exits 1 there.
+- **`~/.specpilot/projects.json` is created on the first `specpilot serve` of any project** (BL-080): every served project is recorded at startup, so Recent projects lists it next time. Until now the file was created only when a folder was first opened from the page, and command-line folders were recorded only once it existed. The startup line reads `Projects are remembered in ~/.specpilot/projects.json.`
+- **`GET /api/specs` carries `specpilotVersion` at the top level** (BL-080), no longer under `project`. With no project served it answers `{project: null, projects: [], files: {}, specpilotVersion, mcp}`, and `GET /api/events` without `project` is then a server-level stream (`mcp`, `setup` and `clone` events, never `change`) that counts toward the cap of 8.
+
 ## [2.16.0] - 2026-10-14
 
 ### Fixed

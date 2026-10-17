@@ -3033,7 +3033,10 @@ describe('serveCommand and the registry (BL-067)', () => {
     b.cleanup();
   });
 
-  async function serveAndStop(folders: string[], options: { readOnly?: boolean } = {}): Promise<{ port: number; out: string[] }> {
+  /** Stops still owed by tests that kept the server up (BL-114's HTTP checks); run before the outer afterEach restores `process.exit`. */
+  const afterStops: Array<() => Promise<void>> = [];
+  /** Start, read the output, stop with Ctrl+C; with `keep`, `fetch` works until the test's own afterEach stops it. */
+  async function serveAndStop(folders: string[], options: { readOnly?: boolean } = {}, keep = false): Promise<{ port: number; out: string[]; fetch: (path: string) => ReturnType<typeof hit> }> {
     const probe = await startSpecServer([a.root], 0, 'x');
     const port = (probe.server.address() as AddressInfo).port;
     await probe.close();
@@ -3045,9 +3048,14 @@ describe('serveCommand and the registry (BL-067)', () => {
     }) as never);
     await serveCommand(folders, { port: String(port), ...options });
     const out = stripVTControlCharacters(logs.join('\n')).split('\n');
-    process.emit('SIGINT');
-    expect(await done).toBe(0);
-    return { port, out };
+    const stop = async () => {
+      process.emit('SIGINT');
+      expect(await done).toBe(0);
+    };
+    const fetch = (path: string) => hit(port, path);
+    if (keep) afterStops.push(stop);
+    else await stop();
+    return { port, out, fetch };
   }
 
   it('creates the registry file with the served folder when there is none, and prints the registry line after the hint (BL-080)', async () => {
@@ -3095,6 +3103,176 @@ describe('serveCommand and the registry (BL-067)', () => {
     expect(reg.entries!.map(x => x.path)).toEqual(['/other', realpathSync(a.root), realpathSync(b.root)]);
     for (const x of reg.entries!.slice(1)) expect(Date.parse(x.lastOpened)).toBeGreaterThanOrEqual(t0 - 1000);
     expect(reg.entries![0].lastOpened).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  // Remembered projects reopened at startup (BL-114, REQ-002.H.45): the registry's entries with .specs/ follow the named folders.
+  describe('reopens the remembered projects (BL-114)', () => {
+    const entry = (path: string, lastOpened: string, pinned = false): RegistryEntry => ({ path: realpathSync(path), lastOpened, pinned });
+    const fileHash = () => createHash('sha256').update(readFileSync(regFile())).digest('hex');
+    let empty: string;
+    let cwd: string;
+    beforeEach(() => {
+      cwd = process.cwd();
+      empty = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-empty-')));
+      process.chdir(empty);
+    });
+    afterEach(async () => {
+      for (const stop of afterStops.splice(0)) await stop(); // before the outer afterEach restores process.exit
+      process.chdir(cwd);
+      rmSync(empty, { recursive: true, force: true });
+    });
+    const HINT = 'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.';
+
+    it('serves the remembered projects in display order after a cwd without .specs/, prints the lines in order, and leaves the file byte for byte', async () => {
+      writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-01-02T00:00:00.000Z')]);
+      const before = fileHash();
+      const { port, out } = await serveAndStop([]);
+      expect(out.slice(0, 6)).toEqual([
+        `SpecPilot is serving 2 projects at http://127.0.0.1:${port}`,
+        `  0  ${realpathSync(b.root)}`,
+        `  1  ${realpathSync(a.root)}`,
+        `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
+        'Reopened 2 remembered projects from ~/.specpilot/projects.json.',
+        HINT,
+      ]);
+      expect(out.join('\n')).not.toContain('with no project open');
+      expect(fileHash()).toBe(before);
+    });
+
+    it('prints the single-project line and the singular for one remembered project, pinned first otherwise', async () => {
+      writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z')]);
+      const one = await serveAndStop([]);
+      expect(one.out.slice(0, 3)).toEqual([
+        `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${one.port}`,
+        `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
+        'Reopened 1 remembered project from ~/.specpilot/projects.json.',
+      ]);
+      logs.length = 0;
+      writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z', true), entry(b.root, '2026-01-02T00:00:00.000Z')]);
+      const two = await serveAndStop([]);
+      expect(two.out[1]).toBe(`  0  ${realpathSync(a.root)}`);
+    });
+
+    it('serves a named folder once, at index 0, records it, and leaves the reopened entry as it was', async () => {
+      writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-01-02T00:00:00.000Z')]);
+      const { port, out } = await serveAndStop([a.root]);
+      expect(out.slice(0, 4)).toEqual([
+        `SpecPilot is serving 2 projects at http://127.0.0.1:${port}`,
+        `  0  ${realpathSync(a.root)}`,
+        `  1  ${realpathSync(b.root)}`,
+        'Reopened 1 remembered project from ~/.specpilot/projects.json.',
+      ]);
+      const reg = readRegistry(regFile()).entries!;
+      expect(reg.find(e => e.path === realpathSync(b.root))!.lastOpened).toBe('2026-01-02T00:00:00.000Z');
+      expect(Date.parse(reg.find(e => e.path === realpathSync(a.root))!.lastOpened)).toBeGreaterThan(Date.parse('2026-01-01T00:00:00.000Z'));
+    });
+
+    it("reopens the current directory's own entry once too, with named false for it and true for the reopened one", async () => {
+      writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-01-02T00:00:00.000Z')]);
+      process.chdir(a.root);
+      const { port, out, fetch } = await serveAndStop([], {}, true);
+      expect(out.slice(0, 3)).toEqual([`SpecPilot is serving 2 projects at http://127.0.0.1:${port}`, `  0  ${realpathSync(a.root)}`, `  1  ${realpathSync(b.root)}`]);
+      const p0 = JSON.parse((await fetch('/api/specs?project=0')).body);
+      const p1 = JSON.parse((await fetch('/api/specs?project=1')).body);
+      expect(p0.project.named).toBe(false);
+      expect(p1.project.named).toBe(true);
+      expect(p1.project.root).toBe(realpathSync(b.root));
+    });
+
+    it('skips, silently, an entry without .specs/, a missing folder, a file, the home folder and a root; Home still lists them', async () => {
+      const bare = mkdtempSync(join(os.tmpdir(), 'specpilot-bare-'));
+      const gone = join(bare, 'gone');
+      try {
+        writeRegistry(regFile(), [
+          entry(a.root, '2026-01-05T00:00:00.000Z'),
+          { path: realpathSync(bare), lastOpened: '2026-01-04T00:00:00.000Z', pinned: false },
+          { path: gone, lastOpened: '2026-01-03T00:00:00.000Z', pinned: false },
+          { path: join(realpathSync(a.root), 'CLAUDE.md'), lastOpened: '2026-01-02T00:00:00.000Z', pinned: false },
+          { path: HOME, lastOpened: '2026-01-01T00:00:00.000Z', pinned: false },
+          { path: '/', lastOpened: '2025-12-31T00:00:00.000Z', pinned: false },
+        ]);
+        const { port, out, fetch } = await serveAndStop([], {}, true);
+        expect(out.slice(0, 3)).toEqual([
+          `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
+          `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
+          'Reopened 1 remembered project from ~/.specpilot/projects.json.',
+        ]);
+        expect(out.join('\n')).not.toContain('Not reopened');
+        const list = JSON.parse((await fetch('/api/projects')).body);
+        expect(list.entries.map((e: { path: string; project: number | null; exists: boolean }) => [e.path, e.project, e.exists])).toEqual([
+          [realpathSync(a.root), 0, true],
+          [realpathSync(bare), null, true],
+          [gone, null, false],
+          [join(realpathSync(a.root), 'CLAUDE.md'), null, false],
+          [HOME, null, true],
+          ['/', null, true],
+        ]);
+      } finally {
+        rmSync(bare, { recursive: true, force: true });
+      }
+    });
+
+    (process.platform === 'win32' || process.getuid?.() === 0 ? it.skip : it)('says why a remembered project could not be read, after the Reopened line, and serves the rest', async () => {
+      writeRegistry(regFile(), [entry(a.root, '2026-01-02T00:00:00.000Z'), entry(b.root, '2026-01-01T00:00:00.000Z')]);
+      chmodSync(join(b.root, '.specs/planning/tasks.md'), 0o000);
+      try {
+        const { port, out } = await serveAndStop([]);
+        expect(out.slice(0, 3)).toEqual([
+          `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
+          `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
+          'Reopened 1 remembered project from ~/.specpilot/projects.json.',
+        ]);
+        expect(out[3]).toMatch(new RegExp(`^Not reopened: ${realpathSync(b.root).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\(.*EACCES.*\\)\\.$`));
+        expect(out[4]).toBe(HINT);
+      } finally {
+        chmodSync(join(b.root, '.specs/planning/tasks.md'), 0o644);
+      }
+    });
+
+    it('stops at 20 served, counts only what would have been reopened, and names the real count', async () => {
+      const many = Array.from({ length: 19 }, () => makeProject());
+      const missing = join(empty, 'missing');
+      try {
+        writeRegistry(regFile(), [...many.map((m, i) => entry(m.root, `2026-01-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`)), entry(a.root, '2025-12-01T00:00:00.000Z'), { path: missing, lastOpened: '2025-11-01T00:00:00.000Z', pinned: false }]);
+        const first = await serveAndStop([b.root, a.root]); // 2 named, then 18 of the 19 remembered; a is already served; the missing one is not counted
+        expect(first.out[0]).toBe(`SpecPilot is serving ${MAX_PROJECTS} projects at http://127.0.0.1:${first.port}`);
+        expect(first.out.slice(MAX_PROJECTS + 1, MAX_PROJECTS + 3)).toEqual(['Reopened 18 remembered projects from ~/.specpilot/projects.json.', `1 remembered project not reopened: this server already serves ${MAX_PROJECTS}.`]);
+        logs.length = 0;
+        const named = [...many.map(m => m.root), a.root, b.root]; // 21 named: nothing reopened, the real count
+        writeRegistry(regFile(), [entry(empty, '2026-02-01T00:00:00.000Z')]);
+        write(empty, '.specs/project/project.yaml', 'name: x\n');
+        const second = await serveAndStop(named);
+        expect(second.out[0]).toBe(`SpecPilot is serving 21 projects at http://127.0.0.1:${second.port}`);
+        expect(second.out[22]).toBe('1 remembered project not reopened: this server already serves 21.');
+        expect(second.out.join('\n')).not.toContain('Reopened ');
+      } finally {
+        many.forEach(m => m.cleanup());
+      }
+    });
+
+    it('never runs the stale-staging sweep in a reopened project', async () => {
+      const stale = join(b.root, '.specpilot-setup-0123456789ab');
+      mkdirSync(stale);
+      writeFileSync(join(stale, STAGING_MARKER), '');
+      writeRegistry(regFile(), [entry(b.root, '2026-01-01T00:00:00.000Z')]);
+      const { out } = await serveAndStop([]);
+      expect(out[2]).toBe('Reopened 1 remembered project from ~/.specpilot/projects.json.');
+      expect(existsSync(stale)).toBe(true);
+      expect(out.join('\n')).not.toContain('Removed ');
+    });
+
+    it('reopens nothing with --read-only or a refused registry', async () => {
+      writeRegistry(regFile(), [entry(b.root, '2026-01-01T00:00:00.000Z')]);
+      const ro = await serveAndStop([a.root], { readOnly: true });
+      expect(ro.out[0]).toBe(`SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${ro.port}`);
+      expect(ro.out.join('\n')).not.toContain('Reopened');
+      logs.length = 0;
+      writeFileSync(regFile(), '{broken');
+      const bad = await serveAndStop([a.root]);
+      expect(bad.out[0]).toBe(`SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${bad.port}`);
+      expect(bad.out.join('\n')).not.toContain('Reopened');
+      expect(bad.out.some(l => l.includes('could not be read'))).toBe(true);
+    });
   });
 
   it('with --read-only leaves an existing file byte-identical and prints no registry line', async () => {

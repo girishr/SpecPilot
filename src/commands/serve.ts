@@ -105,8 +105,9 @@ async function stopRunningServer(port: number, logger: Logger): Promise<void> {
 
 /**
  * Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current
- * directory (BL-054), which must contain `.specs/`; a named folder without one is served for guided
- * setup (BL-055). More folders can be opened from the page and are remembered in the registry (BL-067).
+ * directory (BL-054) when it contains `.specs/`; without one the server starts with no project open
+ * (BL-080; `--read-only` still exits 1); a named folder without one is served for guided setup
+ * (BL-055). More folders can be opened from the page; every served folder is remembered in the registry (BL-067, BL-080).
  */
 export async function serveCommand(folders: string[], options: ServeOptions, command?: Command): Promise<void> {
   const logger = new Logger();
@@ -125,14 +126,16 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
     return stopRunningServer(port, logger);
   }
   const roots: string[] = [];
+  let noProject: string | null = null; // the current directory, looked at and not served (BL-080)
 
   if (!folders.length) {
     const root = realpathSync(process.cwd()); // like a named folder, so "already served" compares like for like (BL-067)
-    if (!existsSync(join(root, '.specs'))) {
+    if (existsSync(join(root, '.specs'))) roots.push(root);
+    else if (options.readOnly) {
+      // A read-only page has no Home, no Open and no Setup view: nothing to show (REQ-002.H.44).
       logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, `specpilot init` first, or `specpilot serve .` to set one up in the browser.');
       return process.exit(1);
-    }
-    roots.push(root);
+    } else noProject = root;
   }
   for (const folder of folders) {
     let root: string;
@@ -176,15 +179,16 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
     for (const root of roots) for (const dir of removeStaleStaging(root)) console.log(`Removed ${dir}/, left by an interrupted setup.`);
   }
 
-  // The registry (BL-067): the folders named here are recorded only when the file already exists, so
-  // plain `specpilot serve` never creates one; a file that cannot be used is said so and left alone.
+  // The registry (BL-067): every served folder is recorded at startup, and the file is created when it
+  // is missing (BL-080, D5: it is the desktop app's project list); with nothing served nothing is
+  // written; a file that cannot be used is said so and left alone.
   const home = homeDir();
   const registry = options.readOnly ? undefined : registryPath(home);
   let registryNote: string | null = null;
   if (registry) {
     const read = readRegistry(registry);
     if (read.error !== null) registryNote = `${displayRoot(registry, home)} could not be read (${read.error}). It was left as it is; projects opened in this run are not remembered.`;
-    else if (read.exists) {
+    else if (roots.length) {
       try {
         writeRegistry(registry, roots.reduce((entries, root) => upsertEntry(entries, root, new Date()), read.entries));
       } catch (err) {
@@ -206,7 +210,10 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
   }
 
   const url = `http://127.0.0.1:${port}`;
-  if (roots.length === 1) console.log(chalk.green(`SpecPilot is serving ${roots[0]} at ${url}`));
+  if (noProject !== null) {
+    console.log(chalk.green(`SpecPilot is running at ${url} with no project open.`));
+    console.log(`No .specs/ folder in ${noProject}. Open a project from the page, or run specpilot serve <folder>.`);
+  } else if (roots.length === 1) console.log(chalk.green(`SpecPilot is serving ${roots[0]} at ${url}`));
   else {
     console.log(chalk.green(`SpecPilot is serving ${roots.length} projects at ${url}`));
     roots.forEach((root, i) => console.log(`  ${i}  ${root}`));
@@ -222,7 +229,7 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
           : 'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ),
   );
-  if (registry) console.log(chalk.gray(`Folders opened in the page are remembered in ${displayRoot(registry, home)}.`));
+  if (registry) console.log(chalk.gray(`Projects are remembered in ${displayRoot(registry, home)}.`));
   if (registryNote) console.log(registryNote);
   if (mcp) {
     console.log(`MCP endpoint: ${url}/mcp${options.readOnly ? ' (read tools only)' : ''}`);

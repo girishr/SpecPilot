@@ -12,12 +12,14 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
    that names no served project goes to project 0's Tasks view. "#home" is the Home screen
    (BL-PM-001) when `home` says the page has one, and "#new" the new-project chat (BL-PM-004) on the
    same terms: both belong to no project, so an index before them and anything after is ignored;
-   without `home` they are unknown views. */
+   without `home` they are unknown views. A `count` of 0 (no project served, BL-080) keeps those two
+   and sends every other hash, the empty one included, to Home; the boot call passes Infinity. */
 function resolveRoute(hash,files,count,home){
   let h=String(hash||'').replace(/^#/,''),project=0;
   const m=/^(\d+)\/(.*)$/.exec(h);
   const top=/^(home|new)(\/|$)/.exec(m?m[2]:h);
   if(home&&top)return {project:0,view:top[1],sub:'',missing:false};
+  if(home&&count===0)return {project:0,view:'home',sub:'',missing:false};
   if(m){
     if(!/^(0|[1-9][0-9]*)$/.test(m[1])||Number(m[1])>=(count||1))return {project:0,view:'board',sub:'',missing:false};
     project=Number(m[1]);h=m[2];

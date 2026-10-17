@@ -165,7 +165,8 @@ export function browserTest(
         return route.abort();
       });
       await page.goto(`${served.url}/${hash}`);
-      await page.waitForFunction(() => document.querySelector('#projList .tile') !== null || !!document.querySelector('#loadErr:not([hidden])'));
+      // Loaded: a project tile, a load error, or (no project served, BL-080) the footer version the page sets on every load.
+      await page.waitForFunction(() => document.querySelector('#projList .tile') !== null || !!document.querySelector('#loadErr:not([hidden])') || document.querySelector('#footVer')!.textContent !== '');
       return t;
     };
     try {

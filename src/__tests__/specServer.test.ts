@@ -220,10 +220,10 @@ describe('buildSpecsPayload against this repo', () => {
   const tasksMd = readFileSync(join(REPO, '.specs/planning/tasks.md'), 'utf-8').split('\n');
 
   it('has project metadata, per-file metadata, tasks and the nav tree', () => {
-    expect(Object.keys(payload).sort()).toEqual(['files', 'nav', 'project', 'tasks']);
+    expect(Object.keys(payload).sort()).toEqual(['files', 'nav', 'project', 'specpilotVersion', 'tasks']);
     expect(payload.project.name).toBe('SpecPilot SDD CLI');
     expect(payload.project.root).toBe(REPO);
-    expect(payload.project.specpilotVersion).toBe('0.0.0-test');
+    expect(payload.specpilotVersion).toBe('0.0.0-test'); // top level since BL-080
     expect(Object.keys(payload.files).sort()).toEqual([...payload.nav.specs].sort());
     expect(payload.nav.specs).toEqual(expect.arrayContaining(['planning/tasks.md', 'project/project.yaml', 'architecture/api.yaml']));
     expect(payload.files['planning/tasks.md'].fileID).toBe('TASKS-001');
@@ -465,9 +465,29 @@ describe('serveCommand', () => {
     expect(errors.join('\n')).toContain('Invalid --port');
   });
 
-  it('refuses to start without .specs/ in the current directory, and names `specpilot serve .` (BL-055)', async () => {
+  it('starts with no project open when the current directory has no .specs/, and creates no registry file (BL-080)', async () => {
+    const empty = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-empty-')));
+    process.chdir(empty);
+    try {
+      const { port, out } = await runAndStop({});
+      const lines = stripVTControlCharacters(out).split('\n');
+      expect(lines.slice(0, 5)).toEqual([
+        `SpecPilot is running at http://127.0.0.1:${port} with no project open.`,
+        `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
+        'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+        'Projects are remembered in ~/.specpilot/projects.json.',
+        `MCP endpoint: http://127.0.0.1:${port}/mcp`,
+      ]);
+      expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    } finally {
+      process.chdir(p.root);
+      rmSync(empty, { recursive: true, force: true });
+    }
+  });
+
+  it('with --read-only still refuses to start without .specs/ in the current directory, and names `specpilot serve .` (BL-055, BL-080)', async () => {
     process.chdir(os.tmpdir());
-    await expect(serveCommand([], {})).rejects.toThrow('exit 1');
+    await expect(serveCommand([], { readOnly: true })).rejects.toThrow('exit 1');
     expect(errors.join('\n')).toContain('No .specs/ folder in this directory. Run `specpilot serve` from a project root, `specpilot init` first, or `specpilot serve .` to set one up in the browser.');
   });
 
@@ -857,6 +877,18 @@ describe('UI routing (ui/route.js)', () => {
       expect(resolveRoute(hash, files).view).toBe(view);
     },
   );
+
+  it.each([['', 'home'], ['#board', 'home'], ['#2/board', 'home'], ['#file/quality/tests.md', 'home'], ['#home', 'home'], ['#new', 'new']])(
+    'with no project served routes %j to %s (BL-080)',
+    (hash, view) => {
+      expect(resolveRoute(hash, files, 0, true)).toEqual({ project: 0, view, sub: '', missing: false });
+    },
+  );
+
+  it('keeps the project 0 fallback with one project, and the boot call\'s Infinity', () => {
+    expect(resolveRoute('#board', files, 1, true).view).toBe('board');
+    expect(resolveRoute('#3/board', files, Infinity, true)).toEqual({ project: 3, view: 'board', sub: '', missing: false });
+  });
 
   it('reads the project index of a route (BL-054)', () => {
     expect(resolveRoute('#1/board', files, 3)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
@@ -2543,6 +2575,83 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+// No project served (BL-080): the state a bare `specpilot serve` without .specs/ (and the desktop app) starts in.
+describe('no project served (BL-080)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+
+  beforeEach(async () => {
+    p = makeProject();
+    spec = await startSpecServer([], 0, '0.0.0-test', { pollMs: 250, settleMs: 30, heartbeatMs: 60, registry: regFile(), mcp: true });
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+  const writeHeaders = (over: Record<string, string | undefined> = {}) => ({ Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token, ...over });
+  const mcpHeaders = { Host: '', 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': '', 'MCP-Protocol-Version': '2025-11-25' };
+  const mcp = (method: string, params: unknown) => post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), { ...mcpHeaders, Host: `127.0.0.1:${port}`, 'X-SpecPilot-Token': spec.mcpToken! }, '/mcp');
+
+  it('answers GET /api/specs without a project as the no-project state, the version at the top level', async () => {
+    const r = await hit(port, '/api/specs');
+    expect(r.status).toBe(200);
+    expect(JSON.parse(r.body)).toEqual({ project: null, projects: [], files: {}, specpilotVersion: '0.0.0-test', mcp: { client: null } });
+  });
+
+  it('answers 404 on every project route, with ?project=0 and without the parameter, after the shared write checks', async () => {
+    for (const path of ['/api/specs?project=0', '/api/events?project=0', '/api/file?p=CLAUDE.md', '/api/file?project=0&p=CLAUDE.md']) {
+      expect((await hit(port, path)).status).toBe(404);
+    }
+    for (const path of ['/api/tasks/move', '/api/tasks/new', '/api/commands/regenerate']) {
+      for (const q of ['', '?project=0']) {
+        expect((await post(port, '{}', writeHeaders({ 'If-Match': 'x' }), path + q)).status).toBe(404);
+        expect((await post(port, '{}', writeHeaders({ Origin: undefined }), path + q)).status).toBe(403);
+      }
+    }
+  });
+
+  it('opens a server-level stream: counted against the cap, carries mcp, never a change; the first open becomes project 0', async () => {
+    const open = await Promise.all(Array.from({ length: MAX_EVENT_STREAMS }, () => openEvents(port)));
+    expect(open.every(s => s.status === 200)).toBe(true);
+    await until(() => spec.streams() === MAX_EVENT_STREAMS);
+    expect((await openEvents(port)).status).toBe(503);
+    open.slice(1).forEach(s => s.close());
+    await until(() => spec.streams() === 1);
+    const first = open[0];
+    await first.waitFor(/: heartbeat\n\n/, 1000);
+    await mcp('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'claude-code', version: '1' } });
+    expect(await first.waitFor(/event: mcp\ndata: .*\n/)).toBe('event: mcp\ndata: {"client":{"name":"claude-code"}}\n');
+    expect(JSON.parse((await hit(port, '/api/specs')).body).mcp).toEqual({ client: { name: 'claude-code' } });
+
+    const opened = await post(port, JSON.stringify({ path: p.root }), writeHeaders(), '/api/projects');
+    expect(opened.status).toBe(200);
+    expect(opened.json.project).toBe(0);
+    expect(opened.json.specs.specpilotVersion).toBe('0.0.0-test');
+    expect(opened.json.specs.project.specpilotVersion).toBeUndefined();
+    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).projects).toHaveLength(1);
+    expect(JSON.parse((await hit(port, '/api/specs')).body).project.root).toBe(realpathSync(p.root)); // omitted means project 0 again
+    expect(readRegistry(regFile()).entries!.map(x => x.path)).toEqual([realpathSync(p.root)]);
+    const fresh = await openEvents(port);
+    await until(() => spec.streams() === 2);
+    write(p.root, '.specs/planning/tasks.md', '# changed\n');
+    await fresh.waitFor(/event: change\n/, 3000);
+    expect(first.text()).not.toContain('event: change'); // the no-project stream stays server-level for its life
+    fresh.close();
+    first.close();
+    await until(() => spec.streams() === 0);
+  });
+
+  it('over /mcp, specpilot_list_projects is empty and a tool that takes a project is refused', async () => {
+    expect((await mcp('tools/call', { name: 'specpilot_list_projects', arguments: {} })).json.result.structuredContent.projects).toEqual([]);
+    const r = await mcp('tools/call', { name: 'specpilot_list_tasks', arguments: {} });
+    expect(r.json.result).toEqual({ content: [{ type: 'text', text: 'No project 0 is served. specpilot_list_projects lists them.' }], isError: true });
+  });
+});
+
 // Project registry and opening a folder from the page (BL-067). Every test runs under the temp HOME.
 
 describe('project registry over HTTP', () => {
@@ -2941,14 +3050,41 @@ describe('serveCommand and the registry (BL-067)', () => {
     return { port, out };
   }
 
-  it('creates no registry file when there is none, and prints the registry line after the hint', async () => {
+  it('creates the registry file with the served folder when there is none, and prints the registry line after the hint (BL-080)', async () => {
+    const t0 = Date.now();
     const { port, out } = await serveAndStop([a.root]);
-    expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+    const reg = readRegistry(regFile());
+    expect(reg.entries!.map(x => x.path)).toEqual([realpathSync(a.root)]);
+    expect(Date.parse(reg.entries![0].lastOpened)).toBeGreaterThanOrEqual(t0 - 1000);
+    if (process.platform !== 'win32') {
+      expect(statSync(join(HOME, '.specpilot')).mode & 0o777).toBe(0o700);
+      expect(statSync(regFile()).mode & 0o777).toBe(0o600);
+    }
     expect(out.slice(0, 3)).toEqual([
       `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
       'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
-      'Folders opened in the page are remembered in ~/.specpilot/projects.json.',
+      'Projects are remembered in ~/.specpilot/projects.json.',
     ]);
+  });
+
+  it('records the current-directory default too, and creates nothing when nothing is served (BL-080)', async () => {
+    const cwd = process.cwd();
+    const empty = mkdtempSync(join(os.tmpdir(), 'specpilot-empty-'));
+    try {
+      process.chdir(a.root);
+      await serveAndStop([]);
+      expect(readRegistry(regFile()).entries!.map(x => x.path)).toEqual([realpathSync(a.root)]);
+      rmSync(join(HOME, '.specpilot'), { recursive: true, force: true });
+      logs.length = 0;
+      process.chdir(empty);
+      const { out } = await serveAndStop([]);
+      expect(existsSync(join(HOME, '.specpilot'))).toBe(false);
+      expect(out[0]).toMatch(/^SpecPilot is running at http:\/\/127\.0\.0\.1:\d+ with no project open\.$/);
+      expect(out[1]).toBe(`No .specs/ folder in ${realpathSync(empty)}. Open a project from the page, or run specpilot serve <folder>.`);
+    } finally {
+      process.chdir(cwd);
+      rmSync(empty, { recursive: true, force: true });
+    }
   });
 
   it('records the named folders when the file already exists, keeping other entries', async () => {

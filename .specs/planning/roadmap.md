@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-14 (v2.16.0 prepared)
-version: 1.43
+lastUpdated: 2026-10-17 (BL-080 Spec Report)
+version: 1.44
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -107,6 +107,7 @@ Priority: the complete UI and its features first. Order, one BL per branch and S
 6. Local MCP endpoint and the Connect your AI IDE card (BL-PM-007) ✅, with MCP revision `2026-07-28` (BL-089) ✅ and a build that cleans `dist/` first (BL-087) ✅, in v2.13.0
 7. Full release of SpecPilot Local
 8. Website update with the `specpilot serve` docs, then the announcement and LinkedIn post (BL-059)
+9. Desktop direction (decided 2026-10-17): the app launches with no folder to serve, so `specpilot serve` from any folder starts with no project open and `~/.specpilot/projects.json` is the project list from the first run (BL-080, revived from Won't do); the desktop packaging itself is not yet planned
 
 Releases between steps are decided per step. Not planned now: the mockup's Needs you list, out-of-date instruction files, the in-sync chip, the conflict banner and the agent runner (left out under the content rule; to be revisited).
 

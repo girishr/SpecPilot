@@ -5,9 +5,9 @@ import { existsSync, realpathSync, statSync } from 'fs';
 import { request } from 'http';
 import { connect } from 'net';
 import { join, resolve } from 'path';
-import { displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
+import { buildSpecsPayload, displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
 import { removeStaleStaging, specsMissing } from '../utils/specSetup';
-import { homeDir, readRegistry, registryPath, upsertEntry, writeRegistry } from '../utils/projectRegistry';
+import { checkOpenPath, homeDir, MAX_PROJECTS, readRegistry, registryPath, sortEntries, upsertEntry, writeRegistry } from '../utils/projectRegistry';
 import { Logger } from '../utils/logger';
 
 const packageJson = require('../../package.json');
@@ -107,7 +107,8 @@ async function stopRunningServer(port: number, logger: Logger): Promise<void> {
  * Runs until Ctrl+C; exits the process with 1 on any startup error. `folders` empty = the current
  * directory (BL-054) when it contains `.specs/`; without one the server starts with no project open
  * (BL-080; `--read-only` still exits 1); a named folder without one is served for guided setup
- * (BL-055). More folders can be opened from the page; every served folder is remembered in the registry (BL-067, BL-080).
+ * (BL-055). More folders can be opened from the page; every served folder is remembered in the registry (BL-067, BL-080),
+ * and the remembered projects with `.specs/` are reopened after the named ones (BL-114).
  */
 export async function serveCommand(folders: string[], options: ServeOptions, command?: Command): Promise<void> {
   const logger = new Logger();
@@ -126,12 +127,16 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
     return stopRunningServer(port, logger);
   }
   const roots: string[] = [];
+  // `named` per root (REQ-002.H.15): the Setup view is offered in folders the user named, never the current-directory default.
+  const named: boolean[] = [];
   let noProject: string | null = null; // the current directory, looked at and not served (BL-080)
 
   if (!folders.length) {
     const root = realpathSync(process.cwd()); // like a named folder, so "already served" compares like for like (BL-067)
-    if (existsSync(join(root, '.specs'))) roots.push(root);
-    else if (options.readOnly) {
+    if (existsSync(join(root, '.specs'))) {
+      roots.push(root);
+      named.push(false);
+    } else if (options.readOnly) {
       // A read-only page has no Home, no Open and no Setup view: nothing to show (REQ-002.H.44).
       logger.error('No .specs/ folder in this directory. Run `specpilot serve` from a project root, `specpilot init` first, or `specpilot serve .` to set one up in the browser.');
       return process.exit(1);
@@ -149,9 +154,10 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
       logger.error(`Not a folder: ${folder}`);
       return process.exit(1);
     }
-    if (!roots.includes(root)) roots.push(root); // the same folder named twice is served once
+    if (roots.includes(root)) continue; // the same folder named twice is served once
+    roots.push(root);
+    named.push(true);
   }
-  const named = roots.map(() => folders.length > 0);
 
   const port = options.port === undefined ? DEFAULT_PORT : Number(options.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
@@ -174,7 +180,8 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
     return process.exit(1);
   }
 
-  // What an interrupted setup left behind (marked staging folders only); a delete, so never with --read-only.
+  // What an interrupted setup left behind (marked staging folders only); a delete, so never with --read-only,
+  // and only in the folders named here, never in a reopened one (BL-114, SEC-004.29): `roots` holds only those yet.
   if (!options.readOnly) {
     for (const root of roots) for (const dir of removeStaleStaging(root)) console.log(`Removed ${dir}/, left by an interrupted setup.`);
   }
@@ -185,15 +192,43 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
   const home = homeDir();
   const registry = options.readOnly ? undefined : registryPath(home);
   let registryNote: string | null = null;
+  // The remembered projects reopened after the named ones (BL-114, REQ-002.H.45): the lines they add, printed after the list.
+  let reopened = 0;
+  const reopenLines: string[] = [];
   if (registry) {
     const read = readRegistry(registry);
     if (read.error !== null) registryNote = `${displayRoot(registry, home)} could not be read (${read.error}). It was left as it is; projects opened in this run are not remembered.`;
-    else if (roots.length) {
-      try {
-        writeRegistry(registry, roots.reduce((entries, root) => upsertEntry(entries, root, new Date()), read.entries));
-      } catch (err) {
-        registryNote = `${displayRoot(registry, home)} could not be written (${(err as Error).message}). It was left as it is; projects opened in this run are not remembered.`;
+    else {
+      if (roots.length) {
+        try {
+          writeRegistry(registry, roots.reduce((entries, root) => upsertEntry(entries, root, new Date()), read.entries));
+        } catch (err) {
+          registryNote = `${displayRoot(registry, home)} could not be written (${(err as Error).message}). It was left as it is; projects opened in this run are not remembered.`;
+        }
       }
+      // Every entry in display order that passes the open route's path rule and has .specs/; the registry
+      // itself is not rewritten for these (lastOpened stays the user's). Past the cap nothing is read but
+      // what the path rule and the .specs/ check need.
+      let pastCap = 0;
+      for (const entry of sortEntries(read.entries)) {
+        const check = checkOpenPath(entry.path, roots, home);
+        if (!('root' in check) || specsMissing(check.root)) continue;
+        if (roots.length >= MAX_PROJECTS) {
+          pastCap++;
+          continue;
+        }
+        try {
+          buildSpecsPayload(check.root, packageJson.version); // the read addRoot() makes before serving a folder
+        } catch (err) {
+          reopenLines.push(`Not reopened: ${check.root} (${(err as Error).message}).`);
+          continue;
+        }
+        roots.push(check.root);
+        named.push(true);
+        reopened++;
+      }
+      if (reopened) reopenLines.unshift(`Reopened ${reopened} remembered ${reopened === 1 ? 'project' : 'projects'} from ${displayRoot(registry, home)}.`);
+      if (pastCap) reopenLines.push(`${pastCap} remembered ${pastCap === 1 ? 'project' : 'projects'} not reopened: this server already serves ${roots.length}.`);
     }
   }
 
@@ -210,16 +245,16 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
   }
 
   const url = `http://127.0.0.1:${port}`;
-  if (noProject !== null) {
-    console.log(chalk.green(`SpecPilot is running at ${url} with no project open.`));
-    console.log(`No .specs/ folder in ${noProject}. Open a project from the page, or run specpilot serve <folder>.`);
-  } else if (roots.length === 1) console.log(chalk.green(`SpecPilot is serving ${roots[0]} at ${url}`));
+  if (!roots.length) console.log(chalk.green(`SpecPilot is running at ${url} with no project open.`));
+  else if (roots.length === 1) console.log(chalk.green(`SpecPilot is serving ${roots[0]} at ${url}`));
   else {
     console.log(chalk.green(`SpecPilot is serving ${roots.length} projects at ${url}`));
     roots.forEach((root, i) => console.log(`  ${i}  ${root}`));
   }
+  if (noProject !== null) console.log(`No .specs/ folder in ${noProject}. Open a project from the page, or run specpilot serve <folder>.`);
   const empty = roots.filter(root => specsMissing(root));
   for (const root of empty) console.log(options.readOnly ? `No .specs/ in ${root}.` : `No .specs/ in ${root} yet. Open the page to set it up.`);
+  for (const line of reopenLines) console.log(line);
   console.log(
     chalk.gray(
       options.readOnly

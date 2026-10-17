@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-17 (BL-114 added)
-version: 6.95
+lastUpdated: 2026-10-17 (BL-114 completed)
+version: 6.96
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -64,7 +64,6 @@ Notes
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
-| BL-114 | `specpilot serve` reopens the remembered projects at startup: after the command-line folders (or the current-directory default), every `~/.specpilot/projects.json` entry with `.specs/` that passes the open route's path rule is served, in the registry's order, up to the cap of 20, so the rail shows yesterday's projects after a restart instead of looking empty. A folder without `.specs/` stays on Home's list to click; a missing folder is skipped; the registry is not rewritten for a reopened root. Reverses SEC-004.13's rejected alternative (the developer's choice 2 of two, 2026-10-17, after BL-080 left the rail empty on restart; D6). REQ-002.H.45, ARCH-004.59, SEC-004.29. |
 
 ## Completed
 
@@ -95,3 +94,4 @@ Notes
 | 213 | [CD-girishr-122] | v2.16.0 release prepared and shipped (BL-108, BL-083, BL-074; also BL-068, BL-109, BL-110): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.16.0]`, annotated tag `v2.16.0`; the Completed section archived (`specpilot archive --force`: rows 181 to 193 to `tasks-archive.md`, this row having taken it past 40 lines); pushed and published (row 214) |
 | 214 | [CD-girishr-123] | v2.16.0 shipped (BL-108, BL-083, BL-074): pushed, npm `specpilot@2.16.0` latest, GitHub release live (2026-10-14) |
 | 215 | [CD-girishr-124] [BL-080] | `specpilot serve` with no folder named, in a folder without `.specs/`, starts with no project open and the page on Home instead of exiting 1 (`--read-only` keeps the exit 1); `~/.specpilot/projects.json` is created at startup with every served root recorded; `specpilotVersion` at the top level of `/api/specs`; a no-project `/api/events` is a server-level stream (REQ-002.H.44, ARCH-004.58; Architectural; architect decisions Q1 to Q5; D4, D5). Revived from Won't do 2026-10-17 on the developer's plan for the desktop version. Feature commit `ac65d32` |
+| 216 | [CD-girishr-125] [BL-114] | `specpilot serve` reopens the remembered projects at startup: after the folders named (or the current directory), every `~/.specpilot/projects.json` entry that passes the open route's path rule and has `.specs/`, in the registry's order, up to 20; the registry is not rewritten for them, the stale-staging sweep never runs in them, `--read-only` reopens nothing (REQ-002.H.45, ARCH-004.59, SEC-004.29 reversing SEC-004.13's rejected alternative; Architectural; D6; architect decisions Q1 to Q6). Feature commit `27f0ee3` |

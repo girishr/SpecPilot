@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (BL-TB-07 completed)
-version: 2.134
+lastUpdated: 2026-10-18 (BL-TB-07 pushed)
+version: 2.135
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-18: on the developer's typed `push` after the BL-TB-07 merge: `main` pushed (`3c43438..f3c1095`, Jest 1616/1617 with the known BL-115 failure, browser 63/63, read by eye); `origin/main` = local `main` checked; branch `feat/bl-tb-07-completed-all` deleted (local only). Still open: BL-115 on its own branch, the prompts.md archive row; this line is uncommitted on the tree.
 - 2026-10-18: on the developer's typed `commit` after the BL-TB-07 build report: feature commit `e1697f6` on `feat/bl-tb-07-completed-all` (tasks.md not in it), completion commit (row 220, CD-girishr-129), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
 - 2026-10-18: BL-TB-07 built on `feat/bl-tb-07-completed-all` after spec-reviewer A FIX (two spec wording fixes) then PASS: `ui/app.js` (the Completed fold removed in four places), `tasks.browser.test.ts` (+1 case, the 420px case extended, `rowsIn()` skips the Completed header); Jest 1616/1617 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 63/63 three times after two test fixes; specs recorded; spec-reviewer B next; no Day brief, so stop before commit.
 - 2026-10-18: `do BL-TB-07` (Completed lane shows every row, Show All removed): branch `feat/bl-tb-07-completed-all` from `main` (`3c43438`, clean tree); Spec Report (Feature: REQ-002.H.49, ARCH-004.63, CHANGELOG `Removed`, tests.md, context with six defaults); spec-reviewer A next, then the build with browser tests at 1280px and 420px; no Day brief, so stop before commit.

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-17 (BL-114 completed)
-version: 6.99
+lastUpdated: 2026-10-18 (BL-UI-01..02, BL-TB-01..08, BL-CL-02, BL-115 added)
+version: 7.00
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -12,6 +12,7 @@ Task ID conventions
 
 - BL-###: Backlog items
 - CS-###: Current Sprint items
+- BL-UI-##, BL-TB-##, BL-CL-##: Backlog items from the developer's review notes (Oct 2026), by area: UI = app shell and general screens (Home, left rail), TB = Tasks board, CL = CLI
 - BL-PM-###: Backlog items for SpecPilot Local (`specpilot serve`) from the approved mockup (`~/Documents/dev/SpecPilot PM tool/specpilot-local.html`) that no BL covered yet
 - CD-girishr-###: Completed items (e.g. CD-girishr-001)
 - CD-###: Completed items
@@ -46,7 +47,19 @@ Notes
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
 | BL-111 | `specpilot validate` warns when `planning/tasks.md` lacks `## Backlog`, `## Current Sprint` or `## Completed`, naming the `## ` headings it found instead; `--fix` renames a heading only when the match is unambiguous (case or heading level, e.g. `## backlog`, `### Backlog`), anything else stays a warning for the developer. Today the validator only checks for a status word (`specValidator.ts` `hasTaskStatus`) and `--fix` only creates missing files, so a renamed heading passes validation and silently empties the board. Found 2026-10-15 while answering how the board reads tasks.md. |
 | BL-112 | `specpilot serve` tasks page shows a notice when tasks.md lacks a known section heading or has `## ` headings the parser does not know: which headings were expected, which were found, that rows under unknown headings are not shown, and the "Open tasks.md in VS Code" link. Shown in every state, beside the "Rows that could not be parsed" group (`renderTasks()` in `ui/app.js`); `specReader.ts` reports the unknown and missing headings. Browser test at 420px. Sections BL-113 adds are known, not warned about. |
-| BL-113 | tasks.md gains two sections, kept beside Backlog, Current Sprint and Completed, which stay as they are: `## Icebox` for far-future work and `## Won't do` for rows closed without doing (this repo's tasks.md already has one, hidden from the board today). Both are two-column tables like Backlog, parsed by `specReader.ts`, shown in list and board modes; Icebox rows move to and from Backlog by drag and keys (`taskMover.ts`), Won't do is read-only like Completed; the `init` template (`specFiles.ts`), the validator (BL-111) and the page notice (BL-112) learn the two headings. Decided 2026-10-15 (names, movable Icebox, read-only Won't do, both modes). Feature: Spec Report first. |
+| BL-113 | tasks.md gains two sections, kept beside Backlog, Current Sprint and Completed, which stay as they are: `## Icebox` for far-future work and `## Won't do` for rows closed without doing (this repo's tasks.md already has one, hidden from the board today). Both are two-column tables like Backlog, parsed by `specReader.ts`, shown in list and board modes; Icebox rows move to and from Backlog by drag and keys (`taskMover.ts`), Won't do is read-only like Completed; the `init` template (`specFiles.ts`), the validator (BL-111) and the page notice (BL-112) learn the two headings. Decided 2026-10-15 (names, movable Icebox, read-only Won't do, both modes). Feature: Spec Report first. Extends BL-115's served-sections list in the row-count test. |
+| BL-115 | Trivial: `specServer.test.ts` `returns every task row byte for byte as it appears in tasks.md` counts rows in `## Backlog`, `## Current Sprint` and `## Completed` only (rows between each served heading and the next `## `), not every `| BL`/`| CS`/`| <num>` line in the file, and asserts the count is above zero. Fails on `main` since `57ab376` added the `## Won't do` rows `specReader.ts` does not serve. Architect decision 2026-10-18 under BL-TB-01; BL-113 adds Icebox and Won't do to the served list. Branch `fix/bl-115-row-count-sections`, merged before the next push. |
+| BL-UI-01 | `specpilot serve` Home: pretty-print (indented, multi-line) the MCP config JSON in "Connect Your AI IDE (optional, one line)" so it is readable and easy to copy. |
+| BL-UI-02 | `specpilot serve` left rail: add a Settings item (cogwheel icon, label "Settings"); move the Light/Dark toggle and "Quit SpecPilot" into it and remove them from their current places. |
+| BL-TB-01 | Tasks: remove the list view entirely; the board is the only view; remove the view-switcher tab bar. |
+| BL-TB-02 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
+| BL-TB-03 | Tasks board: all swimlanes fit the visible window height (no page scroll); cards that overflow scroll inside their own lane with a scrollbar; lane header and footer stay fixed (Trello-style). |
+| BL-TB-04 | Tasks board: lane order left to right is Backlog, Current Sprint, Completed. |
+| BL-TB-05 | Tasks board: "+ Add new task" button at the bottom of every lane, pinned below the scrolling cards (Trello "+ Add a card" style). |
+| BL-TB-06 | Tasks board: Archive button in the Completed lane header; clicking it runs the existing archive-completed function. |
+| BL-TB-07 | Tasks board: remove the "Show all" button from Completed; the lane always shows all items (scrolls per BL-TB-03). |
+| BL-TB-08 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
+| BL-CL-02 | `specpilot serve` startup: print the project's `.specs/` folder path (not only the project root) and the generation path. Remainder of BL-CL-01 ("serve from any folder, warn when no `.specs/`, still start"), which BL-080 (`ac65d32`) already delivered and was verified 2026-10-18. Definition of "generation path" to confirm with the developer. |
 
 ## Current Sprint
 

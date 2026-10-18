@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (BL-TB-04 completed)
-version: 2.132
+lastUpdated: 2026-10-18 (BL-TB-07 completed)
+version: 2.134
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,9 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-18: on the developer's typed `commit` after the BL-TB-07 build report: feature commit `e1697f6` on `feat/bl-tb-07-completed-all` (tasks.md not in it), completion commit (row 220, CD-girishr-129), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
+- 2026-10-18: BL-TB-07 built on `feat/bl-tb-07-completed-all` after spec-reviewer A FIX (two spec wording fixes) then PASS: `ui/app.js` (the Completed fold removed in four places), `tasks.browser.test.ts` (+1 case, the 420px case extended, `rowsIn()` skips the Completed header); Jest 1616/1617 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 63/63 three times after two test fixes; specs recorded; spec-reviewer B next; no Day brief, so stop before commit.
+- 2026-10-18: `do BL-TB-07` (Completed lane shows every row, Show All removed): branch `feat/bl-tb-07-completed-all` from `main` (`3c43438`, clean tree); Spec Report (Feature: REQ-002.H.49, ARCH-004.63, CHANGELOG `Removed`, tests.md, context with six defaults); spec-reviewer A next, then the build with browser tests at 1280px and 420px; no Day brief, so stop before commit.
 - 2026-10-18: on the developer's typed `go` after the BL-TB-03 build report: `docs(tasks)` commit `ca579dd` (the developer's BL-UI-03 row, found on the tree by the pre-commit tasks.md diff read), feature commit `c659aa8` on `feat/bl-tb-03-lane-scroll`, completion commit (row 219, CD-girishr-128); the `--no-ff` merge, both suites on `main`, the push and the branch delete follow.
 - 2026-10-18: BL-TB-03 built on `feat/bl-tb-03-lane-scroll` after spec-reviewer A FIX (two spec wording fixes) then PASS: `ui/index.html`, `ui/app.css`, `ui/app.js` (`renderTasks()` intro fold, `apply()` lane scroll), `tasks.browser.test.ts` (+2 cases, the 420px case extended); checked by hand on a scratch fixture copy with a temp HOME at 1280 and 420; Jest 1616/1617 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 62/62 three times; specs recorded; spec-reviewer B FIX (420px intro-open check, a tests.md sentence), fixed, browser re-run three times, reviewer re-run; no commit asked.
 - 2026-10-18: `do BL-TB-03` (board lanes fit the window, Trello-style lane scroll): branch `feat/bl-tb-03-lane-scroll` from `main` (`14a3013`); Spec Report (Feature: REQ-002.H.48, ARCH-004.62, CHANGELOG `Changed`, tests.md, context with six defaults); spec-reviewer A next, then the build with reviewer B, Jest and three browser runs. No Day brief, so no commit, merge or push before the developer's typed go-ahead. prompts.md is still past its 100-line limit (archive row pending, the developer's call).

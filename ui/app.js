@@ -164,7 +164,7 @@ $('#rail').addEventListener('keydown',e=>{
 /* ---------------- tasks: the rows of planning/tasks.md ---------------- */
 /* Cells are readSpecs() output, verbatim. Rows are keyed by section and position, never by
    ID: IDs repeat in real files (two rows can share a # and an ID). */
-let selected=null, lastFocus=null, showAllDone=false;
+let selected=null, lastFocus=null;
 const insp=$('#insp');
 const COLS={currentSprint:'Current Sprint',backlog:'Backlog',completed:'Completed'};
 const DOT={completed:'green',currentSprint:'orange',backlog:'hollow'};
@@ -183,16 +183,13 @@ function taskRow({t,i},col){
     <div class="trail">${chev}</div>
   </button>`;
 }
-function group(col,items,opt){
-  opt=opt||{};
-  const shown=opt.limit&&!opt.all?items.slice(0,opt.limit):items;
-  const more=opt.limit&&!opt.all&&items.length>opt.limit?`<button type="button" class="more" data-more="${col}">Show All ${items.length}</button>`:'';
-  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${more}</div>`;
-  return gh+`<div class="box">${shown.length?shown.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
+function group(col,items){
+  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span></div>`;
+  return gh+`<div class="box">${items.length?items.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }
 function renderTasks(){
   const B=rowsOf('backlog'),S=rowsOf('currentSprint'),D=rowsOf('completed');
-  $('#boardMode').innerHTML=[['backlog',B,{}],['currentSprint',S,{}],['completed',D,{limit:8,all:showAllDone}]].map(([c,items,o])=>`<div class="gl" data-col="${c}">${group(c,items,o)}</div>`).join('');
+  $('#boardMode').innerHTML=[['backlog',B],['currentSprint',S],['completed',D]].map(([c,items])=>`<div class="gl" data-col="${c}">${group(c,items)}</div>`).join('');
   const T=DATA.tasks;
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;
@@ -221,7 +218,6 @@ function closeInsp(){const was=insp.classList.contains('open');insp.classList.re
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
   if(TOKEN)bindMoves();
-  $$('[data-more]').forEach(b=>b.onclick=e=>{e.stopPropagation();showAllDone=true;renderTasks();});
 }
 
 /* ---------------- any .specs/ file, rendered as written ---------------- */
@@ -589,7 +585,7 @@ function focusKey(el){
   if(!el||el===document.body)return null;
   const row=el.closest&&el.closest('.row[data-col][data-i]');
   if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i};}
-  for(const a of ['data-open','data-file','data-more'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
+  for(const a of ['data-open','data-file'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
   if(el.id)return {sel:'#'+CSS.escape(el.id)};
   return null;
 }

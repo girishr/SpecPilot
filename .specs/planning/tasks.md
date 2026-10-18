@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-18 (BL-TB-01 completed)
-version: 7.01
+lastUpdated: 2026-10-18 (BL-TB-04 completed)
+version: 7.02
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -51,7 +51,6 @@ Notes
 | ID | Description |
 |---|---|
 | CS-092 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
-| BL-TB-04 | Tasks board: lane order left to right is Backlog, Current Sprint, Completed. |
 | BL-TB-03 | Tasks board: all swimlanes fit the visible window height (no page scroll); cards that overflow scroll inside their own lane with a scrollbar; lane header and footer stay fixed (Trello-style). |
 | BL-TB-07 | Tasks board: remove the "Show all" button from Completed; the lane always shows all items (scrolls per BL-TB-03). |
 | BL-TB-05 | Tasks board: "+ Add new task" button at the bottom of every lane, pinned below the scrolling cards (Trello "+ Add a card" style). |
@@ -117,3 +116,4 @@ Notes
 | 215 | [CD-girishr-124] [BL-080] | `specpilot serve` with no folder named, in a folder without `.specs/`, starts with no project open and the page on Home instead of exiting 1 (`--read-only` keeps the exit 1); `~/.specpilot/projects.json` is created at startup with every served root recorded; `specpilotVersion` at the top level of `/api/specs`; a no-project `/api/events` is a server-level stream (REQ-002.H.44, ARCH-004.58; Architectural; architect decisions Q1 to Q5; D4, D5). Revived from Won't do 2026-10-17 on the developer's plan for the desktop version. Feature commit `ac65d32` |
 | 216 | [CD-girishr-125] [BL-114] | `specpilot serve` reopens the remembered projects at startup: after the folders named (or the current directory), every `~/.specpilot/projects.json` entry that passes the open route's path rule and has `.specs/`, in the registry's order, up to 20; the registry is not rewritten for them, the stale-staging sweep never runs in them, `--read-only` reopens nothing (REQ-002.H.45, ARCH-004.59, SEC-004.29 reversing SEC-004.13's rejected alternative; Architectural; D6; architect decisions Q1 to Q6). Feature commit `27f0ee3` |
 | 217 | [CD-girishr-126] [BL-TB-01] | `specpilot serve` Tasks view is the board alone: the List mode and the List/Board switch removed, the Backlog fold and the Completed disclosure with them; `#board/board` links still open Tasks; lane order and Completed's Show All left for BL-TB-04 and BL-TB-07 (REQ-002.H.46, ARCH-004.60; Feature; architect decision on the merge gate: BL-115). Browser suite 59 → 60. Feature commit `d30cbb6` |
+| 218 | [CD-girishr-127] [BL-TB-04] | `specpilot serve` Tasks board lanes run Backlog, Current Sprint, Completed, left to right (one column on narrow windows); `Alt+Right` from Backlog now goes the way the screen shows; the palette's order and Completed's Show All (BL-TB-07) unchanged (REQ-002.H.47, ARCH-004.61; Feature; reviewers A PASS, B ESCALATE with nothing to fix: the prompts.md line-limit warning, pre-existing on `main`, is for an archive row before the next push). Browser suite 60, three runs. Feature commit `267a8b9` |

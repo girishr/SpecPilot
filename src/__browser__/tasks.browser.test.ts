@@ -169,7 +169,8 @@ browserTest('the inspector link opens tasks.md at the row line, and follows the 
   await page.waitForFunction(m => (document.querySelector('#insp .actions a')?.getAttribute('href') ?? '').endsWith(':' + m), n + 2);
 });
 
-// BL-TB-01: the board is the only Tasks view; no List mode and no List/Board switch.
+// BL-TB-01: the board is the only Tasks view; no List mode and no List/Board switch. BL-TB-04: the lanes run
+// Backlog, Current Sprint, Completed, on screen (left edges at the harness's 1280px) as well as in the DOM.
 browserTest('Tasks is the board alone: no switch, no list, three lanes in order, every Backlog row shown', b, async open => {
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Backlog');
@@ -184,7 +185,10 @@ browserTest('Tasks is the board alone: no switch, no list, three lanes in order,
   expect(await page.locator('#modeSeg').count()).toBe(0);
   expect(await page.locator('#listMode').count()).toBe(0);
   expect(await page.locator('#boardMode').isVisible()).toBe(true);
-  expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['currentSprint', 'backlog', 'completed']);
+  expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['backlog', 'currentSprint', 'completed']);
+  const lefts = await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => e.getBoundingClientRect().left));
+  expect(lefts[0]).toBeLessThan(lefts[1]);
+  expect(lefts[1]).toBeLessThan(lefts[2]);
   expect(await page.locator('#boardMode [data-more="backlog"]').count()).toBe(0);
   expect(await page.locator('#boardMode .gl[data-col="backlog"] .row').last().textContent()).toContain('Fixture backlog row two');
 });

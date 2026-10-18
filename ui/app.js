@@ -191,8 +191,8 @@ function group(col,items,opt){
   return gh+`<div class="box">${shown.length?shown.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }
 function renderTasks(){
-  const S=rowsOf('currentSprint'),B=rowsOf('backlog'),D=rowsOf('completed');
-  $('#boardMode').innerHTML=[['currentSprint',S,{}],['backlog',B,{}],['completed',D,{limit:8,all:showAllDone}]].map(([c,items,o])=>`<div class="gl" data-col="${c}">${group(c,items,o)}</div>`).join('');
+  const B=rowsOf('backlog'),S=rowsOf('currentSprint'),D=rowsOf('completed');
+  $('#boardMode').innerHTML=[['backlog',B,{}],['currentSprint',S,{}],['completed',D,{limit:8,all:showAllDone}]].map(([c,items,o])=>`<div class="gl" data-col="${c}">${group(c,items,o)}</div>`).join('');
   const T=DATA.tasks;
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;

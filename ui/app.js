@@ -197,7 +197,8 @@ function renderTasks(){
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;
   $('#gRaw').innerHTML=bad.length?`<div class="gh">Rows that could not be parsed <span class="cnt">${bad.length}</span></div><div class="box">${bad.map(l=>`<pre class="raw" translate="no">${esc(l)}</pre>`).join('')}</div>`:'';
-  $('#gConv').innerHTML=T&&T.intro.trim()?`<div class="gh"><span translate="no">planning/tasks.md</span></div><div class="box"><div class="desc md">${md(T.intro)}</div></div>`:
+  const wasOpen=!!($('#gIntro')&&$('#gIntro').open); // BL-TB-03: the fold keeps its state through a redraw; closed on a fresh load
+  $('#gConv').innerHTML=T&&T.intro.trim()?`<details id="gIntro"${wasOpen?' open':''}><summary id="introSum"><span translate="no">planning/tasks.md</span></summary><div class="box"><div class="desc md">${md(T.intro)}</div></div></details>`:
     (T?'':'<div class="box"><div class="empty">No <span class="mono" translate="no">planning/tasks.md</span> in <span class="mono" translate="no">.specs/</span>.</div></div>');
   bind();
 }
@@ -620,6 +621,7 @@ async function apply(d,paths){
   (paths||Object.keys(fileCache)).forEach(p=>{delete fileCache[p];});
   const key=focusKey(document.activeElement);
   const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;
+  const lanes=$$('#boardMode .gl[data-col] .box').map(b=>[b.closest('.gl').dataset.col,b.scrollTop]); // BL-TB-03: each lane's own scroll
   const was=inspOpen;
   const hadSpecs=!(DATA&&DATA.project&&DATA.project.specs===false);
   DATA=d;
@@ -636,6 +638,7 @@ async function apply(d,paths){
   }
   if(was&&was.kind==='file'&&(!paths||paths.includes(was.path)))await openFile(was.path,true);
   $('#content').scrollTop=scroll;
+  lanes.forEach(([c,top])=>{const b=$(`#boardMode .gl[data-col="${c}"] .box`);if(b)b.scrollTop=top;});
   const ib=insp.querySelector('.ib2');if(ib)ib.scrollTop=inspScroll;
   refocus(key);
 }

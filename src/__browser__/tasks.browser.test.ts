@@ -193,10 +193,89 @@ browserTest('Tasks is the board alone: no switch, no list, three lanes in order,
   expect(await page.locator('#boardMode .gl[data-col="backlog"] .row').last().textContent()).toContain('Fixture backlog row two');
 });
 
-browserTest('the Tasks view, a task\'s details and the New Task dialog have no sideways scroll at 420px', b, async open => {
+/** Thirty more Backlog rows in the fixture, more than fit a 900px-high lane (BL-TB-03). */
+function addBacklogRows(): number {
+  const lines = read(env.tasks()).split('\n');
+  const at = lines.findIndex(l => l.trim() === '## Backlog');
+  const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, ...Array.from({ length: 30 }, (_, n) => `| BL-9${String(n + 10)} | Fixture backlog row ${n + 10} with a longer description so that the card wraps onto two lines |`));
+  writeFileSync(env.tasks(), lines.join('\n'));
+  return rowsIn(read(env.tasks()), 'Backlog').length;
+}
+const pageScrolls = (page: Page) => page.evaluate(() => { const c = document.querySelector('#content')!; return c.scrollHeight > c.clientHeight; });
+const laneBox = (page: Page, col: string) => page.locator(`#boardMode .gl[data-col="${col}"] .box`);
+/** [scrollHeight, clientHeight, header top, box bottom, scrollTop] of a lane's box. */
+const laneGeom = (page: Page, col: string) =>
+  page.evaluate(c => {
+    const gl = document.querySelector(`#boardMode .gl[data-col="${c}"]`)!;
+    const box = gl.querySelector('.box')!;
+    return [box.scrollHeight, box.clientHeight, gl.querySelector('.gh')!.getBoundingClientRect().top, box.getBoundingClientRect().bottom, box.scrollTop];
+  }, col);
+
+// BL-TB-03: the board takes the window's height; a lane with more rows than fit scrolls inside its own box, header
+// in place; the page does not scroll, with the inspector open either; a live reload keeps the box's scroll.
+browserTest('the lanes fit the window at 1280px: the page does not scroll, a long lane does inside its box, and live reload keeps the box\'s scroll', b, async open => {
+  const backlog = addBacklogRows();
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
+  expect(await pageScrolls(page)).toBe(false);
+  const [sh, ch, ghTop, boxBottom] = await laneGeom(page, 'backlog');
+  expect(sh).toBeGreaterThan(ch);
+  expect(ghTop).toBeGreaterThanOrEqual(0);
+  expect(boxBottom).toBeLessThanOrEqual(900);
+  for (const col of ['currentSprint', 'completed']) {
+    const [s2, c2] = await laneGeom(page, col);
+    expect(s2).toBe(c2);
+  }
+  await laneBox(page, 'backlog').evaluate(b => { b.scrollTop = b.scrollHeight; });
+  const [, , ghTop2, boxBottom2, top] = await laneGeom(page, 'backlog');
+  expect(top).toBeGreaterThan(0);
+  expect(ghTop2).toBe(ghTop);
+  expect(boxBottom2).toBe(boxBottom);
+  expect(await page.evaluate(() => document.querySelector('#content')!.scrollTop)).toBe(0);
+  expect(await page.evaluate(() => document.querySelector('#boardMode .gl[data-col="backlog"] .box')!.lastElementChild!.getBoundingClientRect().bottom)).toBeLessThanOrEqual(900);
+  await row(page, 'backlog', backlog - 1).click(); // the last row, in view at the box's end
+  await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+  expect(await pageScrolls(page)).toBe(false);
+  const kept = (await laneGeom(page, 'backlog'))[4];
+  expect(kept).toBeGreaterThan(0);
+  const lines = read(env.tasks()).split('\n');
+  const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  writeFileSync(env.tasks(), lines.join('\n'));
+  await page.waitForFunction(() => document.documentElement.dataset.rev === '1');
+  expect((await laneGeom(page, 'backlog'))[4]).toBe(kept);
+});
+
+browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  expect(await page.evaluate(() => (document.querySelector('#gConv')!.compareDocumentPosition(document.querySelector('#boardMode')!) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0)).toBe(true);
+  expect(await page.locator('#gIntro').getAttribute('open')).toBeNull();
+  expect(await page.locator('#gIntro .box').isVisible()).toBe(false);
+  await page.click('#introSum');
+  expect(await page.locator('#gIntro').getAttribute('open')).not.toBeNull();
+  expect(await page.locator('#gIntro .box').textContent()).toContain('Task ID conventions');
+  const lines = read(env.tasks()).split('\n');
+  const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  writeFileSync(env.tasks(), lines.join('\n'));
+  await page.waitForFunction(() => document.documentElement.dataset.rev === '1');
+  expect(await page.locator('#gIntro').getAttribute('open')).not.toBeNull();
+});
+
+browserTest('the Tasks view, a task\'s details and the New Task dialog have no sideways scroll at 420px; the lanes stack and the page scrolls', b, async open => {
+  const backlog = addBacklogRows();
   const { page } = await open(srv, '', { width: 420 });
   await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
   expect(await noSideScroll(page)).toBe(true);
+  expect(await pageScrolls(page)).toBe(true); // BL-TB-03: one column at its natural height, no lane scrolls on its own
+  for (const col of ['backlog', 'currentSprint', 'completed']) {
+    const [sh, ch] = await laneGeom(page, col);
+    expect(sh).toBe(ch);
+  }
   await row(page, 'backlog', 0).click();
   await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
   expect(await noSideScroll(page)).toBe(true);
@@ -205,4 +284,10 @@ browserTest('the Tasks view, a task\'s details and the New Task dialog have no s
   await page.click('#newTask');
   await page.waitForFunction(() => document.querySelector('#taskVeil')!.classList.contains('open'));
   expect(await noSideScroll(page)).toBe(true);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
+  await page.click('#introSum'); // the intro open (BL-TB-03)
+  await page.waitForFunction(() => document.querySelector('#gIntro')!.hasAttribute('open'));
+  expect(await noSideScroll(page)).toBe(true);
+  expect(await pageScrolls(page)).toBe(true);
 });

@@ -32,7 +32,7 @@ function rowsIn(text: string, heading: string): string[] {
   const lines = text.split('\n');
   const start = lines.findIndex(l => l.trim() === `## ${heading}`);
   const end = lines.findIndex((l, i) => i > start && /^## /.test(l));
-  return lines.slice(start + 1, end < 0 ? undefined : end).filter(l => /^\| (?!ID |-)/.test(l) && !/^\|---/.test(l));
+  return lines.slice(start + 1, end < 0 ? undefined : end).filter(l => /^\| (?!ID |# |-)/.test(l) && !/^\|---/.test(l)); // not the header row of either table shape
 }
 const idOf = (row: string) => row.split('|')[1].trim();
 /** The row button for section/index on the board. */
@@ -202,6 +202,15 @@ function addBacklogRows(): number {
   writeFileSync(env.tasks(), lines.join('\n'));
   return rowsIn(read(env.tasks()), 'Backlog').length;
 }
+/** Thirty more Completed rows in the fixture (three columns), more than fit a 900px-high lane (BL-TB-07). */
+function addCompletedRows(): number {
+  const lines = read(env.tasks()).split('\n');
+  const at = lines.findIndex(l => l.trim() === '## Completed');
+  const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, ...Array.from({ length: 30 }, (_, n) => `| 9${String(n + 10)} | [CD-fixture-9${String(n + 10)}] | Fixture completed row ${n + 10} with a longer description so that the card wraps onto two lines |`));
+  writeFileSync(env.tasks(), lines.join('\n'));
+  return rowsIn(read(env.tasks()), 'Completed').length;
+}
 const pageScrolls = (page: Page) => page.evaluate(() => { const c = document.querySelector('#content')!; return c.scrollHeight > c.clientHeight; });
 const laneBox = (page: Page, col: string) => page.locator(`#boardMode .gl[data-col="${col}"] .box`);
 /** [scrollHeight, clientHeight, header top, box bottom, scrollTop] of a lane's box. */
@@ -248,6 +257,26 @@ browserTest('the lanes fit the window at 1280px: the page does not scroll, a lon
   expect((await laneGeom(page, 'backlog'))[4]).toBe(kept);
 });
 
+// BL-TB-07: Completed shows every row, no Show All; a long Completed lane scrolls inside its box like the others.
+browserTest('Completed shows every row at 1280px with no Show All, and a long Completed lane scrolls inside its box', b, async open => {
+  const completed = addCompletedRows();
+  expect(completed).toBeGreaterThan(8);
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
+  expect(await page.locator('#boardMode [data-more]').count()).toBe(0);
+  expect(await page.locator('#boardMode .gl[data-col="completed"] .gh .cnt').textContent()).toBe(String(completed));
+  expect(await pageScrolls(page)).toBe(false);
+  const [sh, ch] = await laneGeom(page, 'completed');
+  expect(sh).toBeGreaterThan(ch);
+  await laneBox(page, 'completed').evaluate(b => { b.scrollTop = b.scrollHeight; });
+  // The last drawn row is the file's first (Completed is newest first): the first row addCompletedRows() wrote.
+  const last = page.locator('#boardMode .gl[data-col="completed"] .row').last();
+  expect(await last.textContent()).toContain('CD-fixture-910');
+  expect(await last.evaluate(e => e.getBoundingClientRect().bottom)).toBeLessThanOrEqual(900);
+  expect(await page.evaluate(() => document.querySelector('#content')!.scrollTop)).toBe(0);
+});
+
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
   const { page } = await open(srv);
   await waitView(page, 'v-board');
@@ -267,9 +296,12 @@ browserTest('the tasks.md intro sits above the lanes, folded on load, and stays 
 
 browserTest('the Tasks view, a task\'s details and the New Task dialog have no sideways scroll at 420px; the lanes stack and the page scrolls', b, async open => {
   const backlog = addBacklogRows();
+  const completed = addCompletedRows();
   const { page } = await open(srv, '', { width: 420 });
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed); // BL-TB-07: every Completed row
+  expect(await page.locator('#boardMode [data-more]').count()).toBe(0);
   expect(await noSideScroll(page)).toBe(true);
   expect(await pageScrolls(page)).toBe(true); // BL-TB-03: one column at its natural height, no lane scrolls on its own
   for (const col of ['backlog', 'currentSprint', 'completed']) {

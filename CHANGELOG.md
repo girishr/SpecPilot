@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - **The List mode of the Tasks view in `specpilot serve`, and the List/Board switch** (BL-TB-01): Tasks is the board alone now, its three lanes side by side (one column on narrow windows), with every Backlog row shown. Links that end in `/board` still open Tasks.
+- **The `Show All` button of the Tasks board's Completed lane** (BL-TB-07): Completed shows every row now, newest first; on windows wider than 900px a long Completed lane scrolls inside its own box like the other lanes (BL-TB-03). Until now the lane showed eight rows and a `Show All <n>` button.
 
 ## [2.16.0] - 2026-10-14
 

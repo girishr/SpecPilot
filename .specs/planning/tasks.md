@@ -45,6 +45,7 @@ Notes
 | BL-100 | Detect the Swift test framework (XCTest or Swift Testing) for guided setup from direct evidence: `.testTarget(` in `Package.swift` shows a test target but not which framework (`import XCTest` or `import Testing` in its sources would). Cut from BL-095 by the architect (2026-10-11). |
 | BL-101 | The build command in generated specs by detected package manager (`pnpm run build`, `yarn build`, `bun run build`) instead of `npm run build`. Left out of BL-095 by the architect (2026-10-11), which writes the package manager but keeps the command. |
 | BL-102 | Refresh `CODEX_INSTRUCTIONS.md` from project context by the same rule as the Claude Code skill (REQ-002.H.40). Left out of BL-PM-012 by the architect (2026-10-11). |
+| BL-UI-03 | `specpilot serve` toast: add a close (×) button to every toast so it can be dismissed early; keep the auto-hide timers as they are (2.6 s plain, 8 s with an action button such as Undo). In `toast()` (`ui/app.js`): append the close button after the message and any action button; clicking it hides the toast and clears `toastT`. Button: `type="button"`, `aria-label="Dismiss"`, keyboard reachable, visible focus ring, hit area at least 24px, also fits at 420px. Tests: browser test that × hides the toast before the timer, and that a toast left alone still hides on its timer. |
 
 ## Current Sprint
 

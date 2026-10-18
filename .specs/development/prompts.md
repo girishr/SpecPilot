@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (BL-TB-05 merged)
-version: 2.140
+lastUpdated: 2026-10-18 (BL-TB-05 pushed)
+version: 2.141
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-18: on the developer's typed `push` after the BL-TB-05 merge: `main` pushed (`f3c1095..5ae4f95`, Jest 1619/1620 with the known BL-115 failure, browser 64/64, read by eye); `origin/main` = local `main` checked. Still open before the next release: BL-115 on its own branch, the prompts.md archive row.
 - 2026-10-18: on the developer's typed `commit` after the BL-TB-05 build report: feature commit `f6d4313` on `feat/bl-tb-05-lane-add` (tasks.md not in it); the developer removed their `CS-093 | dfsdf` test row themselves, which reformatted all of tasks.md (padded tables, two lost spaces), and chose to revert the file to `main`'s version; completion commit `d8eca2f` (row 221, CD-girishr-130); `--no-ff` merge `94b3fb7` into `main`; on `main` Jest 1619/1620 (the known BL-115 failure; a first run alongside the browser build showed a second, transient failure that a run alone did not) and browser 64/64; branch deleted; not pushed.
 - 2026-10-18: BL-TB-05 rebuilt on `feat/bl-tb-05-lane-add` to the revised report after spec-reviewer A FIX (four spec fixes applied; the fifth, the developer's `CS-093 | dfsdf` row, left for them) then PASS: `taskMover.ts` `suggestedIds()`, `specServer.ts` `tasks.nextIds`, `ui/index.html`, `ui/app.css`, `ui/app.js`, `taskMover.test.ts` +2, `specServer.test.ts` +1 and one changed, `tasks.browser.test.ts` five cases rewritten; Jest 1619/1620 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 64/64 on six runs; screenshots from a scratch fixture copy sent to the developer; spec-reviewer B next, then stop before commit.
 - 2026-10-18: the developer, on the BL-TB-05 build report: move the button to the lane header, right of the title (confirmed as `+ Add`); asked how the dialog should change for the new flow, chose option 1 of three (toolbar `New Task` and `Section` picker removed, title names the lane); a multi-line description field; the suggested next ID shown. Recorded as Girish decision D7; Spec Report revised on the same branch (REQ-002.H.50 and ARCH-004.64 rewritten, api.yaml `tasks.nextIds`, tests.md, CHANGELOG `Added` and `Removed`, README); spec-reviewer next, then the rebuild; stop before commit.

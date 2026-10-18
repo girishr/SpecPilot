@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (BL-TB-07 pushed)
-version: 2.135
+lastUpdated: 2026-10-18 (BL-TB-05 built)
+version: 2.139
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-18: BL-TB-05 rebuilt on `feat/bl-tb-05-lane-add` to the revised report after spec-reviewer A FIX (four spec fixes applied; the fifth, the developer's `CS-093 | dfsdf` row, left for them) then PASS: `taskMover.ts` `suggestedIds()`, `specServer.ts` `tasks.nextIds`, `ui/index.html`, `ui/app.css`, `ui/app.js`, `taskMover.test.ts` +2, `specServer.test.ts` +1 and one changed, `tasks.browser.test.ts` five cases rewritten; Jest 1619/1620 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 64/64 on six runs; screenshots from a scratch fixture copy sent to the developer; spec-reviewer B next, then stop before commit.
+- 2026-10-18: the developer, on the BL-TB-05 build report: move the button to the lane header, right of the title (confirmed as `+ Add`); asked how the dialog should change for the new flow, chose option 1 of three (toolbar `New Task` and `Section` picker removed, title names the lane); a multi-line description field; the suggested next ID shown. Recorded as Girish decision D7; Spec Report revised on the same branch (REQ-002.H.50 and ARCH-004.64 rewritten, api.yaml `tasks.nextIds`, tests.md, CHANGELOG `Added` and `Removed`, README); spec-reviewer next, then the rebuild; stop before commit.
+- 2026-10-18: BL-TB-05 built on `feat/bl-tb-05-lane-add` after spec-reviewer A PASS (no fixes; three build notes, all taken): `ui/app.js` (`group()` lane button, `openNewTask(section, from)`, `focusOpener()`, `bind()`, `focusKey()`), `ui/app.css` (one rule), `tasks.browser.test.ts` (+1 case, the `--read-only` and 420px cases extended); Jest 1616/1617 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 63 → 64, three runs 64/64; spec-reviewer B next, then stop before commit.
+- 2026-10-18: `do BL-TB-05` (`+ Add new task` at the foot of every lane): branch `feat/bl-tb-05-lane-add` from `main` (`486c6ce`, clean tree); Spec Report (Feature: REQ-002.H.50, ARCH-004.64, CHANGELOG `Added`, tests.md, README's New Task line, context with eight defaults; the button in Backlog and Current Sprint only, since New Task writes to no other section); spec-reviewer next, then the build; no Day brief, so stop before commit.
 - 2026-10-18: on the developer's typed `push` after the BL-TB-07 merge: `main` pushed (`3c43438..f3c1095`, Jest 1616/1617 with the known BL-115 failure, browser 63/63, read by eye); `origin/main` = local `main` checked; branch `feat/bl-tb-07-completed-all` deleted (local only). Still open: BL-115 on its own branch, the prompts.md archive row; this line is uncommitted on the tree.
 - 2026-10-18: on the developer's typed `commit` after the BL-TB-07 build report: feature commit `e1697f6` on `feat/bl-tb-07-completed-all` (tasks.md not in it), completion commit (row 220, CD-girishr-129), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
 - 2026-10-18: BL-TB-07 built on `feat/bl-tb-07-completed-all` after spec-reviewer A FIX (two spec wording fixes) then PASS: `ui/app.js` (the Completed fold removed in four places), `tasks.browser.test.ts` (+1 case, the 420px case extended, `rowsIn()` skips the Completed header); Jest 1616/1617 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 63/63 three times after two test fixes; specs recorded; spec-reviewer B next; no Day brief, so stop before commit.

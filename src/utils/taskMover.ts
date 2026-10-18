@@ -272,6 +272,14 @@ function readArchive(root: string): string | Refusal {
   return text;
 }
 
+/** The IDs a new task would get in each section right now (BL-TB-05): the page's hint, by newTask()'s own rule over
+ *  tasks.md and the archive; null when the archive is one readArchive() refuses, since the write would refuse too. */
+export function suggestedIds(root: string, content: string): { backlog: string; currentSprint: string } | null {
+  const archive = readArchive(root);
+  if (typeof archive !== 'string') return null;
+  return { backlog: nextTaskId('BL', [content, archive]), currentSprint: nextTaskId('CS', [content, archive]) };
+}
+
 /** Append a new task to tasks.md on disk if `ifMatch` is its current sha256; the same steps and guards as moveTask(). */
 export function newTask(root: string, task: NewTask, ifMatch: string): NewTaskOutcome {
   const loaded = loadTasks(root, ifMatch, NEW_STALE_ERROR, 'add a line');

@@ -7,6 +7,7 @@ import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
+import { nextTaskId } from '../utils/taskMover';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
 import { serveCommand, STOP_CLONE_MS } from '../commands/serve';
@@ -218,6 +219,12 @@ describe('readBranch', () => {
 describe('buildSpecsPayload against this repo', () => {
   const payload = buildSpecsPayload(REPO, '0.0.0-test');
   const tasksMd = readFileSync(join(REPO, '.specs/planning/tasks.md'), 'utf-8').split('\n');
+
+  it('tasks.nextIds are the IDs POST /api/tasks/new would assign now (BL-TB-05)', () => {
+    const archive = readFileSync(join(REPO, '.specs/planning/tasks-archive.md'), 'utf-8');
+    expect(payload.tasks!.nextIds).toEqual({ backlog: nextTaskId('BL', [tasksMd.join('\n'), archive]), currentSprint: nextTaskId('CS', [tasksMd.join('\n'), archive]) });
+    expect(payload.tasks!.nextIds!.backlog).toMatch(/^BL-\d{3,}$/);
+  });
 
   it('has project metadata, per-file metadata, tasks and the nav tree', () => {
     expect(Object.keys(payload).sort()).toEqual(['files', 'nav', 'project', 'specpilotVersion', 'tasks']);
@@ -1523,7 +1530,7 @@ describe('new tasks over HTTP (BL-PM-005)', () => {
       const roPort = (ro.server.address() as AddressInfo).port;
       const page = (await hit(roPort, '/')).body;
       expect(page).not.toContain('specpilot-token');
-      expect(page).toContain('id="newTask" hidden'); // app.js shows it only when the page has a token
+      expect(page).not.toContain('id="newTask"'); // gone since BL-TB-05: the lane headers' Add buttons are drawn by app.js only with a token
       const res = await post(roPort, add('x'), { ...good(), Host: `127.0.0.1:${roPort}`, Origin: `http://127.0.0.1:${roPort}` }, NEW);
       expect(res.status).toBe(405);
       expect(readFileSync(tasks(a), 'utf-8')).toBe(MOVE_TASKS);

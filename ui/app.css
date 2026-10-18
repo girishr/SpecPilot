@@ -211,6 +211,13 @@ input.txt{width:100%}
 /* board mode */
 .board{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:14px;align-items:start}
 .board .gl{min-width:0}
+/* BL-TB-03: the board takes the rest of the content area's height; a lane is no taller than that and its box scrolls on its own, the header staying put. */
+#v-board.on{height:100%}
+#boardMode{flex:1 1 auto;min-height:0;grid-template-rows:minmax(0,1fr)}
+.board .gl{max-height:100%}
+.board .gl .gh{flex:none}
+.board .gl .box{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+#gIntro summary{cursor:pointer;color:var(--label-3);font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:0 2px}
 .board .row{min-height:0;padding:10px 12px;align-items:flex-start}
 .board .row .ttl{white-space:normal}
 .board .row .det{white-space:normal}
@@ -280,6 +287,10 @@ input.txt{width:100%}
   .win.nav .scrim{display:block;opacity:1}
   .menu{display:grid}
   .board{grid-template-columns:1fr}
+  #v-board.on{height:auto}
+  #boardMode{flex:none}
+  .board .gl{max-height:none}
+  .board .gl .box{overflow-y:hidden}
   .tb{padding:12px 16px 6px;flex-wrap:wrap}
   .content{padding:6px 16px 40px}
   .kv .row .body{flex-direction:column;align-items:flex-start;gap:2px}

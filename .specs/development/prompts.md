@@ -1,6 +1,6 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (BL-TB-04 built)
+lastUpdated: 2026-10-18 (BL-TB-04 completed)
 version: 2.132
 contributors: [girishr]
 relatedFiles:
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-18: on the developer's typed `commit`: `docs(tasks)` commit `50ed9ee` on `main` (the developer's Current Sprint moves, BL-TB-11), the branch re-pointed at it; BL-TB-04 feature commit `267a8b9` on `feat/bl-tb-04-lane-order` (tasks.md not in it); completion commit (row 218, CD-girishr-127); the `--no-ff` merge and both suites on `main` follow; no push (not asked; the prompts.md archive row is still to be done before it).
 - 2026-10-18: BL-TB-04 built on `feat/bl-tb-04-lane-order` after spec-reviewer A PASS: `ui/app.js` (`renderTasks()` lane order), `tasks.browser.test.ts` (expected order, bounding-box check); Jest 1616/1617 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 60/60 three times; specs recorded; spec-reviewer B ESCALATE with nothing to fix (the prompts.md line-limit warning, pre-existing on `main`, to be cleared by an archive row before the next push; the developer's call); stopped before commit, none asked.
 - 2026-10-18: `do BL-TB-04` (board lanes Backlog, Current Sprint, Completed): branch `feat/bl-tb-04-lane-order` from `main` (`fefd58d`; the developer's Current Sprint moves and the BL-TB-11 row uncommitted on the tree); Spec Report (Feature: REQ-002.H.47, ARCH-004.61, CHANGELOG `Changed`, tests.md, context); spec-reviewer A, then the build with reviewer B, Jest and three browser runs. No Day brief, so no commit, merge or push before the developer's typed go-ahead. This file is past its 100-line limit (106 lines before this entry); an archive is due.
 - 2026-10-18: on the developer's typed `commit`: `docs(tasks)` commit `8de36fe` on `main` (the review-notes rows, BL-115, the BL-113 note), the branch fast-forwarded to it; BL-TB-01 feature commit `d30cbb6` on `feat/bl-tb-01-board-only` (tasks.md not in it); completion commit (row 217, CD-girishr-126); the `--no-ff` merge and both suites on `main` follow; no push (deferred to BL-115 by the architect).

@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`specpilot serve` reopens the remembered projects at startup** (BL-114): after the folders you name (or the current directory), every remembered project that has `.specs/` is served too, pinned and most recently opened first, up to 20 in all, so a restart shows the same rail; the terminal lists them and says `Reopened <k> remembered projects from ~/.specpilot/projects.json.` A remembered folder without `.specs/` stays on Home's list to click, a missing one is skipped, an unreadable one is named (`Not reopened: …`), and reopening never changes the file or runs setup's clean-up in that folder. `--read-only` reopens nothing.
 - **`GET /api/specs` carries `specpilotVersion` at the top level** (BL-080), no longer under `project`. With no project served it answers `{project: null, projects: [], files: {}, specpilotVersion, mcp}`, and `GET /api/events` without `project` is then a server-level stream (`mcp`, `setup` and `clone` events, never `change`) that counts toward the cap of 8.
 
+### Removed
+
+- **The List mode of the Tasks view in `specpilot serve`, and the List/Board switch** (BL-TB-01): Tasks is the board alone now, its three lanes side by side (one column on narrow windows), with every Backlog row shown. Links that end in `/board` still open Tasks.
+
 ## [2.16.0] - 2026-10-14
 
 ### Fixed

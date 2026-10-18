@@ -127,9 +127,6 @@ a{color:var(--accent);text-decoration:none}
 .gl .gh .more:hover{text-decoration:underline}
 .gl .gh .more:disabled{opacity:.6;cursor:default;text-decoration:none}
 #regenNote .note{margin:0 0 6px;overflow-wrap:anywhere}
-.gl .gh .disc{width:20px;height:20px;display:grid;place-items:center;color:var(--label-3);transition:transform .18s;transform-origin:center}
-.gl.closed .gh .disc{transform:rotate(-90deg)}
-.gl.closed .box{display:none}
 .box{background:var(--group);border-radius:var(--r);border:1px solid var(--sep-2);overflow:hidden}
 .row{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;border-top:1px solid var(--sep);width:100%;color:var(--label);position:relative;transition:background-color var(--t)}
 .row:first-child{border-top:0}
@@ -296,7 +293,6 @@ input.txt{width:100%}
 /* The CSP (default-src 'self') forbids inline style attributes; these replace the mockup's. */
 .sprite{position:absolute;width:0;height:0}
 .ico-13{width:13px;height:13px}
-.mt18{margin-top:18px}
 .mb18{margin-bottom:18px}
 .doc-gap{margin:6px 0 22px}
 .pal-veil{padding-top:14vh}

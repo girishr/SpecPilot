@@ -35,8 +35,8 @@ function rowsIn(text: string, heading: string): string[] {
   return lines.slice(start + 1, end < 0 ? undefined : end).filter(l => /^\| (?!ID |-)/.test(l) && !/^\|---/.test(l));
 }
 const idOf = (row: string) => row.split('|')[1].trim();
-/** The row button for section/index in the list mode. */
-const row = (page: Page, col: string, i: number) => page.locator(`#listMode .row[data-col="${col}"][data-i="${i}"]`);
+/** The row button for section/index on the board. */
+const row = (page: Page, col: string, i: number) => page.locator(`#boardMode .row[data-col="${col}"][data-i="${i}"]`);
 const archive = () => readFileSync(join(env.project, '.specs', 'planning', 'tasks-archive.md'), 'utf-8');
 
 browserTest('Alt+ArrowRight moves a Backlog row to Current Sprint as one line, and the toast Undo puts the file back byte for byte', b, async open => {
@@ -52,7 +52,7 @@ browserTest('Alt+ArrowRight moves a Backlog row to Current Sprint as one line, a
   expect(after.split('\n').sort()).toEqual(before.split('\n').sort()); // the same lines: one moved, none changed
   expect(rowsIn(after, 'Current Sprint')[sprint]).toBe(first);
   await waitToast(page, new RegExp(`${idOf(first)} moved from ## Backlog to ## Current Sprint`));
-  await page.waitForFunction(i => document.activeElement?.matches(`#listMode .row[data-col="currentSprint"][data-i="${i}"]`) ?? false, sprint);
+  await page.waitForFunction(i => document.activeElement?.matches(`#boardMode .row[data-col="currentSprint"][data-i="${i}"]`) ?? false, sprint);
   await page.click('#toast .tact');
   await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
 });
@@ -61,7 +61,7 @@ browserTest('dragging a Current Sprint row onto the Backlog moves it there', b, 
   const { page } = await open(srv);
   await waitView(page, 'v-board');
   const first = rowsIn(read(env.tasks()), 'Current Sprint')[0];
-  await row(page, 'currentSprint', 0).dragTo(page.locator('#listMode #gBacklog .gh'));
+  await row(page, 'currentSprint', 0).dragTo(page.locator('#boardMode .gl[data-col="backlog"] .gh'));
   await until(() => rowsIn(read(env.tasks()), 'Backlog').includes(first), 'the row in Backlog on disk');
   expect(rowsIn(read(env.tasks()), 'Current Sprint')).not.toContain(first);
 });
@@ -137,7 +137,7 @@ browserTest('--read-only has no New Task button, no drag handles and no Home til
     await waitView(page, 'v-board');
     expect(await page.locator('#newTask').isHidden()).toBe(true);
     expect(await page.locator('#homeBtn').isHidden()).toBe(true);
-    expect(await page.locator('#listMode .row[draggable="true"]').count()).toBe(0);
+    expect(await page.locator('#boardMode .row[draggable="true"]').count()).toBe(0);
   } finally {
     await ro.close();
   }
@@ -150,7 +150,7 @@ browserTest('a row written to tasks.md outside the page appears through live rel
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
   lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
   writeFileSync(env.tasks(), lines.join('\n'));
-  await t.page.locator('#gSprint .row', { hasText: 'Written outside the page' }).waitFor();
+  await t.page.locator('#boardMode .gl[data-col="currentSprint"] .row', { hasText: 'Written outside the page' }).waitFor();
   expect(t.loads).toBe(1);
 });
 
@@ -169,10 +169,35 @@ browserTest('the inspector link opens tasks.md at the row line, and follows the 
   await page.waitForFunction(m => (document.querySelector('#insp .actions a')?.getAttribute('href') ?? '').endsWith(':' + m), n + 2);
 });
 
-browserTest('the Tasks view and the New Task dialog have no sideways scroll at 420px', b, async open => {
+// BL-TB-01: the board is the only Tasks view; no List mode and no List/Board switch.
+browserTest('Tasks is the board alone: no switch, no list, three lanes in order, every Backlog row shown', b, async open => {
+  const lines = read(env.tasks()).split('\n');
+  const at = lines.findIndex(l => l.trim() === '## Backlog');
+  const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, ...[2, 3, 4, 5, 6, 7].map(n => `| BL-90${n} | Fixture backlog row ${n} |`)); // nine Backlog rows in all
+  writeFileSync(env.tasks(), lines.join('\n'));
+  const backlog = rowsIn(read(env.tasks()), 'Backlog').length;
+  expect(backlog).toBeGreaterThan(6);
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
+  expect(await page.locator('#modeSeg').count()).toBe(0);
+  expect(await page.locator('#listMode').count()).toBe(0);
+  expect(await page.locator('#boardMode').isVisible()).toBe(true);
+  expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['currentSprint', 'backlog', 'completed']);
+  expect(await page.locator('#boardMode [data-more="backlog"]').count()).toBe(0);
+  expect(await page.locator('#boardMode .gl[data-col="backlog"] .row').last().textContent()).toContain('Fixture backlog row two');
+});
+
+browserTest('the Tasks view, a task\'s details and the New Task dialog have no sideways scroll at 420px', b, async open => {
   const { page } = await open(srv, '', { width: 420 });
   await waitView(page, 'v-board');
   expect(await noSideScroll(page)).toBe(true);
+  await row(page, 'backlog', 0).click();
+  await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+  expect(await noSideScroll(page)).toBe(true);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#insp')!.classList.contains('open'));
   await page.click('#newTask');
   await page.waitForFunction(() => document.querySelector('#taskVeil')!.classList.contains('open'));
   expect(await noSideScroll(page)).toBe(true);

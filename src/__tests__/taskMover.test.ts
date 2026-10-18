@@ -1,8 +1,12 @@
-import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { execFileSync } from 'child_process';
 import { join } from 'path';
 import * as os from 'os';
 import {
+  ARCHIVE_SPLIT_ERROR,
+  ARCHIVE_STALE_ERROR,
+  archiveCompleted,
+  completedArchiveStatus,
   moveShapeError,
   moveTask,
   NEW_STALE_ERROR,
@@ -10,6 +14,9 @@ import {
   NewTask,
   newTaskShapeError,
   nextTaskId,
+  NO_COMPLETED_ERROR,
+  NOTHING_TO_ARCHIVE_ERROR,
+  nothingPastKeepError,
   planMove,
   planNewTask,
   suggestedIds,
@@ -17,6 +24,7 @@ import {
   STALE_ERROR,
   TaskMove,
 } from '../utils/taskMover';
+import { completedArchiveBlock, planCompletedArchive, SpecArchiver } from '../utils/specArchiver';
 import * as validator from '../utils/specValidator';
 import { tasksChecks } from '../utils/specValidator';
 
@@ -521,5 +529,199 @@ describe('newTask: the write on disk', () => {
     };
     expect(() => newTask(root, task, sha256(TASKS))).toThrow('disk full');
     untouched();
+  });
+});
+
+// ---- BL-TB-06: the Completed step of `specpilot archive`, as the page runs it
+describe('archiveCompleted: the Completed archive on disk', () => {
+  let root: string;
+  let file: string;
+  let archive: string;
+  /** TASKS with `n` more Completed rows after `| 1 | [CD-001] | Done |`, oldest first. */
+  const withCompleted = (n: number) =>
+    TASKS.replace('| 1 | [CD-001] | Done |\n', ['| 1 | [CD-001] | Done |', ...Array.from({ length: n }, (_, i) => `| ${i + 2} | [CD-${String(i + 2).padStart(3, '0')}] | Done ${i + 2} |`)].join('\n') + '\n');
+  const BIG = withCompleted(40); // 46 section lines: heading, blank, header, separator, 41 rows, the trailing ''
+  const stamp = (s: string) => s.replace(/## Archived on \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g, '## Archived on <T>');
+  const leftovers = () => readdirSync(join(root, '.specs', 'planning')).filter(f => f !== 'tasks.md' && f !== 'tasks-archive.md');
+  beforeEach(() => {
+    root = mkdtempSync(join(os.tmpdir(), 'specpilot-archive-'));
+    mkdirSync(join(root, '.specs', 'planning'), { recursive: true });
+    file = join(root, '.specs', 'planning', 'tasks.md');
+    archive = join(root, '.specs', 'planning', 'tasks-archive.md');
+    writeFileSync(file, BIG);
+  });
+  afterEach(() => {
+    mockFs.beforeRename = undefined;
+    mockFs.onRead = undefined;
+    jest.restoreAllMocks();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('completedArchiveStatus gives the section\'s lines and the rows a forced archive would move, over the content the write plans from', () => {
+    expect(completedArchiveStatus(withCompleted(34))).toEqual({ lines: 40, rows: 15 }); // within the limit: 35 rows, the keep rule still leaves 15 to force
+    expect(completedArchiveStatus(withCompleted(35))).toEqual({ lines: 41, rows: 16 }); // 41 lines: 36 rows, keep 20
+    const plan = planCompletedArchive(BIG.split('\n'))!;
+    expect(completedArchiveStatus(BIG)).toEqual({ lines: 46, rows: plan.end - plan.start });
+    expect(completedArchiveStatus(BIG).rows).toBe(21);
+    expect(completedArchiveStatus(TASKS)).toEqual({ lines: 6, rows: 0 }); // one row: nothing past the newest 20
+    expect(completedArchiveStatus(withCompleted(19))).toEqual({ lines: 25, rows: 0 }); // exactly 20 rows
+    expect(completedArchiveStatus(withCompleted(20))).toEqual({ lines: 26, rows: 1 });
+    expect(completedArchiveStatus(TASKS.replace('## Completed', '## Done'))).toEqual({ lines: 0, rows: 0 });
+    expect(planCompletedArchive(withCompleted(34).split('\n'))).toBeNull(); // the CLI and the validator never force
+  });
+
+  it('within the limit: 422 without force, and with force the rows past the newest 20 move as the CLI\'s keep rule would', () => {
+    const within = withCompleted(25); // 26 rows, 31 lines
+    writeFileSync(file, within);
+    expect(archiveCompleted(root, sha256(within))).toEqual({ status: 422, error: NOTHING_TO_ARCHIVE_ERROR });
+    expect(archiveCompleted(root, sha256(within), false)).toEqual({ status: 422, error: NOTHING_TO_ARCHIVE_ERROR });
+    expect(readFileSync(file, 'utf-8')).toBe(within);
+    expect(existsSync(archive)).toBe(false);
+    const lines = within.split('\n');
+    const plan = planCompletedArchive(lines, true)!;
+    const out = archiveCompleted(root, sha256(within), true);
+    const after = readFileSync(file, 'utf-8');
+    expect(out).toEqual({ status: 200, sha256: sha256(after), linesMoved: 6 });
+    expect(after).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
+    expect(after.split('\n').filter(l => /^\| \d+ \|/.test(l))).toHaveLength(20);
+    expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(completedArchiveBlock(lines, plan)));
+  });
+
+  it('moves exactly the plan\'s rows into a new archive as the CLI\'s block, keeps every other line, gives the new file tasks.md\'s mode', () => {
+    chmodSync(file, 0o640);
+    const lines = BIG.split('\n');
+    const plan = planCompletedArchive(lines)!;
+    const out = archiveCompleted(root, sha256(BIG));
+    const after = readFileSync(file, 'utf-8');
+    expect(out).toEqual({ status: 200, sha256: sha256(after), linesMoved: 21 });
+    expect(after).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
+    expect(after.split('\n').filter(l => /^\| \d+ \|/.test(l))).toHaveLength(20);
+    expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(completedArchiveBlock(lines, plan)));
+    expect(readFileSync(archive, 'utf-8')).toContain('| # | ID | Description |\n|---|---|---|\n| 1 | [CD-001] | Done |\n');
+    expect(statSync(archive).mode & 0o777).toBe(0o640);
+    expect(statSync(file).mode & 0o777).toBe(0o640);
+    expect(leftovers()).toEqual([]);
+  });
+
+  it('writes the same bytes as `specpilot archive` for the same file', async () => {
+    const cli = mkdtempSync(join(os.tmpdir(), 'specpilot-archive-cli-'));
+    mkdirSync(join(cli, '.specs', 'planning'), { recursive: true });
+    writeFileSync(join(cli, '.specs', 'planning', 'tasks.md'), BIG);
+    await new SpecArchiver().archive(cli, { dryRun: false });
+    archiveCompleted(root, sha256(BIG));
+    expect(readFileSync(file, 'utf-8')).toBe(readFileSync(join(cli, '.specs', 'planning', 'tasks.md'), 'utf-8'));
+    expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(readFileSync(join(cli, '.specs', 'planning', 'tasks-archive.md'), 'utf-8')));
+    rmSync(cli, { recursive: true, force: true });
+  });
+
+  it('appends to an existing archive and keeps its mode', () => {
+    writeFileSync(archive, '# Task Archive\n\n| # | ID | Description |\n|---|---|---|\n| 0 | [CD-000] | Older |\n');
+    chmodSync(archive, 0o600);
+    const plan = planCompletedArchive(BIG.split('\n'))!;
+    expect(archiveCompleted(root, sha256(BIG)).status).toBe(200);
+    expect(stamp(readFileSync(archive, 'utf-8'))).toBe('# Task Archive\n\n| # | ID | Description |\n|---|---|---|\n| 0 | [CD-000] | Older |\n' + stamp(completedArchiveBlock(BIG.split('\n'), plan)));
+    expect(statSync(archive).mode & 0o777).toBe(0o600);
+  });
+
+  it('moves a list-shaped Completed as the CLI does: the oldest entry lines, the block trimmed', () => {
+    const entries = Array.from({ length: 41 }, (_, i) => `${i + 1}. [CD-${String(i + 1).padStart(3, '0')}] Completed task ${i + 1}`);
+    const list = TASKS.replace('| # | ID | Description |\n|---|---|---|\n| 1 | [CD-001] | Done |\n', entries.join('\n') + '\n\n## Notes\n\nx\n');
+    writeFileSync(file, list);
+    const lines = list.split('\n');
+    const plan = planCompletedArchive(lines)!;
+    const moved = plan.end - plan.start; // the CLI's list rule counts the blank line after the entries, so 22 of the 41 entries move
+    expect(moved).toBe(22);
+    expect(archiveCompleted(root, sha256(list))).toMatchObject({ status: 200, linesMoved: moved });
+    expect(readFileSync(file, 'utf-8')).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
+    expect(readFileSync(file, 'utf-8')).toBe(list.replace(entries.slice(0, moved).join('\n') + '\n', ''));
+    expect(stamp(readFileSync(archive, 'utf-8'))).toBe(`## Archived on <T>\n\n${entries.slice(0, moved).join('\n')}\n\n---\n\n`);
+    expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(completedArchiveBlock(lines, plan)));
+  });
+
+  it('refuses with nothing over the limit, and forced with nothing past the newest 20, writing nothing', () => {
+    writeFileSync(file, TASKS);
+    expect(archiveCompleted(root, sha256(TASKS))).toEqual({ status: 422, error: NOTHING_TO_ARCHIVE_ERROR });
+    expect(NOTHING_TO_ARCHIVE_ERROR).toBe('Nothing to archive: ## Completed in planning/tasks.md is within its 40-line limit, and the request did not force it.');
+    expect(archiveCompleted(root, sha256(TASKS), true)).toEqual({ status: 422, error: nothingPastKeepError(1) });
+    expect(nothingPastKeepError(1)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 1 row, and an archive keeps the newest 20.');
+    expect(nothingPastKeepError(20)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 20 rows, and an archive keeps the newest 20.');
+    const twenty = withCompleted(19);
+    writeFileSync(file, twenty);
+    expect(archiveCompleted(root, sha256(twenty), true)).toEqual({ status: 422, error: nothingPastKeepError(20) });
+    const none = TASKS.replace('## Completed', '## Done');
+    writeFileSync(file, none);
+    expect(archiveCompleted(root, sha256(none), true)).toEqual({ status: 422, error: NO_COMPLETED_ERROR });
+    expect(readFileSync(file, 'utf-8')).toBe(none);
+    expect(existsSync(archive)).toBe(false);
+  });
+
+  it.each([
+    ['a symbolic-link archive', () => symlinkSync(file, archive), 'planning/tasks-archive.md is a symbolic link, so SpecPilot will not write to it.'],
+    ['an archive that is a directory', () => mkdirSync(archive), 'planning/tasks-archive.md is not a regular file, so SpecPilot will not write to it.'],
+    ['an archive that is not valid UTF-8', () => writeFileSync(archive, Buffer.from([0x31, 0xff])), 'planning/tasks-archive.md contains bytes that are not valid UTF-8, so SpecPilot will not write to it.'],
+  ])('refuses %s, writing nothing', (_n, setup, error) => {
+    setup();
+    expect(archiveCompleted(root, sha256(BIG))).toEqual({ status: 422, error });
+    expect(readFileSync(file, 'utf-8')).toBe(BIG);
+    expect(leftovers()).toEqual([]);
+  });
+
+  it('refuses a symbolic-link tasks.md and a tasks.md that is not valid UTF-8', () => {
+    const real = join(root, 'real.md');
+    writeFileSync(real, BIG);
+    rmSync(file);
+    symlinkSync(real, file);
+    expect(archiveCompleted(root, sha256(BIG))).toEqual({ status: 422, error: expect.stringContaining('symbolic link') });
+    rmSync(file);
+    const bad = Buffer.concat([Buffer.from(BIG, 'utf-8'), Buffer.from([0xff])]);
+    writeFileSync(file, bad);
+    expect(archiveCompleted(root, sha256(bad))).toEqual({ status: 422, error: expect.stringContaining('not valid UTF-8') });
+    expect(existsSync(archive)).toBe(false);
+  });
+
+  it('refuses an archive after which `specpilot validate` would report something new', () => {
+    jest.spyOn(validator, 'tasksChecks').mockImplementation(c => (c.includes('Done 41') && !c.includes('| 1 | [CD-001] |') ? ['planted warning'] : []));
+    expect(archiveCompleted(root, sha256(BIG))).toEqual({ status: 422, error: 'Nothing was archived, because `specpilot validate` would then report: planted warning' });
+    expect(readFileSync(file, 'utf-8')).toBe(BIG);
+    expect(existsSync(archive)).toBe(false);
+  });
+
+  it('409s on a stale hash with nothing written', () => {
+    expect(archiveCompleted(root, 'a'.repeat(64))).toEqual({ status: 409, error: ARCHIVE_STALE_ERROR });
+    expect(readFileSync(file, 'utf-8')).toBe(BIG);
+    expect(existsSync(archive)).toBe(false);
+  });
+
+  it('an editor save between the archive\'s write and the last look: 409 saying the rows are in both files, tasks.md as saved', () => {
+    const changed = BIG.replace('# Tasks', '# Tasks (saved meanwhile)');
+    let reads = 0;
+    mockFs.onRead = path => {
+      if (path === file && ++reads === 2) writeFileSync(file, changed); // the last look, after the archive block was written
+    };
+    expect(archiveCompleted(root, sha256(BIG))).toEqual({ status: 409, error: ARCHIVE_SPLIT_ERROR });
+    expect(readFileSync(file, 'utf-8')).toBe(changed);
+    expect(readFileSync(archive, 'utf-8')).toContain('| 1 | [CD-001] | Done |');
+    expect(leftovers()).toEqual([]);
+  });
+
+  it('a crash at tasks.md\'s rename leaves the archive appended, tasks.md whole and no temp file', () => {
+    let renames = 0;
+    mockFs.beforeRename = () => {
+      if (++renames === 2) throw new Error('disk full'); // the first rename is the archive's
+    };
+    expect(() => archiveCompleted(root, sha256(BIG))).toThrow('disk full');
+    expect(readFileSync(file, 'utf-8')).toBe(BIG);
+    expect(readFileSync(archive, 'utf-8')).toContain('| 1 | [CD-001] | Done |');
+    expect(leftovers()).toEqual([]);
+  });
+
+  it('a crash at the archive\'s rename leaves both files as they were', () => {
+    mockFs.beforeRename = () => {
+      throw new Error('disk full');
+    };
+    expect(() => archiveCompleted(root, sha256(BIG))).toThrow('disk full');
+    expect(readFileSync(file, 'utf-8')).toBe(BIG);
+    expect(existsSync(archive)).toBe(false);
+    expect(leftovers()).toEqual([]);
   });
 });

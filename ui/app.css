@@ -126,9 +126,9 @@ a{color:var(--accent);text-decoration:none}
 .gl .gh .more{margin-left:auto;color:var(--green-ink);font-weight:500;font-size:12.5px;text-transform:none;letter-spacing:0}
 .gl .gh .more:hover{text-decoration:underline}
 .gl .gh .more:disabled{opacity:.6;cursor:default;text-decoration:none}
-.gl .gh .add{margin-left:auto;display:inline-flex;align-items:center;gap:3px;padding:2px 7px 2px 5px;border-radius:var(--rs);color:var(--label-2);font-weight:500;font-size:12px;text-transform:none;letter-spacing:0} /* BL-TB-05 */
-.gl .gh .add:hover{background:var(--hover);color:var(--label)}
-.gl .gh .add .ico{width:12px;height:12px}
+.gl .gh .add,.gl .gh .arch{margin-left:auto;display:inline-flex;align-items:center;gap:3px;padding:2px 7px 2px 5px;border-radius:var(--rs);color:var(--label-2);font-weight:500;font-size:12px;text-transform:none;letter-spacing:0} /* BL-TB-05; .arch: BL-TB-06 */
+.gl .gh .add:hover,.gl .gh .arch:hover{background:var(--hover);color:var(--label)}
+.gl .gh .add .ico,.gl .gh .arch .ico{width:12px;height:12px}
 #regenNote .note{margin:0 0 6px;overflow-wrap:anywhere}
 .box{background:var(--group);border-radius:var(--r);border:1px solid var(--sep-2);overflow:hidden}
 .row{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;border-top:1px solid var(--sep);width:100%;color:var(--label);position:relative;transition:background-color var(--t)}
@@ -362,6 +362,12 @@ input.txt{width:100%}
 .field .btn{flex:none;min-height:28px;padding:4px 10px}
 .field .btn:disabled{opacity:.6;cursor:default}
 .sheet.task{width:min(520px,100%)}
+/* Archive Completed (BL-TB-06): one row per gate; a dot for its state, a box to tick when it warns */
+.gate{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-top:1px solid var(--sep);font-size:13px;line-height:1.45;color:var(--label-2)}
+.gate:first-child{border-top:0}
+.gate .st{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
+.gate label{display:flex;align-items:flex-start;gap:8px;cursor:pointer;color:var(--label)}
+.gate input{margin:3px 0 0;flex:none;accent-color:var(--accent)}
 #taskIn{font-family:inherit;font-size:14px}
 #taskErr{margin:0;font-size:12.5px;overflow-wrap:anywhere}
 .recent .row{padding-right:8px}

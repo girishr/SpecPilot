@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
+import { archiveCompleted, completedArchiveStatus, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -139,7 +139,8 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,
-    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root), nextIds: suggestedIds(root, contents['planning/tasks.md']) } : null, // nextIds: BL-TB-05
+    // nextIds: BL-TB-05; archive: BL-TB-06, the Completed section's lines and the rows POST /api/tasks/archive would move now
+    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root), nextIds: suggestedIds(root, contents['planning/tasks.md']), archive: completedArchiveStatus(contents['planning/tasks.md']) } : null,
     nav: {
       specs: Object.keys(contents),
       instructions: ALLOWED_FILES.map(path => {
@@ -450,6 +451,34 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
           return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
         }
         if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, id: out.id, section: out.section, index: out.index, specs: payload(i) });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
+        return sendJson(res, 422, { error: out.error });
+      });
+    });
+  };
+
+  /** Archive Completed (BL-TB-06): the Completed step of `specpilot archive`, the move route's checks, under the same lock. */
+  const handleArchive = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      // {} or {force: <boolean>} and nothing else (D8: force archives a section within its limit)
+      const keys = body !== null && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : null;
+      const force = (body as { force?: unknown } | null)?.force;
+      if (keys === null || (keys.length === 1 && (keys[0] !== 'force' || typeof force !== 'boolean')) || keys.length > 1) {
+        return sendJson(res, 422, { error: 'Archive takes an empty JSON object, {}, or {force: true}.' });
+      }
+      const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
+      if (!ifMatch) return sendJson(res, 428, { error: 'The archive needs an If-Match header with the file hash the page last loaded.' });
+      underLock(res, () => {
+        let out;
+        try {
+          out = archiveCompleted(roots[i], ifMatch, force === true);
+        } catch {
+          return sendJson(res, 500, { error: 'The archive could not be written. Check planning/tasks.md and planning/tasks-archive.md.' });
+        }
+        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, linesMoved: out.linesMoved, specs: payload(i) });
         if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
         return sendJson(res, 422, { error: out.error });
       });
@@ -990,6 +1019,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/api/tasks/new') {
         if (req.method === 'POST' && token) return handleNewTask(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/tasks/archive') {
+        if (req.method === 'POST' && token) return handleArchive(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

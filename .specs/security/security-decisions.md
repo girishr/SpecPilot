@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-17 (BL-114 Spec Report)
-version: 1.27
+lastUpdated: 2026-10-18 (BL-TB-06 revised on D8)
+version: 1.29
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -116,7 +116,7 @@ This file records security-related architectural and implementation decisions ma
 
 - **Date**: 2026-09-29
 - **Decision**: `POST /api/tasks/move` is the only write route (until BL-055; see SEC-004.12). It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3.
-- **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable. (Since BL-PM-005, `POST /api/tasks/new` writes request text into `tasks.md`, one row; see SEC-004.18.)
+- **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable. (Since BL-PM-005, `POST /api/tasks/new` writes request text into `tasks.md`, one row; see SEC-004.18. Since BL-TB-06, `POST /api/tasks/archive` also appends to `tasks-archive.md`; see SEC-004.30.)
 - **Alternatives considered**:
   - SameSite cookies — rejected: localhost cookies are shared across ports and the page has no login; a header token is simpler and not sent automatically.
   - Accepting a full new `tasks.md` from the client — rejected: turns the endpoint into an arbitrary-text writer.
@@ -353,6 +353,18 @@ This file records security-related architectural and implementation decisions ma
   - Bumping `lastOpened` for reopened roots: rejected, every restart would reorder the list.
   - An opt-out flag: not now; a later row if asked.
 - **Reference**: SEC-004.13, SEC-004.20, SEC-002.5 (k), REQ-002.H.45, ARCH-004.59
+
+### [SEC-004.30] Archive from the page: a second written file, appended to only with lines already in `tasks.md`
+
+- **Date**: 2026-10-18 (BL-TB-06 Spec Report; revised the same day on decision D8)
+- **Decision**: `POST /api/tasks/archive` runs the Completed step of `specpilot archive` for the named project: the lines `planCompletedArchive()` picks are appended to `.specs/planning/tasks-archive.md` as the CLI's timestamped block and removed from `.specs/planning/tasks.md`. It sits behind every guard of the move route (SEC-004.10): Host, exact `Origin`, the per-start token, `application/json` only, a body of exactly `{}` or `{force: <boolean>}`, 16 KB, `If-Match` on `tasks.md`'s sha256, the one in-process lock, temp file + `fsync` + `rename` for each file, no write through a symbolic link (either file; a missing archive is created with `tasks.md`'s mode), the validator's `tasks.md` checks in memory, and no route with `--read-only`. The write allowlist grows from one file to two: `tasks-archive.md` is written only by appending, only with lines read from `tasks.md` in the same locked step plus the heading `## Archived on <timestamp>` and a `---` rule; no byte of the request reaches either file. The one thing the request chooses is `force` (D8): with it, a `## Completed` section within its 40-line limit is archived by the same keep rule (all but the newest 20 entries); without it such a section is refused (422). The archive is written first, so a failure between the two writes leaves rows in both files, never in neither. The page puts every gate in a dialog the user agrees to (D8): the CLI's branch guard (ARCH-004.19) and the limit each warn with a checkbox when they apply, read from the latest payload's `project.branch` and `tasks.archive`; the server checks no branch, as the archiver checks none (architect decision Q2 (a), 2026-10-18). Accepted: the dialog reads the branch and the counts from the latest payload, so a change after it is seen at the next payload (every live reload and every write answer rebuilds it, and a redraw rebuilds the dialog's gates).
+- **Rationale**: a forged request that passed every layer could at most run the archive early, with `force` also within the limit: it moves the oldest Completed lines, all but the newest 20, into the archive file, verbatim, under a timestamp, which `specpilot archive --force` does on any branch once the section is past the limit, and git shows it as two file diffs; the request's holder is a local process that can run that command or edit both files (SEC-004.20). Nothing is lost, nothing is reordered within a section, no text is chosen by the request, and the keep rule bounds what one call can move. Letting the page write a second file is the price of the button; keeping that write an append of `tasks.md`'s own lines is what makes the second file no new target for request text.
+- **Alternatives considered**:
+  - Calling `SpecArchiver.archive()` from the route — rejected: it also archives `prompts.md` (the button names Completed), checks nothing for symbolic links or a stale hash, and writes in place with no temp file, so the SEC-004.10 model would have a second, weaker writer.
+  - A server-side branch check (409 off `main`, or a `force` body key for it) — rejected by the architect (Q2 (a)): the guard is the command's, not the writer's, in the CLI too (ARCH-004.19 lives in `archive.ts`; `SpecArchiver.archiveTasks()` checks no branch), so the page is its counterpart and the route is the archiver's; a local token holder gains nothing from a server check (SEC-004.20, and the BL-104 Q1 (a) precedent); reopens with the first non-page caller (BL-PM-017, an MCP archive tool).
+  - Refusing an archive within the limit on the server, as the CLI does — rejected by the developer (D8): the limit is advice about clutter, not integrity; the dialog states it and the user overrides it knowingly, and the keep rule still bounds the move. The first build had the button only when an archive was due, which hid the gates instead of explaining them.
+  - An Undo on the toast — not built: it would be a route that edits the archive file; the rows are in the archive and under git.
+- **Reference**: SEC-004.10, SEC-004.20, SEC-002.5 (f, h), REQ-002.H.51, ARCH-004.19, ARCH-004.32, ARCH-004.65
 
 ## Open Questions [SEC-005]
 

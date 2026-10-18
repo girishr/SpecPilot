@@ -12,6 +12,7 @@ import {
   nextTaskId,
   planMove,
   planNewTask,
+  suggestedIds,
   sha256,
   STALE_ERROR,
   TaskMove,
@@ -442,6 +443,20 @@ describe('newTask: the write on disk', () => {
     writeFileSync(archive, '# Task Archive\n\n1. [CD-001] [BL-090] Old\n');
     expect(newTask(root, task, sha256(TASKS))).toMatchObject({ status: 200, id: 'BL-091' });
     expect(readFileSync(archive, 'utf-8')).toBe('# Task Archive\n\n1. [CD-001] [BL-090] Old\n'); // only read
+  });
+
+  // BL-TB-05: the page's `Next ID` hint, by the write's own rule
+  it('suggestedIds gives the IDs newTask would assign, with no archive and with one', () => {
+    expect(suggestedIds(root, TASKS)).toEqual({ backlog: 'BL-005', currentSprint: nextTaskId('CS', [TASKS, '']) });
+    expect(suggestedIds(root, TASKS)!.backlog).toBe((newTask(root, task, sha256(TASKS)) as { id: string }).id);
+    writeFileSync(archive, '# Task Archive\n\n1. [CD-001] [BL-090] [CS-120] Old\n');
+    expect(suggestedIds(root, TASKS)).toEqual({ backlog: 'BL-091', currentSprint: 'CS-121' });
+  });
+
+  it('suggestedIds is null when the archive is a symbolic link, as the write refuses it', () => {
+    symlinkSync(file, archive);
+    expect(suggestedIds(root, TASKS)).toBeNull();
+    expect(newTask(root, task, sha256(TASKS))).toMatchObject({ status: 422 });
   });
 
   it('409s on a stale hash, with a reload hint, and writes nothing', () => {

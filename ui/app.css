@@ -126,6 +126,9 @@ a{color:var(--accent);text-decoration:none}
 .gl .gh .more{margin-left:auto;color:var(--green-ink);font-weight:500;font-size:12.5px;text-transform:none;letter-spacing:0}
 .gl .gh .more:hover{text-decoration:underline}
 .gl .gh .more:disabled{opacity:.6;cursor:default;text-decoration:none}
+.gl .gh .add{margin-left:auto;display:inline-flex;align-items:center;gap:3px;padding:2px 7px 2px 5px;border-radius:var(--rs);color:var(--label-2);font-weight:500;font-size:12px;text-transform:none;letter-spacing:0} /* BL-TB-05 */
+.gl .gh .add:hover{background:var(--hover);color:var(--label)}
+.gl .gh .add .ico{width:12px;height:12px}
 #regenNote .note{margin:0 0 6px;overflow-wrap:anywhere}
 .box{background:var(--group);border-radius:var(--r);border:1px solid var(--sep-2);overflow:hidden}
 .row{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;border-top:1px solid var(--sep);width:100%;color:var(--label);position:relative;transition:background-color var(--t)}
@@ -215,7 +218,7 @@ input.txt{width:100%}
 #v-board.on{height:100%}
 #boardMode{flex:1 1 auto;min-height:0;grid-template-rows:minmax(0,1fr)}
 .board .gl{max-height:100%}
-.board .gl .gh{flex:none}
+.board .gl .gh{flex:none;min-height:22px} /* min-height: the Add button's, so a header without one (Completed) lines up (BL-TB-05) */
 .board .gl .box{min-height:0;overflow-y:auto;overscroll-behavior:contain}
 #gIntro summary{cursor:pointer;color:var(--label-3);font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:0 2px}
 .board .row{min-height:0;padding:10px 12px;align-items:flex-start}
@@ -354,11 +357,12 @@ input.txt{width:100%}
 .field .ico{color:var(--label-3);flex:none}
 .field input{flex:1;background:transparent;border:0;outline:0;font-family:var(--mono);font-size:13px;color:var(--label);min-width:0;padding:6px 0}
 .field input::placeholder{color:var(--label-3)}
+.field textarea{flex:1;background:transparent;border:0;outline:0;font-family:var(--mono);font-size:13px;line-height:1.45;color:var(--label);min-width:0;padding:6px 0;resize:none} /* BL-TB-05: Description wraps */
+.field textarea::placeholder{color:var(--label-3)}
 .field .btn{flex:none;min-height:28px;padding:4px 10px}
 .field .btn:disabled{opacity:.6;cursor:default}
 .sheet.task{width:min(520px,100%)}
 #taskIn{font-family:inherit;font-size:14px}
-#taskSec{align-self:flex-start}
 #taskErr{margin:0;font-size:12.5px;overflow-wrap:anywhere}
 .recent .row{padding-right:8px}
 .recent .row .body{cursor:pointer}

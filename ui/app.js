@@ -102,7 +102,7 @@ function go(v,sub){
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):VIEWS[v];$('#crumb').hidden=true;
   if(v!=='new'&&browseCtl&&browseBtn&&browseBtn.id==='suBrowse')browseCtl.abort(); // leaving #new closes its folder dialog (BL-097)
-  $('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
+  $('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
   setNav(false);closeInsp();
   if(v==='home')loadRecent();
   if(v==='setup'||v==='new')renderSetup();
@@ -184,7 +184,9 @@ function taskRow({t,i},col){
   </button>`;
 }
 function group(col,items){
-  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span></div>`;
+  // BL-TB-05: the two lanes a row can be added to carry `+ Add` at the right of their header; none with --read-only
+  const add=TOKEN&&MOVABLE[col]?`<button type="button" class="add" data-add="${col}" aria-label="Add new task to ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add</button>`:'';
+  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${add}</div>`;
   return gh+`<div class="box">${items.length?items.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }
 function renderTasks(){
@@ -197,6 +199,7 @@ function renderTasks(){
   const wasOpen=!!($('#gIntro')&&$('#gIntro').open); // BL-TB-03: the fold keeps its state through a redraw; closed on a fresh load
   $('#gConv').innerHTML=T&&T.intro.trim()?`<details id="gIntro"${wasOpen?' open':''}><summary id="introSum"><span translate="no">planning/tasks.md</span></summary><div class="box"><div class="desc md">${md(T.intro)}</div></div></details>`:
     (T?'':'<div class="box"><div class="empty">No <span class="mono" translate="no">planning/tasks.md</span> in <span class="mono" translate="no">.specs/</span>.</div></div>');
+  if(taskVeil.classList.contains('open'))taskHint(); // BL-TB-05: a redraw (a 409, a live reload) refreshes the dialog's next ID
   bind();
 }
 let inspOpen=null; // {kind:'task',col,i,id} | {kind:'file',path} | null
@@ -217,6 +220,7 @@ function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidd
 function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
+  $$('#v-board [data-add]').forEach(b=>b.onclick=()=>openNewTask(b.dataset.add,`#v-board [data-add="${b.dataset.add}"]`));
   if(TOKEN)bindMoves();
 }
 
@@ -441,11 +445,13 @@ async function move(col,i,toSection,toIndex,isUndo){
    The server appends one row, `| <ID> | <description> |`, to the chosen section and picks the ID.
    The description goes as typed; a refusal is shown in the form with what was typed kept. */
 const taskVeil=$('#taskVeil'),taskIn=$('#taskIn');
-let taskSection='backlog',adding=false;
-function setTaskSection(s){taskSection=s;$$('#taskSec button').forEach(b=>{const on=b.dataset.s===s;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});}
+let taskSection='backlog',adding=false,taskFrom=null; // taskFrom: the opener, as a selector, since a lane button is redrawn (BL-TB-05)
 function taskError(m){const e=$('#taskErr');e.textContent=m||'';e.hidden=!m;}
-function openNewTask(){if(!TOKEN||!DATA||!DATA.tasks)return;hideTip();taskIn.value='';taskError('');setTaskSection('backlog');taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
-function closeNewTask(){if(!taskVeil.classList.contains('open')||adding)return;taskVeil.classList.remove('open');$('#newTask').focus();}
+/* The ID the server would give now, from the last payload; a suggestion, the write picks the ID (BL-TB-05). */
+function taskHint(){const n=DATA&&DATA.tasks&&DATA.tasks.nextIds;$('#taskNext').textContent=n?n[taskSection]:'';$('#taskNextWrap').hidden=!n;}
+function openNewTask(section,from){if(!TOKEN||!DATA||!DATA.tasks||!MOVABLE[section])return;hideTip();taskIn.value='';taskError('');taskSection=section;taskFrom=from;$('#taskLane').textContent=COLS[section];taskHint();taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
+function focusOpener(){const b=(taskFrom&&$(taskFrom))||$('#v-board [data-add]');if(b)b.focus();}
+function closeNewTask(){if(!taskVeil.classList.contains('open')||adding)return;taskVeil.classList.remove('open');focusOpener();}
 async function addTask(){
   if(adding)return;
   if(!taskIn.value.trim()){taskError('Type a description for the task.');taskIn.focus();return;}
@@ -462,7 +468,7 @@ async function addTask(){
   if(r.status===200){
     taskVeil.classList.remove('open');
     await apply(body.specs,['.specs/planning/tasks.md']);
-    $('#newTask').focus(); // what closing the inspector returns to
+    focusOpener(); // what closing the inspector returns to
     openTask(section,body.index);
     const el=$(`#v-board .row[data-col="${section}"][data-i="${body.index}"]`);if(el)el.scrollIntoView({block:'nearest'});
     toast(`${body.id} added to ## ${COLS[section]} in planning/tasks.md`);
@@ -471,8 +477,7 @@ async function addTask(){
   if(r.status===409&&body.specs)await apply(body.specs,null);
   taskError(body.error||`The task was not added (HTTP ${r.status}).`);taskIn.focus();
 }
-$('#newTask').onclick=openNewTask;
-$$('#taskSec button').forEach(b=>b.onclick=()=>setTaskSection(b.dataset.s));
+taskIn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addTask();}}; // a row cannot hold a line break: Enter adds, never breaks the line
 $('#taskCancel').onclick=closeNewTask;
 taskVeil.onclick=e=>{if(e.target===taskVeil)closeNewTask();};
 $('#taskForm').onsubmit=e=>{e.preventDefault();addTask();};
@@ -585,7 +590,7 @@ function focusKey(el){
   if(!el||el===document.body)return null;
   const row=el.closest&&el.closest('.row[data-col][data-i]');
   if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i};}
-  for(const a of ['data-open','data-file'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
+  for(const a of ['data-open','data-file','data-add'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
   if(el.id)return {sel:'#'+CSS.escape(el.id)};
   return null;
 }

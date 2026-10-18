@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`+ Add` in the Backlog and Current Sprint lane headers of the Tasks board** (BL-TB-05): each of the two lanes a row can be added to has an `Add` button at the right of its header, always in view while the rows scroll; it opens the New Task form for that lane, titled `New Task · Backlog` or `New Task · Current Sprint`, which now shows the ID the row will get (`Next ID BL-116`) and has a multi-line description field (`Enter` adds the task; a row cannot hold a line break). Completed has none, since new rows go only to Backlog and Current Sprint. Not shown with `--read-only`.
+- **`GET /api/specs` carries `tasks.nextIds`** (BL-TB-05): `{backlog, currentSprint}`, the IDs a new task would get right now, by the same rule as `POST /api/tasks/new`, or `null` when `tasks-archive.md` cannot be read. `specpilot_list_tasks` on the MCP endpoint returns it too.
+
 ### Changed
 
 - **`specpilot serve` in a folder without `.specs/` no longer exits 1** (BL-080): it starts with the remembered projects (below), or with no project open when there are none, and the page shows Home in that case, where you open, clone or start a project; the current directory is not served (`specpilot serve .` names it). `--read-only` still exits 1 there.
@@ -20,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The List mode of the Tasks view in `specpilot serve`, and the List/Board switch** (BL-TB-01): Tasks is the board alone now, its three lanes side by side (one column on narrow windows), with every Backlog row shown. Links that end in `/board` still open Tasks.
 - **The `Show All` button of the Tasks board's Completed lane** (BL-TB-07): Completed shows every row now, newest first; on windows wider than 900px a long Completed lane scrolls inside its own box like the other lanes (BL-TB-03). Until now the lane showed eight rows and a `Show All <n>` button.
+- **The `New Task` button in the Tasks toolbar, and the `Section` picker in its form** (BL-TB-05): the `Add` button in a lane's header is the way to a new task now, and the lane it sits in is the section. The row written and the server's checks are unchanged.
 
 ## [2.16.0] - 2026-10-14
 

@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, TaskMove } from './taskMover';
+import { moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -139,7 +139,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,
-    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root) } : null,
+    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root), nextIds: suggestedIds(root, contents['planning/tasks.md']) } : null, // nextIds: BL-TB-05
     nav: {
       specs: Object.keys(contents),
       instructions: ALLOWED_FILES.map(path => {

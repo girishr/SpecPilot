@@ -38,6 +38,9 @@ const idOf = (row: string) => row.split('|')[1].trim();
 /** The row button for section/index on the board. */
 const row = (page: Page, col: string, i: number) => page.locator(`#boardMode .row[data-col="${col}"][data-i="${i}"]`);
 const archive = () => readFileSync(join(env.project, '.specs', 'planning', 'tasks-archive.md'), 'utf-8');
+/** The `+ Add` button in a lane's header (BL-TB-05). */
+const laneAdd = (page: Page, col: string) => page.locator(`#boardMode .gl[data-col="${col}"] .gh [data-add="${col}"]`);
+const focusOn = (page: Page, col: string) => page.waitForFunction(c => document.activeElement?.matches(`#boardMode [data-add="${c}"]`) ?? false, col);
 
 browserTest('Alt+ArrowRight moves a Backlog row to Current Sprint as one line, and the toast Undo puts the file back byte for byte', b, async open => {
   const { page } = await open(srv);
@@ -72,10 +75,9 @@ for (const section of ['backlog', 'currentSprint'] as const) {
     await waitView(page, 'v-board');
     const before = read(env.tasks());
     const id = taskMover.nextTaskId(section === 'backlog' ? 'BL' : 'CS', [before, archive()]);
-    await page.click('#newTask');
+    await laneAdd(page, section).click(); // BL-TB-05: the lane's header button; the lane is the section
     await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
     await page.fill('#taskIn', 'Browser suite task');
-    await page.click(`#taskSec [data-s="${section}"]`);
     await page.click('#taskGo');
     const heading = section === 'backlog' ? 'Backlog' : 'Current Sprint';
     await until(() => rowsIn(read(env.tasks()), heading).includes(`| ${id} | Browser suite task |`), 'the new row on disk');
@@ -95,7 +97,7 @@ browserTest(
     const { page } = await open(srv);
     await waitView(page, 'v-board');
     const before = read(env.tasks());
-    await page.click('#newTask');
+    await laneAdd(page, 'backlog').click();
     await page.fill('#taskIn', 'a | b');
     await page.click('#taskGo');
     await page.locator('#taskErr').waitFor({ state: 'visible' });
@@ -117,7 +119,7 @@ browserTest(
       await waitView(page, 'v-board');
       const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
       writeFileSync(env.tasks(), changed);
-      await page.click('#newTask');
+      await laneAdd(page, 'backlog').click();
       await page.fill('#taskIn', 'Stale task');
       await page.click('#taskGo');
       await page.locator('#taskErr').waitFor({ state: 'visible' });
@@ -130,12 +132,13 @@ browserTest(
   [/status of 409/],
 );
 
-browserTest('--read-only has no New Task button, no drag handles and no Home tile', b, async open => {
+browserTest('--read-only has no Add buttons, no drag handles and no Home tile', b, async open => {
   const ro = await serve(env, [env.project], { readOnly: true });
   try {
     const { page } = await open(ro);
     await waitView(page, 'v-board');
-    expect(await page.locator('#newTask').isHidden()).toBe(true);
+    expect(await page.locator('#newTask').count()).toBe(0); // gone since BL-TB-05
+    expect(await page.locator('#boardMode [data-add]').count()).toBe(0); // BL-TB-05: the lane headers' Add buttons need the token
     expect(await page.locator('#homeBtn').isHidden()).toBe(true);
     expect(await page.locator('#boardMode .row[draggable="true"]').count()).toBe(0);
   } finally {
@@ -277,6 +280,80 @@ browserTest('Completed shows every row at 1280px with no Show All, and a long Co
   expect(await page.evaluate(() => document.querySelector('#content')!.scrollTop)).toBe(0);
 });
 
+// BL-TB-05: `+ Add` at the right of the Backlog and Current Sprint lane headers, in view while the rows scroll; it opens
+// the New Task dialog for its lane (title, next ID, a multi-line field that Enter submits), and focus comes back to it.
+/** [button left, top, bottom, count right, header top, header bottom] of a lane. */
+const addGeom = (page: Page, col: string) =>
+  page.evaluate(c => {
+    const gh = document.querySelector(`#boardMode .gl[data-col="${c}"] .gh`)!;
+    const b = gh.querySelector('[data-add]')!.getBoundingClientRect();
+    const h = gh.getBoundingClientRect();
+    return [b.left, b.top, b.bottom, gh.querySelector('.cnt')!.getBoundingClientRect().right, h.top, h.bottom];
+  }, col);
+
+browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the dialog for its lane with the next ID, Enter adds, and focus comes back', b, async open => {
+  const backlog = addBacklogRows();
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
+  expect(await page.locator('#boardMode [data-add]').count()).toBe(2);
+  expect(await laneAdd(page, 'backlog').textContent()).toContain('Add');
+  expect(await laneAdd(page, 'currentSprint').getAttribute('aria-label')).toBe('Add new task to Current Sprint');
+  expect(await page.locator('#boardMode .gl[data-col="completed"] [data-add]').count()).toBe(0);
+  expect(await page.locator('#newTask').count()).toBe(0);
+  expect(await page.locator('#taskSec').count()).toBe(0);
+  expect(await pageScrolls(page)).toBe(false);
+  for (const col of ['backlog', 'currentSprint']) {
+    const [left, top, bottom, cntRight, ghTop, ghBottom] = await addGeom(page, col);
+    expect(left).toBeGreaterThanOrEqual(cntRight); // right of the count, inside the header
+    expect(top).toBeGreaterThanOrEqual(ghTop);
+    expect(bottom).toBeLessThanOrEqual(ghBottom);
+    expect(bottom).toBeLessThanOrEqual(900);
+  }
+  const before0 = await addGeom(page, 'backlog');
+  await laneBox(page, 'backlog').evaluate(b => { b.scrollTop = b.scrollHeight; });
+  expect(await addGeom(page, 'backlog')).toEqual(before0); // the header, button included, stays put while the rows scroll
+  expect(await pageScrolls(page)).toBe(false);
+  // a live reload keeps focus on the button
+  await laneAdd(page, 'backlog').focus();
+  const lines = read(env.tasks()).split('\n');
+  const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  writeFileSync(env.tasks(), lines.join('\n'));
+  await page.waitForFunction(() => document.documentElement.dataset.rev === '1');
+  await focusOn(page, 'backlog');
+  // the Current Sprint button opens the dialog for its lane; the hint is the ID the server will give; Enter adds
+  const before = read(env.tasks());
+  const id = taskMover.nextTaskId('CS', [before, archive()]);
+  await laneAdd(page, 'currentSprint').click();
+  await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
+  expect(await page.evaluate(() => document.activeElement!.tagName)).toBe('TEXTAREA');
+  expect(await page.locator('#taskTitle').textContent()).toBe('New Task · Current Sprint');
+  expect(await page.locator('#taskNext').textContent()).toBe(id);
+  await page.keyboard.type('Lane header task');
+  await page.keyboard.press('Enter');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(`| ${id} | Lane header task |`), 'the new row on disk');
+  expect(read(env.tasks()).split('\n').length).toBe(before.split('\n').length + 1);
+  await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+  expect(await page.locator('#insp .ih .id').first().textContent()).toBe(id);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#insp')!.classList.contains('open'));
+  await focusOn(page, 'currentSprint');
+  await laneAdd(page, 'currentSprint').click(); // the hint moved on with the file
+  await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
+  expect(await page.locator('#taskNext').textContent()).toBe(taskMover.nextTaskId('CS', [read(env.tasks()), archive()]));
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
+  await focusOn(page, 'currentSprint');
+  // Escape from a dialog opened by the Backlog button returns to it
+  await laneAdd(page, 'backlog').click();
+  await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
+  expect(await page.locator('#taskTitle').textContent()).toBe('New Task · Backlog');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
+  await focusOn(page, 'backlog');
+});
+
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
   const { page } = await open(srv);
   await waitView(page, 'v-board');
@@ -313,7 +390,7 @@ browserTest('the Tasks view, a task\'s details and the New Task dialog have no s
   expect(await noSideScroll(page)).toBe(true);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#insp')!.classList.contains('open'));
-  await page.click('#newTask');
+  await laneAdd(page, 'backlog').click(); // BL-TB-05: the dialog opens from a lane header
   await page.waitForFunction(() => document.querySelector('#taskVeil')!.classList.contains('open'));
   expect(await noSideScroll(page)).toBe(true);
   await page.keyboard.press('Escape');
@@ -322,4 +399,18 @@ browserTest('the Tasks view, a task\'s details and the New Task dialog have no s
   await page.waitForFunction(() => document.querySelector('#gIntro')!.hasAttribute('open'));
   expect(await noSideScroll(page)).toBe(true);
   expect(await pageScrolls(page)).toBe(true);
+  // BL-TB-05: the header buttons, the dialog opened from one, its empty-description error, and focus back on it
+  expect(await page.locator('#boardMode .gh [data-add]').count()).toBe(2);
+  await laneAdd(page, 'currentSprint').click();
+  await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
+  expect(await page.locator('#taskTitle').textContent()).toBe('New Task · Current Sprint');
+  expect(await noSideScroll(page)).toBe(true);
+  await page.click('#taskGo');
+  await page.locator('#taskErr').waitFor({ state: 'visible' });
+  expect(await page.locator('#taskErr').textContent()).toBe('Type a description for the task.');
+  expect(await noSideScroll(page)).toBe(true);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
+  await focusOn(page, 'currentSprint');
+  expect(await noSideScroll(page)).toBe(true);
 });

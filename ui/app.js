@@ -90,7 +90,7 @@ function syncNav(){
   [homeBtn,...$$('#projList .tile')].forEach(t=>{const cur=t===homeBtn?home:!off&&+t.dataset.project===PROJECT;
     t.classList.toggle('cur',cur);if(cur)t.setAttribute('aria-current','true');else t.removeAttribute('aria-current');});
 }
-function go(v,keep,sub){
+function go(v,sub){
   if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
   else if(NOPROJ.includes(v)){if(!TOKEN)v='board';} // no Home and no #new with --read-only
   else if(!VIEWS[v]||v==='setup')v='board';
@@ -102,17 +102,16 @@ function go(v,keep,sub){
   syncNav();
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):VIEWS[v];$('#crumb').hidden=true;
   if(v!=='new'&&browseCtl&&browseBtn&&browseBtn.id==='suBrowse')browseCtl.abort(); // leaving #new closes its folder dialog (BL-097)
-  $('#modeSeg').hidden=v!=='board';$('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
+  $('#newTask').hidden=!(TOKEN&&v==='board');$('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
   setNav(false);closeInsp();
   if(v==='home')loadRecent();
   if(v==='setup'||v==='new')renderSetup();
   if(v==='file')renderFile(sub);
   if(v==='explorer')renderExplorer();
   if(v==='security')renderSecurity();
-  setHash(v,v==='file'?sub:(keep?stateFor(v):null));
+  setHash(v,v==='file'?sub:null);
   $('#content').scrollTop=0;
 }
-function stateFor(v){return v==='board'?(mode==='board'?'board':null):null}
 /* URL state. Sandboxed frames refuse replaceState with a URL, so fall back to an in-memory hash. */
 let urlOk=true,memHash='';
 try{history.replaceState(null,'',location.href);}catch(e){urlOk=false;}
@@ -125,11 +124,10 @@ function route(){
   const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1,!!TOKEN);
   if(NOPROJ.includes(r.view)){go(r.view);return;} // Home and #new belong to no project: the shown one stays loaded behind them
   if(r.project!==PROJECT){switchProject(r.project,true);return;}
-  if(r.view==='board'&&r.sub==='board'){mode='board';$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.m==='board'));renderTasks();}
-  go(r.view,true,r.sub);
+  go(r.view,r.sub);
 }
 if(urlOk)window.addEventListener('hashchange',route);
-$$('.src .srow[data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v,false,b.dataset.f));
+$$('.src .srow[data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v,b.dataset.f));
 function setNav(on){const w=$('#win');w.classList.toggle('nav',on);$('#scrim').hidden=!on;$('#menuBtn').setAttribute('aria-expanded',on?'true':'false');}
 $('#menuBtn').onclick=()=>setNav(!$('#win').classList.contains('nav'));
 $('#scrim').onclick=()=>setNav(false);
@@ -166,7 +164,7 @@ $('#rail').addEventListener('keydown',e=>{
 /* ---------------- tasks: the rows of planning/tasks.md ---------------- */
 /* Cells are readSpecs() output, verbatim. Rows are keyed by section and position, never by
    ID: IDs repeat in real files (two rows can share a # and an ID). */
-let mode='list', selected=null, lastFocus=null, showAllBacklog=false, showAllDone=false;
+let selected=null, lastFocus=null, showAllDone=false;
 const insp=$('#insp');
 const COLS={currentSprint:'Current Sprint',backlog:'Backlog',completed:'Completed'};
 const DOT={completed:'green',currentSprint:'orange',backlog:'hollow'};
@@ -189,18 +187,12 @@ function group(col,items,opt){
   opt=opt||{};
   const shown=opt.limit&&!opt.all?items.slice(0,opt.limit):items;
   const more=opt.limit&&!opt.all&&items.length>opt.limit?`<button type="button" class="more" data-more="${col}">Show All ${items.length}</button>`:'';
-  const gh=opt.disc
-    ?`<div class="gh"><button type="button" class="disc" data-disc="${col}" aria-expanded="${!opt.closed}" aria-label="Toggle ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg></button>${esc(COLS[col])} <span class="cnt">${items.length}</span>${more}</div>`
-    :`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${more}</div>`;
+  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${more}</div>`;
   return gh+`<div class="box">${shown.length?shown.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }
 function renderTasks(){
   const S=rowsOf('currentSprint'),B=rowsOf('backlog'),D=rowsOf('completed');
-  $('#gSprint').innerHTML=group('currentSprint',S,{});
-  $('#gBacklog').innerHTML=group('backlog',B,{limit:6,all:showAllBacklog});
-  $('#gDone').innerHTML=group('completed',D,{disc:true,closed:$('#gDone').classList.contains('closed'),limit:8,all:showAllDone});
   $('#boardMode').innerHTML=[['currentSprint',S,{}],['backlog',B,{}],['completed',D,{limit:8,all:showAllDone}]].map(([c,items,o])=>`<div class="gl" data-col="${c}">${group(c,items,o)}</div>`).join('');
-  $('#listMode').hidden=mode!=='list';$('#boardMode').hidden=mode!=='board';
   const T=DATA.tasks;
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;
@@ -228,10 +220,8 @@ function closeInsp(){const was=insp.classList.contains('open');insp.classList.re
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
   if(TOKEN)bindMoves();
-  $$('[data-more]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(b.dataset.more==='completed')showAllDone=true;else showAllBacklog=true;renderTasks();});
-  $$('[data-disc]').forEach(b=>b.onclick=e=>{e.stopPropagation();const g=$('#gDone');g.classList.toggle('closed');b.setAttribute('aria-expanded',!g.classList.contains('closed'));});
+  $$('[data-more]').forEach(b=>b.onclick=e=>{e.stopPropagation();showAllDone=true;renderTasks();});
 }
-$$('#modeSeg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;$$('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b));renderTasks();setHash('board',stateFor('board'));});
 
 /* ---------------- any .specs/ file, rendered as written ---------------- */
 function metaLine(m){return ['fileID','version','lastUpdated'].filter(k=>m&&m[k]!==undefined).map(k=>`${k}: ${m[k]}`).join(' · ');}
@@ -256,7 +246,7 @@ function renderExplorer(){
   $('#exBody').innerHTML=Object.keys(dirs).map(d=>`<div class="gl mb18"><div class="gh" translate="no">${esc(d?d+'/':'.specs/')}</div><div class="box">${dirs[d].map(p=>{
     const line=metaLine(DATA.files[p]);
     return `<button type="button" class="row act" data-file="${esc(p)}"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl" translate="no">${esc(d?p.slice(d.length+1):p)}</div>${line?`<div class="det" translate="no">${esc(line)}</div>`:''}</div><div class="trail">${chev}</div></button>`;}).join('')}</div></div>`).join('');
-  $$('#exBody .row.act').forEach(b=>b.onclick=()=>go('file',false,b.dataset.file));
+  $$('#exBody .row.act').forEach(b=>b.onclick=()=>go('file',b.dataset.file));
   $('#exNote').innerHTML=`${DATA.nav.specs.length} files under <span class="mono" translate="no">.specs/</span>. Every ID, version and date is that file’s own front matter.`;
 }
 /* Security: both files in security/, each rendered as written. */
@@ -375,8 +365,8 @@ const palVeil=$('#palVeil'),palIn=$('#palIn'),palList=$('#palList');
 function items(q){q=q.toLowerCase();
   const T=DATA?DATA.tasks:null;
   const it=[
-    ...NAV.map(n=>n[0]==='file'?{l:'.specs/'+n[1],k:'file',go:()=>go('file',false,n[1])}:{l:VIEWS[n[0]],k:'view',go:()=>go(n[0])}),
-    ...(DATA?DATA.nav.specs:[]).filter(p=>!NAV.some(n=>n[1]===p)).map(p=>({l:'.specs/'+p,k:'file',go:()=>go('file',false,p)})),
+    ...NAV.map(n=>n[0]==='file'?{l:'.specs/'+n[1],k:'file',go:()=>go('file',n[1])}:{l:VIEWS[n[0]],k:'view',go:()=>go(n[0])}),
+    ...(DATA?DATA.nav.specs:[]).filter(p=>!NAV.some(n=>n[1]===p)).map(p=>({l:'.specs/'+p,k:'file',go:()=>go('file',p)})),
     ...(T?['currentSprint','backlog','completed'].flatMap(c=>T[c].map((t,i)=>({l:t.id+'  '+t.description,k:'task',go:()=>{go('board');openTask(c,i)}}))):[])
   ];
   return it.filter(i=>!q||i.l.toLowerCase().includes(q)).slice(0,9);}
@@ -388,12 +378,12 @@ palIn.onkeydown=e=>{if(e.key==='Enter'){const it=items(palIn.value);it[0]&&it[0]
 document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
-  if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);return}
+  if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],n[1]);return}
   if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();setNav(false);return}
   if(inField||mod||e.altKey||taskVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
-  if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],false,n[1]);}
-  if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$((mode==='board'?'#boardMode':'#listMode')+' .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
+  if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],n[1]);}
+  if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$('#v-board .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
 });
 
 /* ---------------- task moves (BL-053) ----------------
@@ -439,10 +429,9 @@ async function move(col,i,toSection,toIndex,isUndo){
   moving=false;
   if(p!==PROJECT)return; // the page switched projects while the move was in flight
   if(r.status===200){
-    if(toSection==='backlog'&&toIndex>=6)showAllBacklog=true;
     await apply(body.specs,['.specs/planning/tasks.md']);
     const j=DATA.tasks[toSection].findIndex(x=>x.id===t.id);
-    const el=$(`${mode==='board'?'#boardMode':'#listMode'} .row[data-col="${toSection}"][data-i="${j}"]`);if(el)el.focus();
+    const el=$(`#v-board .row[data-col="${toSection}"][data-i="${j}"]`);if(el)el.focus();
     const msg=col===toSection?`${t.id} moved within ## ${COLS[col]} in planning/tasks.md`:`${t.id} moved from ## ${COLS[col]} to ## ${COLS[toSection]} in planning/tasks.md`;
     toast(msg,isUndo?null:{label:'Undo',fn:()=>{const k=DATA.tasks[toSection].findIndex(x=>x.id===t.id);if(k>=0)move(toSection,k,body.from,body.fromIndex,true);}});
   }else if(r.status===409){
@@ -474,12 +463,11 @@ async function addTask(){
   if(!r){taskError('The server did not answer. Nothing was added.');return;}
   if(p!==PROJECT)return;
   if(r.status===200){
-    if(section==='backlog'&&body.index>=6)showAllBacklog=true;
     taskVeil.classList.remove('open');
     await apply(body.specs,['.specs/planning/tasks.md']);
     $('#newTask').focus(); // what closing the inspector returns to
     openTask(section,body.index);
-    const el=$(`${mode==='board'?'#boardMode':'#listMode'} .row[data-col="${section}"][data-i="${body.index}"]`);if(el)el.scrollIntoView({block:'nearest'});
+    const el=$(`#v-board .row[data-col="${section}"][data-i="${body.index}"]`);if(el)el.scrollIntoView({block:'nearest'});
     toast(`${body.id} added to ## ${COLS[section]} in planning/tasks.md`);
     return;
   }
@@ -599,8 +587,8 @@ $('#suBrowse').onclick=()=>browseFolder($('#suBrowse'),()=>curView==='new'?$('#s
 function focusKey(el){
   if(!el||el===document.body)return null;
   const row=el.closest&&el.closest('.row[data-col][data-i]');
-  if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i,board:!!row.closest('#boardMode')};}
-  for(const a of ['data-open','data-file','data-more','data-disc'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
+  if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i};}
+  for(const a of ['data-open','data-file','data-more'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
   if(el.id)return {sel:'#'+CSS.escape(el.id)};
   return null;
 }
@@ -613,7 +601,7 @@ function findRow(col,id,oldI){
 function refocus(key){
   if(!key||document.activeElement&&document.activeElement!==document.body)return;
   let el=null;
-  if(key.row){const i=findRow(key.row,key.id,key.i);if(i>=0)el=$(`${key.board?'#boardMode':'#listMode'} .row[data-col="${key.row}"][data-i="${i}"]`);}
+  if(key.row){const i=findRow(key.row,key.id,key.i);if(i>=0)el=$(`#v-board .row[data-col="${key.row}"][data-i="${i}"]`);}
   else el=$(key.sel);
   if(el)el.focus({preventScroll:true});
 }
@@ -855,7 +843,6 @@ $('#recentBox').addEventListener('keydown',e=>{const row=e.target.closest&&e.tar
 
 /* boot: the project count is unknown until the first load, so an index past the end falls back to project 0 */
 insp.setAttribute('aria-hidden','true');
-$('#gDone').classList.add('closed');
 PROJECT=resolveRoute(curHash(),{},Infinity).project;
 const bootQ=()=>PROJECT?'?'+pq():''; // project 0 is asked for without the parameter: with nothing served the server answers the no-project state (BL-080)
 fetch('/api/specs'+bootQ(),{cache:'no-store'})

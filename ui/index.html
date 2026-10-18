@@ -116,7 +116,6 @@
     <button class="ib menu" id="menuBtn" aria-label="Show sidebar"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
     <div><h1 id="title">Tasks</h1><div class="sub"><span id="subName" translate="no"></span><span class="mono" id="subPath" translate="no"></span><span class="mono" id="crumb" translate="no" hidden></span></div></div>
     <div class="right">
-      <div class="seg" id="modeSeg"><button class="on" data-m="list">List</button><button data-m="board">Board</button></div>
       <a class="ib" id="editorBtn" hidden aria-label="Open in VS Code" title="Open in VS Code"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ext"/></svg></a>
       <div class="idewrap" id="ideWrap" hidden><button type="button" class="ib" id="ideBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="ideMenu" aria-label="Open in AI IDE" title="Open in AI IDE"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-spark"/></svg></button><div class="idemenu" id="ideMenu" role="menu" aria-label="Open in AI IDE" hidden></div></div>
       <button type="button" class="btn line sm" id="newTask" hidden><svg class="ico ico-13" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>New Task</button>
@@ -145,12 +144,7 @@
 
     <!-- TASKS: the rows of planning/tasks.md, from readSpecs() -->
     <section class="view on" id="v-board">
-      <div id="listMode">
-        <div class="gl" id="gSprint" data-col="currentSprint"></div>
-        <div class="gl mt18" id="gBacklog" data-col="backlog"></div>
-        <div class="gl mt18" id="gDone" data-col="completed"></div>
-      </div>
-      <div id="boardMode" class="board" hidden></div>
+      <div id="boardMode" class="board"></div>
       <div class="gl" id="gRaw" hidden></div>
       <div class="gl" id="gConv"></div>
     </section>

@@ -17,6 +17,7 @@ type RegistryModule = typeof import('../utils/projectRegistry');
 export const server: ServerModule = require(join(REPO, 'dist', 'utils', 'specServer.js'));
 export const registry: RegistryModule = require(join(REPO, 'dist', 'utils', 'projectRegistry.js'));
 export const taskMover: typeof import('../utils/taskMover') = require(join(REPO, 'dist', 'utils', 'taskMover.js'));
+export const specArchiver: typeof import('../utils/specArchiver') = require(join(REPO, 'dist', 'utils', 'specArchiver.js'));
 // The page's own helpers, as the browser runs them.
 export const routeJs: {
   editorUrl: (path: string, line?: number, scheme?: string) => string;

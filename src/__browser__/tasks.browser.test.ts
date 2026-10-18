@@ -1,8 +1,8 @@
 // The Tasks view (BL-079 row, BL-053, BL-PM-005, BL-PM-008's task link, BL-052 live reload), TESTS-002.4.
 import { Browser, Page } from 'playwright-core';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, launch, makeEnv, noSideScroll, read, serve, Served, taskMover, until, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, noSideScroll, read, serve, Served, specArchiver, taskMover, until, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -132,13 +132,16 @@ browserTest(
   [/status of 409/],
 );
 
-browserTest('--read-only has no Add buttons, no drag handles and no Home tile', b, async open => {
+browserTest('--read-only has no Add or Archive buttons, no drag handles and no Home tile', b, async open => {
+  const completed = addCompletedRows(40); // past the limit, so Archive would be due with a token (BL-TB-06)
   const ro = await serve(env, [env.project], { readOnly: true });
   try {
     const { page } = await open(ro);
     await waitView(page, 'v-board');
+    await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
     expect(await page.locator('#newTask').count()).toBe(0); // gone since BL-TB-05
     expect(await page.locator('#boardMode [data-add]').count()).toBe(0); // BL-TB-05: the lane headers' Add buttons need the token
+    expect(await page.locator('#boardMode [data-archive]').count()).toBe(0); // BL-TB-06: so does Archive
     expect(await page.locator('#homeBtn').isHidden()).toBe(true);
     expect(await page.locator('#boardMode .row[draggable="true"]').count()).toBe(0);
   } finally {
@@ -205,15 +208,38 @@ function addBacklogRows(): number {
   writeFileSync(env.tasks(), lines.join('\n'));
   return rowsIn(read(env.tasks()), 'Backlog').length;
 }
-/** Thirty more Completed rows in the fixture (three columns), more than fit a 900px-high lane (BL-TB-07). */
-function addCompletedRows(): number {
+/** `count` more Completed rows in the fixture (three columns): 30 are more than fit a 900px-high lane (BL-TB-07); 40 put the section past its 40-line limit (BL-TB-06). */
+function addCompletedRows(count = 30): number {
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Completed');
   const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, ...Array.from({ length: 30 }, (_, n) => `| 9${String(n + 10)} | [CD-fixture-9${String(n + 10)}] | Fixture completed row ${n + 10} with a longer description so that the card wraps onto two lines |`));
+  lines.splice(sep + 1, 0, ...Array.from({ length: count }, (_, n) => `| 9${String(n + 10)} | [CD-fixture-9${String(n + 10)}] | Fixture completed row ${n + 10} with a longer description so that the card wraps onto two lines |`));
   writeFileSync(env.tasks(), lines.join('\n'));
   return rowsIn(read(env.tasks()), 'Completed').length;
 }
+/** The `Archive` button in the Completed lane's header (BL-TB-06). */
+const laneArchive = (page: Page) => page.locator('#boardMode .gl[data-col="completed"] .gh [data-archive]');
+const stamp = (s: string) => s.replace(/## Archived on \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/g, '## Archived on <T>');
+/** Write a Current Sprint row outside the page and wait for the live reload that draws it (the payload, branch included, is rebuilt). */
+async function reloadThrough(page: Page, id: string): Promise<void> {
+  const rev = Number(await page.evaluate(() => document.documentElement.dataset.rev || 0));
+  const lines = read(env.tasks()).split('\n');
+  const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
+  lines.splice(sep + 1, 0, `| ${id} | Written outside the page |`);
+  writeFileSync(env.tasks(), lines.join('\n'));
+  await page.waitForFunction(r => Number(document.documentElement.dataset.rev || 0) > r, rev);
+}
+/** What `specpilot archive` would move from the fixture's tasks.md now (forced: within the limit too, D8): tasks.md after, the block (timestamp masked), the count, the section's lines. */
+function archivePlan(force = false): { after: string; block: string; moved: number; lines: number } {
+  const lines = read(env.tasks()).split('\n');
+  const plan = specArchiver.planCompletedArchive(lines, force)!;
+  return { after: [...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'), block: stamp(specArchiver.completedArchiveBlock(lines, plan)), moved: plan.end - plan.start, lines: taskMover.completedArchiveStatus(lines.join('\n')).lines };
+}
+const HEAD = () => join(env.project, '.git', 'HEAD');
+const archOpen = (page: Page) => page.waitForFunction(() => document.querySelector('#archVeil')!.classList.contains('open'));
+const archClosed = (page: Page) => page.waitForFunction(() => !document.querySelector('#archVeil')!.classList.contains('open'));
+const focusOnArchive = (page: Page) => page.waitForFunction(() => document.activeElement?.hasAttribute('data-archive') ?? false);
+const gateText = (page: Page, i: number) => page.locator('#archGates .gate').nth(i).textContent();
 const pageScrolls = (page: Page) => page.evaluate(() => { const c = document.querySelector('#content')!; return c.scrollHeight > c.clientHeight; });
 const laneBox = (page: Page, col: string) => page.locator(`#boardMode .gl[data-col="${col}"] .box`);
 /** [scrollHeight, clientHeight, header top, box bottom, scrollTop] of a lane's box. */
@@ -300,6 +326,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   expect(await laneAdd(page, 'backlog').textContent()).toContain('Add');
   expect(await laneAdd(page, 'currentSprint').getAttribute('aria-label')).toBe('Add new task to Current Sprint');
   expect(await page.locator('#boardMode .gl[data-col="completed"] [data-add]').count()).toBe(0);
+  expect(await page.locator('#boardMode [data-archive]').count()).toBe(1); // BL-TB-06 (D8): Archive is always in the Completed header
   expect(await page.locator('#newTask').count()).toBe(0);
   expect(await page.locator('#taskSec').count()).toBe(0);
   expect(await pageScrolls(page)).toBe(false);
@@ -352,7 +379,178 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
   await focusOn(page, 'backlog');
+  // BL-TB-06 (D8): the fixture's one-row Completed opens the Archive dialog with nothing to archive and the action disabled
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await page.locator('#archGates .gate').count()).toBe(2);
+  expect(await gateText(page, 0)).toBe('On main.');
+  expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 1 row, and an archive keeps the newest 20.');
+  expect(await page.locator('#archGates input').count()).toBe(0);
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  await page.waitForFunction(() => document.activeElement?.id === 'archCancel');
+  await page.keyboard.press('Escape');
+  await archClosed(page);
+  await focusOnArchive(page);
 });
+
+// BL-TB-06 (D8): `Archive` is always in the Completed lane header and opens the Archive Completed dialog, which lists the gates
+// (the CLI's branch guard, the 40-line limit) from the latest payload with a box to tick for each that warns; Archive runs the
+// Completed step with the CLI's plan and block; within the limit a ticked limit gate sends {force:true}.
+browserTest('Archive sits in the Completed header; past the limit on main the dialog has no box to tick, one click archives the oldest rows as the CLI does, and the next open says nothing is left', b, async open => {
+  const completed = addCompletedRows(40);
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
+  expect(await page.locator('#boardMode [data-archive]').count()).toBe(1);
+  expect(await laneArchive(page).count()).toBe(1);
+  expect(await laneArchive(page).textContent()).toContain('Archive');
+  expect(await laneArchive(page).getAttribute('aria-label')).toBe('Archive Completed rows to planning/tasks-archive.md');
+  const [left, top, bottom, cntRight, ghTop, ghBottom] = await page.evaluate(() => {
+    const gh = document.querySelector('#boardMode .gl[data-col="completed"] .gh')!;
+    const r = gh.querySelector('[data-archive]')!.getBoundingClientRect();
+    const h = gh.getBoundingClientRect();
+    return [r.left, r.top, r.bottom, gh.querySelector('.cnt')!.getBoundingClientRect().right, h.top, h.bottom];
+  });
+  expect(left).toBeGreaterThanOrEqual(cntRight); // right of the count, inside the header
+  expect(top).toBeGreaterThanOrEqual(ghTop);
+  expect(bottom).toBeLessThanOrEqual(ghBottom);
+  // a live reload keeps focus on the button
+  await laneArchive(page).focus();
+  await reloadThrough(page, 'CS-900');
+  await focusOnArchive(page);
+  const { after, block, moved, lines } = archivePlan();
+  expect(moved).toBeGreaterThan(0);
+  const archiveBefore = archive();
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await page.locator('#archTitle').textContent()).toBe('Archive Completed');
+  expect(await page.locator('#archGates .gate').count()).toBe(2);
+  expect(await page.locator('#archGates .gate.ok').count()).toBe(2);
+  expect(await page.locator('#archGates input').count()).toBe(0); // on main, over the limit: nothing warns
+  expect(await gateText(page, 0)).toBe('On main.');
+  expect(await gateText(page, 1)).toBe(`## Completed is ${lines} lines, over its 40-line limit: ${moved} rows move, the newest 20 stay.`);
+  expect(await page.locator('#archGo').isEnabled()).toBe(true);
+  await page.waitForFunction(() => document.activeElement?.id === 'archGo');
+  for (const key of ['h', '1', 'j']) await page.keyboard.press(key); // the open dialog swallows the page's single-key shortcuts
+  expect(await page.evaluate(() => document.querySelector('#archVeil')!.classList.contains('open'))).toBe(true);
+  await waitView(page, 'v-board');
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('archGo');
+  await page.click('#archGo');
+  await until(() => read(env.tasks()) === after, 'tasks.md without the archived rows');
+  expect(stamp(archive())).toBe(archiveBefore + block);
+  await waitToast(page, new RegExp(`^Moved ${moved} rows from ## Completed to planning/tasks-archive.md$`));
+  await archClosed(page);
+  expect(await page.locator('#boardMode .gl[data-col="completed"] .gh .cnt').textContent()).toBe(String(completed - moved));
+  expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(completed - moved);
+  expect(await page.locator('#boardMode [data-archive]').count()).toBe(1); // still there: it opens the dialog, due or not
+  await focusOnArchive(page);
+  // the next open: nothing left to archive, the action disabled, Escape returns to the button
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 20 rows, and an archive keeps the newest 20.');
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  await page.waitForFunction(() => document.activeElement?.id === 'archCancel');
+  await page.keyboard.press('Escape');
+  await archClosed(page);
+  await focusOnArchive(page);
+});
+
+browserTest('off main and within the limit the dialog warns twice, Archive waits for both ticks, a redraw keeps a tick and shows the new branch, and a ticked limit gate forces the rows past the newest 20', b, async open => {
+  const completed = addCompletedRows(25); // 26 rows, 31 lines: within the limit
+  writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
+  const archiveBefore = archive();
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await page.locator('#archGates .gate').count()).toBe(2);
+  expect(await page.locator('#archGates .gate.warn').count()).toBe(2);
+  expect(await page.locator('#archGates input').count()).toBe(2);
+  expect(await gateText(page, 0)).toBe('On branch feature. Archive is recommended only on the default branch after merging. Archive on this branch anyway.');
+  expect(await gateText(page, 1)).toBe('## Completed is 31 lines, within its 40-line limit. Archive 6 rows anyway; the newest 20 stay.');
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  await page.waitForFunction(() => document.activeElement?.matches('#archGates input') ?? false); // focus starts on the first box
+  await page.check('#archGates input[data-gate="force"]');
+  expect(await page.locator('#archGo').isDisabled()).toBe(true); // one of two
+  // the branch switched after the last payload: the open dialog redraws at the next one, the tick kept
+  writeFileSync(HEAD(), 'ref: refs/heads/other\n');
+  await reloadThrough(page, 'CS-900');
+  expect(await gateText(page, 0)).toMatch(/^On branch other\. /);
+  expect(await page.isChecked('#archGates input[data-gate="force"]')).toBe(true);
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  await page.check('#archGates input[data-gate="branch:other"]');
+  expect(await page.locator('#archGo').isEnabled()).toBe(true);
+  await page.click('#archCancel'); // nothing written, focus back on the button
+  await archClosed(page);
+  await focusOnArchive(page);
+  expect(archive()).toBe(archiveBefore);
+  expect(rowsIn(read(env.tasks()), 'Completed')).toHaveLength(completed);
+  // a detached HEAD is guarded like the CLI's HEAD: the gate names the commit; every box starts unticked
+  writeFileSync(HEAD(), 'a'.repeat(40) + '\n');
+  await reloadThrough(page, 'CS-901');
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await gateText(page, 0)).toBe(`On branch ${'a'.repeat(40)}. Archive is recommended only on the default branch after merging. Archive on this branch anyway.`);
+  expect(await page.locator('#archGates input:checked').count()).toBe(0);
+  await page.keyboard.press('Escape');
+  await archClosed(page);
+  await focusOnArchive(page);
+  // no .git: no branch to warn about; the limit gate alone, ticked, forces the archive
+  rmSync(join(env.project, '.git'), { recursive: true, force: true });
+  await reloadThrough(page, 'CS-902');
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await gateText(page, 0)).toBe('No git branch.');
+  expect(await page.locator('#archGates input').count()).toBe(1);
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  const { after, block, moved } = archivePlan(true);
+  expect(moved).toBe(6);
+  await page.check('#archGates input[data-gate="force"]');
+  expect(await page.locator('#archGo').isEnabled()).toBe(true);
+  await page.click('#archGo');
+  await until(() => read(env.tasks()) === after, 'tasks.md without the forced rows');
+  expect(stamp(archive())).toBe(archiveBefore + block);
+  await waitToast(page, new RegExp(`^Moved ${moved} rows from ## Completed`));
+  await archClosed(page);
+  await focusOnArchive(page);
+  expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(20);
+});
+
+browserTest(
+  'a tasks.md changed after the page loaded shows the 409 text in the Archive dialog, which stays open, and writes nothing',
+  b,
+  async open => {
+    const completed = addCompletedRows(40);
+    const slow = await serve(env, [env.project], { pollMs: 60000 }); // the page still holds the old hash when Archive is clicked
+    try {
+      const { page } = await open(slow);
+      const narrow = (await open(slow, '', { width: 420 })).page; // the error state at 420px too, on a page that also holds the old hash
+      for (const pg of [page, narrow]) {
+        await waitView(pg, 'v-board');
+        await pg.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
+      }
+      const archiveBefore = archive();
+      const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
+      writeFileSync(env.tasks(), changed);
+      for (const pg of [page, narrow]) {
+        await laneArchive(pg).click();
+        await archOpen(pg);
+        await pg.click('#archGo');
+        await pg.locator('#archErr').waitFor({ state: 'visible' });
+        expect(await pg.locator('#archErr').textContent()).toBe(taskMover.ARCHIVE_STALE_ERROR);
+        expect(await pg.evaluate(() => document.querySelector('#archVeil')!.classList.contains('open'))).toBe(true);
+        expect(await pg.locator('#archGo').isEnabled()).toBe(true); // the gates redrawn from the fresh payload: still on main, still over the limit
+      }
+      expect(await noSideScroll(narrow)).toBe(true);
+      expect(read(env.tasks())).toBe(changed);
+      expect(archive()).toBe(archiveBefore);
+    } finally {
+      await slow.close();
+    }
+  },
+  [/status of 409/],
+);
 
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
   const { page } = await open(srv);
@@ -371,9 +569,10 @@ browserTest('the tasks.md intro sits above the lanes, folded on load, and stays 
   expect(await page.locator('#gIntro').getAttribute('open')).not.toBeNull();
 });
 
-browserTest('the Tasks view, a task\'s details and the New Task dialog have no sideways scroll at 420px; the lanes stack and the page scrolls', b, async open => {
+browserTest('the Tasks view, a task\'s details, the New Task dialog and Archive have no sideways scroll at 420px; the lanes stack and the page scrolls', b, async open => {
   const backlog = addBacklogRows();
-  const completed = addCompletedRows();
+  const completed = addCompletedRows(40); // past the limit: Archive is drawn (BL-TB-06)
+  writeFileSync(join(env.project, '.git', 'HEAD'), 'ref: refs/heads/feature\n');
   const { page } = await open(srv, '', { width: 420 });
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
@@ -413,4 +612,38 @@ browserTest('the Tasks view, a task\'s details and the New Task dialog have no s
   await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
   await focusOn(page, 'currentSprint');
   expect(await noSideScroll(page)).toBe(true);
+  // BL-TB-06 (D8): Archive in the Completed header; the dialog warning about the branch; the archived state; nothing to archive
+  expect(await laneArchive(page).count()).toBe(1);
+  const [aLeft, aRight, ghLeft, ghRight] = await page.evaluate(() => {
+    const gh = document.querySelector('#boardMode .gl[data-col="completed"] .gh')!;
+    const r = gh.querySelector('[data-archive]')!.getBoundingClientRect();
+    const h = gh.getBoundingClientRect();
+    return [r.left, r.right, h.left, h.right];
+  });
+  expect(aLeft).toBeGreaterThanOrEqual(ghLeft);
+  expect(aRight).toBeLessThanOrEqual(ghRight);
+  expect(aRight).toBeLessThanOrEqual(420);
+  const { after, moved } = archivePlan();
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await page.locator('#archGates .gate.warn').count()).toBe(1); // the branch; the limit gate is passed
+  expect(await gateText(page, 0)).toMatch(/^On branch feature\. Archive is recommended/);
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  expect(await noSideScroll(page)).toBe(true);
+  await page.check('#archGates input');
+  await page.click('#archGo');
+  await until(() => read(env.tasks()) === after, 'tasks.md without the archived rows');
+  await waitToast(page, new RegExp(`^Moved ${moved} rows from ## Completed`));
+  await archClosed(page);
+  expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(completed - moved);
+  expect(await noSideScroll(page)).toBe(true);
+  expect(await pageScrolls(page)).toBe(true);
+  await laneArchive(page).click(); // nothing left: the dialog says so
+  await archOpen(page);
+  expect(await page.locator('#archGates .gate.off').count()).toBe(1);
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  expect(await noSideScroll(page)).toBe(true);
+  await page.keyboard.press('Escape');
+  await archClosed(page);
+  await focusOnArchive(page);
 });

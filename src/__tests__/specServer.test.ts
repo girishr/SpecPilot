@@ -7,7 +7,8 @@ import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
-import { nextTaskId } from '../utils/taskMover';
+import { ARCHIVE_STALE_ERROR, completedArchiveStatus, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError } from '../utils/taskMover';
+import { planCompletedArchive } from '../utils/specArchiver';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
 import { serveCommand, STOP_CLONE_MS } from '../commands/serve';
@@ -224,6 +225,13 @@ describe('buildSpecsPayload against this repo', () => {
     const archive = readFileSync(join(REPO, '.specs/planning/tasks-archive.md'), 'utf-8');
     expect(payload.tasks!.nextIds).toEqual({ backlog: nextTaskId('BL', [tasksMd.join('\n'), archive]), currentSprint: nextTaskId('CS', [tasksMd.join('\n'), archive]) });
     expect(payload.tasks!.nextIds!.backlog).toMatch(/^BL-\d{3,}$/);
+  });
+
+  it('tasks.archive is the Completed section\'s lines and what POST /api/tasks/archive would move now with force (BL-TB-06)', () => {
+    const plan = planCompletedArchive(tasksMd, true);
+    expect(payload.tasks!.archive).toEqual({ lines: expect.any(Number), rows: plan ? plan.end - plan.start : 0 });
+    expect(payload.tasks!.archive).toEqual(completedArchiveStatus(tasksMd.join('\n')));
+    expect(payload.tasks!.archive.lines).toBeGreaterThan(0);
   });
 
   it('has project metadata, per-file metadata, tasks and the nav tree', () => {
@@ -481,7 +489,7 @@ describe('serveCommand', () => {
       expect(lines.slice(0, 5)).toEqual([
         `SpecPilot is running at http://127.0.0.1:${port} with no project open.`,
         `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
-        'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+        'Tasks can be moved in the page (only .specs/planning/tasks.md, .specs/planning/tasks-archive.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
         'Projects are remembered in ~/.specpilot/projects.json.',
         `MCP endpoint: http://127.0.0.1:${port}/mcp`,
       ]);
@@ -1540,6 +1548,171 @@ describe('new tasks over HTTP (BL-PM-005)', () => {
   });
 });
 
+// ─── Archive Completed (BL-TB-06) ────────────────────────────────────────────
+
+/** MOVE_TASKS with 40 more Completed rows: 46 section lines, so `specpilot archive` would move 21. */
+const ARCHIVE_TASKS = MOVE_TASKS.replace('| 1 | [CD-001] | Done |\n', ['| 1 | [CD-001] | Done |', ...Array.from({ length: 40 }, (_, i) => `| ${i + 2} | [CD-${String(i + 2).padStart(3, '0')}] | Done ${i + 2} |`)].join('\n') + '\n');
+
+describe('archive Completed over HTTP (BL-TB-06)', () => {
+  let a: ReturnType<typeof makeProject>;
+  let b: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const tasks = (p: { root: string }) => join(p.root, '.specs/planning/tasks.md');
+  const archiveOf = (p: { root: string }) => join(p.root, '.specs/planning/tasks-archive.md');
+  const hashOf = (p: { root: string }) => createHash('sha256').update(readFileSync(tasks(p))).digest('hex');
+  const good = (over: Record<string, string | undefined> = {}) => ({
+    Host: `127.0.0.1:${port}`,
+    Origin: `http://127.0.0.1:${port}`,
+    'Content-Type': 'application/json',
+    'X-SpecPilot-Token': token,
+    'If-Match': hashOf(a),
+    ...over,
+  });
+  const ARCHIVE = '/api/tasks/archive';
+
+  beforeEach(async () => {
+    [a, b] = [makeProject(), makeProject()];
+    writeFileSync(tasks(a), ARCHIVE_TASKS);
+    writeFileSync(tasks(b), MOVE_TASKS);
+    spec = await startSpecServer([a.root, b.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    a.cleanup();
+    b.cleanup();
+  });
+
+  it('moves the plan\'s rows into tasks-archive.md and answers {sha256, linesMoved, specs}, the payload then showing nothing to archive', async () => {
+    const lines = ARCHIVE_TASKS.split('\n');
+    const plan = planCompletedArchive(lines)!;
+    const before = JSON.parse((await hit(port, '/api/specs')).body);
+    expect(before.tasks.archive).toEqual({ lines: 46, rows: 21 });
+    const res = await post(port, '{}', good(), ARCHIVE);
+    expect(res.status).toBe(200);
+    expect(res.json).toMatchObject({ sha256: hashOf(a), linesMoved: 21 });
+    expect(res.json.specs.tasks.sha256).toBe(res.json.sha256);
+    expect(res.json.specs.tasks.archive).toEqual({ lines: 25, rows: 0 });
+    expect(res.json.specs.tasks.completed).toHaveLength(20);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
+    const archived = readFileSync(archiveOf(a), 'utf-8');
+    expect(archived).toMatch(/^## Archived on \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n\n\| # \| ID \| Description \|\n\|---\|---\|---\|\n/);
+    expect(archived).toContain(lines.slice(plan.start, plan.end).join('\n') + '\n\n---\n\n');
+    expect(readFileSync(tasks(b), 'utf-8')).toBe(MOVE_TASKS); // the other project untouched
+  });
+
+  it('answers 200 on a project whose .git/HEAD names another branch: the guard is the page\'s', async () => {
+    writeFileSync(join(a.root, '.git/HEAD'), 'ref: refs/heads/feature\n');
+    expect(JSON.parse((await hit(port, '/api/specs')).body).project.branch).toBe('feature');
+    expect((await post(port, '{}', good(), ARCHIVE)).status).toBe(200);
+    expect(existsSync(archiveOf(a))).toBe(true);
+  });
+
+  it('422s with the reason when nothing is over the limit and force was not sent, and forced with nothing past the newest 20; writing nothing', async () => {
+    for (const body of ['{}', '{"force":false}']) {
+      const res = await post(port, body, good({ 'If-Match': hashOf(b) }), `${ARCHIVE}?project=1`);
+      expect([res.status, res.json.error]).toEqual([422, NOTHING_TO_ARCHIVE_ERROR]);
+    }
+    const forced = await post(port, '{"force":true}', good({ 'If-Match': hashOf(b) }), `${ARCHIVE}?project=1`);
+    expect([forced.status, forced.json.error]).toEqual([422, nothingPastKeepError(1)]);
+    expect(readFileSync(tasks(b), 'utf-8')).toBe(MOVE_TASKS);
+    expect(existsSync(archiveOf(b))).toBe(false);
+  });
+
+  it('within the limit, {force: true} archives the rows past the newest 20 (D8)', async () => {
+    const within = MOVE_TASKS.replace('| 1 | [CD-001] | Done |\n', ['| 1 | [CD-001] | Done |', ...Array.from({ length: 25 }, (_, i) => `| ${i + 2} | [CD-${String(i + 2).padStart(3, '0')}] | Done ${i + 2} |`)].join('\n') + '\n'); // 26 rows, 31 lines
+    writeFileSync(tasks(b), within);
+    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).tasks.archive).toEqual({ lines: 31, rows: 6 });
+    const res = await post(port, '{"force":true}', good({ 'If-Match': hashOf(b) }), `${ARCHIVE}?project=1`);
+    expect(res.status).toBe(200);
+    expect(res.json).toMatchObject({ linesMoved: 6 });
+    expect(res.json.specs.tasks.archive).toEqual({ lines: 25, rows: 0 });
+    const lines = within.split('\n');
+    const plan = planCompletedArchive(lines, true)!;
+    expect(readFileSync(tasks(b), 'utf-8')).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
+    expect(readFileSync(archiveOf(b), 'utf-8')).toContain(lines.slice(plan.start, plan.end).join('\n') + '\n\n---\n\n');
+  });
+
+  it.each(['{"force":"yes"}', '{"force":true,"x":1}', '{"x":1}', '[]', 'null', '"x"'])('422s on a body of %s, writing nothing', async body => {
+    const res = await post(port, body, good(), ARCHIVE);
+    expect([res.status, res.json.error]).toEqual([422, 'Archive takes an empty JSON object, {}, or {force: true}.']);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(ARCHIVE_TASKS);
+    expect(existsSync(archiveOf(a))).toBe(false);
+  });
+
+  it.each<[string, Record<string, string | undefined>, number]>([
+    ['no token', { 'X-SpecPilot-Token': undefined }, 403],
+    ['a wrong token', { 'X-SpecPilot-Token': 'f'.repeat(64) }, 403],
+    ['a foreign Origin', { Origin: 'http://evil.com' }, 403],
+    ['a foreign Host', { Host: 'evil.com' }, 403],
+    ['a form content type', { 'Content-Type': 'application/x-www-form-urlencoded' }, 415],
+  ])('rejects %s before the project is resolved, writing nothing', async (_n, over, status) => {
+    for (const path of [ARCHIVE, `${ARCHIVE}?project=9`]) {
+      expect((await post(port, '{}', good(over), path)).status).toBe(status);
+    }
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(ARCHIVE_TASKS);
+  });
+
+  it('404 on an unserved project after the checks, 413 over 16 KB, 400 not JSON, 428 without If-Match, 405 on GET; nothing written', async () => {
+    expect((await post(port, '{}', good(), `${ARCHIVE}?project=9`)).status).toBe(404);
+    expect((await post(port, JSON.stringify({ x: 'x'.repeat(17 * 1024) }), good(), ARCHIVE)).status).toBe(413);
+    expect((await post(port, '{not json', good(), ARCHIVE)).status).toBe(400);
+    const stale = await post(port, '{}', good({ 'If-Match': undefined }), ARCHIVE);
+    expect([stale.status, stale.json.error]).toEqual([428, 'The archive needs an If-Match header with the file hash the page last loaded.']);
+    const get = await hit(port, ARCHIVE);
+    expect([get.status, get.headers['allow']]).toEqual([405, 'POST']);
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(ARCHIVE_TASKS);
+    expect(existsSync(archiveOf(a))).toBe(false);
+  });
+
+  it('409s on a stale If-Match with the fresh payload, writing nothing', async () => {
+    const res = await post(port, '{}', good({ 'If-Match': 'a'.repeat(64) }), ARCHIVE);
+    expect([res.status, res.json.error]).toEqual([409, ARCHIVE_STALE_ERROR]);
+    expect(res.json.specs.tasks.sha256).toBe(hashOf(a));
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(ARCHIVE_TASKS);
+    expect(existsSync(archiveOf(a))).toBe(false);
+  });
+
+  it('two archives with the same If-Match at once: one 200, one 409 or 422, one block written', async () => {
+    const h = hashOf(a);
+    const [x, y] = await Promise.all([post(port, '{}', good({ 'If-Match': h }), ARCHIVE), post(port, '{}', good({ 'If-Match': h }), ARCHIVE)]);
+    expect([x.status, y.status].filter(s => s === 200)).toHaveLength(1);
+    expect((readFileSync(archiveOf(a), 'utf-8').match(/## Archived on /g) ?? []).length).toBe(1);
+  });
+
+  it('500s, naming both files, when the archive cannot be written; nothing changed', async () => {
+    if (process.getuid?.() === 0) return; // root ignores folder modes
+    const dir = join(a.root, '.specs/planning');
+    chmodSync(dir, 0o555);
+    try {
+      const res = await post(port, '{}', good(), ARCHIVE);
+      expect([res.status, res.json.error]).toEqual([500, 'The archive could not be written. Check planning/tasks.md and planning/tasks-archive.md.']);
+    } finally {
+      chmodSync(dir, 0o755);
+    }
+    expect(readFileSync(tasks(a), 'utf-8')).toBe(ARCHIVE_TASKS);
+    expect(existsSync(archiveOf(a))).toBe(false);
+    expect((await post(port, '{}', good(), ARCHIVE)).status).toBe(200); // the lock survived
+  });
+
+  it('is absent with --read-only: 405, nothing written', async () => {
+    const ro = await startSpecServer([a.root], 0, 'x', { readOnly: true });
+    try {
+      const roPort = (ro.server.address() as AddressInfo).port;
+      expect((await hit(roPort, '/')).body).not.toContain('specpilot-token');
+      const res = await post(roPort, '{}', { ...good(), Host: `127.0.0.1:${roPort}`, Origin: `http://127.0.0.1:${roPort}` }, ARCHIVE);
+      expect([res.status, res.headers['allow']]).toEqual([405, '']);
+      expect(readFileSync(tasks(a), 'utf-8')).toBe(ARCHIVE_TASKS);
+      expect(existsSync(archiveOf(a))).toBe(false);
+    } finally {
+      await ro.close();
+    }
+  });
+});
+
 // ─── Multiple projects (BL-054) ──────────────────────────────────────────────
 
 // ─── Regenerate All (BL-PM-006) ──────────────────────────────────────────────
@@ -2059,6 +2232,8 @@ describe('--read-only with several projects', () => {
         '/api/tasks/move?project=1',
       );
       expect(res.status).toBe(405);
+      const arch = await post(port, '{}', { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64), 'If-Match': 'x' }, '/api/tasks/archive?project=1');
+      expect([arch.status, arch.headers['allow']]).toEqual([405, '']); // BL-TB-06
       expect(readFileSync(join(b.root, '.specs/planning/tasks.md'), 'utf-8')).toBe(MOVE_TASKS);
     } finally {
       await spec.close();
@@ -2515,7 +2690,7 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
       `  0  ${realpathSync(a.root)}`,
       `  1  ${real}`,
       `No .specs/ in ${real} yet. Open the page to set it up.`,
-      'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Tasks can be moved in the page (only .specs/planning/tasks.md, .specs/planning/tasks-archive.md and specpilot-* command files are written), and a folder without .specs/ can be set up there (new files only). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ]);
   });
 
@@ -2533,7 +2708,7 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
     const { port, out } = await serveAndStop([a.root]);
     expect(out.slice(0, 2)).toEqual([
       `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
-      'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Tasks can be moved in the page (only .specs/planning/tasks.md, .specs/planning/tasks-archive.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
     ]);
   });
 
@@ -2613,7 +2788,7 @@ describe('no project served (BL-080)', () => {
     for (const path of ['/api/specs?project=0', '/api/events?project=0', '/api/file?p=CLAUDE.md', '/api/file?project=0&p=CLAUDE.md']) {
       expect((await hit(port, path)).status).toBe(404);
     }
-    for (const path of ['/api/tasks/move', '/api/tasks/new', '/api/commands/regenerate']) {
+    for (const path of ['/api/tasks/move', '/api/tasks/new', '/api/tasks/archive', '/api/commands/regenerate']) {
       for (const q of ['', '?project=0']) {
         expect((await post(port, '{}', writeHeaders({ 'If-Match': 'x' }), path + q)).status).toBe(404);
         expect((await post(port, '{}', writeHeaders({ Origin: undefined }), path + q)).status).toBe(403);
@@ -3077,7 +3252,7 @@ describe('serveCommand and the registry (BL-067)', () => {
     }
     expect(out.slice(0, 3)).toEqual([
       `SpecPilot is serving ${realpathSync(a.root)} at http://127.0.0.1:${port}`,
-      'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
+      'Tasks can be moved in the page (only .specs/planning/tasks.md, .specs/planning/tasks-archive.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.',
       'Projects are remembered in ~/.specpilot/projects.json.',
     ]);
   });
@@ -3128,7 +3303,7 @@ describe('serveCommand and the registry (BL-067)', () => {
       process.chdir(cwd);
       rmSync(empty, { recursive: true, force: true });
     });
-    const HINT = 'Tasks can be moved in the page (only .specs/planning/tasks.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.';
+    const HINT = 'Tasks can be moved in the page (only .specs/planning/tasks.md, .specs/planning/tasks-archive.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.';
 
     it('serves the remembered projects in display order after a cwd without .specs/, prints the lines in order, and leaves the file byte for byte', async () => {
       writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-01-02T00:00:00.000Z')]);

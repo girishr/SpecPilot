@@ -1,14 +1,17 @@
 import { chmodSync, closeSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from 'fs';
 import { createHash, randomBytes } from 'crypto';
-import { dirname, join } from 'path';
+import { basename, dirname, join } from 'path';
 import { taskRowLines } from './specReader';
 import { tasksChecks } from './specValidator';
+import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, completedArchiveBlock, planCompletedArchive } from './specArchiver';
+import { findSectionBounds } from './markdownSections';
 
 // The one writer behind `specpilot serve` (BL-053, ARCH-003.18, ARCH-004.36). A move removes one
 // line of tasks.md and inserts the identical line elsewhere; a new task (BL-PM-005) inserts one line;
-// every other byte stays as it was.
+// every other byte stays as it was. An archive (BL-TB-06) appends lines of tasks.md to tasks-archive.md
+// and removes them from tasks.md: the second written file, never request text.
 
-/** The write allowlist: exactly one file, separate from what the server may read. */
+/** The write allowlist: tasks.md, and since BL-TB-06 TASKS_ARCHIVE_FILE (appended to only); separate from what the server may read. */
 export const WRITABLE_TASKS_FILE = '.specs/planning/tasks.md';
 
 export type MovableSection = 'backlog' | 'currentSprint';
@@ -114,11 +117,11 @@ const newChecks = (before: string, after: string): string[] => {
 };
 
 /**
- * Replace tasks.md with `content`: a temp file in the same folder, fsync, the original mode, a last
- * look at the hash, rename. Returns the new hash, or null when the file changed meanwhile.
+ * Replace `file` with `content`: a temp file in the same folder, fsync, the given mode, an optional last
+ * look, rename. Returns false when the last look said no (the temp file removed), true when renamed.
  */
-function writeTasks({ file, mode }: Loaded, ifMatch: string, content: string): string | null {
-  const tmp = join(dirname(file), `.tasks.md.${randomBytes(6).toString('hex')}.tmp`);
+function replaceFile(file: string, mode: number, content: string, lastLook?: () => boolean): boolean {
+  const tmp = join(dirname(file), `.${basename(file)}.${randomBytes(6).toString('hex')}.tmp`);
   try {
     const fd = openSync(tmp, 'wx', mode & 0o777);
     try {
@@ -128,10 +131,9 @@ function writeTasks({ file, mode }: Loaded, ifMatch: string, content: string): s
       closeSync(fd);
     }
     chmodSync(tmp, mode & 0o7777);
-    // Last look: an editor may have saved while we were writing.
-    if (sha256(readFileSync(file)) !== ifMatch) {
+    if (lastLook && !lastLook()) {
       unlinkSync(tmp);
-      return null;
+      return false;
     }
     renameSync(tmp, file);
   } catch (err) {
@@ -142,7 +144,12 @@ function writeTasks({ file, mode }: Loaded, ifMatch: string, content: string): s
     }
     throw err;
   }
-  return sha256(content);
+  return true;
+}
+
+/** Replace tasks.md with `content`, keeping its mode, with a last look at the hash: an editor may have saved while we were writing. Returns the new hash, or null when the file changed meanwhile. */
+function writeTasks({ file, mode }: Loaded, ifMatch: string, content: string): string | null {
+  return replaceFile(file, mode, content, () => sha256(readFileSync(file)) === ifMatch) ? sha256(content) : null;
 }
 
 /**
@@ -167,7 +174,7 @@ export function moveTask(root: string, move: TaskMove, ifMatch: string): MoveOut
 
 // ---- New Task (BL-PM-005, REQ-002.H.29, ARCH-004.48): one line appended to Backlog or Current Sprint
 
-/** Read only, for IDs in use. */
+/** Read for IDs in use; since BL-TB-06 also appended to by archiveCompleted(). */
 export const TASKS_ARCHIVE_FILE = '.specs/planning/tasks-archive.md';
 
 export interface NewTask {
@@ -250,8 +257,8 @@ export type NewTaskOutcome = { status: 200; sha256: string; id: string; section:
 export const NEW_STALE_ERROR =
   'planning/tasks.md changed on disk since this page loaded, so the task was not added. The page now shows the file as it is: check it, then press Add Task again.';
 
-/** The archive's text for IDs; missing is fine, anything SpecPilot cannot read as plain UTF-8 is refused. */
-function readArchive(root: string): string | Refusal {
+/** The archive's text; missing is fine, anything SpecPilot cannot read as plain UTF-8 is refused, `why` ending the reason. */
+function readArchive(root: string, why = 'so SpecPilot cannot tell which IDs are in use'): string | Refusal {
   const file = join(root, TASKS_ARCHIVE_FILE);
   let st;
   try {
@@ -259,16 +266,16 @@ function readArchive(root: string): string | Refusal {
   } catch {
     return '';
   }
-  if (st.isSymbolicLink()) return { status: 422, error: 'planning/tasks-archive.md is a symbolic link, so SpecPilot cannot tell which IDs are in use.' };
-  if (!st.isFile()) return { status: 422, error: 'planning/tasks-archive.md is not a regular file, so SpecPilot cannot tell which IDs are in use.' };
+  if (st.isSymbolicLink()) return { status: 422, error: `planning/tasks-archive.md is a symbolic link, ${why}.` };
+  if (!st.isFile()) return { status: 422, error: `planning/tasks-archive.md is not a regular file, ${why}.` };
   let bytes;
   try {
     bytes = readFileSync(file);
   } catch {
-    return { status: 422, error: 'planning/tasks-archive.md could not be read, so SpecPilot cannot tell which IDs are in use.' };
+    return { status: 422, error: `planning/tasks-archive.md could not be read, ${why}.` };
   }
   const text = bytes.toString('utf-8');
-  if (!Buffer.from(text, 'utf-8').equals(bytes)) return { status: 422, error: 'planning/tasks-archive.md contains bytes that are not valid UTF-8, so SpecPilot cannot tell which IDs are in use.' };
+  if (!Buffer.from(text, 'utf-8').equals(bytes)) return { status: 422, error: `planning/tasks-archive.md contains bytes that are not valid UTF-8, ${why}.` };
   return text;
 }
 
@@ -295,4 +302,78 @@ export function newTask(root: string, task: NewTask, ifMatch: string): NewTaskOu
   const written = writeTasks(loaded, ifMatch, plan.content);
   if (written === null) return { status: 409, error: NEW_STALE_ERROR };
   return { status: 200, sha256: written, id: plan.id, section: task.section, index: plan.index };
+}
+
+// ---- Archive Completed (BL-TB-06, REQ-002.H.51, ARCH-004.65, SEC-004.30): the Completed step of `specpilot archive`
+
+export type ArchiveOutcome = { status: 200; sha256: string; linesMoved: number } | Refusal;
+
+export const ARCHIVE_STALE_ERROR = 'planning/tasks.md changed on disk since this page loaded, so nothing was archived.';
+/** The hash changed in the instant between the archive's write and tasks.md's rename: the rows are in both files. */
+export const ARCHIVE_SPLIT_ERROR =
+  'planning/tasks.md changed on disk while its rows were being archived. The rows are now in planning/tasks-archive.md and still in tasks.md: check both files.';
+export const NOTHING_TO_ARCHIVE_ERROR = `Nothing to archive: ## Completed in planning/tasks.md is within its ${COMPLETED_LINE_LIMIT}-line limit, and the request did not force it.`;
+export const NO_COMPLETED_ERROR = 'planning/tasks.md has no ## Completed section.';
+/** Forced, or over the limit, and still nothing past the kept entries. */
+export const nothingPastKeepError = (entries: number) =>
+  `Nothing to archive: ## Completed in planning/tasks.md has ${entries} ${entries === 1 ? 'row' : 'rows'}, and an archive keeps the newest ${COMPLETED_KEEP_ENTRIES}.`;
+
+export interface CompletedArchiveStatus {
+  /** The `## Completed` section's line count, 0 without one; over the limit when above COMPLETED_LINE_LIMIT. */
+  lines: number;
+  /** The lines a forced archive would move now, 0 with nothing past the kept entries. */
+  rows: number;
+}
+
+/** What the page's Archive Completed dialog shows (BL-TB-06, D8), over the same content the write plans from. */
+export function completedArchiveStatus(content: string): CompletedArchiveStatus {
+  const lines = content.split('\n');
+  const bounds = findSectionBounds(lines, '## Completed');
+  const plan = planCompletedArchive(lines, true);
+  return { lines: bounds ? bounds.end - bounds.start : 0, rows: plan ? plan.end - plan.start : 0 };
+}
+
+/** The section's entries: numbered items, else table body rows. */
+function completedEntries(content: string, lines: string[]): number {
+  const bounds = findSectionBounds(lines, '## Completed');
+  if (!bounds) return 0;
+  const items = lines.slice(bounds.start, bounds.end).filter(l => /^\d+\./.test(l)).length;
+  return items || (taskRowLines(content).completed?.rows.length ?? 0);
+}
+
+/**
+ * Move the oldest Completed lines of tasks.md into tasks-archive.md, as `specpilot archive` does (the same
+ * plan, the same block), if `ifMatch` is tasks.md's current sha256. `force` archives a section within its line
+ * limit by the same keep rule (D8). The archive is written first, so a failure between the two writes leaves
+ * the rows in both files, never in neither. moveTask()'s guards and write steps.
+ */
+export function archiveCompleted(root: string, ifMatch: string, force = false): ArchiveOutcome {
+  const loaded = loadTasks(root, ifMatch, ARCHIVE_STALE_ERROR, 'move the rows');
+  if ('status' in loaded) return loaded;
+  const lines = loaded.content.split('\n');
+  const plan = planCompletedArchive(lines, force);
+  if (!plan) {
+    const bounds = findSectionBounds(lines, '## Completed');
+    if (!bounds) return { status: 422, error: NO_COMPLETED_ERROR };
+    if (!force && bounds.end - bounds.start <= COMPLETED_LINE_LIMIT) return { status: 422, error: NOTHING_TO_ARCHIVE_ERROR };
+    return { status: 422, error: nothingPastKeepError(completedEntries(loaded.content, lines)) };
+  }
+  const archive = readArchive(root, 'so SpecPilot will not write to it');
+  if (typeof archive !== 'string') return archive;
+  const after = [...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n');
+
+  const introduced = newChecks(loaded.content, after);
+  if (introduced.length) return { status: 422, error: `Nothing was archived, because \`specpilot validate\` would then report: ${introduced.join(' ')}` };
+
+  const file = join(root, TASKS_ARCHIVE_FILE);
+  let mode = loaded.mode; // a new archive takes tasks.md's mode
+  try {
+    mode = lstatSync(file).mode;
+  } catch {
+    /* no archive yet */
+  }
+  replaceFile(file, mode, archive + completedArchiveBlock(lines, plan));
+  const written = writeTasks(loaded, ifMatch, after);
+  if (written === null) return { status: 409, error: ARCHIVE_SPLIT_ERROR };
+  return { status: 200, sha256: written, linesMoved: plan.end - plan.start };
 }

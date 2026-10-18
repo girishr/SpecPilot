@@ -147,16 +147,17 @@ const TABLE_SEPARATOR = /^\|[\s:|-]+$/;
 /**
  * Decide what `specpilot archive` moves out of tasks.md's `## Completed` section, or null
  * if nothing. The validator warns exactly when this returns non-null, so "validate warns"
- * and "archive acts" can never disagree.
+ * and "archive acts" can never disagree. `force` (the page's archive, BL-TB-06) skips only the
+ * line-limit trigger: the same keep rule applied to a section within the limit.
  */
-export function planCompletedArchive(lines: string[]): CompletedArchivePlan | null {
+export function planCompletedArchive(lines: string[], force = false): CompletedArchivePlan | null {
   // The Completed section ends at the next `## ` heading, not at EOF — anything
   // after it (e.g. `## Multi-Dev Notes`) is a separate section and must survive.
   const bounds = findSectionBounds(lines, '## Completed');
   if (!bounds) return null;
   const { start, end } = bounds;
   const sectionSize = end - start;
-  if (sectionSize <= COMPLETED_LINE_LIMIT) return null;
+  if (!force && sectionSize <= COMPLETED_LINE_LIMIT) return null;
 
   // List shape: skip past the heading and any notes/blank lines to the first numbered entry,
   // then keep the last COMPLETED_KEEP_ENTRIES lines (oldest entries are at the top).
@@ -181,6 +182,19 @@ export function planCompletedArchive(lines: string[]): CompletedArchivePlan | nu
   const keep = Math.min(COMPLETED_KEEP_ENTRIES, Math.max(0, COMPLETED_LINE_LIMIT - (sectionSize - rows)));
   if (rows <= keep) return null;
   return { start: bodyStart, end: bodyStart + rows - keep, tableHeader: [lines[header], lines[header + 1]] };
+}
+
+const archivedOn = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
+
+/**
+ * The block `specpilot archive` appends to tasks-archive.md for `plan`: a table's header and separator
+ * repeated and its rows byte for byte; a list block trimmed, as before. Shared with the page's archive
+ * (`taskMover.ts` `archiveCompleted()`, BL-TB-06), so both write the same bytes.
+ */
+export function completedArchiveBlock(lines: string[], plan: CompletedArchivePlan): string {
+  const moved = lines.slice(plan.start, plan.end);
+  const body = plan.tableHeader.length ? [...plan.tableHeader, ...moved].join('\n') : moved.join('\n').trimEnd();
+  return `## Archived on ${archivedOn()}\n\n${body}\n\n---\n\n`;
 }
 
 export class SpecArchiver {
@@ -209,9 +223,8 @@ export class SpecArchiver {
     return result;
   }
 
-  private buildTimestampedBlock(content: string, trim = true): string {
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    return `## Archived on ${now}\n\n${trim ? content.trimEnd() : content}\n\n---\n\n`;
+  private buildTimestampedBlock(content: string): string {
+    return `## Archived on ${archivedOn()}\n\n${content}\n\n---\n\n`;
   }
 
   private archivePrompts(specsDir: string, dryRun: boolean, refused: ArchiveResult['refused']): ArchiveEntry | null {
@@ -229,7 +242,7 @@ export class SpecArchiver {
     const moved = allLines.slice(plan.start, plan.end);
     const archivePath = join(specsDir, 'development', 'prompts-archive.md');
     // Entries move byte for byte; a table block repeats its header and separator.
-    const block = this.buildTimestampedBlock([...plan.tableHeader, ...moved].join('\n'), false);
+    const block = this.buildTimestampedBlock([...plan.tableHeader, ...moved].join('\n'));
 
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';
@@ -252,14 +265,10 @@ export class SpecArchiver {
     const plan = planCompletedArchive(allLines);
     if (!plan) return null;
 
-    const moved = allLines.slice(plan.start, plan.end);
-    const linesMoved = moved.length;
+    const linesMoved = plan.end - plan.start;
 
     const archivePath = join(specsDir, 'planning', 'tasks-archive.md');
-    // Table rows move byte for byte, so the table block is not trimmed.
-    const block = plan.tableHeader.length
-      ? this.buildTimestampedBlock([...plan.tableHeader, ...moved].join('\n'), false)
-      : this.buildTimestampedBlock(moved.join('\n'));
+    const block = completedArchiveBlock(allLines, plan);
 
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';

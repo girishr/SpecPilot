@@ -186,7 +186,9 @@ function taskRow({t,i},col){
 function group(col,items){
   // BL-TB-05: the two lanes a row can be added to carry `+ Add` at the right of their header; none with --read-only
   const add=TOKEN&&MOVABLE[col]?`<button type="button" class="add" data-add="${col}" aria-label="Add new task to ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add</button>`:'';
-  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${add}</div>`;
+  // BL-TB-06 (D8): Completed always carries `Archive`, which opens the dialog with the gates; none with --read-only
+  const arch=col==='completed'&&TOKEN&&DATA.tasks?`<button type="button" class="arch" data-archive aria-label="Archive Completed rows to planning/tasks-archive.md"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-archive"/></svg>Archive</button>`:'';
+  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${add}${arch}</div>`;
   return gh+`<div class="box">${items.length?items.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }
 function renderTasks(){
@@ -200,6 +202,7 @@ function renderTasks(){
   $('#gConv').innerHTML=T&&T.intro.trim()?`<details id="gIntro"${wasOpen?' open':''}><summary id="introSum"><span translate="no">planning/tasks.md</span></summary><div class="box"><div class="desc md">${md(T.intro)}</div></div></details>`:
     (T?'':'<div class="box"><div class="empty">No <span class="mono" translate="no">planning/tasks.md</span> in <span class="mono" translate="no">.specs/</span>.</div></div>');
   if(taskVeil.classList.contains('open'))taskHint(); // BL-TB-05: a redraw (a 409, a live reload) refreshes the dialog's next ID
+  if(archVeil.classList.contains('open'))drawGates(); // BL-TB-06: and the Archive dialog's gates
   bind();
 }
 let inspOpen=null; // {kind:'task',col,i,id} | {kind:'file',path} | null
@@ -221,6 +224,7 @@ function closeInsp(){const was=insp.classList.contains('open');insp.classList.re
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
   $$('#v-board [data-add]').forEach(b=>b.onclick=()=>openNewTask(b.dataset.add,`#v-board [data-add="${b.dataset.add}"]`));
+  $$('#v-board [data-archive]').forEach(b=>b.onclick=openArchive);
   if(TOKEN)bindMoves();
 }
 
@@ -380,8 +384,8 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],n[1]);return}
-  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();setNav(false);return}
-  if(inField||mod||e.altKey||taskVeil.classList.contains('open'))return;
+  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
+  if(inField||mod||e.altKey||taskVeil.classList.contains('open')||archVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$('#v-board .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
@@ -481,6 +485,65 @@ taskIn.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addTask();}}; // a r
 $('#taskCancel').onclick=closeNewTask;
 taskVeil.onclick=e=>{if(e.target===taskVeil)closeNewTask();};
 $('#taskForm').onsubmit=e=>{e.preventDefault();addTask();};
+
+/* ---------------- archive Completed (BL-TB-06, D8) ----------------
+   The Completed step of `specpilot archive`, run by the server with the same plan and block as the CLI. The
+   dialog says what the action does and lists the gates from the latest payload: the CLI's branch guard and the
+   40-line limit, each with a box to tick when it warns; a section within the limit is archived with {force:true}
+   once the user ticks that box. Every other answer than 200 is shown in the dialog, as New Task does. */
+const archVeil=$('#archVeil');
+let archiving=false;
+function archGates(){
+  const b=DATA.project.branch,a=DATA.tasks.archive,n=DATA.tasks.completed.length,out=[];
+  if(!b)out.push({key:'branch',text:'No git branch.'});
+  else if(b==='main'||b==='master')out.push({key:'branch',text:`On ${b}.`});
+  else out.push({key:'branch:'+b,warn:true,text:`On branch ${b}. Archive is recommended only on the default branch after merging. Archive on this branch anyway.`});
+  if(!a.rows)out.push({key:'none',off:true,text:`Nothing to archive: ## Completed has ${n} ${n===1?'row':'rows'}, and an archive keeps the newest 20.`});
+  else if(a.lines>40)out.push({key:'limit',text:`## Completed is ${a.lines} lines, over its 40-line limit: ${a.rows} rows move, the newest 20 stay.`});
+  else out.push({key:'force',warn:true,text:`## Completed is ${a.lines} lines, within its 40-line limit. Archive ${a.rows} rows anyway; the newest 20 stay.`});
+  return out;
+}
+/* Draw the gates from the latest payload; a tick stays on a gate still shown under the same key (a redraw while open). */
+function drawGates(){
+  const kept=new Set($$('#archGates input:checked').map(i=>i.dataset.gate));
+  $('#archGates').innerHTML=archGates().map(g=>`<div class="gate ${g.off?'off':g.warn?'warn':'ok'}"><span class="st ${g.off?'gray':g.warn?'orange':'green'}" aria-hidden="true"></span>${g.warn?`<label><input type="checkbox" data-gate="${esc(g.key)}"${kept.has(g.key)?' checked':''}><span>${esc(g.text)}</span></label>`:`<span class="gt">${esc(g.text)}</span>`}</div>`).join('');
+  $$('#archGates input').forEach(i=>i.onchange=archReady);
+  archReady();
+}
+function archReady(){$('#archGo').disabled=archiving||!DATA.tasks.archive.rows||$$('#archGates input').some(i=>!i.checked);}
+function archError(m){const e=$('#archErr');e.textContent=m||'';e.hidden=!m;}
+function focusArchive(){const b=$('#v-board [data-archive]');if(b)b.focus();}
+function openArchive(){
+  if(!TOKEN||!DATA||!DATA.tasks)return;
+  hideTip();archError('');$('#archGates').innerHTML='';archVeil.classList.add('open');drawGates(); // every box starts unticked
+  setTimeout(()=>{const f=$('#archGates input')||(!$('#archGo').disabled?$('#archGo'):$('#archCancel'));f.focus();},50);
+}
+function closeArchive(){if(!archVeil.classList.contains('open')||archiving)return;archVeil.classList.remove('open');focusArchive();}
+async function archiveCompleted(){
+  if(archiving||!TOKEN||!DATA||!DATA.tasks||$('#archGo').disabled)return;
+  const p=PROJECT,force=!!$('#archGates input[data-gate="force"]'); // present only when the limit gate warns, and ticked, or the button is disabled
+  archiving=true;$('#archGo').disabled=true;archError('');
+  let r,body={};
+  try{
+    r=await fetch('/api/tasks/archive?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:force?'{"force":true}':'{}'});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  archiving=false;archReady();
+  if(!r){archError('The server did not answer. Nothing was archived.');return;}
+  if(p!==PROJECT)return;
+  if(r.status===200){
+    archVeil.classList.remove('open');
+    await apply(body.specs,['.specs/planning/tasks.md','.specs/planning/tasks-archive.md']);
+    focusArchive();
+    toast(`Moved ${body.linesMoved} rows from ## Completed to planning/tasks-archive.md`);
+    return;
+  }
+  if(r.status===409&&body.specs)await apply(body.specs,null); // renderTasks() redraws the gates while the dialog is open
+  archError(body.error||`Nothing was archived (HTTP ${r.status}).`);
+}
+$('#archCancel').onclick=closeArchive;
+archVeil.onclick=e=>{if(e.target===archVeil)closeArchive();};
+$('#archForm').onsubmit=e=>{e.preventDefault();archiveCompleted();};
 
 /* ---------------- Setup view (BL-103) ----------------
    A project without .specs/ (Open, Clone, a folder named on the command line) and #new: the user's AI IDE
@@ -590,7 +653,7 @@ function focusKey(el){
   if(!el||el===document.body)return null;
   const row=el.closest&&el.closest('.row[data-col][data-i]');
   if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i};}
-  for(const a of ['data-open','data-file','data-add'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
+  for(const a of ['data-open','data-file','data-add','data-archive'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
   if(el.id)return {sel:'#'+CSS.escape(el.id)};
   return null;
 }

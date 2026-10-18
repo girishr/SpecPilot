@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (BL-TB-01 built)
-version: 2.130
+lastUpdated: 2026-10-18 (BL-TB-01 completed)
+version: 2.131
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-18: on the developer's typed `commit`: `docs(tasks)` commit `8de36fe` on `main` (the review-notes rows, BL-115, the BL-113 note), the branch fast-forwarded to it; BL-TB-01 feature commit `d30cbb6` on `feat/bl-tb-01-board-only` (tasks.md not in it); completion commit (row 217, CD-girishr-126); the `--no-ff` merge and both suites on `main` follow; no push (deferred to BL-115 by the architect).
 - 2026-10-18: BL-TB-01 spec-reviewer B ESCALATE (the row-count Jest test fails on `main` itself since `57ab376`); architect DECIDE: trivial row BL-115 on its own fix branch after BL-TB-01 merges, push deferred until `main` reads 1617/1617; the decision, the three-step sequence and the wording fixes recorded in context.md, tests.md and tasks.md (BL-115 added, BL-113 noted). spec-reviewer B re-check next; still no commit.
 - 2026-10-18: BL-TB-01 built on `feat/bl-tb-01-board-only` after spec-reviewer A FIX (classification wording) then PASS: `ui/index.html`, `ui/app.js`, `ui/app.css`, `tasks.browser.test.ts` (selectors to `#boardMode`, one new case, the 420px case with the inspector open); Jest 1616/1617 (the known BL-113 working-tree failure), `tsc` clean, lint 0 errors, browser 60/60 three times; tests.md and context updated. spec-reviewer B next; no commit, merge or push without the developer's typed word.
 - 2026-10-18: `do BL-TB-01` (Tasks is the board alone): branch `feat/bl-tb-01-board-only` from `main` (`57ab376`; the 2026-10-18 Backlog rows still uncommitted on the tree); Spec Report (Feature: REQ-002.H.46, ARCH-004.60, CHANGELOG `Removed`, tests.md, context); spec-reviewer A, then the build. No Day brief, so no commit, merge or push before the developer's typed word. prompts.md is past its 100-line limit: `specpilot archive` when the developer asks.

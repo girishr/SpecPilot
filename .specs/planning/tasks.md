@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-18 (BL-UI-01..02, BL-TB-01..08, BL-CL-02, BL-115 added)
-version: 7.00
+lastUpdated: 2026-10-18 (BL-TB-01 completed)
+version: 7.01
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -51,7 +51,6 @@ Notes
 | BL-115 | Trivial: `specServer.test.ts` `returns every task row byte for byte as it appears in tasks.md` counts rows in `## Backlog`, `## Current Sprint` and `## Completed` only (rows between each served heading and the next `## `), not every `| BL`/`| CS`/`| <num>` line in the file, and asserts the count is above zero. Fails on `main` since `57ab376` added the `## Won't do` rows `specReader.ts` does not serve. Architect decision 2026-10-18 under BL-TB-01; BL-113 adds Icebox and Won't do to the served list. Branch `fix/bl-115-row-count-sections`, merged before the next push. |
 | BL-UI-01 | `specpilot serve` Home: pretty-print (indented, multi-line) the MCP config JSON in "Connect Your AI IDE (optional, one line)" so it is readable and easy to copy. |
 | BL-UI-02 | `specpilot serve` left rail: add a Settings item (cogwheel icon, label "Settings"); move the Light/Dark toggle and "Quit SpecPilot" into it and remove them from their current places. |
-| BL-TB-01 | Tasks: remove the list view entirely; the board is the only view; remove the view-switcher tab bar. |
 | BL-TB-02 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-03 | Tasks board: all swimlanes fit the visible window height (no page scroll); cards that overflow scroll inside their own lane with a scrollbar; lane header and footer stay fixed (Trello-style). |
 | BL-TB-04 | Tasks board: lane order left to right is Backlog, Current Sprint, Completed. |
@@ -116,3 +115,4 @@ Notes
 | 214 | [CD-girishr-123] | v2.16.0 shipped (BL-108, BL-083, BL-074): pushed, npm `specpilot@2.16.0` latest, GitHub release live (2026-10-14) |
 | 215 | [CD-girishr-124] [BL-080] | `specpilot serve` with no folder named, in a folder without `.specs/`, starts with no project open and the page on Home instead of exiting 1 (`--read-only` keeps the exit 1); `~/.specpilot/projects.json` is created at startup with every served root recorded; `specpilotVersion` at the top level of `/api/specs`; a no-project `/api/events` is a server-level stream (REQ-002.H.44, ARCH-004.58; Architectural; architect decisions Q1 to Q5; D4, D5). Revived from Won't do 2026-10-17 on the developer's plan for the desktop version. Feature commit `ac65d32` |
 | 216 | [CD-girishr-125] [BL-114] | `specpilot serve` reopens the remembered projects at startup: after the folders named (or the current directory), every `~/.specpilot/projects.json` entry that passes the open route's path rule and has `.specs/`, in the registry's order, up to 20; the registry is not rewritten for them, the stale-staging sweep never runs in them, `--read-only` reopens nothing (REQ-002.H.45, ARCH-004.59, SEC-004.29 reversing SEC-004.13's rejected alternative; Architectural; D6; architect decisions Q1 to Q6). Feature commit `27f0ee3` |
+| 217 | [CD-girishr-126] [BL-TB-01] | `specpilot serve` Tasks view is the board alone: the List mode and the List/Board switch removed, the Backlog fold and the Completed disclosure with them; `#board/board` links still open Tasks; lane order and Completed's Show All left for BL-TB-04 and BL-TB-07 (REQ-002.H.46, ARCH-004.60; Feature; architect decision on the merge gate: BL-115). Browser suite 59 → 60. Feature commit `d30cbb6` |

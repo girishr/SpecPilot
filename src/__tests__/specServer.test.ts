@@ -264,8 +264,14 @@ describe('buildSpecsPayload against this repo', () => {
       ...t.completed.map(r => `| ${r.num} | ${r.id} | ${r.description} |`),
     ];
     for (const line of rebuilt) expect(tasksMd).toContain(line);
-    // ...and no table row in those sections was dropped.
-    const bodyRows = tasksMd.filter(l => /^\| (BL|CS|\d)/.test(l));
+    // ...and no table row in those sections was dropped: the rows between each served heading and the next `## `,
+    // not every row in the file (BL-115: `## Won't do` is not served until BL-113).
+    const bodyRows = ['## Backlog', '## Current Sprint', '## Completed'].flatMap(heading => {
+      const start = tasksMd.findIndex(l => l.trim() === heading);
+      const end = tasksMd.findIndex((l, i) => i > start && /^## /.test(l));
+      return tasksMd.slice(start + 1, end < 0 ? undefined : end).filter(l => /^\| (BL|CS|\d)/.test(l));
+    });
+    expect(bodyRows.length).toBeGreaterThan(0);
     expect(rebuilt).toHaveLength(bodyRows.length);
   });
 });

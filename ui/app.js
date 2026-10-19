@@ -187,7 +187,7 @@ function group(col,items){
   // BL-TB-05: the two lanes a row can be added to carry `+ Add` at the right of their header; none with --read-only
   const add=TOKEN&&MOVABLE[col]?`<button type="button" class="add" data-add="${col}" aria-label="Add new task to ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add</button>`:'';
   // BL-TB-06 (D8): Completed always carries `Archive`, which opens the dialog with the gates; none with --read-only
-  const arch=col==='completed'&&TOKEN&&DATA.tasks?`<button type="button" class="arch" data-archive aria-label="Archive Completed rows to planning/tasks-archive.md"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-archive"/></svg>Archive</button>`:'';
+  const arch=col==='completed'&&TOKEN&&DATA.tasks?`<button type="button" class="arch" data-archive aria-label="Archive the oldest Completed rows to planning/tasks-archive.md"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-archive"/></svg>Archive</button>`:'';
   const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${add}${arch}</div>`;
   return gh+`<div class="box">${items.length?items.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }

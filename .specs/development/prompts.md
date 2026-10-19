@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-19 (v2.17.0 prepared)
-version: 2.164
+lastUpdated: 2026-10-19 (v2.17.0 prepared, review fix)
+version: 2.165
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-19: v2.17.0 prepared: `chore(release)` commit `a2a667b` (version in package.json, the lock file, project.yaml and api.yaml; CHANGELOG `[2.17.0]`; roadmap Timeline and heading; CTX-002 Phase; release row 226; the Completed section archived, rows 194 to 206, since the row took it past 40 lines), annotated tag `v2.17.0` from the CHANGELOG section (body compared, identical); checks after the bump Jest 1663/1663, browser 68/68, lint 0 errors, validate clean, pack 183 files. Spec-reviewer section D: FIX, one item (roadmap step 9 lacked the `in v2.17.0` marks for BL-080 and BL-114), applied as `219729b` on `main` after the tag, which stays on `a2a667b`; re-check next. Nothing pushed or published: step 4 is the developer's. Noted by the reviewer for a Backlog row: `package.json` `main` names `dist/index.js`, which the build does not produce.
 - 2026-10-19: on the developer's typed `yes proceed` for the release: v2.17.0 prepared by docs/RELEASING.md (minor: the Tasks board rework BL-TB-01/03/04/05/06/07/11, BL-080, BL-114, BL-115; the three UI removals in CHANGELOG `Removed`, as decided at their Spec Reports): version bumped in package.json, the lock file, project.yaml and api.yaml, CHANGELOG `[2.17.0]`, roadmap Timeline line and heading `v2.3.0–v2.17.0`, CTX-002 Phase, release row 226; checks re-run, then the `chore(release)` commit, the annotated tag from the CHANGELOG section and spec-reviewer section D; nothing pushed or published.
 - 2026-10-19: BL-115 spec-reviewer A PASS; feature commit `224a659` on `fix/bl-115-row-count-sections`, completion commit `1e1785a` (row 225, CD-girishr-134), `--no-ff` merge `e063a90` into `main`. Release checklist step 2 on `main`, read by eye: Jest 1663/1663 with `FORCE_COLOR=1` and `0`, browser 68/68 three runs, lint 0 errors (62 warnings), validate clean, build clean, `npm pack --dry-run` with `ui/`, `dist/core/` and `ui/OFL-Sixtyfour.txt` and without `scripts/`, `src/__browser__/`, `jest.browser.config.js`, `dist/__tests__/`. Step 1 (the v2.17.0 bump, CHANGELOG promotion, tag) waits for the developer's typed `yes, proceed`; nothing pushed; the branch stays until the push.
 - 2026-10-19: `get ready for publish`: read `docs/RELEASING.md`; `main` clean with one unpushed prompts commit, version 2.16.0, `[Unreleased]` with Added, Changed and Removed, so v2.17.0 is next (minor); `npm pack --dry-run` matches the checklist's present and absent lists; lint 0 errors. Step 2 needs `npm test` green, so BL-115 (trivial, decided 2026-10-18) first on `fix/bl-115-row-count-sections`: the row-count case walks the served headings; Jest 1663/1663. Spec-reviewer, commit, merge and the suites on `main` next; the version bump, tag and publish wait for a typed `yes, proceed`.

@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { archiveCompleted, completedArchiveStatus, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
+import { archiveCompleted, completedArchiveStatus, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -139,8 +139,8 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,
-    // nextIds: BL-TB-05; archive: BL-TB-06, the Completed section's lines and the rows POST /api/tasks/archive would move now
-    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root), nextIds: suggestedIds(root, contents['planning/tasks.md']), archive: completedArchiveStatus(contents['planning/tasks.md']) } : null,
+    // nextIds: BL-TB-05; archive: BL-TB-06, the Completed section's lines and the rows POST /api/tasks/archive would move now; moves: BL-TB-11, the lane move table
+    tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root), nextIds: suggestedIds(root, contents['planning/tasks.md']), archive: completedArchiveStatus(contents['planning/tasks.md']), moves: MOVES } : null,
     nav: {
       specs: Object.keys(contents),
       instructions: ALLOWED_FILES.map(path => {

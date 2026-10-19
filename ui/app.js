@@ -12,7 +12,7 @@ const toast=(m,action)=>{
 const TOKEN=(document.querySelector('meta[name="specpilot-token"]')||{}).content||null;
 /* /mcp is on (BL-PM-007), and whose token it takes: `page` or `env` (SPECPILOT_MCP_TOKEN). */
 const MCP=(document.querySelector('meta[name="specpilot-mcp"]')||{}).content||null;
-const MOVABLE={backlog:true,currentSprint:true};
+const ADDABLE={backlog:true,currentSprint:true}; // the sections POST /api/tasks/new writes to (REQ-002.H.29); which lanes move comes from the payload's table (BL-TB-11)
 const chev='<svg class="ico chev" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg>';
 
 /* theme: dark by default, light is a per-viewer toggle */
@@ -103,7 +103,7 @@ function go(v,sub){
   $('#title').textContent=v==='file'?(TITLES[sub]||sub):VIEWS[v];$('#crumb').hidden=true;
   if(v!=='new'&&browseCtl&&browseBtn&&browseBtn.id==='suBrowse')browseCtl.abort(); // leaving #new closes its folder dialog (BL-097)
   $('#editorBtn').hidden=NOPROJ.includes(v);syncIde();
-  setNav(false);closeInsp();
+  setNav(false);closeInsp();closeCardMenu(false);
   if(v==='home')loadRecent();
   if(v==='setup'||v==='new')renderSetup();
   if(v==='file')renderFile(sub);
@@ -175,25 +175,26 @@ function rowsOf(col){
   const items=T[col].map((t,i)=>({t,i}));
   return col==='completed'?items.reverse():items;
 }
+/* A card: the row button and, beside it, the ⋯ menu button (BL-TB-11; a button cannot nest in a button). Drag handles for the lanes in the move table. */
 function taskRow({t,i},col){
-  const mv=TOKEN&&MOVABLE[col];
-  return `<button type="button" class="row act" data-col="${col}" data-i="${i}"${mv?' draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"':''}>
+  const mv=TOKEN&&canMove(col,col);
+  return `<div class="card"><button type="button" class="row act" data-col="${col}" data-i="${i}"${mv?' draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"':''}>
     <span class="st ${DOT[col]}" aria-hidden="true"></span>
     <div class="body"><div class="ttl clamp">${col==='completed'?`<span class="num" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span>${mdi(t.description)}</div></div>
     <div class="trail">${chev}</div>
-  </button>`;
+  </button><button type="button" class="dots" data-menu="${col}:${i}" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for ${esc(t.id)}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg></button></div>`;
 }
 function group(col,items){
   // BL-TB-05: the two lanes a row can be added to carry `+ Add` at the right of their header; none with --read-only
-  const add=TOKEN&&MOVABLE[col]?`<button type="button" class="add" data-add="${col}" aria-label="Add new task to ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add</button>`:'';
+  const add=TOKEN&&ADDABLE[col]?`<button type="button" class="add" data-add="${col}" aria-label="Add new task to ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add</button>`:'';
   // BL-TB-06 (D8): Completed always carries `Archive`, which opens the dialog with the gates; none with --read-only
   const arch=col==='completed'&&TOKEN&&DATA.tasks?`<button type="button" class="arch" data-archive aria-label="Archive the oldest Completed rows to planning/tasks-archive.md"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-archive"/></svg>Archive</button>`:'';
   const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${add}${arch}</div>`;
   return gh+`<div class="box">${items.length?items.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
 }
 function renderTasks(){
-  const B=rowsOf('backlog'),S=rowsOf('currentSprint'),D=rowsOf('completed');
-  $('#boardMode').innerHTML=[['backlog',B],['currentSprint',S],['completed',D]].map(([c,items])=>`<div class="gl" data-col="${c}">${group(c,items)}</div>`).join('');
+  closeCardMenu(false); // BL-TB-11: its card is redrawn; focusKey() carries focus back to the card
+  $('#boardMode').innerHTML=LANES.map(c=>`<div class="gl" data-col="${c}">${group(c,rowsOf(c))}</div>`).join('');
   const T=DATA.tasks;
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;
@@ -222,7 +223,12 @@ function openTask(col,i,quiet){
 function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;if(!quiet)setTimeout(()=>$('#inspX').focus(),60);}
 function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
 function bind(){
-  $$('#v-board .row[data-col]').forEach(r=>r.onclick=()=>openTask(r.dataset.col,+r.dataset.i));
+  $$('#v-board .row[data-col]').forEach(r=>{const col=r.dataset.col,i=+r.dataset.i;
+    r.onclick=()=>openTask(col,i);
+    r.onkeydown=e=>{if((e.shiftKey&&e.key==='F10')||e.key==='ContextMenu'){e.preventDefault();openCardMenu(col,i,menuAnchor(col,i));}else altMove(r,e);};}); // BL-TB-11: the menu key, else Alt+arrows
+  $$('#v-board .card').forEach(c=>{const r=$('.row[data-col]',c),col=r.dataset.col,i=+r.dataset.i;
+    c.oncontextmenu=e=>{e.preventDefault();openCardMenu(col,i,e.clientX||e.clientY?{x:e.clientX,y:e.clientY}:menuAnchor(col,i));};});
+  $$('#v-board [data-menu]').forEach(b=>b.onclick=()=>{const [col,i]=b.dataset.menu.split(':');if(menuOn&&menuOn.col===col&&menuOn.i===+i)closeCardMenu(true);else openCardMenu(col,+i,menuAnchor(col,+i));});
   $$('#v-board [data-add]').forEach(b=>b.onclick=()=>openNewTask(b.dataset.add,`#v-board [data-add="${b.dataset.add}"]`));
   $$('#v-board [data-archive]').forEach(b=>b.onclick=openArchive);
   if(TOKEN)bindMoves();
@@ -365,6 +371,67 @@ ideMenu.addEventListener('keydown',e=>{
 });
 document.addEventListener('click',e=>{if(!ideMenu.hidden&&!e.target.closest('#ideWrap'))closeIde(false);});
 
+/* ---------------- card menu (BL-TB-11) ----------------
+   A task card's actions: the lanes the move table lets it go to, reorder, details, Copy ID.
+   Built from DATA.tasks.moves (the server's MOVES), so a new lane is a table entry, not page code. */
+const LANES=['backlog','currentSprint','completed']; // the drawn order (REQ-002.H.47); BL-113 adds its lanes here
+const moves=()=>(DATA&&DATA.tasks&&DATA.tasks.moves)||{};
+/* An own key, never `in`: an inherited name (__proto__, toString) is not a lane. A lane in the table may reorder itself. */
+const canMove=(from,to)=>{const m=moves();return Array.isArray(m[from])&&(from===to||m[from].includes(to));};
+/* The nearest lane on that side (dir -1 or 1) of `col` in the drawn order that the table allows, or null. */
+function laneBy(col,dir){for(let k=LANES.indexOf(col)+dir;k>=0&&k<LANES.length;k+=dir)if(canMove(col,LANES[k]))return LANES[k];return null;}
+const cardMenu=$('#cardMenu');let menuOn=null; // {col,i} while open
+const cardRow=(col,i)=>$(`#v-board .row[data-col="${col}"][data-i="${i}"]`);
+const dotsBtn=(col,i)=>$(`#v-board .card [data-menu="${col}:${i}"]`);
+const KEYS={'Alt+→':'Alt+ArrowRight','Alt+←':'Alt+ArrowLeft','Alt+↑':'Alt+ArrowUp','Alt+↓':'Alt+ArrowDown'};
+function menuItems(col,i){
+  const t=DATA.tasks[col][i],n=DATA.tasks[col].length,it=[];
+  if(TOKEN&&canMove(col,col)){
+    const right=laneBy(col,1),left=laneBy(col,-1),to=moves()[col].filter(c=>COLS[c]&&DATA.tasks[c]);
+    if(to.length)it.push({head:'Move to'});
+    to.forEach(c=>{it.push({label:COLS[c],hint:c===right?'Alt+→':c===left?'Alt+←':'',fn:()=>move(col,i,c,DATA.tasks[c].length)});it.push({label:COLS[c]+', top',fn:()=>move(col,i,c,0)});});
+    if(i>0)it.push({label:'Move up',hint:'Alt+↑',fn:()=>move(col,i,col,i-1)});
+    if(i<n-1)it.push({label:'Move down',hint:'Alt+↓',fn:()=>move(col,i,col,i+1)});
+  }
+  it.push({label:'Open details',fn:()=>openTask(col,i)});
+  it.push({label:'Copy ID',fn:()=>copyText(t.id)});
+  return it;
+}
+/* Under the card's ⋯ button, its right edges aligned. */
+function menuAnchor(col,i){const r=(dotsBtn(col,i)||cardRow(col,i)).getBoundingClientRect();return {x:r.right,y:r.bottom+4,right:true};}
+function openCardMenu(col,i,at){
+  if(!DATA||!DATA.tasks||!DATA.tasks[col]||!DATA.tasks[col][i])return;
+  closeCardMenu(false);hideTip();
+  const items=menuItems(col,i),acts=items.filter(x=>!x.head);
+  cardMenu.innerHTML=items.map(x=>x.head?`<div class="mh" role="presentation">${esc(x.head)}</div>`
+    :`<button type="button" role="menuitem"${x.hint?` aria-keyshortcuts="${KEYS[x.hint]}"`:''}>${esc(x.label)}${x.hint?`<span class="hint">${esc(x.hint)}</span>`:''}</button>`).join('');
+  $$('[role=menuitem]',cardMenu).forEach((b,k)=>b.onclick=()=>{closeCardMenu(true);acts[k].fn();});
+  menuOn={col,i};
+  const btn=dotsBtn(col,i);if(btn)btn.setAttribute('aria-expanded','true');
+  cardMenu.hidden=false;
+  const w=cardMenu.offsetWidth,h=cardMenu.offsetHeight,m=8;
+  cardMenu.style.left=Math.max(m,Math.min(at.right?at.x-w:at.x,innerWidth-w-m))+'px';
+  cardMenu.style.top=Math.max(m,Math.min(at.y,innerHeight-h-m))+'px';
+  $('[role=menuitem]',cardMenu).focus();
+}
+/* Close; `refocus` puts focus back on the card. A redraw closes it too (renderTasks), the card refocused through focusKey(). */
+function closeCardMenu(refocus){
+  if(cardMenu.hidden)return;
+  const was=menuOn;menuOn=null;cardMenu.hidden=true;
+  if(cardMenu.contains(document.activeElement))document.activeElement.blur(); // now, not at the next frame: a redraw's refocus() checks for a focus-less page
+  const btn=was&&dotsBtn(was.col,was.i);if(btn)btn.setAttribute('aria-expanded','false');
+  if(refocus&&was){const r=cardRow(was.col,was.i);if(r)r.focus();}
+}
+cardMenu.addEventListener('keydown',e=>{
+  const it=$$('[role=menuitem]',cardMenu),i=it.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();it[(i+(e.key==='ArrowDown'?1:it.length-1))%it.length].focus();}
+  else if(e.key==='Home'||e.key==='End'){e.preventDefault();it[e.key==='Home'?0:it.length-1].focus();}
+  else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeCardMenu(true);}
+});
+cardMenu.addEventListener('mousedown',e=>e.preventDefault()); // a press inside keeps focus in the menu: Safari and Firefox do not focus a pressed button, and a blur would close it before the click
+cardMenu.addEventListener('focusout',e=>{if(!cardMenu.contains(e.relatedTarget))closeCardMenu(false);});
+document.addEventListener('click',e=>{if(!cardMenu.hidden&&!(e.target.closest&&e.target.closest('#cardMenu,[data-menu]')))closeCardMenu(false);});
+
 /* ---------------- palette + keys ---------------- */
 const palVeil=$('#palVeil'),palIn=$('#palIn'),palList=$('#palList');
 function items(q){q=q.toLowerCase();
@@ -384,8 +451,8 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],n[1]);return}
-  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
-  if(inField||mod||e.altKey||taskVeil.classList.contains('open')||archVeil.classList.contains('open'))return;
+  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}if(!cardMenu.hidden){closeCardMenu(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
+  if(inField||mod||e.altKey||!cardMenu.hidden||taskVeil.classList.contains('open')||archVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$('#v-board .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
@@ -399,29 +466,32 @@ function bindMoves(){
   $$('#v-board .row[draggable="true"]').forEach(r=>{
     r.ondragstart=e=>{dragging={col:r.dataset.col,i:+r.dataset.i};e.dataTransfer.setData('text/plain',DATA.tasks[dragging.col][dragging.i].id);e.dataTransfer.effectAllowed='move';r.classList.add('drag');};
     r.ondragend=()=>{r.classList.remove('drag');dragging=null;$$('.gl.drop').forEach(g=>g.classList.remove('drop'));};
-    r.onkeydown=e=>{
-      if(!e.altKey||e.metaKey||e.ctrlKey)return;
-      const col=r.dataset.col,i=+r.dataset.i,n=DATA.tasks[col].length;
-      const go2={ArrowUp:i>0&&[col,i-1],ArrowDown:i<n-1&&[col,i+1],ArrowRight:col==='backlog'&&['currentSprint',DATA.tasks.currentSprint.length],ArrowLeft:col==='currentSprint'&&['backlog',DATA.tasks.backlog.length]}[e.key];
-      if(go2===undefined)return;
-      e.preventDefault();
-      if(go2)move(col,i,go2[0],go2[1]);
-    };
   });
-  $$('#v-board .gl[data-col="backlog"],#v-board .gl[data-col="currentSprint"]').forEach(g=>{
-    g.ondragover=e=>{if(!dragging)return;e.preventDefault();e.dataTransfer.dropEffect='move';g.classList.add('drop');};
+  // Drop targets (BL-TB-11): every lane; a drop lands only where the move table lets the dragged row go.
+  $$('#v-board .gl[data-col]').forEach(g=>{
+    g.ondragover=e=>{if(!dragging||!canMove(dragging.col,g.dataset.col))return;e.preventDefault();e.dataTransfer.dropEffect='move';g.classList.add('drop');};
     g.ondragleave=e=>{if(!g.contains(e.relatedTarget))g.classList.remove('drop');};
     g.ondrop=e=>{
-      if(!dragging)return;e.preventDefault();g.classList.remove('drop');
+      if(!dragging||!canMove(dragging.col,g.dataset.col))return;e.preventDefault();g.classList.remove('drop');
       const to=g.dataset.col,src=dragging;dragging=null;
       // Position among the target's rows once the dragged row is out of the way.
       const others=DATA.tasks[to].map((_,j)=>j).filter(j=>!(to===src.col&&j===src.i));
-      const over=e.target.closest&&e.target.closest('.row[data-col]');
+      const card=e.target.closest&&e.target.closest('.card'),over=card&&card.querySelector('.row[data-col]');
       let at=others.length;
       if(over&&over.dataset.col===to){const j=+over.dataset.i,k=others.indexOf(j);if(k>=0){const b=over.getBoundingClientRect();at=k+(e.clientY>b.top+b.height/2?1:0);}}
       move(src.col,src.i,to,at);
     };
   });
+}
+/* Alt+arrows (BL-053): up/down reorder; left/right go to the end of the nearest lane on that side that the table allows (BL-TB-11). */
+function altMove(r,e){
+  if(!e.altKey||e.metaKey||e.ctrlKey||!r.draggable)return;
+  const col=r.dataset.col,i=+r.dataset.i,n=DATA.tasks[col].length;
+  const lane=e.key==='ArrowRight'?laneBy(col,1):e.key==='ArrowLeft'?laneBy(col,-1):null;
+  const go2={ArrowUp:i>0&&[col,i-1],ArrowDown:i<n-1&&[col,i+1],ArrowRight:!!lane&&[lane,DATA.tasks[lane].length],ArrowLeft:!!lane&&[lane,DATA.tasks[lane].length]}[e.key];
+  if(go2===undefined)return;
+  e.preventDefault();
+  if(go2)move(col,i,go2[0],go2[1]);
 }
 async function move(col,i,toSection,toIndex,isUndo){
   const t=DATA.tasks[col][i],p=PROJECT;if(!t||moving)return;
@@ -453,7 +523,7 @@ let taskSection='backlog',adding=false,taskFrom=null; // taskFrom: the opener, a
 function taskError(m){const e=$('#taskErr');e.textContent=m||'';e.hidden=!m;}
 /* The ID the server would give now, from the last payload; a suggestion, the write picks the ID (BL-TB-05). */
 function taskHint(){const n=DATA&&DATA.tasks&&DATA.tasks.nextIds;$('#taskNext').textContent=n?n[taskSection]:'';$('#taskNextWrap').hidden=!n;}
-function openNewTask(section,from){if(!TOKEN||!DATA||!DATA.tasks||!MOVABLE[section])return;hideTip();taskIn.value='';taskError('');taskSection=section;taskFrom=from;$('#taskLane').textContent=COLS[section];taskHint();taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
+function openNewTask(section,from){if(!TOKEN||!DATA||!DATA.tasks||!ADDABLE[section])return;hideTip();taskIn.value='';taskError('');taskSection=section;taskFrom=from;$('#taskLane').textContent=COLS[section];taskHint();taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
 function focusOpener(){const b=(taskFrom&&$(taskFrom))||$('#v-board [data-add]');if(b)b.focus();}
 function closeNewTask(){if(!taskVeil.classList.contains('open')||adding)return;taskVeil.classList.remove('open');focusOpener();}
 async function addTask(){
@@ -652,8 +722,9 @@ $('#suBrowse').onclick=()=>browseFolder($('#suBrowse'),()=>curView==='new'?$('#s
 function focusKey(el){
   if(!el||el===document.body)return null;
   const row=el.closest&&el.closest('.row[data-col][data-i]');
+  if(menuOn&&cardMenu.contains(el)){const t=DATA.tasks&&DATA.tasks[menuOn.col][menuOn.i];return {row:menuOn.col,id:t?t.id:null,i:menuOn.i};} // BL-TB-11: the open menu's card
   if(row){const t=DATA.tasks&&DATA.tasks[row.dataset.col][+row.dataset.i];return {row:row.dataset.col,id:t?t.id:null,i:+row.dataset.i};}
-  for(const a of ['data-open','data-file','data-add','data-archive'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
+  for(const a of ['data-open','data-file','data-add','data-archive','data-menu'])if(el.hasAttribute&&el.hasAttribute(a))return {sel:`[${a}="${CSS.escape(el.getAttribute(a))}"]`};
   if(el.id)return {sel:'#'+CSS.escape(el.id)};
   return null;
 }

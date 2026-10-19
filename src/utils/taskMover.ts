@@ -19,6 +19,14 @@ export type MovableSection = 'backlog' | 'currentSprint';
 /** The section headings as tasks.md writes them (what readSpecs() matches). */
 export const SECTION_HEADINGS = { backlog: 'Backlog', currentSprint: 'Current Sprint', completed: 'Completed' } as const;
 
+/**
+ * The allowed lane moves (BL-TB-11, REQ-002.H.52): a lane to the lanes its rows may move to; a lane in the table
+ * may always reorder its own rows; a lane absent from it (Completed) is neither a source nor a target. The one
+ * source for planMove(), moveShapeError() and, through GET /api/specs, the page's menu, drop targets and keys.
+ */
+export const MOVES: Record<MovableSection, readonly MovableSection[]> = { backlog: ['currentSprint'], currentSprint: ['backlog'] };
+const MOVE_KEYS = Object.keys(MOVES) as MovableSection[]; // own keys only: `in` would admit `__proto__` and other inherited names
+
 export interface TaskMove {
   id: string;
   toSection: MovableSection;
@@ -37,13 +45,13 @@ export function moveShapeError(body: unknown): string | null {
   const b = body as Partial<TaskMove> | null;
   if (!b || typeof b !== 'object') return 'The request must be a JSON object with id, toSection and toIndex.';
   if (typeof b.id !== 'string' || !b.id) return 'The request has no task ID.';
-  if (b.toSection !== 'backlog' && b.toSection !== 'currentSprint') return 'Tasks can only be moved to Backlog or Current Sprint.';
+  if (!MOVE_KEYS.includes(b.toSection as MovableSection)) return `Tasks can only be moved to ${MOVE_KEYS.map(k => SECTION_HEADINGS[k]).join(' or ')}.`;
   if (!Number.isInteger(b.toIndex) || (b.toIndex as number) < 0) return 'The position must be a whole number, 0 or more.';
   return null;
 }
 
-/** Work out a move on tasks.md content in memory: the new content, or why it cannot be done. */
-export function planMove(content: string, move: TaskMove): PlanResult {
+/** Work out a move on tasks.md content in memory: the new content, or why it cannot be done. `moves` is the table; only tests pass one. */
+export function planMove(content: string, move: TaskMove, moves: Record<string, readonly string[]> = MOVES): PlanResult {
   const lines = content.split('\n');
   const where = taskRowLines(content);
   const hits = (['backlog', 'currentSprint', 'completed'] as const).flatMap(sec =>
@@ -52,7 +60,11 @@ export function planMove(content: string, move: TaskMove): PlanResult {
   if (!hits.length) return { ok: false, error: `No task row in planning/tasks.md has the ID ${move.id}.` };
   if (hits.length > 1) return { ok: false, error: `${move.id} is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to move.` };
   const hit = hits[0];
-  if (hit.sec === 'completed') return { ok: false, error: 'Completed rows cannot be moved.' };
+  const targets = Object.prototype.hasOwnProperty.call(moves, hit.sec) ? moves[hit.sec] : null;
+  if (!targets) return { ok: false, error: `${SECTION_HEADINGS[hit.sec]} rows cannot be moved.` };
+  if (hit.sec !== move.toSection && !targets.includes(move.toSection)) {
+    return { ok: false, error: `${SECTION_HEADINGS[hit.sec]} rows cannot be moved to ${SECTION_HEADINGS[move.toSection]}.` };
+  }
   const from = hit.sec as MovableSection;
   const target = where[move.toSection];
   if (!target) return { ok: false, error: `planning/tasks.md has no ## ${SECTION_HEADINGS[move.toSection]} section.` };

@@ -7,7 +7,7 @@ import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
-import { ARCHIVE_STALE_ERROR, completedArchiveStatus, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError } from '../utils/taskMover';
+import { ARCHIVE_STALE_ERROR, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError } from '../utils/taskMover';
 import { planCompletedArchive } from '../utils/specArchiver';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
@@ -225,6 +225,11 @@ describe('buildSpecsPayload against this repo', () => {
     const archive = readFileSync(join(REPO, '.specs/planning/tasks-archive.md'), 'utf-8');
     expect(payload.tasks!.nextIds).toEqual({ backlog: nextTaskId('BL', [tasksMd.join('\n'), archive]), currentSprint: nextTaskId('CS', [tasksMd.join('\n'), archive]) });
     expect(payload.tasks!.nextIds!.backlog).toMatch(/^BL-\d{3,}$/);
+  });
+
+  it('tasks.moves is the move table the server enforces (BL-TB-11)', () => {
+    expect(payload.tasks!.moves).toBe(MOVES);
+    expect(payload.tasks!.moves).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog'] });
   });
 
   it('tasks.archive is the Completed section\'s lines and what POST /api/tasks/archive would move now with force (BL-TB-06)', () => {

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.0] - 2026-10-19
+
 ### Added
 
 - **A context menu on every card of the Tasks board** (BL-TB-11): right-click a card, click the `⋯` button at its top right (shown when the card is hovered or focused; always shown on narrow windows and touch screens), or press `Shift+F10` on a focused card. The menu offers `Move to <lane>` for each lane the card may go to (the lane's end, or `<lane>, top` for its first place), `Move up` and `Move down`, `Open details` and `Copy ID`, with the `Alt`+arrow hints where a key does the same move. A move from the menu is the same one-line move as a drag or an `Alt`+arrow, with the same toast and `Undo`. Completed cards, and every card with `--read-only`, offer `Open details` and `Copy ID` only. Arrow keys walk the menu, `Escape` closes it and returns focus to the card.

@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-17 (BL-114 Spec Report)
-version: 1.45
+lastUpdated: 2026-10-19 (v2.17.0 prepared)
+version: 1.46
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -77,7 +77,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-08-02: v2.2.3 — two "Press Enter" pauses on the `init` success screen, skipped under `--no-prompts` (CS-091)
 - 2026-09-27: v2.2.4 — `archive` handles a table-shaped `## Completed` (BL-057); a shared section-bounds helper and a pure spec reader
 
-### v2.3.0–v2.16.0 - `specpilot serve` (September–October 2026)
+### v2.3.0–v2.17.0 - `specpilot serve` (September–October 2026)
 
 - 2026-09-29: v2.3.0 — `specpilot serve`, a read-only local web UI over `.specs/` with live reload (BL-051, BL-052); `fs-extra` removed
 - 2026-09-29: v2.4.0 — move tasks in `specpilot serve` (BL-053); `archive` takes the oldest `prompts.md` entries (BL-061)
@@ -94,6 +94,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-10-11: v2.14.0 — Stage 4 closed: BL-PM-011, BL-PM-012, BL-088, BL-090, BL-091, BL-092, BL-093, BL-095, BL-096, BL-097, BL-098, BL-099, docs/RELEASING.md
 - 2026-10-13: v2.15.0 — setup through your AI IDE: the Setup view replaces the chat (BL-103), setup tools on the local MCP endpoint (BL-104), MCP on by default with `--no-mcp` (BL-105); `api.yaml` optional in `specpilot validate` (BL-107); tasks archived (BL-106)
 - 2026-10-14: v2.16.0 — command fixes: the `specpilot-validate` command treats `api.yaml` as optional (BL-108), `init --dry-run` lists the files `init` writes (BL-083), `add-specs --no-analysis` works and `--deep-analysis` is removed (BL-074); lint errors fixed (BL-068), a flaky clone test fixed (BL-109), prompts archived (BL-110)
+- 2026-10-19: v2.17.0 — the Tasks board reworked from the developer's review notes: the board alone (BL-TB-01), lanes Backlog, Current Sprint, Completed (BL-TB-04) that fit the window (BL-TB-03), Completed showing every row (BL-TB-07), `+ Add` in the lane headers (BL-TB-05), `Archive` in the Completed header with `POST /api/tasks/archive` (BL-TB-06), a card context menu over one move table (BL-TB-11); `specpilot serve` with no project (BL-080) and the remembered projects reopened at startup (BL-114); the row-count test fixed (BL-115)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 

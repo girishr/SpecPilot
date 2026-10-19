@@ -393,7 +393,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   await focusOnArchive(page);
 });
 
-// BL-TB-06 (D8): `Archive` is always in the Completed lane header and opens the Archive Completed dialog, which lists the gates
+// BL-TB-06 (D8): `Archive` is always in the Completed lane header and opens the `Archive oldest Completed rows` dialog, which lists the gates
 // (the CLI's branch guard, the 40-line limit) from the latest payload with a box to tick for each that warns; Archive runs the
 // Completed step with the CLI's plan and block; within the limit a ticked limit gate sends {force:true}.
 browserTest('Archive sits in the Completed header; past the limit on main the dialog has no box to tick, one click archives the oldest rows as the CLI does, and the next open says nothing is left', b, async open => {
@@ -404,7 +404,7 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   expect(await page.locator('#boardMode [data-archive]').count()).toBe(1);
   expect(await laneArchive(page).count()).toBe(1);
   expect(await laneArchive(page).textContent()).toContain('Archive');
-  expect(await laneArchive(page).getAttribute('aria-label')).toBe('Archive Completed rows to planning/tasks-archive.md');
+  expect(await laneArchive(page).getAttribute('aria-label')).toBe('Archive the oldest Completed rows to planning/tasks-archive.md');
   const [left, top, bottom, cntRight, ghTop, ghBottom] = await page.evaluate(() => {
     const gh = document.querySelector('#boardMode .gl[data-col="completed"] .gh')!;
     const r = gh.querySelector('[data-archive]')!.getBoundingClientRect();
@@ -423,7 +423,7 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   const archiveBefore = archive();
   await laneArchive(page).click();
   await archOpen(page);
-  expect(await page.locator('#archTitle').textContent()).toBe('Archive Completed');
+  expect(await page.locator('#archTitle').textContent()).toBe('Archive oldest Completed rows');
   expect(await page.locator('#archGates .gate').count()).toBe(2);
   expect(await page.locator('#archGates .gate.ok').count()).toBe(2);
   expect(await page.locator('#archGates input').count()).toBe(0); // on main, over the limit: nothing warns

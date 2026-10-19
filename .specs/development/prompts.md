@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-18 (D9, the dialog title)
-version: 2.155
+lastUpdated: 2026-10-19 (row 223 merged)
+version: 2.156
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-19 00:05: on the developer's typed `commit` for row 223 (the dialog title): commit `7518e49` on `fix/bl-tb-06-dialog-title` (the tasks.md diff read line by line: the header and row 223 only), `--no-ff` merge `9783a4e` into `main`; on `main` Jest 1656/1657 (the known BL-115 failure), browser 67/67, read by eye. The push waits for the developer's typed word.
 - 2026-10-18 23:30: the developer asked why the dialog says `Archive Completed` when it has not (a status reading); three titles offered, choice 3, `Archive oldest Completed rows`, recorded as D9; trivial row 223 on `fix/bl-tb-06-dialog-title` from `main`: heading, `aria-label`, browser assertions, REQ-002.H.51, tests.md, `api.yaml`, CHANGELOG, README; browser suite next (ui/ touched: three runs); stop before commit.
 - 2026-10-18 23:15: on the developer's typed `push` after the BL-TB-06 merge: `main` pushed (`5ae4f95..ac6f441`: the BL-TB-05 prompts commit, BL-TB-06's two commits, the merge and the prompts.md archive; Jest 1656/1657 with the known BL-115 failure, browser 67/67, validate clean, read by eye); `origin/main` = local `main` checked; branch `feat/bl-tb-06-archive-button` deleted (local only). Still open before the next release: BL-115 on its own branch. This line is a local commit on `main`, pushed with the next item.
 - 2026-10-18 23:05: on the developer's typed `Commit` after the BL-TB-06 rebuild report: feature commit `2b624ac` on `feat/bl-tb-06-archive-button` (tasks.md not in it; the tasks.md diff read line by line: the header and the BL-PM-017 row only), completion commit `a5e9245` (row 222, CD-girishr-131, BL-PM-017 with it), `--no-ff` merge `2cd531c` into `main`; on `main` Jest 1656/1657 (the known BL-115 failure), browser 67/67, read by eye; then `specpilot archive` on `main` moved 55 lines of this file to prompts-archive.md (as announced in the build report; nothing to move in tasks.md) and `specpilot validate` is clean. The push waits for the developer's typed word; the branch stays until then.

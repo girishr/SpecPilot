@@ -8,6 +8,7 @@ import {
   archiveCompleted,
   completedArchiveStatus,
   moveShapeError,
+  MOVES,
   moveTask,
   NEW_STALE_ERROR,
   newTask,
@@ -166,6 +167,26 @@ describe('planMove: a move is one line cut and pasted', () => {
     expect(planMove(TASKS, { id: 'BL-002', toSection: 'backlog', toIndex: 1 })).toMatchObject({ ok: true, noop: true, content: TASKS });
   });
 
+  // BL-TB-11: the one table of allowed lane moves, enforced here and sent to the page as tasks.moves.
+  it('the move table MOVES: Backlog and Current Sprint, each to the other, nothing else', () => {
+    expect(MOVES).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog'] });
+  });
+
+  it('allows every pair the table names and a reorder within each key', () => {
+    const ids = { backlog: 'BL-001', currentSprint: 'CS-001' } as const;
+    for (const [from, targets] of Object.entries(MOVES) as [keyof typeof MOVES, readonly TaskMove['toSection'][]][]) {
+      for (const to of [from, ...targets]) expect(planMove(TASKS, { id: ids[from], toSection: to, toIndex: 0 }).ok).toBe(true);
+    }
+  });
+
+  it('refuses a target the row\'s lane does not map to, and a lane with no entry, in plain words (handed a table without them)', () => {
+    const table = { backlog: [], currentSprint: ['backlog'] };
+    expect(planMove(TASKS, { id: 'BL-001', toSection: 'currentSprint', toIndex: 0 }, table)).toEqual({ ok: false, error: 'Backlog rows cannot be moved to Current Sprint.' });
+    expect(planMove(TASKS, { id: 'BL-001', toSection: 'backlog', toIndex: 2 }, table).ok).toBe(true); // its own lane still reorders
+    expect(planMove(TASKS, { id: 'CS-001', toSection: 'backlog', toIndex: 0 }, table).ok).toBe(true);
+    expect(planMove(TASKS, { id: 'BL-001', toSection: 'backlog', toIndex: 0 }, { currentSprint: ['backlog'] })).toEqual({ ok: false, error: 'Backlog rows cannot be moved.' });
+  });
+
   it.each<[string, string, TaskMove, string]>([
     ['unknown ID', TASKS, { id: 'BL-999', toSection: 'backlog', toIndex: 0 }, 'No task row in planning/tasks.md has the ID BL-999.'],
     ['an ID on two rows', TASKS.replace('| CS-001 | Sprint one |', '| BL-002 | Sprint one |'), { id: 'BL-002', toSection: 'backlog', toIndex: 0 }, 'BL-002 is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to move.'],
@@ -180,6 +201,8 @@ describe('planMove: a move is one line cut and pasted', () => {
     [null, 'The request must be a JSON object with id, toSection and toIndex.'],
     [{ toSection: 'backlog', toIndex: 0 }, 'The request has no task ID.'],
     [{ id: 'BL-1', toSection: 'completed', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'],
+    [{ id: 'BL-1', toSection: '__proto__', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'], // an inherited name is not a lane (BL-TB-11)
+    [{ id: 'BL-1', toSection: 'toString', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'],
     [{ id: 'BL-1', toSection: 'backlog', toIndex: -1 }, 'The position must be a whole number, 0 or more.'],
     [{ id: 'BL-1', toSection: 'backlog', toIndex: 1.5 }, 'The position must be a whole number, 0 or more.'],
   ])('checks the request shape: %j', (body, error) => {

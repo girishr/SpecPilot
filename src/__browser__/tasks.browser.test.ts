@@ -144,6 +144,10 @@ browserTest('--read-only has no Add or Archive buttons, no drag handles and no H
     expect(await page.locator('#boardMode [data-archive]').count()).toBe(0); // BL-TB-06: so does Archive
     expect(await page.locator('#homeBtn').isHidden()).toBe(true);
     expect(await page.locator('#boardMode .row[draggable="true"]').count()).toBe(0);
+    await row(page, 'backlog', 0).click({ button: 'right' }); // BL-TB-11: the card menu without the token holds the two read items only
+    await menuOpen(page);
+    expect(await menuLabels(page)).toEqual(['Open details', 'Copy ID']);
+    expect(await page.locator('#cardMenu .mh').count()).toBe(0);
   } finally {
     await ro.close();
   }
@@ -569,7 +573,7 @@ browserTest('the tasks.md intro sits above the lanes, folded on load, and stays 
   expect(await page.locator('#gIntro').getAttribute('open')).not.toBeNull();
 });
 
-browserTest('the Tasks view, a task\'s details, the New Task dialog and Archive have no sideways scroll at 420px; the lanes stack and the page scrolls', b, async open => {
+browserTest('the Tasks view, a task\'s details, the New Task dialog, the card menu and Archive have no sideways scroll at 420px; the lanes stack and the page scrolls', b, async open => {
   const backlog = addBacklogRows();
   const completed = addCompletedRows(40); // past the limit: Archive is drawn (BL-TB-06)
   writeFileSync(join(env.project, '.git', 'HEAD'), 'ref: refs/heads/feature\n');
@@ -612,6 +616,32 @@ browserTest('the Tasks view, a task\'s details, the New Task dialog and Archive 
   await page.waitForFunction(() => !document.querySelector('#taskVeil')!.classList.contains('open'));
   await focusOn(page, 'currentSprint');
   expect(await noSideScroll(page)).toBe(true);
+  // BL-TB-11: the ⋯ button shown without hover and inside the window; the menu open; a move from it with the Undo toast; Escape back to the card
+  const dots = page.locator('#boardMode .card [data-menu="backlog:0"]');
+  expect(await dots.evaluate(e => getComputedStyle(e).opacity)).toBe('1');
+  const [dLeft, dRight] = await dots.evaluate(e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; });
+  expect(dLeft).toBeGreaterThanOrEqual(0);
+  expect(dRight).toBeLessThanOrEqual(420);
+  await dots.click();
+  await menuOpen(page);
+  expect(await noSideScroll(page)).toBe(true);
+  const [mLeft, mRight] = await page.locator('#cardMenu').evaluate(e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; });
+  expect(mLeft).toBeGreaterThanOrEqual(0);
+  expect(mRight).toBeLessThanOrEqual(420);
+  await page.keyboard.press('Escape');
+  await menuClosed(page);
+  await rowFocused(page, 'backlog', 0);
+  const beforeMenuMove = read(env.tasks());
+  const menuRow = rowsIn(beforeMenuMove, 'Backlog')[0];
+  await dots.click();
+  await menuOpen(page);
+  await page.locator('#cardMenu [role=menuitem]').first().click(); // Current Sprint, the lane's end
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(menuRow), 'the row in Current Sprint on disk');
+  await waitToast(page, new RegExp(`${idOf(menuRow)} moved from ## Backlog to ## Current Sprint`));
+  expect(await noSideScroll(page)).toBe(true);
+  await page.click('#toast .tact');
+  await until(() => read(env.tasks()) === beforeMenuMove, 'tasks.md back as it was');
+  expect(await noSideScroll(page)).toBe(true);
   // BL-TB-06 (D8): Archive in the Completed header; the dialog warning about the branch; the archived state; nothing to archive
   expect(await laneArchive(page).count()).toBe(1);
   const [aLeft, aRight, ghLeft, ghRight] = await page.evaluate(() => {
@@ -646,4 +676,120 @@ browserTest('the Tasks view, a task\'s details, the New Task dialog and Archive 
   await page.keyboard.press('Escape');
   await archClosed(page);
   await focusOnArchive(page);
+});
+
+// BL-TB-11: a card's context menu, built from the move table the server sends.
+const menuOpen = (page: Page) => page.waitForFunction(() => !(document.querySelector('#cardMenu') as HTMLElement).hidden);
+const menuClosed = (page: Page) => page.waitForFunction(() => (document.querySelector('#cardMenu') as HTMLElement).hidden);
+/** The items' labels, without the key hints. */
+const menuLabels = (page: Page) => page.$$eval('#cardMenu [role=menuitem]', els => els.map(e => e.firstChild!.textContent));
+const itemFocused = (page: Page, k: number) => page.waitForFunction(n => document.activeElement === document.querySelectorAll('#cardMenu [role=menuitem]')[n], k);
+const rowFocused = (page: Page, col: string, i: number) =>
+  page.waitForFunction(([c, n]) => document.activeElement?.matches(`#boardMode .row[data-col="${c}"][data-i="${n}"]`) ?? false, [col, i] as [string, number]);
+/** The item whose label (its first text node, before any key hint) is `label`. */
+async function item(page: Page, label: string) {
+  const k = await page.$$eval('#cardMenu [role=menuitem]', (els, l) => els.findIndex(e => e.firstChild!.textContent === l), label);
+  expect(k).toBeGreaterThanOrEqual(0);
+  return page.locator('#cardMenu [role=menuitem]').nth(k);
+}
+
+browserTest('a card\'s menu opens by right-click, Shift+F10 and the ⋯ button; its items come from the move table; a move from it is one line with Undo, a Completed card offers details and Copy ID only', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const before = read(env.tasks());
+  const first = rowsIn(before, 'Backlog')[0];
+  const sprint = rowsIn(before, 'Current Sprint').length;
+  // Every card has the ⋯ button; at 1280px it is transparent until the card is hovered or focused.
+  expect(await page.locator('#boardMode .card [data-menu]').count()).toBe(await page.locator('#boardMode .row[data-col]').count());
+  const dots = page.locator('#boardMode .card [data-menu="backlog:0"]');
+  expect(await dots.evaluate(e => getComputedStyle(e).opacity)).toBe('0');
+  await row(page, 'backlog', 0).hover();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#boardMode .card [data-menu="backlog:0"]')!).opacity === '1');
+  await page.mouse.move(5, 5);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#boardMode .card [data-menu="backlog:0"]')!).opacity === '0');
+  await row(page, 'backlog', 0).focus();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('#boardMode .card [data-menu="backlog:0"]')!).opacity === '1');
+  // Right-click: the items in order, the hint on the key's move, no Move up on the first card; arrows wrap; Escape back to the card.
+  await row(page, 'backlog', 0).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Current Sprint', 'Current Sprint, top', 'Move down', 'Open details', 'Copy ID']);
+  expect(await page.locator('#cardMenu .mh').textContent()).toBe('Move to');
+  expect(await page.locator('#cardMenu [role=menuitem] .hint').allTextContents()).toEqual(['Alt+→', 'Alt+↓']);
+  expect(await page.locator('#cardMenu [role=menuitem]').first().getAttribute('aria-keyshortcuts')).toBe('Alt+ArrowRight');
+  await itemFocused(page, 0);
+  await page.keyboard.press('ArrowUp');
+  await itemFocused(page, 4);
+  await page.keyboard.press('ArrowDown');
+  await itemFocused(page, 0);
+  await page.keyboard.press('End');
+  await itemFocused(page, 4);
+  await page.locator('#cardMenu .mh').click(); // a press inside the menu (here on the heading) does not close it
+  await menuOpen(page);
+  await itemFocused(page, 4);
+  await page.keyboard.press('Escape');
+  await menuClosed(page);
+  await rowFocused(page, 'backlog', 0);
+  expect(await dots.getAttribute('aria-expanded')).toBe('false');
+  // Shift+F10 on the focused card; the default target is the lane's end; the toast's Undo puts the file back.
+  await page.keyboard.press('Shift+F10');
+  await menuOpen(page);
+  expect(await dots.getAttribute('aria-expanded')).toBe('true');
+  await (await item(page, 'Current Sprint')).click();
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(first), 'the row in Current Sprint on disk');
+  const after = read(env.tasks());
+  expect(after.split('\n').sort()).toEqual(before.split('\n').sort());
+  expect(rowsIn(after, 'Current Sprint')[sprint]).toBe(first);
+  await waitToast(page, new RegExp(`${idOf(first)} moved from ## Backlog to ## Current Sprint`));
+  await rowFocused(page, 'currentSprint', sprint);
+  await page.click('#toast .tact');
+  await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
+  await rowFocused(page, 'backlog', 0);
+  // The ⋯ button; `<Lane>, top` puts the row first; Move down swaps it with the next row.
+  await dots.click();
+  await menuOpen(page);
+  await (await item(page, 'Current Sprint, top')).click();
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === first, 'the row first in Current Sprint');
+  await waitToast(page, new RegExp(`${idOf(first)} moved from ## Backlog to ## Current Sprint`));
+  await rowFocused(page, 'currentSprint', 0);
+  await row(page, 'currentSprint', 0).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Backlog', 'Backlog, top', 'Move down', 'Open details', 'Copy ID']);
+  expect(await page.locator('#cardMenu [role=menuitem] .hint').allTextContents()).toEqual(['Alt+←', 'Alt+↓']);
+  await (await item(page, 'Move down')).click();
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[1] === first, 'the row second in Current Sprint');
+  await waitToast(page, new RegExp(`${idOf(first)} moved within ## Current Sprint`));
+  await rowFocused(page, 'currentSprint', 1);
+  await row(page, 'currentSprint', 1).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Backlog', 'Backlog, top', 'Move up', 'Move down', 'Open details', 'Copy ID']);
+  await page.keyboard.press('Escape');
+  await menuClosed(page);
+  // A Completed card: Open details and Copy ID only; Copy ID puts the ID cell on the clipboard; Open details opens the inspector on it.
+  const doneId = rowsIn(before, 'Completed')[0].split('|')[2].trim();
+  await row(page, 'completed', 0).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Open details', 'Copy ID']);
+  expect(await page.locator('#cardMenu .mh').count()).toBe(0);
+  await (await item(page, 'Copy ID')).click();
+  await waitToast(page, /^Copied\.$/);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(doneId);
+  await rowFocused(page, 'completed', 0);
+  await page.keyboard.press('Shift+F10');
+  await menuOpen(page);
+  await (await item(page, 'Open details')).click();
+  await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+  expect(await page.locator('#insp .ih .pill').textContent()).toBe('Completed');
+  expect(await page.locator('#insp .ih .id').last().textContent()).toBe(doneId);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#insp')!.classList.contains('open'));
+  // A live reload closes an open menu and leaves focus on its card; a click outside closes it too.
+  await row(page, 'backlog', 0).click({ button: 'right' });
+  await menuOpen(page);
+  await reloadThrough(page, 'CS-902');
+  await menuClosed(page);
+  await rowFocused(page, 'backlog', 0);
+  await row(page, 'backlog', 0).click({ button: 'right' });
+  await menuOpen(page);
+  await page.mouse.click(5, 5);
+  await menuClosed(page);
 });

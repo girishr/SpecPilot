@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-19 (row 223 pushed)
-version: 2.157
+lastUpdated: 2026-10-19 (BL-TB-11 built)
+version: 2.159
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,9 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-19: BL-TB-11 build spec-reviewer A FIX (one item: the menu's `focusout` closed it on a press that blurred the focused item before the click, which is every item press in Safari and Firefox): `mousedown` inside `#cardMenu` prevented, the 1280px case clicks the `Move to` heading and asserts the menu stays open, REQ-002.H.52, ARCH-004.66, tests.md and context updated; browser 68/68 three more runs; spec-reviewer A re-check next; still no commit.
+- 2026-10-19: BL-TB-11 built on `feat/bl-tb-11-card-menu` after spec-reviewer A FIX (the `in` check admitting `__proto__`, an api.yaml full stop, context.md's version) then PASS: `taskMover.ts` (`MOVES`, `planMove()` over it), `specServer.ts` (`tasks.moves`), `ui/` (the `.card` wrapper, the `⋯` button, `#cardMenu`, `altMove()`, `laneBy()`), `taskMover.test.ts` +5, `specServer.test.ts` +1, `tasks.browser.test.ts` +1 case and two extended; Jest 1662/1663 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 68/68 three times after one test fix and one page fix (`closeCardMenu()` blurs at once); validate clean; spec-reviewer A on the build next; no Day brief, so stop before commit.
+- 2026-10-19: `do BL-TB-11` (card context menu on the Tasks board): branch `feat/bl-tb-11-card-menu` from `main` (`90d743c`, clean tree); Spec Report (Feature: REQ-002.H.52, ARCH-004.66, ARCH-003.18 and REQ-002.H.10 noted, `api.yaml`, tests.md, CHANGELOG `Added`, README's Task moves line, context with ten defaults: the table without Icebox until BL-113, a flat menu, `move()`'s toast kept, a `.card` wrapper since a button cannot nest in the row button, `MOVABLE` renamed `ADDABLE`); spec-reviewer next, then the build with Jest and three browser runs; no Day brief, so stop before commit.
 - 2026-10-19: the developer pushed `main` themselves after the row 223 merge (`a80f258`, `7518e49`, `9783a4e`, `601f33f`); on their `go`, branch `fix/bl-tb-06-dialog-title` deleted (local only) and this entry committed on `main`, to go out with the next push. Still open before the next release: BL-115 on its own branch.
 - 2026-10-19 00:05: on the developer's typed `commit` for row 223 (the dialog title): commit `7518e49` on `fix/bl-tb-06-dialog-title` (the tasks.md diff read line by line: the header and row 223 only), `--no-ff` merge `9783a4e` into `main`; on `main` Jest 1656/1657 (the known BL-115 failure), browser 67/67, read by eye. The push waits for the developer's typed word.
 - 2026-10-18 23:30: the developer asked why the dialog says `Archive Completed` when it has not (a status reading); three titles offered, choice 3, `Archive oldest Completed rows`, recorded as D9; trivial row 223 on `fix/bl-tb-06-dialog-title` from `main`: heading, `aria-label`, browser assertions, REQ-002.H.51, tests.md, `api.yaml`, CHANGELOG, README; browser suite next (ui/ touched: three runs); stop before commit.

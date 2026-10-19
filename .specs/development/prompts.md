@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-19 (BL-TB-11 pushed)
-version: 2.161
+lastUpdated: 2026-10-19 (BL-115 built)
+version: 2.162
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-19: `get ready for publish`: read `docs/RELEASING.md`; `main` clean with one unpushed prompts commit, version 2.16.0, `[Unreleased]` with Added, Changed and Removed, so v2.17.0 is next (minor); `npm pack --dry-run` matches the checklist's present and absent lists; lint 0 errors. Step 2 needs `npm test` green, so BL-115 (trivial, decided 2026-10-18) first on `fix/bl-115-row-count-sections`: the row-count case walks the served headings; Jest 1663/1663. Spec-reviewer, commit, merge and the suites on `main` next; the version bump, tag and publish wait for a typed `yes, proceed`.
 - 2026-10-19: on the developer's typed `push` after the BL-TB-11 merge: `main` pushed (`601f33f..0850dc5`: the row 223 prompts entry, the developer's tasks.md move, BL-TB-11's two commits, the merge and the prompts entry; Jest 1662/1663 with the known BL-115 failure, browser 68/68, validate clean, read by eye before the push); `origin/main` = local `main` checked; branch `feat/bl-tb-11-card-menu` deleted (local only). Still open before the next release: BL-115 on its own branch. This line goes out with the next push.
 - 2026-10-19: on the developer's typed `commit` after the BL-TB-11 build report: the pre-commit tasks.md diff read line by line found the developer's own move of the BL-TB-11 row to the top of Current Sprint (07:20, not this task's), committed as `docs(tasks)` `8a0ebd9` on `main` and the branch fast-forwarded to it (a forced branch move was refused as destructive, so main was checked out for the commit); feature commit `e058d24` on `feat/bl-tb-11-card-menu` (tasks.md not in it), completion commit `b42d807` (row 224, CD-girishr-133), `--no-ff` merge `902f229` into `main`; on `main` Jest 1662/1663 (the known BL-115 failure), browser 68/68, validate clean, read by eye. The push waits for the developer's typed word; the branch stays until then.
 - 2026-10-19: BL-TB-11 build spec-reviewer A FIX (one item: the menu's `focusout` closed it on a press that blurred the focused item before the click, which is every item press in Safari and Firefox): `mousedown` inside `#cardMenu` prevented, the 1280px case clicks the `Move to` heading and asserts the menu stays open, REQ-002.H.52, ARCH-004.66, tests.md and context updated; browser 68/68 three more runs; spec-reviewer A re-check next; still no commit.

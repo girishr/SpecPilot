@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-19 (BL-TB-11 built)
-version: 2.159
+lastUpdated: 2026-10-19 (BL-TB-11 committed and merged)
+version: 2.160
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-19: on the developer's typed `commit` after the BL-TB-11 build report: the pre-commit tasks.md diff read line by line found the developer's own move of the BL-TB-11 row to the top of Current Sprint (07:20, not this task's), committed as `docs(tasks)` `8a0ebd9` on `main` and the branch fast-forwarded to it (a forced branch move was refused as destructive, so main was checked out for the commit); feature commit `e058d24` on `feat/bl-tb-11-card-menu` (tasks.md not in it), completion commit `b42d807` (row 224, CD-girishr-133), `--no-ff` merge `902f229` into `main`; on `main` Jest 1662/1663 (the known BL-115 failure), browser 68/68, validate clean, read by eye. The push waits for the developer's typed word; the branch stays until then.
 - 2026-10-19: BL-TB-11 build spec-reviewer A FIX (one item: the menu's `focusout` closed it on a press that blurred the focused item before the click, which is every item press in Safari and Firefox): `mousedown` inside `#cardMenu` prevented, the 1280px case clicks the `Move to` heading and asserts the menu stays open, REQ-002.H.52, ARCH-004.66, tests.md and context updated; browser 68/68 three more runs; spec-reviewer A re-check next; still no commit.
 - 2026-10-19: BL-TB-11 built on `feat/bl-tb-11-card-menu` after spec-reviewer A FIX (the `in` check admitting `__proto__`, an api.yaml full stop, context.md's version) then PASS: `taskMover.ts` (`MOVES`, `planMove()` over it), `specServer.ts` (`tasks.moves`), `ui/` (the `.card` wrapper, the `⋯` button, `#cardMenu`, `altMove()`, `laneBy()`), `taskMover.test.ts` +5, `specServer.test.ts` +1, `tasks.browser.test.ts` +1 case and two extended; Jest 1662/1663 (the known BL-115 failure), `tsc` clean, lint 0 errors, browser 68/68 three times after one test fix and one page fix (`closeCardMenu()` blurs at once); validate clean; spec-reviewer A on the build next; no Day brief, so stop before commit.
 - 2026-10-19: `do BL-TB-11` (card context menu on the Tasks board): branch `feat/bl-tb-11-card-menu` from `main` (`90d743c`, clean tree); Spec Report (Feature: REQ-002.H.52, ARCH-004.66, ARCH-003.18 and REQ-002.H.10 noted, `api.yaml`, tests.md, CHANGELOG `Added`, README's Task moves line, context with ten defaults: the table without Icebox until BL-113, a flat menu, `move()`'s toast kept, a `.card` wrapper since a button cannot nest in the row button, `MOVABLE` renamed `ADDABLE`); spec-reviewer next, then the build with Jest and three browser runs; no Day brief, so stop before commit.

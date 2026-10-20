@@ -1,4 +1,4 @@
-import { readSpecs, taskHeadings } from '../utils/specReader';
+import { readSpecs, TASK_COLUMNS, taskHeadings } from '../utils/specReader';
 
 // Shaped like the real .specs/planning/tasks.md: 2-column Backlog / Current Sprint,
 // a stray "_(empty …)_" line after the sprint table, 3-column Completed with
@@ -184,7 +184,7 @@ describe('readSpecs', () => {
   it('reports the headings found, missing and unknown, the candidates, the row counts and the columns, the same with CRLF (BL-112)', () => {
     const h = (md: string) => readSpecs({ 'planning/tasks.md': md }).tasks!.headings;
     const columns = { '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'] };
-    const all = { found: ['## Backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns };
+    const all = { found: ['## Backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns, untabled: {} };
     expect(h(TASKS_MD)).toEqual(all);
     expect(h(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual(all);
     expect(taskHeadings(TASKS_MD.split('\n'))).toEqual(all);
@@ -192,7 +192,20 @@ describe('readSpecs', () => {
     expect(h(TASKS_MD.replace('## Backlog', '## backlog'))).toEqual({ ...all, found: ['## backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: ['## Backlog'], unknown: ['## backlog', '## Multi-Dev Notes'], variants: { '## Backlog': ['## backlog'] }, unknownRows: { '## backlog': 2, '## Multi-Dev Notes': 1 } });
     expect(h(TASKS_MD.replace('## Backlog', '## backlog\n\n### Backlog')).variants).toEqual({ '## Backlog': ['## backlog', '### Backlog'] }); // two candidates, in file order
     expect(h(TASKS_MD + '## Later\n\nNothing tabled yet.\n').unknownRows).toEqual({ '## Multi-Dev Notes': 1, '## Later': 0 });
-    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Completed': [] }, unknownRows: {}, columns });
+    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Completed': [] }, unknownRows: {}, columns, untabled: {} });
+  });
+
+  it('counts the lines of a known section that has no table, [TODO] aside, and names the columns a table needs (BL-116)', () => {
+    const u = (md: string) => readSpecs({ 'planning/tasks.md': md }).tasks!.headings.untabled;
+    expect(u(TASKS_MD)).toEqual({}); // every section has a table
+    const nine = Array.from({ length: 9 }, (_, i) => `[BL-00${i + 1}-handle] Task ${i + 1}`).join('\n');
+    const lines = `## Backlog\n\n${nine}\n\n## Current Sprint\n\n[TODO]\n\n## Completed\n\n1. [CD-001] Initialise .specs directory (2026-10-20)\n`;
+    expect(u(lines)).toEqual({ '## Backlog': 9, '## Completed': 1 }); // the init template's own list shape counts; its [TODO] placeholder does not
+    expect(u(lines.replace(/\n/g, '\r\n'))).toEqual({ '## Backlog': 9, '## Completed': 1 });
+    expect(u('## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | One |\n\nA note beside the table.\n')).toEqual({}); // a table: prose beside it is ignored, as today
+    expect(u('## Backlog\n\n| ID | Description |\n')).toEqual({ '## Backlog': 1 }); // a header row with no separator is not a table
+    expect(u('## Backlog\n\n\n\n## Completed\n')).toEqual({});
+    expect(TASK_COLUMNS).toEqual({ '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'] });
   });
 
   it('only parses tasks for planning/tasks.md', () => {

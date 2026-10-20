@@ -657,7 +657,11 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     const plan = planCompletedArchive(lines)!;
     const moved = plan.end - plan.start; // the CLI's list rule counts the blank line after the entries, so 22 of the 41 entries move
     expect(moved).toBe(22);
-    expect(archiveCompleted(root, sha256(list))).toMatchObject({ status: 200, linesMoved: moved });
+    const checksBefore = tasksChecks(list);
+    expect(archiveCompleted(root, sha256(list))).toMatchObject({ status: 200, linesMoved: moved }); // BL-116: the no-table warning is validate()'s alone, so the count's change is no new problem
+    const checksAfter = tasksChecks(readFileSync(file, 'utf-8'));
+    expect(checksAfter.filter(w => !checksBefore.includes(w))).toEqual([]); // nothing new (the limit warning going away is fine), so no 422
+    expect([...checksBefore, ...checksAfter].some(w => w.includes('no table'))).toBe(false);
     expect(readFileSync(file, 'utf-8')).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
     expect(readFileSync(file, 'utf-8')).toBe(list.replace(entries.slice(0, moved).join('\n') + '\n', ''));
     expect(stamp(readFileSync(archive, 'utf-8'))).toBe(`## Archived on <T>\n\n${entries.slice(0, moved).join('\n')}\n\n---\n\n`);

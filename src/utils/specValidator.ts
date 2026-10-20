@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
-import { TASK_HEADINGS, taskHeadings } from './specReader';
+import { TASK_COLUMNS, TASK_HEADINGS, TaskHeadings, taskHeadings } from './specReader';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -25,6 +25,18 @@ function tasksStatusTracked(content: string): boolean {
 
 /** A `fixable` token for `autoFix()`: `rename-heading:<found>:<expected>` (BL-111). */
 export const RENAME_HEADING_PREFIX = 'rename-heading:';
+
+const joinAnd = (a: string[]): string => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a.join(''));
+
+/**
+ * BL-116: a known section with lines but no table, worded as `specpilot validate` warns. `validate()`'s alone,
+ * never in `tasksChecks()`: the task mover diffs those strings before and after a write, and this count changes
+ * when Archive shortens a list-shaped Completed, while no write route can create or remove a table.
+ */
+export function untabledWarnings(report: TaskHeadings): string[] {
+  return Object.entries(report.untabled).map(([h, n]) =>
+    `planning/tasks.md \`${h}\` has ${n === 1 ? '1 line' : `${n} lines`} but no table, so the Tasks board ${n === 1 ? 'does not show it' : 'shows none of them'}; make the section a table with ${joinAnd(report.columns[h])} columns, one row per task.`);
+}
 
 export interface HeadingRename {
   found: string;
@@ -440,6 +452,7 @@ export class SpecValidator {
       const headings = tasksHeadingChecks(content);
       result.warnings.push(...headings.warnings);
       for (const r of headings.renames) result.fixable.push(`${RENAME_HEADING_PREFIX}${r.found}:${r.expected}`);
+      result.warnings.push(...untabledWarnings(taskHeadings(content.split('\n')))); // BL-116: no fix token
 
     } catch (error) {
       if (verbose) {
@@ -478,7 +491,8 @@ export class SpecValidator {
         content = this.getDefaultSecurityDecisionsMd();
         break;
       case 'planning/tasks.md':
-        content = `# Tasks\n\n${TASK_HEADINGS.map(h => `${h}\n\n[Content to be added]`).join('\n\n')}\n`;
+        // each heading with its table header and separator, so the file passes the heading checks and New Task can write to it (BL-116)
+        content = `# Tasks\n\n${TASK_HEADINGS.map(h => `${h}\n\n| ${TASK_COLUMNS[h].join(' | ')} |\n|${TASK_COLUMNS[h].map(() => '---').join('|')}|`).join('\n\n')}\n`;
         break;
       default:
         content = `# ${fileName.split('/').pop()?.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;

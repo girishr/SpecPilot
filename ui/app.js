@@ -232,6 +232,16 @@ function headingMessages(T){
       `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and ${one?`rename ${q(one)} to ${q(h)}`:`add a ${q(h)} section`}, best done by your AI IDE so that anything referring to the section is updated too.</p>`+
       `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
   });
+  // BL-116: a known section whose tasks are lines or a list, not a table, which the board cannot read
+  const lineWarns=Object.entries(H.untabled||{}).map(([h,n])=>{
+    const lane=h.slice(3),cols=joinAnd(H.columns[h]||['ID','Description']);
+    const prompt=`In ${TASKS_FILE}, turn the "${h}" section into a markdown table with ${cols} columns, one row per task, keeping every task and its ID, so SpecPilot's Tasks board reads it.`;
+    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane shows none of the ${n===1?'1 line':n+' lines'} under ${q(h)}</div>`+
+      `<p>They are not table rows. The board reads a markdown table with ${esc(cols)} columns.</p>`+
+      `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and turn the section into a table with ${esc(cols)} columns, one row per task, best done by your AI IDE so that every task keeps its ID and references.</p>`+
+      `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
+  });
+  warns.push(...lineWarns);
   const candidates=new Set([].concat(...Object.values(H.variants)));
   const hidden=hiddenNotes(H.unknown.slice().sort());
   const notes=H.unknown.filter(h=>!candidates.has(h)&&!hidden.includes(h)).map(h=>{

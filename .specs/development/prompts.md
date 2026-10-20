@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-20 (BL-112 rebuilt on D10)
-version: 2.174
+lastUpdated: 2026-10-20 (BL-112 committed)
+version: 2.175
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-20: on the developer's typed `commit` after the BL-112 rebuild report: feature commit `2f0cd15` on `feat/bl-112-heading-notice` (tasks.md not in it), completion commit (row 229, CD-girishr-138), then the `--no-ff` merge into `main`, `specpilot archive` on `main` for this file (over its limit since the BL-112 build entry), `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
 - 2026-10-20: BL-112 rebuilt on `feat/bl-112-heading-notice` to the revised report after spec-reviewer A FIX (seven items), FIX (the prompt's columns) then PASS: `specReader.ts` (`variants`, `unknownRows`, `columns`), `specValidator.ts` (reads `variants`), `ui/index.html`, `ui/app.js` (`headingMessages()`, the two dismissal stores, the delegated handler), `ui/app.css`; `specReader.test.ts` rewritten case, `tasks.browser.test.ts` two cases; Jest 1671/1671, `tsc` and build clean, lint 0 errors, browser 69 → 70 three runs, `specpilot validate` with the one known prompts.md warning; screenshots sent; spec-reviewer B next; no Day brief, so stop before commit.
 - 2026-10-20: the developer, on the BL-112 build: the notice is unclear (no severity, no plain problem statement, no action); asked for UX research and a redesign report. Report given (screenshots of the notice on a scratch copy; NN/g, Atlassian, Carbon, Polaris guidance; two message types, symptom then cause then fix, dismissal rules; three decisions offered). Decisions recorded as D10: no rename action (edit the md file, ideally through the AI IDE), warnings collapse for the session, revise on the branch. Spec Report revised (REQ-002.H.53, ARCH-004.68, api.yaml, tests.md, CHANGELOG, README, context.md with eight defaults); spec-reviewer next, then the rebuild.
 - 2026-10-20: BL-112 built on `feat/bl-112-heading-notice` after spec-reviewer A FIX (three items: `esc()`, the markup-as-text assertion, the `## backlog` case) then PASS: `specReader.ts` (`TASK_HEADINGS`, `taskHeadings()`, `tasks.headings`), `specValidator.ts` (reads the reader's report), `ui/index.html`, `ui/app.js`, `ui/app.css`, `specReader.test.ts` +1, `specValidator.test.ts` +1, `tasks.browser.test.ts` +1; Jest 1669 → 1671, `tsc` and build clean, lint 0 errors, browser 68 → 69 three runs, `specpilot validate` with one warning, this file at its 100-line limit (21 lines to archive on `main` at the merge step); specs recorded; spec-reviewer B next; no Day brief, so stop before commit.

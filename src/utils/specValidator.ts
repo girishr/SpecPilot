@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
+import { findSectionBounds } from './markdownSections';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -22,6 +23,47 @@ function tasksStatusTracked(content: string): boolean {
   return content.includes('In Progress') || content.includes('in-progress') || content.includes('Completed') || content.includes('completed');
 }
 
+/** The tasks.md section headings `readSpecs()` and the task writer read; the stub `--fix` creates has them (BL-111). */
+export const TASK_HEADINGS = ['## Backlog', '## Current Sprint', '## Completed'] as const;
+
+/** A `fixable` token for `autoFix()`: `rename-heading:<found>:<expected>` (BL-111). */
+export const RENAME_HEADING_PREFIX = 'rename-heading:';
+
+export interface HeadingRename {
+  found: string;
+  expected: string;
+}
+
+/**
+ * BL-111: the TASK_HEADINGS the content lacks, worded as `specpilot validate` warns, and the renames
+ * `--fix` may make: a heading is present by `findSectionBounds()`'s rule (the reader's own, so the
+ * validator and the board agree), and a missing one is renamable when exactly one heading line of
+ * any level carries its name, ignoring case, after trimming. Anything else is a warning only.
+ */
+export function tasksHeadingChecks(content: string): { warnings: string[]; renames: HeadingRename[] } {
+  const trimmed = content.split('\n').map(l => l.trim());
+  const found = trimmed.filter(l => /^## /.test(l));
+  const foundList = found.length ? found.map(h => `\`${h}\``).join(', ') : 'none';
+  const warnings: string[] = [];
+  const renames: HeadingRename[] = [];
+  for (const expected of TASK_HEADINGS) {
+    if (findSectionBounds(trimmed, expected)) continue;
+    const name = expected.slice(3).toLowerCase();
+    const candidates = trimmed.filter(l => /^#{1,6}\s+/.test(l) && l.replace(/^#+\s+/, '').toLowerCase() === name);
+    let warning = `planning/tasks.md has no \`${expected}\` section (\`## \` headings found: ${foundList})`;
+    if (candidates.length === 1) {
+      renames.push({ found: candidates[0], expected });
+      warning += `; \`specpilot validate --fix\` renames \`${candidates[0]}\` to \`${expected}\`.`;
+    } else if (candidates.length > 1) {
+      warning += `; ${candidates.length} headings match it (${candidates.map(c => `\`${c}\``).join(', ')}), so rename one by hand.`;
+    } else {
+      warning += '.';
+    }
+    warnings.push(warning);
+  }
+  return { warnings, renames };
+}
+
 function hasFrontMatter(content: string): boolean {
   return /^---\n[\s\S]*?\n---/m.test(content);
 }
@@ -39,6 +81,7 @@ function tasksCompletedLimitWarning(): string {
 export function tasksChecks(content: string): string[] {
   const out: string[] = [];
   if (!tasksStatusTracked(content)) out.push(TASKS_STATUS_WARNING);
+  out.push(...tasksHeadingChecks(content).warnings);
   if (!hasFrontMatter(content)) out.push('planning/tasks.md is missing YAML front-matter metadata.');
   for (const ref of missingCrossRefs(content, TASKS_CROSS_REFS)) out.push(`planning/tasks.md should reference ${ref}`);
   if (planCompletedArchive(content.split('\n'))) out.push(tasksCompletedLimitWarning());
@@ -176,6 +219,8 @@ export class SpecValidator {
           if (!this.requiredFiles.includes(fileName)) continue;
           await this.createMissingFile(specsDir, fileName);
           fixed.push(fix);
+        } else if (fix.startsWith(RENAME_HEADING_PREFIX)) {
+          if (this.renameTasksHeading(specsDir, fix)) fixed.push(fix);
         }
       } catch {
         // Skip fixes that fail
@@ -184,6 +229,25 @@ export class SpecValidator {
     }
 
     return fixed;
+  }
+
+  /**
+   * BL-111: rename one tasks.md heading, as its token says, only if the file as it is now still
+   * offers exactly that rename; the line keeps its indentation, trailing whitespace and `\r`.
+   */
+  private renameTasksHeading(specsDir: string, token: string): boolean {
+    const parts = token.slice(RENAME_HEADING_PREFIX.length).split(':');
+    if (parts.length !== 2) return false;
+    const [found, expected] = parts;
+    const file = join(specsDir, 'planning', 'tasks.md');
+    if (!existsSync(file)) return false;
+    const content = readFileSync(file, 'utf-8');
+    if (!tasksHeadingChecks(content).renames.some(r => r.found === found && r.expected === expected)) return false;
+    const lines = content.split('\n');
+    const i = lines.findIndex(l => l.trim() === found);
+    lines[i] = lines[i].replace(found, expected);
+    writeFileSync(file, lines.join('\n'));
+    return true;
   }
 
   private findSpecsDir(projectDir: string): string | null {
@@ -378,6 +442,11 @@ export class SpecValidator {
         result.warnings.push(TASKS_STATUS_WARNING);
       }
 
+      // BL-111: the three section headings the board reads; an unambiguous variant is a --fix rename
+      const headings = tasksHeadingChecks(content);
+      result.warnings.push(...headings.warnings);
+      for (const r of headings.renames) result.fixable.push(`${RENAME_HEADING_PREFIX}${r.found}:${r.expected}`);
+
     } catch (error) {
       if (verbose) {
         result.warnings.push(`Could not validate tasks.md content: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -413,6 +482,9 @@ export class SpecValidator {
         break;
       case 'security/security-decisions.md':
         content = this.getDefaultSecurityDecisionsMd();
+        break;
+      case 'planning/tasks.md':
+        content = `# Tasks\n\n${TASK_HEADINGS.map(h => `${h}\n\n[Content to be added]`).join('\n\n')}\n`;
         break;
       default:
         content = `# ${fileName.split('/').pop()?.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;

@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-19 (v2.17.0 shipped)
-version: 2.166
+lastUpdated: 2026-10-20 (BL-111 built)
+version: 2.168
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-20: BL-111 built on `feat/bl-111-validate-headings` after spec-reviewer A FIX (five items: requirements.md version, the rename label, the hint line, the tasks.md stub with the three headings, its test) then PASS: `specValidator.ts` (`tasksHeadingChecks()`, `TASK_HEADINGS`, the rename fix, the stub), `validate.ts` (`--fix` on `fixable`, `fixLabel()`), `specValidator.test.ts` +6, `taskMover.test.ts` one expectation; Jest 1663 → 1669, `tsc` and build clean, lint 0 errors, `specpilot validate` on this repo valid with no warnings, the scratch-copy `--fix` check by hand; specs recorded; spec-reviewer B next; no Day brief, so stop before commit.
+- 2026-10-20: `do BL-111` (`specpilot validate` warns on missing tasks.md section headings, `--fix` renames an unambiguous variant): branch `feat/bl-111-validate-headings` from `main` (`cd6f08d`, clean tree); Spec Report (Feature: REQ-002.F.13, ARCH-003.4, ARCH-004.67, tests.md, CHANGELOG `[Unreleased]` Added and Changed, GUIDE's `--fix` line, context.md with twelve defaults); spec-reviewer next, then the build; no Day brief, so stop before commit.
 - 2026-10-19: v2.17.0 recorded as shipped on the developer's word (`done`), checked first: `origin/main` = local `main` (`bba98e3`), tag `v2.17.0` on origin = the local tag object (`5e89c8f`, on `a2a667b`), npm `latest` 2.17.0, GitHub release v2.17.0 published 2026-10-19T02:58:48Z, not a draft; row 226 reworded and row 227 (CD-girishr-136) added; branch `fix/bl-115-row-count-sections` deleted (local only, fully merged). This commit goes out with the next push, on the developer's word.
 - 2026-10-19: v2.17.0 prepared: `chore(release)` commit `a2a667b` (version in package.json, the lock file, project.yaml and api.yaml; CHANGELOG `[2.17.0]`; roadmap Timeline and heading; CTX-002 Phase; release row 226; the Completed section archived, rows 194 to 206, since the row took it past 40 lines), annotated tag `v2.17.0` from the CHANGELOG section (body compared, identical); checks after the bump Jest 1663/1663, browser 68/68, lint 0 errors, validate clean, pack 183 files. Spec-reviewer section D: FIX, one item (roadmap step 9 lacked the `in v2.17.0` marks for BL-080 and BL-114), applied as `219729b` on `main` after the tag, which stays on `a2a667b`; re-check next. Nothing pushed or published: step 4 is the developer's. Noted by the reviewer for a Backlog row: `package.json` `main` names `dist/index.js`, which the build does not produce.
 - 2026-10-19: on the developer's typed `yes proceed` for the release: v2.17.0 prepared by docs/RELEASING.md (minor: the Tasks board rework BL-TB-01/03/04/05/06/07/11, BL-080, BL-114, BL-115; the three UI removals in CHANGELOG `Removed`, as decided at their Spec Reports): version bumped in package.json, the lock file, project.yaml and api.yaml, CHANGELOG `[2.17.0]`, roadmap Timeline line and heading `v2.3.0–v2.17.0`, CTX-002 Phase, release row 226; checks re-run, then the `chore(release)` commit, the annotated tag from the CHANGELOG section and spec-reviewer section D; nothing pushed or published.

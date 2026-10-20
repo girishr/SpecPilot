@@ -1,4 +1,4 @@
-import { SpecValidator } from '../utils/specValidator';
+import { SpecValidator, tasksChecks } from '../utils/specValidator';
 import { SpecGenerator } from '../utils/specGenerator';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
@@ -86,6 +86,9 @@ function createValidSpecsDir(baseDir: string): string {
     '## Status',
     'In Progress: feature A',
     'Completed: project init',
+    '## Backlog',
+    '## Current Sprint',
+    '## Completed',
   ].join('\n'));
 
   // context.md — front-matter + refs: roadmap.md, project.yaml
@@ -386,6 +389,88 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     const warn = result.warnings.find(w => w.includes('task status'));
     expect(warn).toBeDefined();
+  });
+
+  // ─── tasks.md section headings (BL-111) ───────────────────────────────────
+
+  const tasksWith = (...lines: string[]) => [
+    '---', 'title: Tasks', '---', '# Tasks', '<!-- refs: roadmap.md requirements.md project.yaml -->', 'In Progress: feature A', ...lines,
+  ].join('\n');
+  const tasksPath = (dir: string) => join(dir, '.specs', 'planning', 'tasks.md');
+  const headingWarnings = (r: { warnings: string[] }) => r.warnings.filter(w => w.includes('has no `## '));
+
+  it('warns when tasks.md lacks a section heading, naming the ## headings it has, and offers no fix for a different text', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '## Current Sprint', '## Done', '## Backlog items'));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(headingWarnings(result)).toEqual([
+      'planning/tasks.md has no `## Completed` section (`## ` headings found: `## Backlog`, `## Current Sprint`, `## Done`, `## Backlog items`).',
+    ]);
+    expect(result.fixable).toEqual([]);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('says so when tasks.md has no ## heading at all, and tasksChecks lists the same warnings', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith('- Task 1'));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    const expected = ['## Backlog', '## Current Sprint', '## Completed'].map(h => `planning/tasks.md has no \`${h}\` section (\`## \` headings found: none).`);
+    expect(headingWarnings(result)).toEqual(expected);
+    expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8'))).toEqual(expected);
+  });
+
+  it('a heading in another case or at another level is a rename that --fix applies to that line alone', async () => {
+    createValidSpecsDir(testDir);
+    const before = tasksWith('## backlog', '', '  ### Current Sprint  ', '', '## Completed', '').replace(/\n/g, '\r\n');
+    writeFileSync(tasksPath(testDir), before);
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(headingWarnings(result)).toEqual([
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Completed`); `specpilot validate --fix` renames `## backlog` to `## Backlog`.',
+      'planning/tasks.md has no `## Current Sprint` section (`## ` headings found: `## backlog`, `## Completed`); `specpilot validate --fix` renames `### Current Sprint` to `## Current Sprint`.',
+    ]);
+    expect(result.fixable).toEqual(['rename-heading:## backlog:## Backlog', 'rename-heading:### Current Sprint:## Current Sprint']);
+
+    const fixed = await validator.autoFix(testDir, result.fixable);
+    expect(fixed).toEqual(result.fixable);
+    expect(readFileSync(tasksPath(testDir), 'utf-8')).toBe(before.replace('## backlog', '## Backlog').replace('  ### Current Sprint  ', '  ## Current Sprint  '));
+    const again = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(headingWarnings(again)).toEqual([]);
+    expect(again.fixable).toEqual([]);
+  });
+
+  it('two candidates for one heading stay a warning with no fix', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith('## backlog', '### Backlog', '## Current Sprint', '## Completed'));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(headingWarnings(result)).toEqual([
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Current Sprint`, `## Completed`); 2 headings match it (`## backlog`, `### Backlog`), so rename one by hand.',
+    ]);
+    expect(result.fixable).toEqual([]);
+  });
+
+  it('autoFix ignores a rename token for a heading that is present or whose match has changed', async () => {
+    createValidSpecsDir(testDir);
+    const content = tasksWith('## backlog', '## Current Sprint', '## Completed');
+    writeFileSync(tasksPath(testDir), content);
+    const fixed = await validator.autoFix(testDir, [
+      'rename-heading:## Current Sprint:## Current Sprint',
+      'rename-heading:### Backlog:## Backlog',
+      'rename-heading:## backlog:## Completed',
+      'rename-heading:## backlog',
+    ]);
+    expect(fixed).toEqual([]);
+    expect(readFileSync(tasksPath(testDir), 'utf-8')).toBe(content);
+  });
+
+  it('the tasks.md that --fix creates gives no heading warning', async () => {
+    createValidSpecsDir(testDir);
+    rmSync(tasksPath(testDir));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.fixable).toContain('create-planning/tasks.md');
+    await validator.autoFix(testDir, result.fixable);
+    const again = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(headingWarnings(again)).toEqual([]);
+    expect(readFileSync(tasksPath(testDir), 'utf-8')).toContain('## Current Sprint\n');
   });
 
   // ─── Mandate tracking ─────────────────────────────────────────────────────

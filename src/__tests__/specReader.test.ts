@@ -1,4 +1,5 @@
 import { readSpecs, TASK_COLUMNS, taskHeadings } from '../utils/specReader';
+import { render } from '../core/render';
 
 // Shaped like the real .specs/planning/tasks.md: 2-column Backlog / Current Sprint,
 // a stray "_(empty …)_" line after the sprint table, 3-column Completed with
@@ -206,6 +207,20 @@ describe('readSpecs', () => {
     expect(u('## Backlog\n\n| ID | Description |\n')).toEqual({ '## Backlog': 1 }); // a header row with no separator is not a table
     expect(u('## Backlog\n\n\n\n## Completed\n')).toEqual({});
     expect(TASK_COLUMNS).toEqual({ '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'] });
+  });
+
+  it('the tasks.md the core renders has the tables the board reads, headers equal to TASK_COLUMNS (BL-118)', () => {
+    // the core cannot import the reader (REQ-002.I.2), so the template's literal headers are pinned here
+    const md = render({ projectName: 'p', language: 'typescript', author: 'jsmith', date: '2031-02-03' }).files.find(f => f.path === '.specs/planning/tasks.md')!.content;
+    for (const [heading, cols] of Object.entries(TASK_COLUMNS)) expect(md).toContain(`${heading}\n\n| ${cols.join(' | ')} |\n|${cols.map(() => '---').join('|')}|\n`);
+    const t = readSpecs({ 'planning/tasks.md': md }).tasks!;
+    expect(t.headings.missing).toEqual([]);
+    expect(t.headings.unknown).toEqual([]);
+    expect(t.headings.untabled).toEqual({});
+    expect(t.backlog).toEqual([]);
+    expect(t.currentSprint).toEqual([]);
+    expect(t.completed.map(r => [r.num, r.id, r.description])).toEqual([['1', '[CD-jsmith-001]', 'Initialise .specs directory (2031-02-03)']]);
+    expect(t.malformed).toEqual([]);
   });
 
   it('only parses tasks for planning/tasks.md', () => {

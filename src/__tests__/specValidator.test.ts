@@ -216,6 +216,7 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.errors).toEqual([]);
     expect(result.warnings.filter(w => w.includes('api.yaml'))).toEqual([]);
+    expect(result.warnings.filter(w => w.includes('has no `## ') || w.includes('no table'))).toEqual([]); // BL-118: the template's tables
   });
 
   it('counts only files that exist in filesChecked', async () => {

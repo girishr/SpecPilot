@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A new project's `planning/tasks.md` is written as tables** (BL-118): `init`, `add-specs` and the Setup view write `| ID | Description |` tables under `## Backlog` and `## Current Sprint` and a `| # | ID | Description |` table under `## Completed`, with the first entry `| 1 | [CD-<handle>-001] | Initialise .specs directory (<date>) |` as a row, in place of `[TODO]` placeholders and a numbered list. The Tasks board shows the entry from the first start, New Task and moves work without a hand-written table header, and the warning BL-116 raised on the old list is gone. Projects created before keep working; `specpilot archive` still handles a list-shaped Completed.
+
 - **`specpilot validate --fix` runs its fixes whenever it has one** (BL-111), not only when validation failed: a run with warnings only and a fixable heading now applies the rename, re-validates and shows the result. The `planning/tasks.md` it creates when the file is missing now has the `## Backlog`, `## Current Sprint` and `## Completed` headings.
 
 ## [2.17.0] - 2026-10-19

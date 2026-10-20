@@ -296,15 +296,19 @@ Task ID conventions
 
 ## Backlog
 
-[TODO]
+| ID | Description |
+|---|---|
 
 ## Current Sprint
 
-[TODO]
+| ID | Description |
+|---|---|
 
 ## Completed
 
-1. [CD-001] Initialise .specs directory ({{currentDate}})`;
+| # | ID | Description |
+|---|---|---|
+| 1 | [CD-{{author}}-001] | Initialise .specs directory ({{currentDate}}) |`;
 
     const rendered = engine.renderFromString(content, context);
     return rendered;

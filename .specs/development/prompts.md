@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-20 (BL-111 built)
-version: 2.168
+lastUpdated: 2026-10-20 (BL-111 committed)
+version: 2.169
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-20: on the developer's typed `commit` after the BL-111 build report (and the question how to test it, answered with a scratch-copy walkthrough, and whether the Tasks view can do it too, answered: that is BL-112, next in the sprint, a notice without a rename action): feature commit `951190f` on `feat/bl-111-validate-headings` (tasks.md not in it), completion commit (row 228, CD-girishr-137), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
 - 2026-10-20: BL-111 built on `feat/bl-111-validate-headings` after spec-reviewer A FIX (five items: requirements.md version, the rename label, the hint line, the tasks.md stub with the three headings, its test) then PASS: `specValidator.ts` (`tasksHeadingChecks()`, `TASK_HEADINGS`, the rename fix, the stub), `validate.ts` (`--fix` on `fixable`, `fixLabel()`), `specValidator.test.ts` +6, `taskMover.test.ts` one expectation; Jest 1663 → 1669, `tsc` and build clean, lint 0 errors, `specpilot validate` on this repo valid with no warnings, the scratch-copy `--fix` check by hand; specs recorded; spec-reviewer B next; no Day brief, so stop before commit.
 - 2026-10-20: `do BL-111` (`specpilot validate` warns on missing tasks.md section headings, `--fix` renames an unambiguous variant): branch `feat/bl-111-validate-headings` from `main` (`cd6f08d`, clean tree); Spec Report (Feature: REQ-002.F.13, ARCH-003.4, ARCH-004.67, tests.md, CHANGELOG `[Unreleased]` Added and Changed, GUIDE's `--fix` line, context.md with twelve defaults); spec-reviewer next, then the build; no Day brief, so stop before commit.
 - 2026-10-19: v2.17.0 recorded as shipped on the developer's word (`done`), checked first: `origin/main` = local `main` (`bba98e3`), tag `v2.17.0` on origin = the local tag object (`5e89c8f`, on `a2a667b`), npm `latest` 2.17.0, GitHub release v2.17.0 published 2026-10-19T02:58:48Z, not a draft; row 226 reworded and row 227 (CD-girishr-136) added; branch `fix/bl-115-row-count-sections` deleted (local only, fully merged). This commit goes out with the next push, on the developer's word.

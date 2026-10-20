@@ -640,6 +640,51 @@ browserTest('a `## backlog` heading gets one Warning and no Note, and a lane wit
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, add a "## Completed" section (a table with #, ID and Description columns) so SpecPilot\'s Tasks board reads it, and update anything that refers to it.');
 });
 
+// BL-116: a known section whose tasks are plain lines or a list, not a table: a Warning per section, counted in the session strip
+browserTest('a section whose tasks are lines or a list, not a table, gets a Warning per section at 1280px and 420px, counted in the strip', b, async open => {
+  const before = read(env.tasks());
+  const lines = before.split('\n');
+  const bounds = (h: string): [number, number] => {
+    const s = lines.findIndex(l => l.trim() === h);
+    const e = lines.findIndex((l, i) => i > s && /^## /.test(l));
+    return [s, e < 0 ? lines.length : e];
+  };
+  const [cs, ce] = bounds('## Completed'); // the later section first, so the earlier indices hold
+  lines.splice(cs + 1, ce - cs - 1, '', '1. [CD-fixture-001] Listed, not tabled (2026-10-20)', '');
+  const [bs, be] = bounds('## Backlog');
+  lines.splice(bs + 1, be - bs - 1, '', '[BL-001] Line one', '[BL-002] Line two', '[BL-003] Line three', '');
+  writeFileSync(env.tasks(), lines.join('\n'));
+  const wide = (await open(srv)).page;
+  const narrow = (await open(srv, '', { width: 420 })).page;
+  for (const page of [wide, narrow]) {
+    await waitView(page, 'v-board');
+    await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
+    const warns = await page.locator('#gHead .msg.warn').allTextContents();
+    expect(warns[0]).toContain('Warning The Backlog lane shows none of the 3 lines under "## Backlog"');
+    expect(warns[0]).toContain('They are not table rows. The board reads a markdown table with ID and Description columns.');
+    expect(warns[0]).toContain('Fix: edit .specs/planning/tasks.md and turn the section into a table with ID and Description columns, one row per task, best done by your AI IDE so that every task keeps its ID and references.');
+    expect(warns[1]).toContain('Warning The Completed lane shows none of the 1 line under "## Completed"');
+    expect(warns[1]).toContain('a markdown table with #, ID and Description columns.');
+    expect(await page.locator('#gHead .msg.info').count()).toBe(0);
+    expect(await page.locator('#boardMode .row[data-col="backlog"]').count()).toBe(0);
+    expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(0);
+    expect(await page.locator('#boardMode .row[data-col="currentSprint"]').count()).toBeGreaterThan(0); // the untouched section still reads
+  }
+  expect(await noSideScroll(narrow)).toBe(true);
+  await narrow.locator('#gHead .msg.warn [data-prompt]').nth(1).click();
+  await waitToast(narrow, /Copied\./);
+  expect(await narrow.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, turn the "## Completed" section into a markdown table with #, ID and Description columns, one row per task, keeping every task and its ID, so SpecPilot\'s Tasks board reads it.');
+  await narrow.click('#gHead .msg.warn [data-hidewarn]');
+  await narrow.locator('#gHead .msgbar').waitFor({ state: 'visible' });
+  expect(await narrow.locator('#gHead .msgbar').textContent()).toContain('2 warnings about tasks.md');
+  expect(await noSideScroll(narrow)).toBe(true);
+  writeFileSync(env.tasks(), before);
+  for (const page of [wide, narrow]) {
+    await page.locator('#gHead').waitFor({ state: 'hidden' });
+    await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length > 0);
+  }
+});
+
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
   const { page } = await open(srv);
   await waitView(page, 'v-board');

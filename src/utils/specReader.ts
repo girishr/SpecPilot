@@ -127,9 +127,15 @@ export interface TaskHeadings {
   unknownRows: Record<string, number>;
   /** Each known heading → its table's column names, by the count its lane is read with. */
   columns: Record<string, string[]>;
+  /** Each known heading present without a table → the count of non-blank lines under it, `[TODO]` aside (BL-116). */
+  untabled: Record<string, number>;
 }
 
 const COLUMN_NAMES: Record<number, string[]> = { 2: ['ID', 'Description'], 3: ['#', 'ID', 'Description'] };
+
+/** Each known heading's column names, by the count its lane is read with (BL-116): what `columns` reports and the `--fix` stub writes. */
+export const TASK_COLUMNS: Record<string, string[]> = {};
+for (const [heading, cols] of Object.values(TASK_SECTIONS)) TASK_COLUMNS[heading] = COLUMN_NAMES[cols];
 
 /** tasks.md's headings as the page's messages and the validator's check report them (BL-112). */
 export function taskHeadings(lines: string[]): TaskHeadings {
@@ -147,9 +153,15 @@ export function taskHeadings(lines: string[]): TaskHeadings {
     const b = findSectionBounds(trimmed, h);
     unknownRows[h] = b ? tableRows(trimmed, b, 1, []).rows.length : 0; // one column: every `|` line but the header and separator
   }
-  const columns: Record<string, string[]> = {};
-  for (const [heading, cols] of Object.values(TASK_SECTIONS)) columns[heading] = COLUMN_NAMES[cols];
-  return { found, missing, unknown, variants, unknownRows, columns };
+  // BL-116: a known section with lines but no separator row holds tasks the board cannot read
+  const untabled: Record<string, number> = {};
+  for (const h of TASK_HEADINGS) {
+    const b = findSectionBounds(trimmed, h);
+    if (!b || tableRows(trimmed, b, 1, []).separator !== null) continue;
+    const n = trimmed.slice(b.start + 1, b.end).filter(l => l && l !== '[TODO]').length;
+    if (n) untabled[h] = n;
+  }
+  return { found, missing, unknown, variants, unknownRows, columns: { ...TASK_COLUMNS }, untabled };
 }
 
 function parseTasks(lines: string[]): TasksData {

@@ -447,6 +447,20 @@ describe('SpecValidator', () => {
     ]);
   });
 
+  it('a known section with lines but no table warns, without a fix, and tasksChecks does not carry it (BL-116)', async () => {
+    createValidSpecsDir(testDir);
+    const nine = Array.from({ length: 9 }, (_, i) => `[BL-00${i + 1}-handle] Task ${i + 1}`).join('\n');
+    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '', nine, '', '## Current Sprint', '', '[TODO]', '', '## Completed', '', '1. [CD-001] Initialise .specs directory (2026-10-20)'));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.warnings.filter(w => w.includes('no table'))).toEqual([
+      'planning/tasks.md `## Backlog` has 9 lines but no table, so the Tasks board shows none of them; make the section a table with ID and Description columns, one row per task.',
+      'planning/tasks.md `## Completed` has 1 line but no table, so the Tasks board does not show it; make the section a table with #, ID and Description columns, one row per task.',
+    ]);
+    expect(headingWarnings(result)).toEqual([]);
+    expect(result.fixable).toEqual([]);
+    expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8')).filter(w => w.includes('no table'))).toEqual([]);
+  });
+
   it('two candidates for one heading stay a warning with no fix', async () => {
     createValidSpecsDir(testDir);
     writeFileSync(tasksPath(testDir), tasksWith('## backlog', '### Backlog', '## Current Sprint', '## Completed'));
@@ -479,7 +493,11 @@ describe('SpecValidator', () => {
     await validator.autoFix(testDir, result.fixable);
     const again = await validator.validate(testDir, { fix: false, verbose: false });
     expect(headingWarnings(again)).toEqual([]);
-    expect(readFileSync(tasksPath(testDir), 'utf-8')).toContain('## Current Sprint\n');
+    expect(again.warnings.filter(w => w.includes('no table'))).toEqual([]); // BL-116: the stub's tables
+    const stub = readFileSync(tasksPath(testDir), 'utf-8');
+    expect(stub).toContain('## Backlog\n\n| ID | Description |\n|---|---|\n');
+    expect(stub).toContain('## Current Sprint\n\n| ID | Description |\n|---|---|\n');
+    expect(stub).toContain('## Completed\n\n| # | ID | Description |\n|---|---|---|\n');
   });
 
   // ─── Mandate tracking ─────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 import { Browser, Page } from 'playwright-core';
 import { readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, launch, makeEnv, noSideScroll, read, serve, Served, specArchiver, taskMover, until, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, noSideScroll, read, routeJs, serve, Served, specArchiver, taskMover, until, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -555,6 +555,90 @@ browserTest(
   },
   [/status of 409/],
 );
+
+// BL-112 (D10): a Warning per missing heading and a Note per unknown one above the lanes; Copy prompt; warnings collapse for the
+// session into a strip; a hidden note stays hidden across a reload; a fixed file clears every message.
+const tasksFile = () => join(env.project, '.specs', 'planning', 'tasks.md');
+const msgsAfterRawAndBeforeLanes = (page: Page) => page.evaluate(() => {
+  const after = (a: string, b: string) => (document.querySelector(a)!.compareDocumentPosition(document.querySelector(b)!) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+  return after('#gRaw', '#gHead') && after('#gHead', '#gConv') && after('#gHead', '#boardMode');
+});
+
+browserTest('a missing heading shows a Warning and an unknown heading a Note at 1280px and 420px; Copy prompt, the session strip, a note hidden across a reload, and a fixed file clearing them', b, async open => {
+  const before = read(env.tasks());
+  const odd = '## <b>Parked</b> & co';
+  writeFileSync(env.tasks(), before.replace('## Backlog', '### backlog') + `\n${odd}\n\n| ID | Description |\n|---|---|\n| PK-001 | Parked row |\n| PK-002 | Parked row two |\n\n## Later\n\nNothing tabled yet.\n`);
+  const wide = (await open(srv)).page;
+  const narrow = (await open(srv, '', { width: 420 })).page;
+  for (const page of [wide, narrow]) {
+    await waitView(page, 'v-board');
+    await page.locator('#gHead .msg.warn').waitFor({ state: 'visible' });
+    const warn = (await page.locator('#gHead .msg.warn').textContent())!;
+    expect(warn).toContain('Warning The Backlog lane is empty: tasks.md has no "## Backlog" heading');
+    expect(warn).toContain('The file has "### backlog" instead, so the rows under it are not shown.');
+    expect(warn).toContain('Fix: edit .specs/planning/tasks.md and rename "### backlog" to "## Backlog", best done by your AI IDE so that anything referring to the section is updated too.');
+    const notes = await page.locator('#gHead .msg.info').allTextContents();
+    expect(notes).toHaveLength(2);
+    expect(notes[0]).toContain(`Note "${odd}" is not a board lane, so its 2 rows are not shown here`);
+    expect(notes[0]).toContain('The board shows Backlog, Current Sprint and Completed. The rows stay in tasks.md.');
+    expect(notes[1]).toContain('Note "## Later" is not a board lane, so its rows would not be shown here (it has no rows)');
+    expect(await page.locator('#gHead b').count()).toBe(0); // the heading is text, not markup
+    for (const href of await page.locator('#gHead a.btn').evaluateAll(as => as.map(a => a.getAttribute('href')))) expect(href).toBe(routeJs.editorUrl(tasksFile()));
+    expect(await page.locator('#boardMode .row', { hasText: 'Parked row' }).count()).toBe(0);
+    expect(await page.locator('#boardMode .row', { hasText: 'Fixture backlog row' }).count()).toBe(0); // under ### backlog, which no lane reads
+    expect(await msgsAfterRawAndBeforeLanes(page)).toBe(true);
+  }
+  expect(await noSideScroll(narrow)).toBe(true);
+  // Copy prompt: the literal sentence for the AI IDE
+  await narrow.click('#gHead .msg.warn [data-prompt]');
+  await waitToast(narrow, /Copied\./);
+  expect(await narrow.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, rename the heading "### backlog" to "## Backlog" so SpecPilot\'s Tasks board reads the section, and update anything that refers to it.');
+  // the warnings collapse for the session into a strip; Show brings them back; the notes stay
+  await narrow.click('#gHead .msg.warn [data-hidewarn]');
+  await narrow.locator('#gHead .msgbar').waitFor({ state: 'visible' });
+  expect(await narrow.locator('#gHead .msgbar').textContent()).toContain('1 warning about tasks.md');
+  expect(await narrow.locator('#gHead .msg.warn').count()).toBe(0);
+  expect(await narrow.locator('#gHead .msg.info').count()).toBe(2);
+  expect(await noSideScroll(narrow)).toBe(true);
+  await narrow.click('#gHead .msgbar [data-showwarn]');
+  await narrow.locator('#gHead .msg.warn').waitFor({ state: 'visible' });
+  expect(await narrow.locator('#gHead .msgbar').count()).toBe(0);
+  // hiding the Parked note keeps it hidden across a reload; the Later note stays shown
+  await narrow.locator('#gHead .msg.info [data-hidenote]').first().click();
+  await narrow.waitForFunction(() => document.querySelectorAll('#gHead .msg.info').length === 1);
+  expect(await narrow.locator('#gHead .msg.info').textContent()).toContain('"## Later"');
+  await narrow.reload();
+  await waitView(narrow, 'v-board');
+  await narrow.locator('#gHead .msg.warn').waitFor({ state: 'visible' });
+  expect(await narrow.locator('#gHead .msg.info').count()).toBe(1);
+  expect(await narrow.locator('#gHead .msg.info').textContent()).toContain('"## Later"');
+  expect(await noSideScroll(narrow)).toBe(true);
+  // the file put right: every message goes and the Backlog rows return
+  writeFileSync(env.tasks(), before);
+  for (const page of [wide, narrow]) {
+    await page.locator('#gHead').waitFor({ state: 'hidden' });
+    await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length > 0);
+  }
+});
+
+browserTest('a `## backlog` heading gets one Warning and no Note, and a lane with no heading at all gets the no-candidate prompt naming its columns', b, async open => {
+  const lines = read(env.tasks()).split('\n');
+  const at = lines.findIndex(l => l.trim() === '## Completed');
+  writeFileSync(env.tasks(), lines.slice(0, at).join('\n').replace('## Backlog', '## backlog') + '\n');
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
+  expect(await page.locator('#gHead .msg.info').count()).toBe(0);
+  const warns = await page.locator('#gHead .msg.warn').allTextContents();
+  expect(warns[0]).toContain('Warning The Backlog lane is empty: tasks.md has no "## Backlog" heading');
+  expect(warns[0]).toContain('The file has "## backlog" instead');
+  expect(warns[1]).toContain('Warning The Completed lane is empty: tasks.md has no "## Completed" heading');
+  expect(warns[1]).toContain('The board reads "## Backlog", "## Current Sprint" and "## Completed".');
+  expect(warns[1]).toContain('Fix: edit .specs/planning/tasks.md and add a "## Completed" section, best done by your AI IDE');
+  await page.locator('#gHead .msg.warn [data-prompt]').nth(1).click();
+  await waitToast(page, /Copied\./);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, add a "## Completed" section (a table with #, ID and Description columns) so SpecPilot\'s Tasks board reads it, and update anything that refers to it.');
+});
 
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
   const { page } = await open(srv);

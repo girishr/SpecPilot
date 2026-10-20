@@ -199,6 +199,10 @@ function renderTasks(){
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;
   $('#gRaw').innerHTML=bad.length?`<div class="gh">Rows that could not be parsed <span class="cnt">${bad.length}</span></div><div class="box">${bad.map(l=>`<pre class="raw" translate="no">${esc(l)}</pre>`).join('')}</div>`:'';
+  // BL-112 (D10): one Warning per missing heading, one Note per unknown one, from the reader's report; drawn only when the markup changes
+  const hm=headingMessages(T);
+  $('#gHead').hidden=!hm;
+  if(hm!==lastHead){lastHead=hm;$('#gHead').innerHTML=hm;}
   const wasOpen=!!($('#gIntro')&&$('#gIntro').open); // BL-TB-03: the fold keeps its state through a redraw; closed on a fresh load
   $('#gConv').innerHTML=T&&T.intro.trim()?`<details id="gIntro"${wasOpen?' open':''}><summary id="introSum"><span translate="no">planning/tasks.md</span></summary><div class="box"><div class="desc md">${md(T.intro)}</div></div></details>`:
     (T?'':'<div class="box"><div class="empty">No <span class="mono" translate="no">planning/tasks.md</span> in <span class="mono" translate="no">.specs/</span>.</div></div>');
@@ -206,6 +210,46 @@ function renderTasks(){
   if(archVeil.classList.contains('open'))drawGates(); // BL-TB-06: and the Archive dialog's gates
   bind();
 }
+// ---- BL-112 (D10): the Section headings messages. Warnings collapse for the session only; a note hides per project until the unknown set changes.
+let warnHidden=false,lastHead='';
+const TASKS_FILE='.specs/planning/tasks.md';
+const joinAnd=a=>a.length>1?a.slice(0,-1).join(', ')+' and '+a[a.length-1]:a.join('');
+const notesKey=()=>'sp-notes-'+DATA.project.root;
+function notesStore(){try{const v=JSON.parse(localStorage.getItem(notesKey())||'null');return v&&Array.isArray(v.set)&&Array.isArray(v.hidden)?v:null;}catch(e){return null;}}
+function hiddenNotes(cur){const s=notesStore();if(!s)return[];if(JSON.stringify(s.set)===JSON.stringify(cur))return s.hidden;try{localStorage.removeItem(notesKey());}catch(e){}return[];}
+function hideNote(h){const cur=DATA.tasks.headings.unknown.slice().sort();const hidden=hiddenNotes(cur);try{localStorage.setItem(notesKey(),JSON.stringify({set:cur,hidden:hidden.includes(h)?hidden:hidden.concat([h])}));}catch(e){}renderTasks();}
+function headingMessages(T){
+  const H=T&&T.headings;if(!H)return'';
+  const q=h=>`"${esc(h)}"`;
+  const openBtn=`<a class="btn sm" href="${esc(editorUrl(DATA.project.root+'/'+TASKS_FILE))}">Open tasks.md in VS Code</a>`;
+  const x=(attrs,label)=>`<button type="button" class="ib x mx" ${attrs} aria-label="${label}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>`;
+  const warns=H.missing.map(h=>{
+    const c=H.variants[h]||[],one=c.length===1?c[0]:null,lane=h.slice(3),cols=joinAnd(H.columns[h]||['ID','Description']);
+    const prompt=one?`In ${TASKS_FILE}, rename the heading "${one}" to "${h}" so SpecPilot's Tasks board reads the section, and update anything that refers to it.`
+      :`In ${TASKS_FILE}, add a "${h}" section (a table with ${cols} columns) so SpecPilot's Tasks board reads it, and update anything that refers to it.`;
+    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane is empty: tasks.md has no ${q(h)} heading</div>`+
+      `<p>${one?`The file has ${q(one)} instead, so the rows under it are not shown.`:`The board reads ${joinAnd(LANES.map(l=>q('## '+COLS[l])))}.`}</p>`+
+      `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and ${one?`rename ${q(one)} to ${q(h)}`:`add a ${q(h)} section`}, best done by your AI IDE so that anything referring to the section is updated too.</p>`+
+      `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
+  });
+  const candidates=new Set([].concat(...Object.values(H.variants)));
+  const hidden=hiddenNotes(H.unknown.slice().sort());
+  const notes=H.unknown.filter(h=>!candidates.has(h)&&!hidden.includes(h)).map(h=>{
+    const n=H.unknownRows[h]||0;
+    const title=n===0?`${q(h)} is not a board lane, so its rows would not be shown here (it has no rows)`:`${q(h)} is not a board lane, so its ${n===1?'1 row is':n+' rows are'} not shown here`;
+    return `<div class="msg info"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div class="mb"><div class="mt"><span class="mw">Note</span> ${title}</div>`+
+      `<p>The board shows Backlog, Current Sprint and Completed. The rows stay in tasks.md.</p><div class="actions">${openBtn}</div></div>${x(`data-hidenote="${esc(h)}"`,'Hide this note')}</div>`;
+  });
+  const bar=warns.length&&warnHidden?`<div class="msgbar"><span>${warns.length} warning${warns.length===1?'':'s'} about tasks.md</span><button type="button" class="btn sm" data-showwarn>Show</button></div>`:'';
+  return (warnHidden?bar:warns.join(''))+notes.join('');
+}
+$('#gHead').addEventListener('click',e=>{
+  const t=e.target.closest('[data-prompt],[data-hidewarn],[data-showwarn],[data-hidenote]');if(!t)return;
+  if(t.hasAttribute('data-prompt'))copyText(t.getAttribute('data-prompt'));
+  else if(t.hasAttribute('data-hidewarn')){warnHidden=true;renderTasks();const s=$('#gHead [data-showwarn]');if(s)s.focus();}
+  else if(t.hasAttribute('data-showwarn')){warnHidden=false;renderTasks();const c=$('#gHead [data-hidewarn]');if(c)c.focus();}
+  else hideNote(t.getAttribute('data-hidenote'));
+});
 let inspOpen=null; // {kind:'task',col,i,id} | {kind:'file',path} | null
 function openTask(col,i,quiet){
   const t=DATA.tasks[col][i];if(!t)return;

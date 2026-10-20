@@ -438,6 +438,15 @@ describe('SpecValidator', () => {
     expect(again.fixable).toEqual([]);
   });
 
+  it('a `## backlog` the reader lists as both missing and unknown still gets the rename warning (BL-112)', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith('## backlog', '## Current Sprint', '## Completed'));
+    const content = readFileSync(tasksPath(testDir), 'utf-8');
+    expect(tasksChecks(content)).toEqual([
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Current Sprint`, `## Completed`); `specpilot validate --fix` renames `## backlog` to `## Backlog`.',
+    ]);
+  });
+
   it('two candidates for one heading stay a warning with no fix', async () => {
     createValidSpecsDir(testDir);
     writeFileSync(tasksPath(testDir), tasksWith('## backlog', '### Backlog', '## Current Sprint', '## Completed'));

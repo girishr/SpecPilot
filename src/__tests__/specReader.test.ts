@@ -1,4 +1,4 @@
-import { readSpecs } from '../utils/specReader';
+import { readSpecs, taskHeadings } from '../utils/specReader';
 
 // Shaped like the real .specs/planning/tasks.md: 2-column Backlog / Current Sprint,
 // a stray "_(empty …)_" line after the sprint table, 3-column Completed with
@@ -179,6 +179,20 @@ describe('readSpecs', () => {
     const tasks = readSpecs({ 'planning/tasks.md': md }).tasks!;
     expect(tasks.backlog.map(r => r.id)).toEqual(['BL-009']);
     expect(tasks.malformed).toEqual(['| BL-099 no second cell |']);
+  });
+
+  it('reports the headings found, missing and unknown, the candidates, the row counts and the columns, the same with CRLF (BL-112)', () => {
+    const h = (md: string) => readSpecs({ 'planning/tasks.md': md }).tasks!.headings;
+    const columns = { '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'] };
+    const all = { found: ['## Backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns };
+    expect(h(TASKS_MD)).toEqual(all);
+    expect(h(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual(all);
+    expect(taskHeadings(TASKS_MD.split('\n'))).toEqual(all);
+    expect(h(TASKS_MD.replace('## Backlog', '### Backlog'))).toEqual({ ...all, found: ['## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: ['## Backlog'], variants: { '## Backlog': ['### Backlog'] } });
+    expect(h(TASKS_MD.replace('## Backlog', '## backlog'))).toEqual({ ...all, found: ['## backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: ['## Backlog'], unknown: ['## backlog', '## Multi-Dev Notes'], variants: { '## Backlog': ['## backlog'] }, unknownRows: { '## backlog': 2, '## Multi-Dev Notes': 1 } });
+    expect(h(TASKS_MD.replace('## Backlog', '## backlog\n\n### Backlog')).variants).toEqual({ '## Backlog': ['## backlog', '### Backlog'] }); // two candidates, in file order
+    expect(h(TASKS_MD + '## Later\n\nNothing tabled yet.\n').unknownRows).toEqual({ '## Multi-Dev Notes': 1, '## Later': 0 });
+    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Completed': [] }, unknownRows: {}, columns });
   });
 
   it('only parses tasks for planning/tasks.md', () => {

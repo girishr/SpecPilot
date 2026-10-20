@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
-import { findSectionBounds } from './markdownSections';
+import { TASK_HEADINGS, taskHeadings } from './specReader';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -23,9 +23,6 @@ function tasksStatusTracked(content: string): boolean {
   return content.includes('In Progress') || content.includes('in-progress') || content.includes('Completed') || content.includes('completed');
 }
 
-/** The tasks.md section headings `readSpecs()` and the task writer read; the stub `--fix` creates has them (BL-111). */
-export const TASK_HEADINGS = ['## Backlog', '## Current Sprint', '## Completed'] as const;
-
 /** A `fixable` token for `autoFix()`: `rename-heading:<found>:<expected>` (BL-111). */
 export const RENAME_HEADING_PREFIX = 'rename-heading:';
 
@@ -36,20 +33,17 @@ export interface HeadingRename {
 
 /**
  * BL-111: the TASK_HEADINGS the content lacks, worded as `specpilot validate` warns, and the renames
- * `--fix` may make: a heading is present by `findSectionBounds()`'s rule (the reader's own, so the
- * validator and the board agree), and a missing one is renamable when exactly one heading line of
- * any level carries its name, ignoring case, after trimming. Anything else is a warning only.
+ * `--fix` may make: the reader's own `taskHeadings()` says what is found and missing (so the
+ * validator and the board agree, BL-112) and lists the candidates (`variants`); a missing one is
+ * renamable when exactly one candidate exists. Anything else is a warning only.
  */
 export function tasksHeadingChecks(content: string): { warnings: string[]; renames: HeadingRename[] } {
-  const trimmed = content.split('\n').map(l => l.trim());
-  const found = trimmed.filter(l => /^## /.test(l));
+  const { found, missing, variants } = taskHeadings(content.split('\n'));
   const foundList = found.length ? found.map(h => `\`${h}\``).join(', ') : 'none';
   const warnings: string[] = [];
   const renames: HeadingRename[] = [];
-  for (const expected of TASK_HEADINGS) {
-    if (findSectionBounds(trimmed, expected)) continue;
-    const name = expected.slice(3).toLowerCase();
-    const candidates = trimmed.filter(l => /^#{1,6}\s+/.test(l) && l.replace(/^#+\s+/, '').toLowerCase() === name);
+  for (const expected of missing) {
+    const candidates = variants[expected];
     let warning = `planning/tasks.md has no \`${expected}\` section (\`## \` headings found: ${foundList})`;
     if (candidates.length === 1) {
       renames.push({ found: candidates[0], expected });

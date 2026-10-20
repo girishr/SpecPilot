@@ -220,6 +220,21 @@ input.txt{width:100%}
 .board .gl{max-height:100%}
 .board .gl .gh{flex:none;min-height:22px} /* min-height: the Add button's, so a header without one (Completed) lines up (BL-TB-05) */
 .board .gl .box{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+/* BL-112 (D10): one message per heading problem, a Warning (amber) or a Note (blue) */
+#gHead{gap:8px}
+.msg{display:flex;gap:10px;align-items:flex-start;border-radius:var(--r);border:1px solid var(--sep-2);padding:10px 12px;font-size:13.5px;line-height:1.5;color:var(--label-2)}
+.msg>.ico{margin-top:2px}
+.msg.warn{background:var(--orange-soft);border-color:color-mix(in srgb,var(--orange) 40%,transparent)}
+.msg.warn>.ico,.msg.warn .mw{color:var(--orange-ink)}
+.msg.info{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 40%,transparent)}
+.msg.info>.ico,.msg.info .mw{color:var(--blue-ink)}
+.msg .mb{flex:1;min-width:0}
+.msg .mt{color:var(--label);font-weight:600;overflow-wrap:anywhere}
+.msg .mw{text-transform:uppercase;font-size:11px;letter-spacing:.06em;margin-right:4px}
+.msg p{margin:4px 0 0;overflow-wrap:anywhere}
+.msg .actions{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 0}
+.msg .mx{flex:none;margin:-6px -6px 0 0}
+.msgbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--label-2);padding:4px 2px}
 #gIntro summary{cursor:pointer;color:var(--label-3);font-size:11.5px;font-weight:600;letter-spacing:.02em;padding:0 2px}
 .board .row{min-height:0;padding:10px 12px;align-items:flex-start}
 .board .row .ttl{white-space:normal}

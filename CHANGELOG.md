@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`specpilot validate` checks the section headings of `planning/tasks.md`** (BL-111): it warns when `## Backlog`, `## Current Sprint` or `## Completed` is missing, naming the `## ` headings the file has instead, since the Tasks board and the task writer read those three headings and a renamed one silently empties a lane. `specpilot validate --fix` renames a heading when the match is unambiguous (the same name in another case or at another level, `## backlog`, `### Backlog`); anything else stays a warning for you to resolve.
 
+- **Warnings and notes about `planning/tasks.md`'s section headings on the Tasks view** (BL-112): when the file lacks `## Backlog`, `## Current Sprint` or `## Completed`, a warning above the lanes says which lane is empty and why (`The file has "### backlog" instead`), how to fix it by editing the file, best done by your AI IDE so related references follow, with `Open tasks.md in VS Code` and `Copy prompt` buttons; it can be hidden for the session, leaving a one-line strip with `Show`. When the file has a `## ` heading the board does not know, a note says that its rows are not shown here and how many there are; it can be hidden for the project until the headings change. `GET /api/specs` and `specpilot_list_tasks` carry the same report as `tasks.headings`.
+
 ### Changed
 
 - **`specpilot validate --fix` runs its fixes whenever it has one** (BL-111), not only when validation failed: a run with warnings only and a fixable heading now applies the rename, re-validates and shows the result. The `planning/tasks.md` it creates when the file is missing now has the `## Backlog`, `## Current Sprint` and `## Completed` headings.

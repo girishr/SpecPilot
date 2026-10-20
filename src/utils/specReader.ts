@@ -32,6 +32,8 @@ export interface TasksData {
   completed: CompletedRow[];
   /** Table rows with fewer cells than their section's columns, verbatim. */
   malformed: string[];
+  /** The file's `## ` headings, the known ones it lacks and the found ones the board does not know (BL-112). */
+  headings: TaskHeadings;
 }
 
 export interface SpecsData {
@@ -109,6 +111,47 @@ function parseMeta(lines: string[]): SpecMeta {
 const TASK_SECTIONS = { backlog: ['## Backlog', 2], currentSprint: ['## Current Sprint', 2], completed: ['## Completed', 3] } as const;
 type TaskSection = keyof typeof TASK_SECTIONS;
 
+/** The section headings the board, the task writer and `specpilot validate` know, in lane order (BL-112). */
+export const TASK_HEADINGS: string[] = Object.values(TASK_SECTIONS).map(([heading]) => heading);
+
+export interface TaskHeadings {
+  /** Every `## ` heading of the file, trimmed, in file order. */
+  found: string[];
+  /** The TASK_HEADINGS the file lacks: a heading is present when a line's trimmed text equals it, findSectionBounds()'s rule. */
+  missing: string[];
+  /** The found headings that are not TASK_HEADINGS; the rows under them are not served. */
+  unknown: string[];
+  /** Each missing heading → every heading line of any level carrying its name ignoring case, in file order (D10). */
+  variants: Record<string, string[]>;
+  /** Each unknown heading → the count of table rows under it. */
+  unknownRows: Record<string, number>;
+  /** Each known heading → its table's column names, by the count its lane is read with. */
+  columns: Record<string, string[]>;
+}
+
+const COLUMN_NAMES: Record<number, string[]> = { 2: ['ID', 'Description'], 3: ['#', 'ID', 'Description'] };
+
+/** tasks.md's headings as the page's messages and the validator's check report them (BL-112). */
+export function taskHeadings(lines: string[]): TaskHeadings {
+  const trimmed = lines.map(l => l.trim());
+  const found = trimmed.filter(l => /^## /.test(l));
+  const missing = TASK_HEADINGS.filter(h => !found.includes(h));
+  const variants: Record<string, string[]> = {};
+  for (const h of missing) {
+    const name = h.slice(3).toLowerCase();
+    variants[h] = trimmed.filter(l => /^#{1,6}\s+/.test(l) && l.replace(/^#+\s+/, '').toLowerCase() === name);
+  }
+  const unknown = found.filter(h => !TASK_HEADINGS.includes(h));
+  const unknownRows: Record<string, number> = {};
+  for (const h of unknown) {
+    const b = findSectionBounds(trimmed, h);
+    unknownRows[h] = b ? tableRows(trimmed, b, 1, []).rows.length : 0; // one column: every `|` line but the header and separator
+  }
+  const columns: Record<string, string[]> = {};
+  for (const [heading, cols] of Object.values(TASK_SECTIONS)) columns[heading] = COLUMN_NAMES[cols];
+  return { found, missing, unknown, variants, unknownRows, columns };
+}
+
 function parseTasks(lines: string[]): TasksData {
   const malformed: string[] = [];
   const rows = (heading: string, cols: number): { cells: string[]; line: number }[] => {
@@ -120,6 +163,7 @@ function parseTasks(lines: string[]): TasksData {
     currentSprint: rows('## Current Sprint', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
     completed: rows('## Completed', 3).map(({ cells: [num, id, description], line }) => ({ num, id, description, line: line + 1 })),
     malformed,
+    headings: taskHeadings(lines),
   };
 }
 

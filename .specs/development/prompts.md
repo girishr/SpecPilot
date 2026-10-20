@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-20 (BL-118 committed)
-version: 2.182
+lastUpdated: 2026-10-20 (BL-117 committed)
+version: 2.186
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-20: on the developer's typed `commit` after the BL-117 build report: feature commit `4e48c7f` on `feat/bl-117-onboarding-tasks-line` (tasks.md not in it), completion commit (row 232, CD-girishr-141; it also carries the developer's own rewrite of the BL-113 row as a Review lane design, made from their side at 21:08, and the push line above), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
+- 2026-10-20: BL-117 built on `feat/bl-117-onboarding-tasks-line` after spec-reviewer A PASS: `specFiles.ts` (the File Structure line for tasks.md and the brownfield step 4), the recordings re-made for onboarding.md alone (the two `.snap` diffs read: the line three times in each, step 4 once, ten hash lines), `specCore.test.ts` +1; Jest 1674 → 1675, `tsc` and build clean, lint 0 errors, `specpilot validate` clean, a scratch `init` checked by hand; spec-reviewer B next; no Day brief, so stop before commit.
+- 2026-10-20: `do BL 117` (the onboarding prompt's tasks.md line): branch `feat/bl-117-onboarding-tasks-line` from `main` (`5f5ee43`); Spec Report (Feature: REQ-002.F.4, tests.md, CHANGELOG `[Unreleased]` Fixed, context.md with six defaults; the recording re-made for onboarding.md alone and three init transcripts); spec-reviewer next, then the build; no Day brief, so stop before commit.
+- 2026-10-20: on the developer's typed `push` after the BL-118 merge: `main` pushed (`73d515b..5f5ee43`, three commits: BL-118 feature, completion and merge; Jest 1674/1674, browser 71/71, `specpilot validate` clean on `main`, read by eye); `origin/main` = local `main` checked; branch `feat/bl-118-template-tables` deleted (local only). This line is uncommitted on the tree. Next: BL-117.
 - 2026-10-20: on the developer's typed `commit` after the BL-118 build report: feature commit `70238d5` on `feat/bl-118-template-tables` (tasks.md not in it), completion commit (row 231, CD-girishr-140; it also carries the developer's own board move of BL-117 to the top of Current Sprint and the push line above), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
 - 2026-10-20: BL-118 built on `feat/bl-118-template-tables` after spec-reviewer A FIX (the snapshot count) then PASS: `specFiles.ts` `tasksMd()` (the three tables, the first Completed row with the handle), the recording re-made for tasks.md alone (the `.snap` diff read: ten hash lines and the three bodies, nothing else), `specReader.test.ts` +1, `specValidator.test.ts` one case extended; Jest 1673 → 1674, `tsc` and build clean, lint 0 errors, browser 71/71, `specpilot validate` clean here and on a scratch `init` project but for BL-070's seven; spec-reviewer B next; no Day brief, so stop before commit.
 - 2026-10-20: `do BL-118` (the `init` tasks.md template writes tables): branch `feat/bl-118-template-tables` from `main` (`73d515b`); Spec Report (Feature: REQ-002.F.6, ARCH-003.3, ARCH-004.70, tests.md, CHANGELOG `[Unreleased]` Changed, context.md with six defaults; the golden recording re-made for tasks.md alone, the headers pinned to `TASK_COLUMNS` by a test since the core cannot import the reader); spec-reviewer next, then the build; no Day brief, so stop before commit.

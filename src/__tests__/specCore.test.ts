@@ -97,6 +97,19 @@ describe('spec core golden recording (BL-032)', () => {
     expect(render({ projectName: 'p', language: 'typescript' }).files.find(f => f.path === '.specs/planning/tasks.md')!.content).toContain(`(${today})`);
   });
 
+  test('both onboarding prompts describe tasks.md as init writes it and the board reads it (BL-117)', () => {
+    const line = '- `planning/tasks.md`: keep the three headings exactly as written, `## Backlog`, `## Current Sprint`, `## Completed`; each holds a markdown table (`| ID | Description |`; `| # | ID | Description |` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else';
+    const green = file(BASE, '.specs/development/onboarding.md');
+    const brown = file({ ...BASE, mode: 'existing', projectType: 'brownfield' }, '.specs/development/onboarding.md');
+    for (const md of [green, brown]) {
+      expect(md).toContain(line);
+      expect(md).not.toContain('In Progress');
+      expect(md).not.toContain('TASK-XXX');
+    }
+    expect(brown).toContain('4. Propose actionable next steps as rows of the Backlog table in planning/tasks.md');
+    expect(green).not.toContain('Backlog table in planning/tasks.md');
+  });
+
   test('render() paths are in write order and equal the two path tables, for every IDE and paradigm', () => {
     for (const { value: ide } of IDE_CHOICES) {
       for (const { value: apiParadigm } of API_PARADIGM_CHOICES) {

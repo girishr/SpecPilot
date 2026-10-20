@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-10-19 (BL-TB-11 Spec Report)
+lastUpdated: 2026-10-20 (BL-111 Spec Report)
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.82
+version: 1.83
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -88,6 +88,7 @@ relatedFiles:
 - All generated AI instruction files must include `## Code Philosophy — Write Only What Needed` (7 items) and `## Code Rules` (7 rules) in caveman style; injected into every IDE/agent output: `CLAUDE.md`, `copilot-instructions.md`, Cursor rules, Windsurf rules, Antigravity rules, `SKILL.md`, `CODEX_INSTRUCTIONS.md`; `specpilot backfill` must detect missing sections and append them to existing IDE files [REQ-002.F.10]
 - `specpilot validate` treats `architecture/api.yaml` as optional (BL-107): the generator writes it only when the API paradigm is not None (REQ-002.I.4), and the paradigm is stored nowhere, so a missing `api.yaml` is neither an error nor a `--fix` target, and `project/requirements.md` is not asked to reference it while it does not exist (it still is when it exists). Every other required file and check is unchanged. The `specpilot-validate` command's script matches since BL-108 (REQ-002.E.12) [REQ-002.F.11]
 - `specpilot init <name> --dry-run` lists the files `init` would write, read from the generator's own tables (`targetsInSpecs()`, `targetsOutsideSpecs()`), never a copy of them (BL-083). It runs before any question, so it lists what `--no-prompts` writes (API paradigm unset, VS Code); `architecture/api.yaml` is marked as not written for API paradigm None, and the files outside the specs folder are marked as the VS Code set, which the IDE choice changes. Directories are the folders of the listed files. Nothing is asked and nothing is written [REQ-002.F.12]
+- `specpilot validate` warns when `planning/tasks.md` lacks any of the three section headings the Tasks board and the task writer read, `## Backlog`, `## Current Sprint` and `## Completed` (BL-111): a heading counts as present by the rule `readSpecs()` uses, a line whose trimmed text equals it. One warning per missing heading names the `## ` headings the file does have (or says it has none), so a renamed heading is seen before it silently empties a lane. It is a warning: `isValid` stays true and the exit code does not change. `--fix` renames a heading only when the match is unambiguous: exactly one heading line of any level (`#` to `######`) whose text, trimmed, equals the missing name ignoring case (`## backlog`, `### Backlog`, `##  Backlog`); it rewrites that line's text alone, keeping its indentation, trailing whitespace and line ending, and re-reads and re-matches the file when it runs, so a fix token never renames anything else. Two candidates, none, or any other difference (`## Backlog:`, `## Backlog items`) stay a warning for the developer. `--fix` runs whenever there is something to fix, whether or not validation also found errors, and the `can be auto-fixed` hint appears then too. `tasksChecks()` carries the same warnings, so the task mover's before-and-after comparison sees them like the others. The `specpilot-validate` command's script is unchanged: it checks files, front-matter and references only (REQ-002.E.12) and auto-fixes nothing. The `planning/tasks.md` that `--fix` creates when the file is missing carries the three headings, so the file it makes passes the check it adds [REQ-002.F.13]
 
 ### Plugin Distribution [REQ-002.G]
 

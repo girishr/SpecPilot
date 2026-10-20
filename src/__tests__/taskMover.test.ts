@@ -215,6 +215,9 @@ describe('tasksChecks: the validator\'s tasks.md checks on content in memory', (
     expect(tasksChecks(TASKS)).toEqual([]);
     expect(tasksChecks('# Tasks\n\nnothing tracked\n')).toEqual([
       'tasks.md should track task status (In Progress, Completed, etc.)',
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: none).',
+      'planning/tasks.md has no `## Current Sprint` section (`## ` headings found: none).',
+      'planning/tasks.md has no `## Completed` section (`## ` headings found: none).',
       'planning/tasks.md is missing YAML front-matter metadata.',
       'planning/tasks.md should reference planning/roadmap.md',
       'planning/tasks.md should reference project/requirements.md',

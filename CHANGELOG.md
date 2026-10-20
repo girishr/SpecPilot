@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`specpilot validate` checks the section headings of `planning/tasks.md`** (BL-111): it warns when `## Backlog`, `## Current Sprint` or `## Completed` is missing, naming the `## ` headings the file has instead, since the Tasks board and the task writer read those three headings and a renamed one silently empties a lane. `specpilot validate --fix` renames a heading when the match is unambiguous (the same name in another case or at another level, `## backlog`, `### Backlog`); anything else stays a warning for you to resolve.
+
+### Changed
+
+- **`specpilot validate --fix` runs its fixes whenever it has one** (BL-111), not only when validation failed: a run with warnings only and a fixable heading now applies the rename, re-validates and shows the result. The `planning/tasks.md` it creates when the file is missing now has the `## Backlog`, `## Current Sprint` and `## Completed` headings.
+
 ## [2.17.0] - 2026-10-19
 
 ### Added

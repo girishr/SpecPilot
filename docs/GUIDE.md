@@ -215,7 +215,7 @@ specpilot validate --fix
 
 **Options:**
 
-- `--fix`: Automatically fix common issues (missing files, stale dates)
+- `--fix`: Automatically fix common issues (missing files; a `tasks.md` section heading in another case or at another level, such as `## backlog` or `### Backlog`, when exactly one heading matches)
 - `--verbose`: Detailed validation output
 
 #### `specpilot list [options]`

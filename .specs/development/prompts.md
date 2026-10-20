@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-20 (BL-116 built)
-version: 2.177
+lastUpdated: 2026-10-20 (BL-116 committed)
+version: 2.178
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-20: on the developer's typed `commit` after the BL-116 build report: feature commit `26954a2` on `feat/bl-116-no-table-warning` (tasks.md not in it), completion commit (row 230, CD-girishr-139; BL-117 the onboarding prompt's File Structure line and BL-118 the `init` template's tables filed as Backlog rows, as the build report said), then the `--no-ff` merge into `main` and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.
 - 2026-10-20: BL-116 built on `feat/bl-116-no-table-warning` after spec-reviewer A FIX (three items: the warning kept out of `tasksChecks()` so a list-shaped Archive is not refused, the `--fix` stub with tables, the header-row case) then PASS: `specReader.ts` (`untabled`, `TASK_COLUMNS`), `specValidator.ts` (`untabledWarnings()`, the stub), `ui/app.js`; `specReader.test.ts` +1, `specValidator.test.ts` +1 and one extended, `taskMover.test.ts` one extended, `tasks.browser.test.ts` +1; Jest 1671 → 1673, `tsc` and build clean, lint 0 errors, browser 70 → 71 three runs, `specpilot validate` clean here and three warnings on the brownfield copy; screenshot sent; spec-reviewer B next; no Day brief, so stop before commit.
 - 2026-10-20: the developer showed a brownfield tasks.md (plain `[BL-001-handle] text` lines under the right headings) that renders empty and asked how to warn; answered: a no-table warning (page and validate) and, separately, the `init` template's list-shaped Completed. On `do only 1` and the question whether the onboarding prompt can force tables (yes: its File Structure line names the wrong headings and IDs; proposed as BL-117): BL-116 row added, branch `feat/bl-116-no-table-warning` from `main` (`2a85c1d`); Spec Report (Feature: REQ-002.H.54, F.13, ARCH-004.69, api.yaml, tests.md, CHANGELOG, README, context.md with six defaults); spec-reviewer next, then the build; no Day brief, so stop before commit.
 - 2026-10-20: on the developer's typed `commit` after the BL-112 rebuild report: feature commit `2f0cd15` on `feat/bl-112-heading-notice` (tasks.md not in it), completion commit (row 229, CD-girishr-138), then the `--no-ff` merge into `main`, `specpilot archive` on `main` for this file (over its limit since the BL-112 build entry), `npm test` and `npm run test:browser` on `main`; push waits for the developer's word, as before.

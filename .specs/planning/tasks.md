@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-21 (BL-113 and BL-UI-03 to Completed, rows 233 and 234)
-version: 7.29
+lastUpdated: 2026-10-21 (v2.18.0 prepared, row 235)
+version: 7.30
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -118,3 +118,4 @@ Notes
 | 232 | [CD-girishr-141] [BL-117] | The onboarding prompt's File Structure line for `planning/tasks.md` (both prompts, `specFiles.ts` `onboardingMd()`) read `## Backlog/In Progress/Completed with TASK-XXX IDs`, which is how an AI populating a fresh project wrote plain lines under a wrong heading (BL-116's case); it now says to keep `## Backlog`, `## Current Sprint` and `## Completed` exactly, to hold each as the table the board reads with one row per task, and to use the `BL`, `CS` and `CD-<handle>` IDs; the brownfield step asks for next steps as Backlog rows. The recording re-made for onboarding.md alone with three `init` transcripts (Spec Report 2026-10-20, Feature; reviewer A PASS, reviewer B PASS). REQ-002.F.4, tests.md, CHANGELOG Fixed. Jest 1674 → 1675. Commit `4e48c7f` on `feat/bl-117-onboarding-tasks-line`. |
 | 233 | [CD-girishr-142] [BL-113] | `specpilot serve` Review lane (HITL): `## Review` between Current Sprint and Completed (`init`, `validate` and the `--fix` stub know it), `## Won't do` shown read-only as a folded strip, the move table with `review`, Approve and Send back on a Review card through `POST /api/tasks/review` (markers in the row, undo by naming the marker, send back to the top of Current Sprint, every page exit from Review a Send back), the next-step toast and `Copy prompt`, the Completed hint, the agent rule in the generated Tasks line, the MCP tool and `instructions`, no width cap on any view (REQ-002.H.55, ARCH-004.71, SEC-004.31; Architectural; reviewer A ESCALATE then PASS, architect DECIDE Q1 to Q7, reviewer B PASS; decisions D11 to D16 from the developer's first Review-loop rounds on the card and in chat). Jest 1675 → 1726; browser 71 → 75, three runs after every page change. First row approved through the lane it built. Feature commit `55b3b4d` on `feat/bl-113-review-lane`. |
 | 234 | [CD-girishr-143] [BL-UI-03] | `specpilot serve` toast: a close (×) button on every toast (`aria-label` `Dismiss`, hides it early, clears the timer); every toast stays 8 s (the developer's Send back note D13, over the row's own `keep the timers`). Built in BL-113's branch (the architect folded it in, Q5); browser cases for the early hide and the timer. Feature commit `55b3b4d`. |
+| 235 | [CD-girishr-144] | v2.18.0 release prepared (BL-111, BL-112, BL-113, BL-116, BL-117, BL-118, BL-UI-03): version bumped, CHANGELOG [Unreleased] promoted to [2.18.0], annotated tag v2.18.0; not pushed or published |

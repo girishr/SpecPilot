@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.0] - 2026-10-21
+
 ### Fixed
 
 - **The onboarding prompt described `planning/tasks.md` wrongly** (BL-117): its File Structure line told the AI `## Backlog/In Progress/Completed with TASK-XXX IDs`, so an AI populating a fresh project wrote plain lines under a heading the Tasks board does not read. Both prompts, greenfield and brownfield, now say to keep `## Backlog`, `## Current Sprint` and `## Completed` exactly, to hold each as a markdown table (`| ID | Description |`; `| # | ID | Description |` under Completed) with one row per task, and to use the `BL`, `CS` and `CD-<handle>` IDs; the brownfield prompt asks for next steps as Backlog rows. `init`, `add-specs` and the Setup view write the corrected `development/onboarding.md`; copy it again for a project set up before.

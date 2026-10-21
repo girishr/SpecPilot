@@ -1,8 +1,8 @@
 # SpecPilot SDD CLI - Project Configuration
 # fileID: PROJ-001
-# lastUpdated: 2026-10-19 (v2.17.0 prepared)
+# lastUpdated: 2026-10-21 (v2.18.0 prepared)
 name: "SpecPilot SDD CLI"
-version: "2.17.0"
+version: "2.18.0"
 language: "typescript"
 framework: "node"
 description: "CLI tool for initializing specification-driven development projects"

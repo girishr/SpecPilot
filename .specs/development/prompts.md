@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-21 (D11 third step, prompts.md archived)
-version: 2.192
+lastUpdated: 2026-10-21 (BL-113 committed)
+version: 2.193
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-21: on the developer's typed `commit`, both Review rows ending with `Approved 2026-10-21`: feature commit `55b3b4d` on `feat/bl-113-review-lane` (tasks.md not in it), then this completion commit (rows 233 and 234, CD-girishr-142 and 143, the two rows out of Review), then the `--no-ff` merge into `main`, `npm test` and `npm run test:browser` on `main`; push waits for the developer's typed `push`.
 - 2026-10-21: D16 built; browser 75/75 three runs; spec-reviewer PASS (its note taken: the architect's Q7 (a) line now points at D16); BL-113 back to Review beside BL-UI-03. Branch open, nothing committed.
 - 2026-10-21: `remove the Approved flag when an approved task goes back to CS` (D16): every exit from Review on the page is a Send back (no note from a drag or `Alt+←`; no `Move to` for a Review card), superseding Q7 (a); BL-113 back to Current Sprint for the round; page, browser case, specs; browser three runs, reviewer, then Review again.
 - 2026-10-21: D15 built; browser 75/75 three runs; spec-reviewer PASS (one note, not a fix: the hint's `Approve the card in Review` reads slightly off for a Backlog or Current Sprint card dragged onto Completed, left for the developer's call); BL-113 back to Review beside BL-UI-03. Branch open, nothing committed.

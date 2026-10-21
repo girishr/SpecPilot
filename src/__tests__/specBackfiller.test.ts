@@ -1219,7 +1219,7 @@ rules:
 });
 
 describe('the MCP Tasks line (BL-088)', () => {
-  const TASKS = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format.';
+  const TASKS = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
   const PROCESS = '## 🟡 Process Mandates\n\n- **Spec-First:** Update `.specs/` before writing code.\n- **Document decisions** in `.specs/development/context.md`.\n';
   /** The input with exactly one line added at line index `at`. */
   const oneLineAt = (input: string, at: number, eol = '\n') => {

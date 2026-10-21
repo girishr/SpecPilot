@@ -405,6 +405,7 @@ describe('SpecValidator', () => {
     writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '## Current Sprint', '## Done', '## Backlog items'));
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(headingWarnings(result)).toEqual([
+      'planning/tasks.md has no `## Review` section (`## ` headings found: `## Backlog`, `## Current Sprint`, `## Done`, `## Backlog items`).', // required since BL-113
       'planning/tasks.md has no `## Completed` section (`## ` headings found: `## Backlog`, `## Current Sprint`, `## Done`, `## Backlog items`).',
     ]);
     expect(result.fixable).toEqual([]);
@@ -415,19 +416,19 @@ describe('SpecValidator', () => {
     createValidSpecsDir(testDir);
     writeFileSync(tasksPath(testDir), tasksWith('- Task 1'));
     const result = await validator.validate(testDir, { fix: false, verbose: false });
-    const expected = ['## Backlog', '## Current Sprint', '## Completed'].map(h => `planning/tasks.md has no \`${h}\` section (\`## \` headings found: none).`);
+    const expected = ['## Backlog', '## Current Sprint', '## Review', '## Completed'].map(h => `planning/tasks.md has no \`${h}\` section (\`## \` headings found: none).`);
     expect(headingWarnings(result)).toEqual(expected);
     expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8'))).toEqual(expected);
   });
 
   it('a heading in another case or at another level is a rename that --fix applies to that line alone', async () => {
     createValidSpecsDir(testDir);
-    const before = tasksWith('## backlog', '', '  ### Current Sprint  ', '', '## Completed', '').replace(/\n/g, '\r\n');
+    const before = tasksWith('## backlog', '', '  ### Current Sprint  ', '', '## Review', '', '## Completed', '').replace(/\n/g, '\r\n');
     writeFileSync(tasksPath(testDir), before);
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(headingWarnings(result)).toEqual([
-      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Completed`); `specpilot validate --fix` renames `## backlog` to `## Backlog`.',
-      'planning/tasks.md has no `## Current Sprint` section (`## ` headings found: `## backlog`, `## Completed`); `specpilot validate --fix` renames `### Current Sprint` to `## Current Sprint`.',
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Review`, `## Completed`); `specpilot validate --fix` renames `## backlog` to `## Backlog`.',
+      'planning/tasks.md has no `## Current Sprint` section (`## ` headings found: `## backlog`, `## Review`, `## Completed`); `specpilot validate --fix` renames `### Current Sprint` to `## Current Sprint`.',
     ]);
     expect(result.fixable).toEqual(['rename-heading:## backlog:## Backlog', 'rename-heading:### Current Sprint:## Current Sprint']);
 
@@ -441,17 +442,17 @@ describe('SpecValidator', () => {
 
   it('a `## backlog` the reader lists as both missing and unknown still gets the rename warning (BL-112)', async () => {
     createValidSpecsDir(testDir);
-    writeFileSync(tasksPath(testDir), tasksWith('## backlog', '## Current Sprint', '## Completed'));
+    writeFileSync(tasksPath(testDir), tasksWith('## backlog', '## Current Sprint', '## Review', '## Completed'));
     const content = readFileSync(tasksPath(testDir), 'utf-8');
     expect(tasksChecks(content)).toEqual([
-      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Current Sprint`, `## Completed`); `specpilot validate --fix` renames `## backlog` to `## Backlog`.',
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Current Sprint`, `## Review`, `## Completed`); `specpilot validate --fix` renames `## backlog` to `## Backlog`.',
     ]);
   });
 
   it('a known section with lines but no table warns, without a fix, and tasksChecks does not carry it (BL-116)', async () => {
     createValidSpecsDir(testDir);
     const nine = Array.from({ length: 9 }, (_, i) => `[BL-00${i + 1}-handle] Task ${i + 1}`).join('\n');
-    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '', nine, '', '## Current Sprint', '', '[TODO]', '', '## Completed', '', '1. [CD-001] Initialise .specs directory (2026-10-20)'));
+    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '', nine, '', '## Current Sprint', '', '[TODO]', '', '## Review', '', '## Completed', '', '1. [CD-001] Initialise .specs directory (2026-10-20)'));
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.warnings.filter(w => w.includes('no table'))).toEqual([
       'planning/tasks.md `## Backlog` has 9 lines but no table, so the Tasks board shows none of them; make the section a table with ID and Description columns, one row per task.',
@@ -464,10 +465,10 @@ describe('SpecValidator', () => {
 
   it('two candidates for one heading stay a warning with no fix', async () => {
     createValidSpecsDir(testDir);
-    writeFileSync(tasksPath(testDir), tasksWith('## backlog', '### Backlog', '## Current Sprint', '## Completed'));
+    writeFileSync(tasksPath(testDir), tasksWith('## backlog', '### Backlog', '## Current Sprint', '## Review', '## Completed'));
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(headingWarnings(result)).toEqual([
-      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Current Sprint`, `## Completed`); 2 headings match it (`## backlog`, `### Backlog`), so rename one by hand.',
+      'planning/tasks.md has no `## Backlog` section (`## ` headings found: `## backlog`, `## Current Sprint`, `## Review`, `## Completed`); 2 headings match it (`## backlog`, `### Backlog`), so rename one by hand.',
     ]);
     expect(result.fixable).toEqual([]);
   });
@@ -486,6 +487,17 @@ describe('SpecValidator', () => {
     expect(readFileSync(tasksPath(testDir), 'utf-8')).toBe(content);
   });
 
+  it('does not warn when `## Won\'t do` is absent: an optional section (BL-113)', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '## Current Sprint', '## Review', '## Completed'));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(headingWarnings(result)).toEqual([]);
+    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '## Current Sprint', '## Completed', "## Won't do"));
+    expect(headingWarnings(await validator.validate(testDir, { fix: false, verbose: false }))).toEqual([
+      "planning/tasks.md has no `## Review` section (`## ` headings found: `## Backlog`, `## Current Sprint`, `## Completed`, `## Won't do`).",
+    ]);
+  });
+
   it('the tasks.md that --fix creates gives no heading warning', async () => {
     createValidSpecsDir(testDir);
     rmSync(tasksPath(testDir));
@@ -498,6 +510,8 @@ describe('SpecValidator', () => {
     const stub = readFileSync(tasksPath(testDir), 'utf-8');
     expect(stub).toContain('## Backlog\n\n| ID | Description |\n|---|---|\n');
     expect(stub).toContain('## Current Sprint\n\n| ID | Description |\n|---|---|\n');
+    expect(stub).toContain('## Review\n\n| ID | Description |\n|---|---|\n'); // required since BL-113
+    expect(stub).not.toContain("## Won't do"); // optional: never asked for
     expect(stub).toContain('## Completed\n\n| # | ID | Description |\n|---|---|---|\n');
   });
 

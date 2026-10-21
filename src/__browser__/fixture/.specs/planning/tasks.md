@@ -28,8 +28,20 @@ Task ID conventions
 |---|---|
 | CS-001 | Fixture sprint row |
 
+## Review
+
+| ID | Description |
+|---|---|
+| CS-801 | Fixture review row Sent back 2026-10-01: an earlier note |
+
 ## Completed
 
 | # | ID | Description |
 |---|---|---|
 | 2 | [CD-fixture-002] | Fixture completed row |
+
+## Won't do
+
+| ID | Description | Reason |
+|---|---|---|
+| BL-801 | Fixture dropped row | Not needed |

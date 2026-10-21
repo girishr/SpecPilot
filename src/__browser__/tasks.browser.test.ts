@@ -148,6 +148,16 @@ browserTest('--read-only has no Add or Archive buttons, no drag handles and no H
     await menuOpen(page);
     expect(await menuLabels(page)).toEqual(['Open details', 'Copy ID']);
     expect(await page.locator('#cardMenu .mh').count()).toBe(0);
+    await page.keyboard.press('Escape');
+    await menuClosed(page);
+    await row(page, 'review', 0).click(); // BL-113: History shown, no Approve or Send back footer, the menu's two items
+    await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+    expect(await page.locator('#insp .hist').count()).toBe(1);
+    expect(await page.locator('#inspFoot').count()).toBe(0);
+    await page.keyboard.press('Escape');
+    await row(page, 'review', 0).click({ button: 'right' });
+    await menuOpen(page);
+    expect(await menuLabels(page)).toEqual(['Open details', 'Copy ID']);
   } finally {
     await ro.close();
   }
@@ -181,7 +191,7 @@ browserTest('the inspector link opens tasks.md at the row line, and follows the 
 
 // BL-TB-01: the board is the only Tasks view; no List mode and no List/Board switch. BL-TB-04: the lanes run
 // Backlog, Current Sprint, Completed, on screen (left edges at the harness's 1280px) as well as in the DOM.
-browserTest('Tasks is the board alone: no switch, no list, three lanes in order, every Backlog row shown', b, async open => {
+browserTest('Tasks is the board alone: no switch, no list, the lanes in order, every Backlog row shown', b, async open => {
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Backlog');
   const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
@@ -195,10 +205,9 @@ browserTest('Tasks is the board alone: no switch, no list, three lanes in order,
   expect(await page.locator('#modeSeg').count()).toBe(0);
   expect(await page.locator('#listMode').count()).toBe(0);
   expect(await page.locator('#boardMode').isVisible()).toBe(true);
-  expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['backlog', 'currentSprint', 'completed']);
+  expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['backlog', 'currentSprint', 'review', 'completed', 'wontDo']); // BL-113: five lanes
   const lefts = await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => e.getBoundingClientRect().left));
-  expect(lefts[0]).toBeLessThan(lefts[1]);
-  expect(lefts[1]).toBeLessThan(lefts[2]);
+  for (let k = 1; k < lefts.length; k++) expect(lefts[k - 1]).toBeLessThan(lefts[k]);
   expect(await page.locator('#boardMode [data-more="backlog"]').count()).toBe(0);
   expect(await page.locator('#boardMode .gl[data-col="backlog"] .row').last().textContent()).toContain('Fixture backlog row two');
 });
@@ -580,7 +589,7 @@ browserTest('a missing heading shows a Warning and an unknown heading a Note at 
     const notes = await page.locator('#gHead .msg.info').allTextContents();
     expect(notes).toHaveLength(2);
     expect(notes[0]).toContain(`Note "${odd}" is not a board lane, so its 2 rows are not shown here`);
-    expect(notes[0]).toContain('The board shows Backlog, Current Sprint and Completed. The rows stay in tasks.md.');
+    expect(notes[0]).toContain('The board shows Backlog, Current Sprint, Review and Completed. The rows stay in tasks.md.'); // the four required lanes (BL-113)
     expect(notes[1]).toContain('Note "## Later" is not a board lane, so its rows would not be shown here (it has no rows)');
     expect(await page.locator('#gHead b').count()).toBe(0); // the heading is text, not markup
     for (const href of await page.locator('#gHead a.btn').evaluateAll(as => as.map(a => a.getAttribute('href')))) expect(href).toBe(routeJs.editorUrl(tasksFile()));
@@ -633,7 +642,7 @@ browserTest('a `## backlog` heading gets one Warning and no Note, and a lane wit
   expect(warns[0]).toContain('Warning The Backlog lane is empty: tasks.md has no "## Backlog" heading');
   expect(warns[0]).toContain('The file has "## backlog" instead');
   expect(warns[1]).toContain('Warning The Completed lane is empty: tasks.md has no "## Completed" heading');
-  expect(warns[1]).toContain('The board reads "## Backlog", "## Current Sprint" and "## Completed".');
+  expect(warns[1]).toContain('The board reads "## Backlog", "## Current Sprint", "## Review" and "## Completed".'); // BL-113
   expect(warns[1]).toContain('Fix: edit .specs/planning/tasks.md and add a "## Completed" section, best done by your AI IDE');
   await page.locator('#gHead .msg.warn [data-prompt]').nth(1).click();
   await waitToast(page, /Copied\./);
@@ -882,15 +891,15 @@ browserTest('a card\'s menu opens by right-click, Shift+F10 and the ⋯ button; 
   await rowFocused(page, 'currentSprint', 0);
   await row(page, 'currentSprint', 0).click({ button: 'right' });
   await menuOpen(page);
-  expect(await menuLabels(page)).toEqual(['Backlog', 'Backlog, top', 'Move down', 'Open details', 'Copy ID']);
-  expect(await page.locator('#cardMenu [role=menuitem] .hint').allTextContents()).toEqual(['Alt+←', 'Alt+↓']);
+  expect(await menuLabels(page)).toEqual(['Backlog', 'Backlog, top', 'Review', 'Review, top', 'Move down', 'Open details', 'Copy ID']); // Review since BL-113
+  expect(await page.locator('#cardMenu [role=menuitem] .hint').allTextContents()).toEqual(['Alt+←', 'Alt+→', 'Alt+↓']);
   await (await item(page, 'Move down')).click();
   await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[1] === first, 'the row second in Current Sprint');
   await waitToast(page, new RegExp(`${idOf(first)} moved within ## Current Sprint`));
   await rowFocused(page, 'currentSprint', 1);
   await row(page, 'currentSprint', 1).click({ button: 'right' });
   await menuOpen(page);
-  expect(await menuLabels(page)).toEqual(['Backlog', 'Backlog, top', 'Move up', 'Move down', 'Open details', 'Copy ID']);
+  expect(await menuLabels(page)).toEqual(['Backlog', 'Backlog, top', 'Review', 'Review, top', 'Move up', 'Move down', 'Open details', 'Copy ID']);
   await page.keyboard.press('Escape');
   await menuClosed(page);
   // A Completed card: Open details and Copy ID only; Copy ID puts the ID cell on the clipboard; Open details opens the inspector on it.
@@ -922,3 +931,328 @@ browserTest('a card\'s menu opens by right-click, Shift+F10 and the ⋯ button; 
   await page.mouse.click(5, 5);
   await menuClosed(page);
 });
+
+// ---- BL-113: the Review lane (Approve, Send back, History), the Won't do strip, the toast's × (BL-UI-03)
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const inspOpen = (page: Page) => page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+const inspClosed = (page: Page) => page.waitForFunction(() => !document.querySelector('#insp')!.classList.contains('open'));
+const formOpen = (page: Page) => page.waitForFunction(() => !(document.querySelector('#rvForm') as HTMLElement | null)?.hidden && document.activeElement?.id === 'rvNote');
+const formClosed = (page: Page) => page.waitForFunction(() => (document.querySelector('#rvForm') as HTMLElement | null)?.hidden === true);
+const toastHidden = (page: Page, timeout = 10000) => page.waitForFunction(() => !document.querySelector('#toast')!.classList.contains('show'), undefined, { timeout });
+/** The fixture's Review row, as the file has it. */
+const REVIEW_ROW = '| CS-801 | Fixture review row Sent back 2026-10-01: an earlier note |';
+/** The row with `suffix` appended inside its cell, before the closing pipe. */
+const mark = (suffix: string) => REVIEW_ROW.slice(0, -2) + suffix + ' |';
+
+browserTest('the five lanes: the Review header\'s HITL abbr and empty text, the Won\'t do strip folded by default, opened and closed by its title, read-only with the Reason in the panel; lanes without their heading are not drawn', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const hitl = page.locator('#boardMode .gl[data-col="review"] .gh abbr.hitl');
+  expect(await hitl.textContent()).toBe('HITL');
+  expect(await hitl.getAttribute('title')).toBe('Human-in-the-loop: you check the agent\'s work here before it counts as done');
+  expect(await hitl.getAttribute('aria-label')).toBe('Human-in-the-loop: you check the agent\'s work here before it counts as done');
+  expect(await page.locator('#boardMode .gl[data-col="review"] .gh .cnt').textContent()).toBe('1');
+  expect(await page.locator('#boardMode .gl[data-col="review"] .gh [data-add]').count()).toBe(0); // no Add on Review
+  // no view has a width cap (the developer's call, 2026-10-21): the board fills the content column at 1280px and at 1920px, and the file view too
+  const fills = (p: Page) => p.evaluate(() => { const c = document.querySelector('#content')!; const cs = getComputedStyle(c); return Math.abs(document.querySelector('#v-board')!.getBoundingClientRect().width - (c.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))) < 1; });
+  expect(await fills(page)).toBe(true);
+  expect(await page.locator('#v-board').evaluate(e => e.getBoundingClientRect().width)).toBeGreaterThan(880);
+  const wide = (await open(srv, '', { width: 1920 })).page;
+  await waitView(wide, 'v-board');
+  await wide.waitForFunction(() => document.querySelectorAll('#boardMode .gl[data-col]').length === 5);
+  expect(await fills(wide)).toBe(true);
+  expect(await wide.locator('#v-board').evaluate(e => e.getBoundingClientRect().width)).toBeGreaterThan(1060);
+  expect(await wide.locator('#v-file').evaluate(e => getComputedStyle(e).maxWidth)).toBe('none'); // the other views have none either
+  await wide.close();
+  // the strip: folded, the box hidden, a narrow column; the title opens it
+  const strip = page.locator('#boardMode .gl[data-col="wontDo"]');
+  expect(await strip.getAttribute('class')).toContain('fold');
+  expect(await strip.locator('.box').isHidden()).toBe(true);
+  expect(await strip.locator('[data-fold]').getAttribute('aria-expanded')).toBe('false');
+  expect(await strip.evaluate(e => e.getBoundingClientRect().width)).toBeLessThan(60);
+  expect(await page.locator('#boardMode .row[data-col="wontDo"]').first().isVisible()).toBe(false);
+  await strip.locator('[data-fold]').click();
+  await page.waitForFunction(() => document.querySelector('#boardMode .gl[data-col="wontDo"] [data-fold]')?.getAttribute('aria-expanded') === 'true');
+  expect(await page.locator('#boardMode .gl[data-col="wontDo"]').getAttribute('class')).not.toContain('fold');
+  expect(await page.locator('#boardMode .row[data-col="wontDo"]').count()).toBe(1);
+  expect(await page.locator('#boardMode .row[data-col="wontDo"]').isVisible()).toBe(true);
+  expect(await page.locator('#boardMode .row[data-col="wontDo"][draggable="true"]').count()).toBe(0); // read-only, like Completed
+  expect(await page.locator('#boardMode .gl[data-col="wontDo"] .gh [data-add]').count()).toBe(0);
+  await page.waitForFunction(() => document.activeElement?.hasAttribute('data-fold') ?? false); // focus stays on the title through the redraw
+  await row(page, 'wontDo', 0).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Open details', 'Copy ID']);
+  await (await item(page, 'Open details')).click();
+  await inspOpen(page);
+  expect(await page.locator('#insp .ih .pill').first().textContent()).toBe("Won't do");
+  expect(await page.locator('#insp .gl .gh', { hasText: 'Reason' }).count()).toBe(1);
+  expect(await page.locator('#insp .desc').last().textContent()).toBe('Not needed');
+  await page.keyboard.press('Escape');
+  await inspClosed(page);
+  await page.locator('#boardMode .gl[data-col="wontDo"] [data-fold]').click();
+  await page.waitForFunction(() => document.querySelector('#boardMode .gl[data-col="wontDo"] [data-fold]')?.getAttribute('aria-expanded') === 'false');
+  expect(await page.locator('#boardMode .gl[data-col="wontDo"] .box').isHidden()).toBe(true);
+  // an empty Review lane says so; without its heading the lane is not drawn and the Warning says "not shown"; without Won't do: no lane, no warning
+  const before = read(env.tasks());
+  writeFileSync(env.tasks(), before.replace(REVIEW_ROW + '\n', ''));
+  await page.waitForFunction(() => document.querySelector('#boardMode .gl[data-col="review"] .empty') !== null);
+  expect(await page.locator('#boardMode .gl[data-col="review"] .empty').textContent()).toBe('Nothing waiting for you. Agents move finished work here.');
+  const lines = before.split('\n');
+  const cut = (heading: string) => {
+    const s = lines.findIndex(l => l.trim() === heading);
+    const e = lines.findIndex((l, i) => i > s && /^## /.test(l));
+    return [...lines.slice(0, s), ...lines.slice(e < 0 ? lines.length : e)].join('\n');
+  };
+  const lanesAre = (page: Page, cols: string[]) => page.waitForFunction(c => Array.from(document.querySelectorAll('#boardMode .gl[data-col]')).map(e => (e as HTMLElement).dataset.col).join() === c, cols.join());
+  writeFileSync(env.tasks(), cut('## Review'));
+  await lanesAre(page, ['backlog', 'currentSprint', 'completed', 'wontDo']);
+  await page.locator('#gHead .msg.warn').waitFor({ state: 'visible' });
+  expect(await page.locator('#gHead .msg.warn').textContent()).toContain('Warning The Review lane is not shown: tasks.md has no "## Review" heading');
+  writeFileSync(env.tasks(), cut("## Won't do"));
+  await lanesAre(page, ['backlog', 'currentSprint', 'review', 'completed']);
+  await page.locator('#gHead').waitFor({ state: 'hidden' });
+  writeFileSync(env.tasks(), before);
+  await page.waitForFunction(() => document.querySelectorAll('#boardMode .gl[data-col]').length === 5);
+});
+
+browserTest('Approve from the panel appends the dated marker as one line, shows the chip, toasts with Undo and ×; Undo puts the file back; the × hides a toast early and a toast left alone hides on its timer', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const before = read(env.tasks());
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  expect(await page.locator('#insp .hist').count()).toBe(1); // History: the fixture's earlier note
+  expect(await page.locator('#insp .hist .hd').textContent()).toBe('Sent back 2026-10-01');
+  expect(await page.locator('#insp .hist .hn').textContent()).toBe('an earlier note');
+  expect(await page.locator('#rvForm').isHidden()).toBe(true);
+  await page.click('#rvApprove');
+  const approved = mark(` Approved ${today()}`);
+  await until(() => rowsIn(read(env.tasks()), 'Review')[0] === approved, 'the Approved marker on disk');
+  const after = read(env.tasks());
+  expect(after.split('\n').length).toBe(before.split('\n').length);
+  expect(after.split('\n').filter(l => !before.split('\n').includes(l))).toEqual([approved]); // one line changed
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip')?.textContent === 'Approved');
+  await waitToast(page, /^CS-801 approved: marked in planning\/tasks\.md\. Next: tell your agent to wrap it up; it writes the Completed entry\./); // D14
+  expect(await page.locator('#toast .tact').textContent()).toBe('Undo');
+  expect(await page.locator('#toast .tx').getAttribute('aria-label')).toBe('Dismiss');
+  await inspOpen(page); // the panel stays, on the same row, without an Approve button now
+  expect(await page.locator('#rvApprove').count()).toBe(0);
+  expect(await page.locator('#rvSend').count()).toBe(1);
+  expect(await page.locator('#insp .ih .pill').last().textContent()).toBe('Approved');
+  expect(await page.locator('#rvDone').textContent()).toBe(`Approved ${today()}. Tell your agent to wrap it up: it writes the Completed entry (number, CD ID, commit) and the row leaves Review.`); // D14
+  expect(await page.locator('#rvCopy').count()).toBe(1); // Copy prompt itself is checked in the 420px case: its toast would replace this one's Undo
+  await page.waitForFunction(() => document.activeElement?.id === 'rvSend' || document.activeElement?.id === 'rvCopy');
+  await page.click('#toast .tact');
+  await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
+  await waitToast(page, /^CS-801 is no longer marked Approved/);
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip') === null);
+  expect(await page.locator('#rvApprove').count()).toBe(1);
+  expect(await page.locator('#rvDone').count()).toBe(0);
+  // BL-UI-03: × hides the toast before its 8 s timer (the toast is shown again by Copy ID); a toast left alone hides by itself (D13: every toast 8 s)
+  await page.keyboard.press('Escape');
+  await inspClosed(page);
+  await row(page, 'backlog', 0).click({ button: 'right' });
+  await menuOpen(page);
+  await (await item(page, 'Copy ID')).click();
+  await waitToast(page, /^Copied\.$/);
+  const t0 = Date.now();
+  await page.click('#toast .tx');
+  await toastHidden(page);
+  expect(Date.now() - t0).toBeLessThan(1500);
+  await row(page, 'backlog', 0).click({ button: 'right' });
+  await menuOpen(page);
+  await (await item(page, 'Copy ID')).click();
+  await page.waitForFunction(() => document.querySelector('#toast')!.classList.contains('show') && /^Copied\.$/.test(document.querySelector('#toast')!.textContent ?? '')); // shown again (the hidden toast still holds the old text)
+  const t1 = Date.now();
+  await toastHidden(page, 12000); // the 8 s timer
+  expect(Date.now() - t1).toBeGreaterThan(7000);
+});
+
+browserTest('Send back with a note (a line break and a | typed) writes one space and \\|, moves the row to the top of Current Sprint, closes the panel and toasts; Undo restores the file; no note gives the dot form; Escape and Cmd+Enter; the menu items', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const before = read(env.tasks());
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  await page.click('#rvSend');
+  await formOpen(page);
+  expect(await page.locator('#rvApprove').isHidden()).toBe(true);
+  expect(await page.locator('#rvSend').isHidden()).toBe(true);
+  expect(await page.locator('#inspFoot label').textContent()).toBe('What needs fixing? (optional)');
+  expect(await page.locator('#rvCount').textContent()).toBe('0/200');
+  await page.keyboard.type('tests | docs');
+  await page.keyboard.press('Shift+Enter');
+  await page.keyboard.type('missing');
+  expect(await page.locator('#rvCount').textContent()).toBe('20/200');
+  // Escape cancels and returns focus to Send back; the typed text is not sent
+  await page.keyboard.press('Escape');
+  await formClosed(page);
+  await page.waitForFunction(() => document.activeElement?.id === 'rvSend');
+  await inspOpen(page);
+  expect(read(env.tasks())).toBe(before);
+  await page.click('#rvSend');
+  await formOpen(page);
+  expect(await page.inputValue('#rvNote')).toBe(''); // a fresh box
+  await page.keyboard.type('tests | docs');
+  await page.keyboard.press('Shift+Enter');
+  await page.keyboard.type('missing');
+  await page.click('#rvGo');
+  const sent = mark(` Sent back ${today()}: tests \\| docs missing`);
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === sent, 'the row first in Current Sprint with the note (D12)');
+  const after = read(env.tasks());
+  expect(after.split('\n').length).toBe(before.split('\n').length);
+  expect(rowsIn(after, 'Review')).toEqual([]);
+  expect(after.split('\n').filter(l => !before.split('\n').includes(l))).toEqual([sent]);
+  await inspClosed(page);
+  await waitToast(page, /^Sent CS-801 back to Current Sprint/);
+  await page.waitForFunction(i => document.activeElement?.matches(`#boardMode .row[data-col="currentSprint"][data-i="${i}"]`) ?? false, 0);
+  expect(await row(page, 'currentSprint', 0).textContent()).toContain('tests \\| docs missing'); // the cell as the file has it, backslash included
+  await row(page, 'currentSprint', 0).click(); // ...and in the panel's Description box
+  await inspOpen(page);
+  expect(await page.locator('#insp .desc').first().textContent()).toContain('tests \\| docs missing');
+  await page.keyboard.press('Escape');
+  await inspClosed(page);
+  await page.click('#toast .tact');
+  await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
+  await waitToast(page, /^CS-801 is back in ## Review/);
+  await page.waitForFunction(() => document.activeElement?.matches('#boardMode .row[data-col="review"][data-i="0"]') ?? false);
+  // a plain move back after a send back keeps the note, which History then lists with its backslash
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  await page.click('#rvSend');
+  await formOpen(page);
+  await page.keyboard.type('a | b');
+  await page.click('#rvGo');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === mark(` Sent back ${today()}: a \\| b`), 'the second note on disk');
+  await inspClosed(page);
+  await waitToast(page, /^Sent CS-801 back to Current Sprint/);
+  await page.waitForFunction(i => document.activeElement?.matches(`#boardMode .row[data-col="currentSprint"][data-i="${i}"]`) ?? false, 0);
+  await page.keyboard.press('Alt+ArrowRight'); // Current Sprint → Review, the line as it is
+  await until(() => rowsIn(read(env.tasks()), 'Review')[0] === mark(` Sent back ${today()}: a \\| b`), 'the row back in Review with its note');
+  await waitToast(page, /moved from ## Current Sprint to ## Review/);
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  expect(await page.locator('#insp .hist .hn').allTextContents()).toEqual(['an earlier note', 'a \\| b']);
+  await page.keyboard.press('Escape');
+  await inspClosed(page);
+  writeFileSync(env.tasks(), before); // the fixture as it was for the rest of the case
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip') === null && document.querySelectorAll('#boardMode .row[data-col="currentSprint"]').length === 2);
+  // no note: the dot form, sent with Cmd/Ctrl+Enter from the box; the History of a row that was sent back before lists both notes when it comes back
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  await page.click('#rvSend');
+  await formOpen(page);
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter');
+  const dot = mark(` Sent back ${today()}.`);
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === dot, 'the dot form on disk');
+  await inspClosed(page);
+  await waitToast(page, /^Sent CS-801 back to Current Sprint/);
+  // the context menu of a Review card: Approve and Send back… first, then the table's items; Send back… opens the panel with the box open
+  await page.click('#toast .tact');
+  await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
+  await waitToast(page, /^CS-801 is back in ## Review/); // the page has applied the payload (a menu opened before that would close on the redraw)
+  await page.waitForFunction(() => document.activeElement?.matches('#boardMode .row[data-col="review"][data-i="0"]') ?? false);
+  await row(page, 'review', 0).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Approve', 'Send back…', 'Open details', 'Copy ID']); // D16: no plain move out of Review
+  expect(await page.locator('#cardMenu .mh').count()).toBe(0);
+  await (await item(page, 'Send back…')).click();
+  await inspOpen(page);
+  await formOpen(page);
+  await page.keyboard.press('Escape');
+  await formClosed(page);
+  await page.keyboard.press('Escape');
+  await inspClosed(page);
+  await row(page, 'review', 0).click({ button: 'right' });
+  await menuOpen(page);
+  await (await item(page, 'Approve')).click();
+  await until(() => rowsIn(read(env.tasks()), 'Review')[0] === mark(` Approved ${today()}`), 'the Approved marker on disk');
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip')?.textContent === 'Approved'); // drawn by the page's apply
+  await page.keyboard.press('Escape'); // the panel the menu's Approve opened
+  await inspClosed(page);
+  await row(page, 'review', 0).click({ button: 'right' });
+  await menuOpen(page);
+  expect(await menuLabels(page)).toEqual(['Send back…', 'Open details', 'Copy ID']); // approved: no Approve item
+  await page.keyboard.press('Escape');
+  await menuClosed(page);
+  // D15: a Review card cannot go to Completed from the page; a drag onto the lane and Alt+→ say why instead of refusing in silence
+  const hint = /^Nothing moves to Completed from here\. Approve the card in Review, then tell your agent to wrap it up: it writes the Completed entry\.$/;
+  const fileBeforeHint = read(env.tasks());
+  await row(page, 'review', 0).dragTo(page.locator('#boardMode .gl[data-col="completed"] .gh'));
+  await waitToast(page, hint);
+  expect(read(env.tasks())).toBe(fileBeforeHint);
+  expect(await page.locator('#boardMode .gl.drop').count()).toBe(0);
+  await page.click('#toast .tx');
+  await toastHidden(page);
+  await row(page, 'review', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await waitToast(page, hint);
+  expect(read(env.tasks())).toBe(fileBeforeHint);
+  expect(rowsIn(read(env.tasks()), 'Review')[0]).toBe(mark(` Approved ${today()}`)); // still in Review
+  // D16: Alt+← and a drag out of Review are Send backs without a note, so an approved row loses its Approved state on the way out (the dot marker is now last) and comes back unapproved
+  await row(page, 'review', 0).focus();
+  await page.keyboard.press('Alt+ArrowLeft');
+  const out = mark(` Approved ${today()} Sent back ${today()}.`);
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === out, 'the approved row sent back without a note, first in Current Sprint');
+  await waitToast(page, /^Sent CS-801 back to Current Sprint/);
+  await page.waitForFunction(() => document.activeElement?.matches('#boardMode .row[data-col="currentSprint"][data-i="0"]') ?? false);
+  await page.keyboard.press('Alt+ArrowRight'); // back to Review as a plain move: no chip now
+  await until(() => rowsIn(read(env.tasks()), 'Review')[0] === out, 'the row back in Review');
+  await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="review"]').length === 1 && document.querySelector('#boardMode .row[data-col="review"] .chip') === null);
+  await row(page, 'review', 0).dragTo(page.locator('#boardMode .gl[data-col="currentSprint"] .gh'));
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === mark(` Approved ${today()} Sent back ${today()}. Sent back ${today()}.`), 'a drag out of Review is a Send back too');
+});
+
+browserTest('a Send back refused by the server (the file changed under a slow poll) shows the text in the footer with the note kept; the Review panel, its note box, its error, the strip and the lanes have no sideways scroll at 420px', b, async open => {
+  const slow = await serve(env, [env.project], { pollMs: 60000 });
+  try {
+    const { page } = await open(slow, '', { width: 420 });
+    await waitView(page, 'v-board');
+    expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['backlog', 'currentSprint', 'review', 'completed', 'wontDo']);
+    expect(await noSideScroll(page)).toBe(true);
+    await page.locator('#boardMode .gl[data-col="wontDo"] [data-fold]').click();
+    await page.waitForFunction(() => document.querySelector('#boardMode .gl[data-col="wontDo"] [data-fold]')?.getAttribute('aria-expanded') === 'true');
+    expect(await noSideScroll(page)).toBe(true);
+    await row(page, 'review', 0).click();
+    await inspOpen(page);
+    expect(await noSideScroll(page)).toBe(true); // idle: the footer in view once the panel has slid in
+    await page.waitForFunction(() => { const r = document.querySelector('#inspFoot')!.getBoundingClientRect(); return r.left >= 0 && r.right <= 420 && r.bottom <= innerHeight; });
+    await page.click('#rvSend');
+    await formOpen(page);
+    expect(await noSideScroll(page)).toBe(true); // the note box open
+    const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
+    writeFileSync(env.tasks(), changed);
+    await page.keyboard.type('kept note');
+    await page.click('#rvGo');
+    await page.locator('#rvErr').waitFor({ state: 'visible' });
+    expect(await page.locator('#rvErr').textContent()).toBe(taskMover.REVIEW_STALE_ERROR);
+    expect(await page.inputValue('#rvNote')).toBe('kept note');
+    expect(read(env.tasks())).toBe(changed);
+    expect(await noSideScroll(page)).toBe(true); // the error shown
+    // a note the server refuses (over 200 code points, past the box's own limit) shows its reason the same way
+    await page.evaluate(() => { (document.querySelector('#rvNote') as HTMLTextAreaElement).value = 'x'.repeat(201); });
+    await page.click('#rvGo');
+    await page.waitForFunction(() => document.querySelector('#rvErr')?.textContent === 'The note is longer than 200 characters.');
+    expect(read(env.tasks())).toBe(changed);
+    expect(await noSideScroll(page)).toBe(true);
+    await page.keyboard.press('Escape');
+    await formClosed(page);
+    await page.click('#rvApprove'); // the page now holds the fresh hash: the approve lands, with its toast's Undo and × inside the window
+    await until(() => rowsIn(read(env.tasks()), 'Review')[0] === mark(` Approved ${today()}`), 'the Approved marker on disk');
+    await waitToast(page, /^CS-801 approved: marked/);
+    expect(await noSideScroll(page)).toBe(true); // the approved row's note and Copy prompt in the footer at 420px
+    expect(await page.locator('#rvDone').textContent()).toBe(`Approved ${today()}. Tell your agent to wrap it up: it writes the Completed entry (number, CD ID, commit) and the row leaves Review.`);
+    await page.click('#rvCopy'); // D14: the wrap-up line for the agent
+    await waitToast(page, /^Copied\.$/);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('CS-801 is approved in .specs/planning/tasks.md: write its Completed entry with the number, CD ID and commit, and remove the row from ## Review.');
+    const [tl, tr] = await page.locator('#toast').evaluate(e => { const r = e.getBoundingClientRect(); return [r.left, r.right]; });
+    expect(tl).toBeGreaterThanOrEqual(0);
+    expect(tr).toBeLessThanOrEqual(420);
+    expect(await noSideScroll(page)).toBe(true);
+  } finally {
+    await slow.close();
+  }
+}, [/status of 409/, /status of 422/]);

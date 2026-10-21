@@ -26,10 +26,29 @@ export interface CompletedRow {
   line: number;
 }
 
+/** A `## Review` row (BL-113): the cell verbatim, plus what its closing markers say. */
+export interface ReviewRow extends TaskRow {
+  /** The date of a closing ` Approved YYYY-MM-DD` marker, else null. */
+  approved: string | null;
+  /** Every ` Sent back YYYY-MM-DD: <note>` (or `.`) marker in order; `note` is '' for the dot form. */
+  history: { date: string; note: string }[];
+}
+
+/** A `## Won't do` row (BL-113): three columns, as this repository writes them. */
+export interface WontDoRow {
+  id: string;
+  description: string;
+  reason: string;
+  /** The row's 1-based line in tasks.md, as an editor shows it (BL-PM-008). */
+  line: number;
+}
+
 export interface TasksData {
   backlog: TaskRow[];
   currentSprint: TaskRow[];
+  review: ReviewRow[];
   completed: CompletedRow[];
+  wontDo: WontDoRow[];
   /** Table rows with fewer cells than their section's columns, verbatim. */
   malformed: string[];
   /** The file's `## ` headings, the known ones it lacks and the found ones the board does not know (BL-112). */
@@ -108,16 +127,26 @@ function parseMeta(lines: string[]): SpecMeta {
   return meta;
 }
 
-const TASK_SECTIONS = { backlog: ['## Backlog', 2], currentSprint: ['## Current Sprint', 2], completed: ['## Completed', 3] } as const;
-type TaskSection = keyof typeof TASK_SECTIONS;
+// Heading, column count, and (BL-113) whether the section is optional: `## Won't do` is read when present and
+// never asked for; the other four are required (missing, the validator's warning, the `--fix` stub).
+const TASK_SECTIONS = {
+  backlog: ['## Backlog', 2, false],
+  currentSprint: ['## Current Sprint', 2, false],
+  review: ['## Review', 2, false],
+  completed: ['## Completed', 3, false],
+  wontDo: ["## Won't do", 3, true],
+} as const;
+export type TaskSection = keyof typeof TASK_SECTIONS;
 
-/** The section headings the board, the task writer and `specpilot validate` know, in lane order (BL-112). */
+/** The section headings the board, the task writer and `specpilot validate` know, in lane order (BL-112; five since BL-113). */
 export const TASK_HEADINGS: string[] = Object.values(TASK_SECTIONS).map(([heading]) => heading);
+/** The headings a tasks.md must have: what `missing` counts and the `--fix` stub writes (BL-113). */
+export const REQUIRED_TASK_HEADINGS: string[] = Object.values(TASK_SECTIONS).filter(([, , optional]) => !optional).map(([heading]) => heading);
 
 export interface TaskHeadings {
   /** Every `## ` heading of the file, trimmed, in file order. */
   found: string[];
-  /** The TASK_HEADINGS the file lacks: a heading is present when a line's trimmed text equals it, findSectionBounds()'s rule. */
+  /** The REQUIRED_TASK_HEADINGS the file lacks: a heading is present when a line's trimmed text equals it, findSectionBounds()'s rule. */
   missing: string[];
   /** The found headings that are not TASK_HEADINGS; the rows under them are not served. */
   unknown: string[];
@@ -131,17 +160,15 @@ export interface TaskHeadings {
   untabled: Record<string, number>;
 }
 
-const COLUMN_NAMES: Record<number, string[]> = { 2: ['ID', 'Description'], 3: ['#', 'ID', 'Description'] };
-
 /** Each known heading's column names, by the count its lane is read with (BL-116): what `columns` reports and the `--fix` stub writes. */
 export const TASK_COLUMNS: Record<string, string[]> = {};
-for (const [heading, cols] of Object.values(TASK_SECTIONS)) TASK_COLUMNS[heading] = COLUMN_NAMES[cols];
+for (const [heading, cols] of Object.values(TASK_SECTIONS)) TASK_COLUMNS[heading] = heading === "## Won't do" ? ['ID', 'Description', 'Reason'] : cols === 3 ? ['#', 'ID', 'Description'] : ['ID', 'Description'];
 
 /** tasks.md's headings as the page's messages and the validator's check report them (BL-112). */
 export function taskHeadings(lines: string[]): TaskHeadings {
   const trimmed = lines.map(l => l.trim());
   const found = trimmed.filter(l => /^## /.test(l));
-  const missing = TASK_HEADINGS.filter(h => !found.includes(h));
+  const missing = REQUIRED_TASK_HEADINGS.filter(h => !found.includes(h));
   const variants: Record<string, string[]> = {};
   for (const h of missing) {
     const name = h.slice(3).toLowerCase();
@@ -173,10 +200,36 @@ function parseTasks(lines: string[]): TasksData {
   return {
     backlog: rows('## Backlog', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
     currentSprint: rows('## Current Sprint', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
+    review: rows('## Review', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1, ...reviewMarks(description) })),
     completed: rows('## Completed', 3).map(({ cells: [num, id, description], line }) => ({ num, id, description, line: line + 1 })),
+    wontDo: rows("## Won't do", 3).map(({ cells: [id, description, reason], line }) => ({ id, description, reason, line: line + 1 })),
     malformed,
     headings: taskHeadings(lines),
   };
+}
+
+// ---- Review markers (BL-113, REQ-002.H.55): the page writes them at the end of a Review row's description cell,
+// the reader parses them here, and the writer's undo checks use the same test, so the chip and the undo agree.
+
+const DATE = String.raw`\d{4}-\d{2}-\d{2}`;
+/** A marker start: at the cell's start or after a space; `Approved <date>` ends the cell or precedes the next marker. */
+const MARK = new RegExp(String.raw`(?:^| )(?:Approved (${DATE})(?= |$)|Sent back (${DATE})(?:\.(?= |$)|: ))`, 'g');
+
+/** Whether `text` ends with ` Approved <date>` (any date, or the given `YYYY-MM-DD`), the writer's and the reader's one test. */
+export function endsWithApproved(text: string, date?: string): boolean {
+  return new RegExp(String.raw`(?:^| )Approved ${date ?? DATE}$`).test(text);
+}
+
+/** What a Review row's closing markers say: the chip's date and the History list. */
+export function reviewMarks(description: string): { approved: string | null; history: { date: string; note: string }[] } {
+  const marks: { index: number; end: number; approvedOn: string | null; sentOn: string | null; dot: boolean }[] = [];
+  for (const m of description.matchAll(MARK)) marks.push({ index: m.index!, end: m.index! + m[0].length, approvedOn: m[1] ?? null, sentOn: m[2] ?? null, dot: m[0].endsWith('.') });
+  const history = marks.flatMap((k, i) => {
+    if (k.sentOn === null) return [];
+    const note = k.dot ? '' : description.slice(k.end, i + 1 < marks.length ? marks[i + 1].index : undefined).trim();
+    return [{ date: k.sentOn, note }];
+  });
+  return { approved: endsWithApproved(description) ? marks[marks.length - 1].approvedOn : null, history };
 }
 
 export interface TaskRowLines {
@@ -193,14 +246,14 @@ export interface TaskRowLines {
 export function taskRowLines(content: string): Record<TaskSection, TaskRowLines | null> {
   const lines = content.split('\n');
   const out = {} as Record<TaskSection, TaskRowLines | null>;
-  for (const [key, [heading, cols]] of Object.entries(TASK_SECTIONS) as [TaskSection, readonly [string, number]][]) {
+  for (const [key, [heading, cols]] of Object.entries(TASK_SECTIONS) as [TaskSection, readonly [string, number, boolean]][]) {
     const b = findSectionBounds(lines, heading);
     if (!b) {
       out[key] = null;
       continue;
     }
     const t = tableRows(lines, b, cols, []);
-    out[key] = { rows: t.rows.map(r => ({ id: cols === 3 ? r.cells[1] : r.cells[0], line: r.line })), separator: t.separator };
+    out[key] = { rows: t.rows.map(r => ({ id: key === 'completed' ? r.cells[1] : r.cells[0], line: r.line })), separator: t.separator };
   }
   return out;
 }

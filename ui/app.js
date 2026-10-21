@@ -7,7 +7,9 @@ const toastEl=$('#toast');let toastT;
 const toast=(m,action)=>{
   toastEl.textContent=m;toastEl.classList.toggle('has-action',!!action);
   if(action){const b=document.createElement('button');b.type='button';b.className='tact';b.textContent=action.label;b.onclick=()=>{toastEl.classList.remove('show');action.fn();};toastEl.appendChild(b);}
-  toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),action?8000:2600);};
+  // BL-UI-03: a close button on every toast; it hides the toast early and clears the timer, and never runs the action
+  const x=document.createElement('button');x.type='button';x.className='tx';x.setAttribute('aria-label','Dismiss');x.innerHTML='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>';x.onclick=()=>{toastEl.classList.remove('show');clearTimeout(toastT);};toastEl.appendChild(x);
+  toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),8000);}; // every toast stays 8 s (D13; 2.6 s for a plain one until 2026-10-21), the × ends it early (BL-UI-03)
 /* Task moves (BL-053) are on only when the server put a token in the page (not with --read-only). */
 const TOKEN=(document.querySelector('meta[name="specpilot-token"]')||{}).content||null;
 /* /mcp is on (BL-PM-007), and whose token it takes: `page` or `env` (SPECPILOT_MCP_TOKEN). */
@@ -166,8 +168,14 @@ $('#rail').addEventListener('keydown',e=>{
    ID: IDs repeat in real files (two rows can share a # and an ID). */
 let selected=null, lastFocus=null;
 const insp=$('#insp');
-const COLS={currentSprint:'Current Sprint',backlog:'Backlog',completed:'Completed'};
-const DOT={completed:'green',currentSprint:'orange',backlog:'hollow'};
+const COLS={currentSprint:'Current Sprint',backlog:'Backlog',review:'Review',completed:'Completed',wontDo:"Won't do"};
+const DOT={completed:'green',currentSprint:'orange',backlog:'hollow',review:'violet',wontDo:'gray'};
+const PILL={completed:'green',currentSprint:'orange',backlog:'gray',review:'violet',wontDo:'gray'};
+/* BL-113: Review's human-in-the-loop pill and its empty text; Won't do is folded to a strip until opened (a page variable, so a reload folds it again). */
+const HITL='Human-in-the-loop: you check the agent\'s work here before it counts as done';
+let wontDoOpen=false;
+/* A lane is drawn when its heading is in the file; the three of BL-TB-04 always, with BL-112's warning when one is missing. */
+function laneDrawn(col){const T=DATA&&DATA.tasks;if(!T)return false;return col==='review'||col==='wontDo'?T.headings.found.includes('## '+COLS[col]):true;}
 function mdi(t){return md(String(t)).replace(/^<p>/,'').replace(/<\/p>$/,'');}
 /* Completed is listed newest first (the file runs oldest first); the others in file order. */
 function rowsOf(col){
@@ -181,7 +189,7 @@ function taskRow({t,i},col){
   return `<div class="card"><button type="button" class="row act" data-col="${col}" data-i="${i}"${mv?' draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"':''}>
     <span class="st ${DOT[col]}" aria-hidden="true"></span>
     <div class="body"><div class="ttl clamp">${col==='completed'?`<span class="num" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span>${mdi(t.description)}</div></div>
-    <div class="trail">${chev}</div>
+    <div class="trail">${col==='review'&&t.approved?'<span class="pill green chip">Approved</span>':''}${chev}</div>
   </button><button type="button" class="dots" data-menu="${col}:${i}" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for ${esc(t.id)}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg></button></div>`;
 }
 function group(col,items){
@@ -189,12 +197,18 @@ function group(col,items){
   const add=TOKEN&&ADDABLE[col]?`<button type="button" class="add" data-add="${col}" aria-label="Add new task to ${esc(COLS[col])}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add</button>`:'';
   // BL-TB-06 (D8): Completed always carries `Archive`, which opens the dialog with the gates; none with --read-only
   const arch=col==='completed'&&TOKEN&&DATA.tasks?`<button type="button" class="arch" data-archive aria-label="Archive the oldest Completed rows to planning/tasks-archive.md"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-archive"/></svg>Archive</button>`:'';
-  const gh=`<div class="gh">${esc(COLS[col])} <span class="cnt">${items.length}</span>${add}${arch}</div>`;
-  return gh+`<div class="box">${items.length?items.map(x=>taskRow(x,col)).join(''):'<div class="empty">No rows in this section.</div>'}</div>`;
+  // BL-113: Review carries the HITL pill; Won't do's title is the button that folds and unfolds its strip
+  const title=col==='wontDo'?`<button type="button" class="fold" data-fold aria-expanded="${wontDoOpen}">${esc(COLS[col])} <span class="cnt">${items.length}</span>${chev}</button>`
+    :`${esc(COLS[col])}${col==='review'?` <abbr class="hitl" title="${esc(HITL)}" aria-label="${esc(HITL)}">HITL</abbr>`:''} <span class="cnt">${items.length}</span>`;
+  const gh=`<div class="gh">${title}${add}${arch}</div>`;
+  const empty=col==='review'?'Nothing waiting for you. Agents move finished work here.':'No rows in this section.';
+  return gh+`<div class="box"${col==='wontDo'&&!wontDoOpen?' hidden':''}>${items.length?items.map(x=>taskRow(x,col)).join(''):`<div class="empty">${empty}</div>`}</div>`;
 }
 function renderTasks(){
   closeCardMenu(false); // BL-TB-11: its card is redrawn; focusKey() carries focus back to the card
-  $('#boardMode').innerHTML=LANES.map(c=>`<div class="gl" data-col="${c}">${group(c,rowsOf(c))}</div>`).join('');
+  const drawn=LANES.filter(laneDrawn);
+  $('#boardMode').innerHTML=drawn.map(c=>`<div class="gl${c==='wontDo'&&!wontDoOpen?' fold':''}" data-col="${c}">${group(c,rowsOf(c))}</div>`).join('');
+  $('#boardMode').style.setProperty('--cols',drawn.map(c=>c==='wontDo'&&!wontDoOpen?'44px':'minmax(0,1fr)').join(' ')||'none'); // BL-113: one column per drawn lane, a strip for the folded Won't do
   const T=DATA.tasks;
   const bad=T?T.malformed:[];
   $('#gRaw').hidden=!bad.length;
@@ -225,10 +239,11 @@ function headingMessages(T){
   const x=(attrs,label)=>`<button type="button" class="ib x mx" ${attrs} aria-label="${label}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>`;
   const warns=H.missing.map(h=>{
     const c=H.variants[h]||[],one=c.length===1?c[0]:null,lane=h.slice(3),cols=joinAnd(H.columns[h]||['ID','Description']);
+    const col=LANES.find(l=>'## '+COLS[l]===h),shown=col?laneDrawn(col):true; // BL-113: a Review lane is not drawn without its heading
     const prompt=one?`In ${TASKS_FILE}, rename the heading "${one}" to "${h}" so SpecPilot's Tasks board reads the section, and update anything that refers to it.`
       :`In ${TASKS_FILE}, add a "${h}" section (a table with ${cols} columns) so SpecPilot's Tasks board reads it, and update anything that refers to it.`;
-    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane is empty: tasks.md has no ${q(h)} heading</div>`+
-      `<p>${one?`The file has ${q(one)} instead, so the rows under it are not shown.`:`The board reads ${joinAnd(LANES.map(l=>q('## '+COLS[l])))}.`}</p>`+
+    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane is ${shown?'empty':'not shown'}: tasks.md has no ${q(h)} heading</div>`+
+      `<p>${one?`The file has ${q(one)} instead, so the rows under it are not shown.`:`The board reads ${joinAnd(REQUIRED.map(l=>q('## '+COLS[l])))}.`}</p>`+
       `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and ${one?`rename ${q(one)} to ${q(h)}`:`add a ${q(h)} section`}, best done by your AI IDE so that anything referring to the section is updated too.</p>`+
       `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
   });
@@ -248,7 +263,7 @@ function headingMessages(T){
     const n=H.unknownRows[h]||0;
     const title=n===0?`${q(h)} is not a board lane, so its rows would not be shown here (it has no rows)`:`${q(h)} is not a board lane, so its ${n===1?'1 row is':n+' rows are'} not shown here`;
     return `<div class="msg info"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div class="mb"><div class="mt"><span class="mw">Note</span> ${title}</div>`+
-      `<p>The board shows Backlog, Current Sprint and Completed. The rows stay in tasks.md.</p><div class="actions">${openBtn}</div></div>${x(`data-hidenote="${esc(h)}"`,'Hide this note')}</div>`;
+      `<p>The board shows ${joinAnd(REQUIRED.map(l=>COLS[l]))}. The rows stay in tasks.md.</p><div class="actions">${openBtn}</div></div>${x(`data-hidenote="${esc(h)}"`,'Hide this note')}</div>`;
   });
   const bar=warns.length&&warnHidden?`<div class="msgbar"><span>${warns.length} warning${warns.length===1?'':'s'} about tasks.md</span><button type="button" class="btn sm" data-showwarn>Show</button></div>`:'';
   return (warnHidden?bar:warns.join(''))+notes.join('');
@@ -267,14 +282,86 @@ function openTask(col,i,quiet){
   selected=col+':'+i;inspOpen={kind:'task',col,i,id:t.id};
   $$('.row.sel').forEach(r=>r.classList.remove('sel'));
   $$(`#v-board .row[data-col="${col}"][data-i="${i}"]`).forEach(r=>r.classList.add('sel'));
-  insp.innerHTML=`<div class="ih">${col==='completed'?`<span class="id" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span><span class="pill ${col==='completed'?'green':col==='currentSprint'?'orange':'gray'}">${esc(COLS[col])}</span><button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>
+  // BL-113: a Won't do row shows its Reason; a Review row its History and, with a token, the Approve and Send back footer
+  const reason=col==='wontDo'?`<div class="gl"><div class="gh">Reason</div><div class="box"><div class="desc md">${md(t.reason)}</div></div></div>`:'';
+  const hist=col==='review'&&t.history.length?`<div class="gl"><div class="gh">History <span class="cnt">${t.history.length}</span></div><div class="box">${t.history.map(h=>`<div class="hist"><span class="hd" translate="no">Sent back ${esc(h.date)}</span>${h.note?`<div class="hn">${md(h.note)}</div>`:''}</div>`).join('')}</div></div>`:'';
+  // D14: an approved row says what happens next and hands over the one-line prompt for the agent
+  const done=t.approved?`<p class="rvdone" id="rvDone">Approved ${esc(t.approved)}. Tell your agent to wrap it up: it writes the Completed entry (number, CD ID, commit) and the row leaves Review.</p><div class="fb"><button type="button" class="btn sm" id="rvCopy">Copy prompt</button></div>`:'';
+  const foot=col==='review'&&TOKEN?`<div class="if" id="inspFoot">${done}<div class="fb">${t.approved?'':'<button type="button" class="btn pri" id="rvApprove">Approve</button>'}<button type="button" class="btn" id="rvSend">Send back</button></div>
+    <form id="rvForm" autocomplete="off" hidden><label for="rvNote">What needs fixing? (optional)</label><textarea id="rvNote" name="review-note" rows="3" maxlength="200" aria-describedby="rvCount rvErr"></textarea><div class="fc" id="rvCount" aria-live="polite">0/200</div><div class="fb"><button type="submit" class="btn pri" id="rvGo">Send back to Current Sprint</button><button type="button" class="btn" id="rvCancel">Cancel</button></div></form>
+    <p class="err" id="rvErr" role="alert" hidden></p></div>`:'';
+  insp.innerHTML=`<div class="ih">${col==='completed'?`<span class="id" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span><span class="pill ${PILL[col]}">${esc(COLS[col])}</span>${col==='review'&&t.approved?'<span class="pill green">Approved</span>':''}<button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>
   <div class="ib2">
     <div class="gl"><div class="gh">Description <span class="cnt" translate="no">tasks.md · ## ${esc(COLS[col])}</span></div><div class="box"><div class="desc md">${md(t.description)}</div></div></div>
+    ${reason}${hist}
     <div class="actions"><a class="btn sm" href="${esc(editorUrl(DATA.project.root+'/.specs/planning/tasks.md',t.line))}">Open tasks.md in VS Code</a></div>
-  </div>`;
+  </div>${foot}`;
+  if(foot)bindReview(col,i);
   openInsp(quiet);
 }
-function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;if(!quiet)setTimeout(()=>$('#inspX').focus(),60);}
+/* ---------------- review (BL-113) ----------------
+   Approve appends ` Approved <date>` to the row; Send back appends ` Sent back <date>: <note>` and moves the row to the
+   top of Current Sprint; each toast's Undo sends the inverse action, which removes exactly that marker. One route,
+   POST /api/tasks/review, with the move's checks; a refusal shows in the footer with the note kept. */
+let reviewing=false;
+function rvError(m){const e=$('#rvErr');if(!e)return;e.textContent=m||'';e.hidden=!m;}
+function rvCount(){const n=$('#rvNote'),c=$('#rvCount');if(n&&c)c.textContent=[...n.value].length+'/200';}
+function openSendBack(text){
+  const f=$('#rvForm');if(!f)return;f.hidden=false;$('#rvSend').hidden=true;const a=$('#rvApprove');if(a)a.hidden=true;
+  const n=$('#rvNote');n.value=text||'';rvCount();rvError('');n.focus();
+  if(document.activeElement!==n)setTimeout(()=>{if(n.isConnected&&!$('#rvForm').hidden)n.focus();},70); // the panel was still sliding in: focus once it is visible, unless the box closed meanwhile
+}
+function closeSendBack(refocus){
+  const f=$('#rvForm');if(!f||f.hidden)return;f.hidden=true;$('#rvSend').hidden=false;const a=$('#rvApprove');if(a)a.hidden=false;rvError('');
+  if(refocus)$('#rvSend').focus();
+}
+/* The sentence an approved row hands to the agent (D14): what the generated Tasks mandate asks of it, with this row's ID. */
+const wrapUpPrompt=id=>`${id} is approved in .specs/planning/tasks.md: write its Completed entry with the number, CD ID and commit, and remove the row from ## Review.`;
+function bindReview(col,i){
+  const a=$('#rvApprove');if(a)a.onclick=()=>review(col,i,'approve',{});
+  const c=$('#rvCopy');if(c)c.onclick=()=>copyText(wrapUpPrompt(DATA.tasks[col][i].id));
+  $('#rvSend').onclick=()=>openSendBack('');
+  $('#rvCancel').onclick=()=>closeSendBack(true);
+  $('#rvNote').oninput=rvCount;
+  $('#rvNote').onkeydown=e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeSendBack(true);}
+    else if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();$('#rvForm').requestSubmit();}
+  };
+  $('#rvForm').onsubmit=e=>{e.preventDefault();review(col,i,'sendBack',{note:$('#rvNote').value});};
+}
+/* `col`/`i` locate the row now; `extra` is the action's own fields; the undo of an action is `isUndo`. */
+async function review(col,i,action,extra,isUndo){
+  const t=DATA.tasks[col]&&DATA.tasks[col][i],p=PROJECT;if(!t||reviewing)return;
+  const typed=extra.note;
+  reviewing=true;$$('#inspFoot button').forEach(b=>{b.disabled=true;});
+  let r,body={};
+  try{
+    r=await fetch('/api/tasks/review?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({id:t.id,action,...extra})});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  reviewing=false;$$('#inspFoot button').forEach(b=>{b.disabled=false;});
+  if(!r){if(action==='sendBack')rvError('The server did not answer. Nothing was changed.');else toast('The server did not answer. Nothing was changed.');return;}
+  if(p!==PROJECT)return;
+  if(r.status===200){
+    const toLane=action==='sendBack'?'currentSprint':'review';
+    if(action==='sendBack'||action==='unsendBack'){lastFocus=null;closeInsp();}
+    await apply(body.specs,['.specs/planning/tasks.md']);
+    const j=DATA.tasks[toLane].findIndex(x=>x.id===t.id);
+    if(action==='sendBack'||action==='unsendBack'){const el=$(`#v-board .row[data-col="${toLane}"][data-i="${j}"]`);if(el)el.focus();}
+    else{const b=$(action==='approve'?'#rvSend':'#rvApprove')||$('#inspX');if(b&&insp.classList.contains('open'))b.focus();}
+    if(action==='approve')toast(`${t.id} approved: marked in planning/tasks.md. Next: tell your agent to wrap it up; it writes the Completed entry.`,isUndo?null:{label:'Undo',fn:()=>{const k=DATA.tasks.review.findIndex(x=>x.id===t.id);if(k>=0)review('review',k,'unapprove',{date:body.date},true);}});
+    else if(action==='unapprove')toast(`${t.id} is no longer marked Approved`);
+    else if(action==='sendBack')toast(`Sent ${t.id} back to Current Sprint`,isUndo?null:{label:'Undo',fn:()=>{const k=DATA.tasks.currentSprint.findIndex(x=>x.id===t.id);if(k>=0)review('currentSprint',k,'unsendBack',{date:body.date,note:body.note,toIndex:body.fromIndex},true);}});
+    else toast(`${t.id} is back in ## Review in planning/tasks.md`);
+    return;
+  }
+  if(r.status===409&&body.specs)await apply(body.specs,null); // the inspector is redrawn on the same row when it is still there
+  const msg=body.error||`Nothing was changed (HTTP ${r.status}).`;
+  if(action==='sendBack'&&$('#rvForm')){openSendBack(typed);rvError(msg);}
+  else if($('#inspFoot'))rvError(msg);
+  else toast(msg);
+}
+function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;if(!quiet)setTimeout(()=>{if(insp.classList.contains('open')&&!insp.contains(document.activeElement))$('#inspX').focus();},60);} // the close button takes focus unless the panel closed meanwhile or something in it already has focus (the Send back box, BL-113)
 function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>{const col=r.dataset.col,i=+r.dataset.i;
@@ -285,6 +372,7 @@ function bind(){
   $$('#v-board [data-menu]').forEach(b=>b.onclick=()=>{const [col,i]=b.dataset.menu.split(':');if(menuOn&&menuOn.col===col&&menuOn.i===+i)closeCardMenu(true);else openCardMenu(col,+i,menuAnchor(col,+i));});
   $$('#v-board [data-add]').forEach(b=>b.onclick=()=>openNewTask(b.dataset.add,`#v-board [data-add="${b.dataset.add}"]`));
   $$('#v-board [data-archive]').forEach(b=>b.onclick=openArchive);
+  $$('#v-board [data-fold]').forEach(b=>b.onclick=()=>{wontDoOpen=!wontDoOpen;renderTasks();const f=$('#v-board [data-fold]');if(f)f.focus();}); // BL-113
   if(TOKEN)bindMoves();
 }
 
@@ -428,7 +516,8 @@ document.addEventListener('click',e=>{if(!ideMenu.hidden&&!e.target.closest('#id
 /* ---------------- card menu (BL-TB-11) ----------------
    A task card's actions: the lanes the move table lets it go to, reorder, details, Copy ID.
    Built from DATA.tasks.moves (the server's MOVES), so a new lane is a table entry, not page code. */
-const LANES=['backlog','currentSprint','completed']; // the drawn order (REQ-002.H.47); BL-113 adds its lanes here
+const LANES=['backlog','currentSprint','review','completed','wontDo']; // the drawn order (REQ-002.H.47; Review and Won't do since BL-113)
+const REQUIRED=LANES.filter(c=>c!=='wontDo'); // the headings the board asks for (BL-112's sentences); Won't do is read when present
 const moves=()=>(DATA&&DATA.tasks&&DATA.tasks.moves)||{};
 /* An own key, never `in`: an inherited name (__proto__, toString) is not a lane. A lane in the table may reorder itself. */
 const canMove=(from,to)=>{const m=moves();return Array.isArray(m[from])&&(from===to||m[from].includes(to));};
@@ -440,8 +529,12 @@ const dotsBtn=(col,i)=>$(`#v-board .card [data-menu="${col}:${i}"]`);
 const KEYS={'Alt+→':'Alt+ArrowRight','Alt+←':'Alt+ArrowLeft','Alt+↑':'Alt+ArrowUp','Alt+↓':'Alt+ArrowDown'};
 function menuItems(col,i){
   const t=DATA.tasks[col][i],n=DATA.tasks[col].length,it=[];
+  if(TOKEN&&col==='review'){ // BL-113: the reviewed exits first
+    if(!t.approved)it.push({label:'Approve',fn:()=>{openTask(col,i);review(col,i,'approve',{});}});
+    it.push({label:'Send back…',fn:()=>{openTask(col,i);openSendBack('');}});
+  }
   if(TOKEN&&canMove(col,col)){
-    const right=laneBy(col,1),left=laneBy(col,-1),to=moves()[col].filter(c=>COLS[c]&&DATA.tasks[c]);
+    const right=laneBy(col,1),left=laneBy(col,-1),to=col==='review'?[]:moves()[col].filter(c=>COLS[c]&&DATA.tasks[c]); // D16: a Review card leaves only by Send back
     if(to.length)it.push({head:'Move to'});
     to.forEach(c=>{it.push({label:COLS[c],hint:c===right?'Alt+→':c===left?'Alt+←':'',fn:()=>move(col,i,c,DATA.tasks[c].length)});it.push({label:COLS[c]+', top',fn:()=>move(col,i,c,0)});});
     if(i>0)it.push({label:'Move up',hint:'Alt+↑',fn:()=>move(col,i,col,i-1)});
@@ -493,7 +586,7 @@ function items(q){q=q.toLowerCase();
   const it=[
     ...NAV.map(n=>n[0]==='file'?{l:'.specs/'+n[1],k:'file',go:()=>go('file',n[1])}:{l:VIEWS[n[0]],k:'view',go:()=>go(n[0])}),
     ...(DATA?DATA.nav.specs:[]).filter(p=>!NAV.some(n=>n[1]===p)).map(p=>({l:'.specs/'+p,k:'file',go:()=>go('file',p)})),
-    ...(T?['currentSprint','backlog','completed'].flatMap(c=>T[c].map((t,i)=>({l:t.id+'  '+t.description,k:'task',go:()=>{go('board');openTask(c,i)}}))):[])
+    ...(T?['currentSprint','review','backlog','completed','wontDo'].flatMap(c=>(T[c]||[]).map((t,i)=>({l:t.id+'  '+t.description,k:'task',go:()=>{go('board');openTask(c,i)}}))):[])
   ];
   return it.filter(i=>!q||i.l.toLowerCase().includes(q)).slice(0,9);}
 function renderPal(){const it=items(palIn.value);palList.innerHTML=it.map((i,n)=>`<li class="${n===0?'on':''}" role="option" aria-selected="${n===0}" tabindex="0"><span class="lbl">${esc(i.l)}</span><span class="k">${esc(i.k)}</span></li>`).join('')||'<li class="empty">No matches</li>';$$('#palList li').forEach((li,n)=>{li.onclick=()=>{it[n]&&it[n].go();closePal();};li.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();li.click()}}});}
@@ -515,14 +608,17 @@ document.addEventListener('keydown',e=>{
 /* ---------------- task moves (BL-053) ----------------
    A move is one line of planning/tasks.md cut and pasted unchanged; the server does it and
    answers with the new file hash and the fresh payload. Completed rows never move. */
-let dragging=null,moving=false;
+let dragging=null,moving=false,hinted=false; // hinted: the Completed toast once per drag (D15)
+/* D15: why a card cannot go to Completed from the page, said once per gesture instead of a silent refusal. */
+const COMPLETED_HINT='Nothing moves to Completed from here. Approve the card in Review, then tell your agent to wrap it up: it writes the Completed entry.';
 function bindMoves(){
   $$('#v-board .row[draggable="true"]').forEach(r=>{
-    r.ondragstart=e=>{dragging={col:r.dataset.col,i:+r.dataset.i};e.dataTransfer.setData('text/plain',DATA.tasks[dragging.col][dragging.i].id);e.dataTransfer.effectAllowed='move';r.classList.add('drag');};
+    r.ondragstart=e=>{dragging={col:r.dataset.col,i:+r.dataset.i};e.dataTransfer.setData('text/plain',DATA.tasks[dragging.col][dragging.i].id);e.dataTransfer.effectAllowed='move';r.classList.add('drag');hinted=false;};
     r.ondragend=()=>{r.classList.remove('drag');dragging=null;$$('.gl.drop').forEach(g=>g.classList.remove('drop'));};
   });
   // Drop targets (BL-TB-11): every lane; a drop lands only where the move table lets the dragged row go.
   $$('#v-board .gl[data-col]').forEach(g=>{
+    g.ondragenter=()=>{if(dragging&&g.dataset.col==='completed'&&!canMove(dragging.col,'completed')&&!hinted){hinted=true;toast(COMPLETED_HINT);}}; // D15
     g.ondragover=e=>{if(!dragging||!canMove(dragging.col,g.dataset.col))return;e.preventDefault();e.dataTransfer.dropEffect='move';g.classList.add('drop');};
     g.ondragleave=e=>{if(!g.contains(e.relatedTarget))g.classList.remove('drop');};
     g.ondrop=e=>{
@@ -533,7 +629,8 @@ function bindMoves(){
       const card=e.target.closest&&e.target.closest('.card'),over=card&&card.querySelector('.row[data-col]');
       let at=others.length;
       if(over&&over.dataset.col===to){const j=+over.dataset.i,k=others.indexOf(j);if(k>=0){const b=over.getBoundingClientRect();at=k+(e.clientY>b.top+b.height/2?1:0);}}
-      move(src.col,src.i,to,at);
+      if(src.col==='review'&&to!==src.col)review(src.col,src.i,'sendBack',{note:''}); // D16: out of Review only by Send back, so the Approved state ends with a marker
+      else move(src.col,src.i,to,at);
     };
   });
 }
@@ -545,7 +642,9 @@ function altMove(r,e){
   const go2={ArrowUp:i>0&&[col,i-1],ArrowDown:i<n-1&&[col,i+1],ArrowRight:!!lane&&[lane,DATA.tasks[lane].length],ArrowLeft:!!lane&&[lane,DATA.tasks[lane].length]}[e.key];
   if(go2===undefined)return;
   e.preventDefault();
-  if(go2)move(col,i,go2[0],go2[1]);
+  if(go2&&col==='review'&&go2[0]!==col)review(col,i,'sendBack',{note:''}); // D16
+  else if(go2)move(col,i,go2[0],go2[1]);
+  else if(e.key==='ArrowRight'&&LANES[LANES.indexOf(col)+1]==='completed')toast(COMPLETED_HINT); // D15: Alt+→ from the lane before Completed
 }
 async function move(col,i,toSection,toIndex,isUndo){
   const t=DATA.tasks[col][i],p=PROJECT;if(!t||moving)return;

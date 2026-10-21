@@ -304,6 +304,11 @@ Task ID conventions
 | ID | Description |
 |---|---|
 
+## Review
+
+| ID | Description |
+|---|---|
+
 ## Completed
 
 | # | ID | Description |
@@ -449,7 +454,7 @@ function onboardingMd(context: TemplateContext): { content: string; prompt: stri
 - \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
 - \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
 - \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
-- \`planning/tasks.md\`: keep the three headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Completed\`; each holds a markdown table (\`| ID | Description |\`; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-${context.author || '{{author}}'}-###. The SpecPilot Tasks board reads those tables and nothing else
+- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Description |\`; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-${context.author || '{{author}}'}-###. The SpecPilot Tasks board reads those tables and nothing else
 - \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
 - \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
 - \`development/context.md\`: ## Project Context, Key Decisions, Known Issues`;

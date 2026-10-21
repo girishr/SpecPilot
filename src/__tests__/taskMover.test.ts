@@ -6,7 +6,9 @@ import {
   ARCHIVE_SPLIT_ERROR,
   ARCHIVE_STALE_ERROR,
   archiveCompleted,
+  COMPLETED_BY_HAND,
   completedArchiveStatus,
+  localDate,
   moveShapeError,
   MOVES,
   moveTask,
@@ -20,6 +22,12 @@ import {
   nothingPastKeepError,
   planMove,
   planNewTask,
+  planReview,
+  REVIEW_STALE_ERROR,
+  reviewNote,
+  ReviewRequest,
+  reviewShapeError,
+  reviewTask,
   suggestedIds,
   sha256,
   STALE_ERROR,
@@ -78,7 +86,15 @@ const TASKS = [
   '|---|---|---|',
   '| 1 | [CD-001] | Done |',
   '',
+  '## Review',
+  '',
+  '| ID | Description |',
+  '|---|---|',
+  '',
 ].join('\n');
+
+/** TASKS with two Review rows and a Won't do section (BL-113); the IDs sit after TASKS's, so its next-ID cases keep their numbers. */
+const RTASKS = TASKS + ['| BL-005 | Reviewed one |', '| BL-006 | Reviewed two, approved Approved 2026-10-02 |', '', "## Won't do", '', '| ID | Description | Reason |', '|---|---|---|', '| BL-007 | Dropped | Not needed |', ''].join('\n');
 
 const line = (content: string, id: string) => content.split('\n').find(l => l.includes(`| ${id} |`))!;
 
@@ -168,14 +184,14 @@ describe('planMove: a move is one line cut and pasted', () => {
   });
 
   // BL-TB-11: the one table of allowed lane moves, enforced here and sent to the page as tasks.moves.
-  it('the move table MOVES: Backlog and Current Sprint, each to the other, nothing else', () => {
-    expect(MOVES).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog'] });
+  it('the move table MOVES: Backlog and Current Sprint each to the other, Current Sprint to Review, Review back to Current Sprint, nothing else (BL-113)', () => {
+    expect(MOVES).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog', 'review'], review: ['currentSprint'] });
   });
 
   it('allows every pair the table names and a reorder within each key', () => {
-    const ids = { backlog: 'BL-001', currentSprint: 'CS-001' } as const;
+    const ids = { backlog: 'BL-001', currentSprint: 'CS-001', review: 'BL-005' } as const;
     for (const [from, targets] of Object.entries(MOVES) as [keyof typeof MOVES, readonly TaskMove['toSection'][]][]) {
-      for (const to of [from, ...targets]) expect(planMove(TASKS, { id: ids[from], toSection: to, toIndex: 0 }).ok).toBe(true);
+      for (const to of [from, ...targets]) expect(planMove(RTASKS, { id: ids[from], toSection: to, toIndex: 0 }).ok).toBe(true);
     }
   });
 
@@ -185,6 +201,15 @@ describe('planMove: a move is one line cut and pasted', () => {
     expect(planMove(TASKS, { id: 'BL-001', toSection: 'backlog', toIndex: 2 }, table).ok).toBe(true); // its own lane still reorders
     expect(planMove(TASKS, { id: 'CS-001', toSection: 'backlog', toIndex: 0 }, table).ok).toBe(true);
     expect(planMove(TASKS, { id: 'BL-001', toSection: 'backlog', toIndex: 0 }, { currentSprint: ['backlog'] })).toEqual({ ok: false, error: 'Backlog rows cannot be moved.' });
+  });
+
+  it('BL-113: a Review row goes back to Current Sprint only, byte for byte with its markers, never to Backlog; a Won\'t do row never moves', () => {
+    const back = planMove(RTASKS, { id: 'BL-006', toSection: 'currentSprint', toIndex: 2 });
+    expect(back.ok).toBe(true);
+    if (back.ok) expectOneLineMove(RTASKS, back.content, line(RTASKS, 'BL-006')); // the Approved marker travels with the line, nothing added
+    expect(planMove(RTASKS, { id: 'BL-005', toSection: 'backlog', toIndex: 0 })).toEqual({ ok: false, error: 'Review rows cannot be moved to Backlog.' });
+    expect(planMove(RTASKS, { id: 'BL-007', toSection: 'currentSprint', toIndex: 0 })).toEqual({ ok: false, error: "Won't do rows cannot be moved." });
+    expect(planMove(RTASKS, { id: 'CS-001', toSection: 'review', toIndex: 2 }).ok).toBe(true);
   });
 
   it.each<[string, string, TaskMove, string]>([
@@ -200,9 +225,10 @@ describe('planMove: a move is one line cut and pasted', () => {
   it.each([
     [null, 'The request must be a JSON object with id, toSection and toIndex.'],
     [{ toSection: 'backlog', toIndex: 0 }, 'The request has no task ID.'],
-    [{ id: 'BL-1', toSection: 'completed', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'],
-    [{ id: 'BL-1', toSection: '__proto__', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'], // an inherited name is not a lane (BL-TB-11)
-    [{ id: 'BL-1', toSection: 'toString', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'],
+    [{ id: 'BL-1', toSection: 'completed', toIndex: 0 }, COMPLETED_BY_HAND], // BL-113: the by-hand rule, before the key text
+    [{ id: 'BL-1', toSection: 'wontDo', toIndex: 0 }, 'Tasks can only be moved to Backlog, Current Sprint or Review.'],
+    [{ id: 'BL-1', toSection: '__proto__', toIndex: 0 }, 'Tasks can only be moved to Backlog, Current Sprint or Review.'], // an inherited name is not a lane (BL-TB-11)
+    [{ id: 'BL-1', toSection: 'toString', toIndex: 0 }, 'Tasks can only be moved to Backlog, Current Sprint or Review.'],
     [{ id: 'BL-1', toSection: 'backlog', toIndex: -1 }, 'The position must be a whole number, 0 or more.'],
     [{ id: 'BL-1', toSection: 'backlog', toIndex: 1.5 }, 'The position must be a whole number, 0 or more.'],
   ])('checks the request shape: %j', (body, error) => {
@@ -217,6 +243,7 @@ describe('tasksChecks: the validator\'s tasks.md checks on content in memory', (
       'tasks.md should track task status (In Progress, Completed, etc.)',
       'planning/tasks.md has no `## Backlog` section (`## ` headings found: none).',
       'planning/tasks.md has no `## Current Sprint` section (`## ` headings found: none).',
+      'planning/tasks.md has no `## Review` section (`## ` headings found: none).',
       'planning/tasks.md has no `## Completed` section (`## ` headings found: none).',
       'planning/tasks.md is missing YAML front-matter metadata.',
       'planning/tasks.md should reference planning/roadmap.md',
@@ -311,6 +338,186 @@ describe('moveTask: the write on disk', () => {
 });
 
 // ─── New Task (BL-PM-005) ────────────────────────────────────────────────────
+
+
+// ---- Review (BL-113, REQ-002.H.55): a marker appended to one Review row's cell, or the last one removed by naming it
+
+describe('reviewNote: what goes into the cell', () => {
+  it('turns runs of line breaks into one space, escapes |, trims, and keeps everything else as typed', () => {
+    expect(reviewNote('  fix the\r\n\ntest  ')).toEqual({ note: 'fix the test' });
+    expect(reviewNote('a | b c')).toEqual({ note: 'a \\| b c' });
+    expect(reviewNote(undefined)).toEqual({ note: '' });
+    expect(reviewNote('`code` **bold**')).toEqual({ note: '`code` **bold**' });
+    expect(reviewNote('😀'.repeat(200))).toEqual({ note: '😀'.repeat(200) }); // 200 code points
+  });
+  it.each([
+    ['a tab', 'a\tb', 'control character'],
+    ['an unpaired surrogate', 'a\ud800b', 'cannot be written as UTF-8'],
+    ['a trailing backslash', 'path\\', 'cannot end in \\'],
+    ['201 characters', 'x'.repeat(201), 'longer than 200'],
+    ['not text', 42, 'must be text'],
+  ])('refuses %s', (_n, raw, text) => {
+    const out = reviewNote(raw);
+    expect('error' in out && out.error).toContain(text);
+  });
+});
+
+describe('reviewShapeError', () => {
+  it.each<[unknown, string | null]>([
+    [{ id: 'BL-005', action: 'approve' }, null],
+    [{ id: 'BL-005', action: 'sendBack' }, null],
+    [{ id: 'BL-005', action: 'sendBack', note: 'x' }, null],
+    [{ id: 'BL-005', action: 'unapprove', date: '2026-10-20' }, null],
+    [{ id: 'BL-005', action: 'unsendBack', date: '2026-10-20', note: '', toIndex: 0 }, null],
+    [null, 'The request must be a JSON object with id and action.'],
+    [[], 'The request must be a JSON object with id and action.'],
+    [{ action: 'approve' }, 'The request has no task ID.'],
+    [{ id: 'BL-005', action: 'complete' }, 'action must be approve, unapprove, sendBack or unsendBack.'],
+    [{ id: 'BL-005', action: 'sendBack', note: 'a\tb' }, 'The note contains a control character (such as a tab), which a table row cannot hold as typed.'],
+    [{ id: 'BL-005', action: 'unapprove' }, 'date must be the YYYY-MM-DD the action wrote.'],
+    [{ id: 'BL-005', action: 'unapprove', date: '20 Oct' }, 'date must be the YYYY-MM-DD the action wrote.'],
+    [{ id: 'BL-005', action: 'unsendBack', date: '2026-10-20', toIndex: 0 }, 'note must be the text the send back wrote, or empty.'],
+    [{ id: 'BL-005', action: 'unsendBack', date: '2026-10-20', note: '', toIndex: -1 }, 'The position must be a whole number, 0 or more.'],
+  ])('%j → %s', (body, error) => {
+    expect(reviewShapeError(body)).toBe(error);
+  });
+});
+
+describe('planReview: one cell changed, every other byte kept', () => {
+  const TODAY = '2026-10-20';
+  const plan = (content: string, req: ReviewRequest) => planReview(content, req, TODAY);
+  /** The two versions differ in exactly one line, and in it only by `suffix` at the cell's end. */
+  const expectOneCellEdit = (before: string, after: string, id: string, suffix: string) => {
+    const a = before.split('\n');
+    const b = after.split('\n');
+    expect(b).toHaveLength(a.length);
+    const k = a.findIndex(l => l.includes(`| ${id} |`));
+    expect(b.filter((l, i) => l !== a[i]).length).toBe(1);
+    expect(b[k]).not.toBe(a[k]);
+    const tail = /(\s*\|)?\s*\r?$/.exec(a[k])![0];
+    expect(b[k]).toBe(a[k].slice(0, a[k].length - tail.length) + suffix + tail);
+    expect(gitNumstat(before, after).trim()).toBe('1\t1\ta.md => b.md');
+  };
+
+  it('approve appends ` Approved <today>` inside the cell, before the closing pipe', () => {
+    const out = plan(RTASKS, { id: 'BL-005', action: 'approve' });
+    expect(out).toMatchObject({ ok: true, date: TODAY, note: '', fromIndex: 0, index: 0 });
+    if (out.ok) {
+      expectOneCellEdit(RTASKS, out.content, 'BL-005', ' Approved 2026-10-20');
+      expect(line(out.content, 'BL-005')).toBe('| BL-005 | Reviewed one Approved 2026-10-20 |');
+    }
+  });
+
+  it.each([
+    ['a row without a closing pipe', '| BL-005 | Reviewed one', '| BL-005 | Reviewed one Approved 2026-10-20'],
+    ['a row with odd spacing before the pipe', '| BL-005 |  Reviewed one   |', '| BL-005 |  Reviewed one Approved 2026-10-20   |'],
+    ['an empty cell', '| BL-005 |  |', '| BL-005 | Approved 2026-10-20  |'],
+    ['a CRLF row', '| BL-005 | Reviewed one |\r', '| BL-005 | Reviewed one Approved 2026-10-20 |\r'],
+  ])('approve keeps the tail of %s', (_n, row, expected) => {
+    const content = RTASKS.replace('| BL-005 | Reviewed one |', row);
+    const out = plan(content, { id: 'BL-005', action: 'approve' });
+    expect(out.ok).toBe(true);
+    if (out.ok) expect(out.content.split('\n').find(l => l.startsWith('| BL-005 |'))).toBe(expected);
+  });
+
+  it('approve refuses a row already approved, a row outside Review, an unknown and a duplicate ID', () => {
+    expect(plan(RTASKS, { id: 'BL-006', action: 'approve' })).toEqual({ ok: false, error: 'BL-006 is already marked Approved.' });
+    expect(plan(RTASKS, { id: 'CS-001', action: 'approve' })).toEqual({ ok: false, error: 'CS-001 is in Current Sprint, so it cannot be approved: only a Review row can be.' });
+    expect(plan(RTASKS, { id: 'BL-999', action: 'approve' })).toEqual({ ok: false, error: 'No task row in planning/tasks.md has the ID BL-999.' });
+    expect(plan(RTASKS.replace('| BL-003 | Third |', '| BL-005 | Third |'), { id: 'BL-005', action: 'approve' })).toEqual({ ok: false, error: 'BL-005 is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to change.' });
+  });
+
+  it('unapprove removes exactly the named marker and gives the bytes back; a wrong date or a cell without it is refused', () => {
+    const approved = plan(RTASKS, { id: 'BL-005', action: 'approve' });
+    if (!approved.ok) throw new Error(approved.error);
+    const back = plan(approved.content, { id: 'BL-005', action: 'unapprove', date: TODAY });
+    expect(back).toMatchObject({ ok: true, date: TODAY });
+    if (back.ok) expect(back.content).toBe(RTASKS);
+    expect(plan(approved.content, { id: 'BL-005', action: 'unapprove', date: '2026-10-19' })).toEqual({ ok: false, error: 'BL-005 is not marked Approved 2026-10-19, so there is nothing to undo.' });
+    expect(plan(RTASKS, { id: 'BL-005', action: 'unapprove', date: TODAY })).toEqual({ ok: false, error: `BL-005 is not marked Approved ${TODAY}, so there is nothing to undo.` });
+    // `Approved <date>` in running text, not at the end, is no marker (the reader's rule, shared)
+    const running = RTASKS.replace('| BL-005 | Reviewed one |', '| BL-005 | Approved 2026-10-01 by the team |');
+    expect(plan(running, { id: 'BL-005', action: 'unapprove', date: '2026-10-01' }).ok).toBe(false);
+    expect(plan(running, { id: 'BL-005', action: 'approve' }).ok).toBe(true);
+  });
+
+  it('sendBack appends ` Sent back <today>: <note>` (the note escaped) and moves the row to the top of Current Sprint (D12); an empty note gives the dot form', () => {
+    const out = plan(RTASKS, { id: 'BL-005', action: 'sendBack', note: ' tests | docs\nmissing ' });
+    expect(out).toMatchObject({ ok: true, date: TODAY, note: 'tests \\| docs missing', fromIndex: 0, index: 0 });
+    if (out.ok) {
+      expect(line(out.content, 'BL-005')).toBe('| BL-005 | Reviewed one Sent back 2026-10-20: tests \\| docs missing |');
+      const sprint = out.content.split('\n');
+      const at = sprint.indexOf('## Current Sprint');
+      expect(sprint.slice(at + 4, at + 7)).toEqual(['| BL-005 | Reviewed one Sent back 2026-10-20: tests \\| docs missing |', '| CS-001 | Sprint one |', '| BL-004 | Sprint two |']);
+      expect(out.content.split('\n').filter(l => l.includes('BL-005'))).toHaveLength(1);
+      expect(gitNumstat(RTASKS, out.content).trim()).toBe('1\t1\ta.md => b.md');
+    }
+    const dot = plan(RTASKS, { id: 'BL-005', action: 'sendBack' });
+    expect(dot).toMatchObject({ ok: true, note: '' });
+    if (dot.ok) expect(line(dot.content, 'BL-005')).toBe('| BL-005 | Reviewed one Sent back 2026-10-20. |');
+    expect(plan(RTASKS, { id: 'BL-004', action: 'sendBack' })).toEqual({ ok: false, error: 'BL-004 is in Current Sprint, so it cannot be sent back: only a Review row can be.' });
+    expect(plan(RTASKS.replace('| ID | Description |\n|---|---|\n| CS-001 | Sprint one |\n| BL-004 | Sprint two |', '[TODO]'), { id: 'BL-005', action: 'sendBack' })).toEqual({ ok: false, error: 'Current Sprint has no table yet.' });
+  });
+
+  it('unsendBack removes the named note and moves the row back to Review at toIndex, giving the bytes back; anything else is refused', () => {
+    for (const note of ['tests \\| docs missing', '']) {
+      const sent = plan(RTASKS, { id: 'BL-005', action: 'sendBack', note: note.replace('\\|', '|') });
+      if (!sent.ok) throw new Error(sent.error);
+      const back = plan(sent.content, { id: 'BL-005', action: 'unsendBack', date: TODAY, note, toIndex: 0 });
+      expect(back).toMatchObject({ ok: true, index: 0 });
+      if (back.ok) expect(back.content).toBe(RTASKS);
+      expect(plan(sent.content, { id: 'BL-005', action: 'unsendBack', date: TODAY, note: 'another note', toIndex: 0 })).toEqual({ ok: false, error: 'BL-005 does not end with that Sent back note, so there is nothing to undo.' });
+      expect(plan(sent.content, { id: 'BL-005', action: 'unsendBack', date: TODAY, note, toIndex: 5 })).toEqual({ ok: false, error: 'Position 5 is past the end of Review, which would have 2 rows.' });
+    }
+    // the row is found anywhere in Current Sprint, not only last
+    const sent = plan(RTASKS, { id: 'BL-005', action: 'sendBack' });
+    if (!sent.ok) throw new Error(sent.error);
+    const reordered = planMove(sent.content, { id: 'BL-005', toSection: 'currentSprint', toIndex: 0 });
+    if (!reordered.ok) throw new Error(reordered.error);
+    const back = plan(reordered.content, { id: 'BL-005', action: 'unsendBack', date: TODAY, note: '', toIndex: 0 });
+    expect(back.ok).toBe(true);
+    if (back.ok) expect(back.content).toBe(RTASKS);
+    expect(plan(RTASKS, { id: 'BL-005', action: 'unsendBack', date: TODAY, note: '', toIndex: 0 })).toEqual({ ok: false, error: 'BL-005 is in Review, so it cannot be put back: only a Current Sprint row that was sent back can be.' });
+  });
+});
+
+describe('reviewTask: the write on disk', () => {
+  let root: string;
+  let file: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(os.tmpdir(), 'specpilot-review-'));
+    mkdirSync(join(root, '.specs', 'planning'), { recursive: true });
+    file = join(root, '.specs', 'planning', 'tasks.md');
+    writeFileSync(file, RTASKS);
+  });
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+  const approve: ReviewRequest = { id: 'BL-005', action: 'approve' };
+
+  it('writes the one-cell edit dated by `now`, returns the new hash, keeps the mode, leaves no temp file', () => {
+    chmodSync(file, 0o640);
+    const out = reviewTask(root, approve, sha256(RTASKS), new Date(2031, 1, 3, 23, 59));
+    const after = readFileSync(file, 'utf-8');
+    expect(out).toEqual({ status: 200, sha256: sha256(after), date: '2031-02-03', note: '', fromIndex: 0, index: 0 });
+    expect(line(after, 'BL-005')).toBe('| BL-005 | Reviewed one Approved 2031-02-03 |');
+    expect(statSync(file).mode & 0o777).toBe(0o640);
+    expect(readdirSync(join(root, '.specs', 'planning'))).toEqual(['tasks.md']);
+    expect(localDate(new Date(2026, 0, 9))).toBe('2026-01-09');
+  });
+
+  it('409s on a stale hash, 422s on a refusal, refuses a symlinked tasks.md and bad UTF-8, writing nothing', () => {
+    expect(reviewTask(root, approve, sha256('something else'))).toEqual({ status: 409, error: REVIEW_STALE_ERROR });
+    expect(reviewTask(root, { id: 'BL-006', action: 'approve' }, sha256(RTASKS))).toEqual({ status: 422, error: 'BL-006 is already marked Approved.' });
+    expect(readFileSync(file, 'utf-8')).toBe(RTASKS);
+    const bad = Buffer.concat([Buffer.from(RTASKS), Buffer.from([0xff])]);
+    writeFileSync(file, bad);
+    expect(reviewTask(root, approve, sha256(bad)).status).toBe(422);
+    rmSync(file);
+    writeFileSync(join(root, 'real.md'), RTASKS);
+    symlinkSync(join(root, 'real.md'), file);
+    expect(reviewTask(root, approve, sha256(RTASKS))).toEqual({ status: 422, error: 'planning/tasks.md is a symbolic link, and SpecPilot will not replace it with a regular file.' });
+    expect(readFileSync(join(root, 'real.md'), 'utf-8')).toBe(RTASKS);
+  });
+});
 
 describe('nextTaskId: the highest number in ID positions, plus one', () => {
   const backlog = (...ids: string[]) => ['## Backlog', '', '| ID | Description |', '|---|---|', ...ids.map(id => `| ${id} | x |`), ''].join('\n');

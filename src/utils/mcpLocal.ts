@@ -83,6 +83,9 @@ export interface McpTool {
   setup?: boolean;
 }
 
+/** The Review rule (BL-113, REQ-002.H.55): the `instructions` of initialize and server/discover while the move tool is listed. */
+export const REVIEW_INSTRUCTIONS =
+  'Finished work goes from Current Sprint to Review with specpilot_move_task (toSection review), never straight to Completed: a person checks it there. A Review row gets its Completed entry (number, CD ID, commit), written by hand under ## Completed and removed from ## Review, only once its description ends with "Approved <date>"; a row ending with "Sent back <date>: <note>" is back in Current Sprint with what needs fixing. Never move a row out of Review yourself: the person sends it back from the board.';
 /** The order an agent should follow to set up a folder (BL-104): the `instructions` of initialize and server/discover. */
 export const SETUP_INSTRUCTIONS =
   'To set up SpecPilot for a folder: call specpilot_setup_questions with its path; answer every question you can from the code; ask the user only what is left, in one go; call specpilot_setup_project with the answers and, in asked, the keys the user answered; then report the validate result.';
@@ -90,6 +93,8 @@ export const SETUP_INSTRUCTIONS =
 const project = { type: 'integer', minimum: 0, description: 'Index of the served project, as specpilot_list_projects gives it. Default 0.' };
 const sha256 = { type: 'string', description: 'The tasks.md hash specpilot_list_tasks returned. A stale hash is refused and nothing is written.' };
 const section = { type: 'string', enum: ['backlog', 'currentSprint'] };
+/** The lanes a row may be moved to (BL-113): the move table's keys; `completed` is refused with the by-hand rule. */
+const moveSection = { type: 'string', enum: ['backlog', 'currentSprint', 'review'] };
 const READ = { readOnlyHint: true, idempotentHint: true, destructiveHint: false, openWorldHint: false };
 const WRITE = { readOnlyHint: false, idempotentHint: false, destructiveHint: false, openWorldHint: false };
 const schema = (properties: Record<string, unknown>, required: string[] = []) => ({ type: 'object', properties: { project, ...properties }, required, additionalProperties: false });
@@ -114,7 +119,7 @@ export const MCP_TOOLS: McpTool[] = [
   {
     name: 'specpilot_list_tasks',
     title: 'SpecPilot: list tasks',
-    description: 'The rows of .specs/planning/tasks.md by section (Backlog, Current Sprint, Completed), verbatim, and the file hash (sha256) the task writes need.',
+    description: "The rows of .specs/planning/tasks.md by section (Backlog, Current Sprint, Review, Completed, Won't do), verbatim (a Review row also says whether it is approved and lists its Sent back notes), and the file hash (sha256) the task writes need.",
     inputSchema: schema({}),
     annotations: READ,
     writes: false,
@@ -130,8 +135,10 @@ export const MCP_TOOLS: McpTool[] = [
   {
     name: 'specpilot_move_task',
     title: 'SpecPilot: move a task',
-    description: 'Move one row of .specs/planning/tasks.md to Backlog or Current Sprint at a 0-based position. The row itself is not changed.',
-    inputSchema: schema({ id: { type: 'string' }, toSection: section, toIndex: { type: 'integer', minimum: 0 }, sha256 }, ['id', 'toSection', 'toIndex', 'sha256']),
+    description:
+      'Move one row of .specs/planning/tasks.md to Backlog, Current Sprint or Review at a 0-based position (Backlog and Current Sprint either way; Current Sprint to Review when the work is finished; a row leaves Review only when the person sends it back, so do not move it out yourself). The row itself is not changed. ' +
+      'Nothing moves to Completed: a Review row gets its numbered Completed entry (CD ID, commit) by hand only once its description ends with "Approved <date>".',
+    inputSchema: schema({ id: { type: 'string' }, toSection: moveSection, toIndex: { type: 'integer', minimum: 0 }, sha256 }, ['id', 'toSection', 'toIndex', 'sha256']),
     annotations: WRITE,
     writes: true,
   },
@@ -194,8 +201,11 @@ export const rpcError = (id: unknown, code: number, message: string) => ({ jsonr
 
 type Call = (name: string, args: Record<string, unknown>) => Promise<{ text: string; data?: Record<string, unknown> }>;
 
-/** The setup order, only while the setup tools are offered (not with `--read-only`). */
-const instructionsFor = (tools: McpTool[]) => (tools.some(t => t.setup) ? { instructions: SETUP_INSTRUCTIONS } : {});
+/** The Review rule while the move tool is listed, then the setup order while the setup tools are (neither with `--read-only`). */
+const instructionsFor = (tools: McpTool[]) => {
+  const parts = [...(tools.some(t => t.name === 'specpilot_move_task') ? [REVIEW_INSTRUCTIONS] : []), ...(tools.some(t => t.setup) ? [SETUP_INSTRUCTIONS] : [])];
+  return parts.length ? { instructions: parts.join(' ') } : {};
+};
 
 const listTools = (tools: McpTool[]) => tools.map(t => ({ name: t.name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations }));
 

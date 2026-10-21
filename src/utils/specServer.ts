@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { archiveCompleted, completedArchiveStatus, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
+import { archiveCompleted, completedArchiveStatus, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, REVIEW_STALE_ERROR, ReviewRequest, reviewShapeError, reviewTask, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -457,6 +457,31 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     });
   };
 
+  /** Review (BL-113): approve or send back one Review row, or undo either; the move route's checks, under the same lock. */
+  const handleReview = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      const problem = reviewShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
+      if (!ifMatch) return sendJson(res, 428, { error: 'This action needs an If-Match header with the file hash the page last loaded.' });
+      const { id, action, note, date, toIndex } = body as ReviewRequest;
+      underLock(res, () => {
+        let out;
+        try {
+          out = reviewTask(roots[i], { id, action, note, date, toIndex }, ifMatch);
+        } catch {
+          return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
+        }
+        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, action, date: out.date, note: out.note, fromIndex: out.fromIndex, index: out.index, specs: payload(i) });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
+        return sendJson(res, 422, { error: out.error });
+      });
+    });
+  };
+
   /** Archive Completed (BL-TB-06): the Completed step of `specpilot archive`, the move route's checks, under the same lock. */
   const handleArchive = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
@@ -728,6 +753,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   const MCP_STALE: Record<string, string> = {
     [STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it. The move was not made.',
     [NEW_STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it, so the task was not added. Call specpilot_list_tasks for the current sha256, then try again.',
+    [REVIEW_STALE_ERROR]: REVIEW_STALE_ERROR,
   };
   const mcpTools = MCP_TOOLS.filter(t => token || (!t.writes && !t.setup)); // --read-only: no write tools, no setup tools (D3)
   const mcpProject = (args: Record<string, unknown>): number => {
@@ -1019,6 +1045,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/api/tasks/new') {
         if (req.method === 'POST' && token) return handleNewTask(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/tasks/review') {
+        if (req.method === 'POST' && token) return handleReview(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

@@ -1,4 +1,7 @@
-import { answerMcp, mcpClientName, McpHeaders, SETUP_INSTRUCTIONS, MCP_ALL_VERSIONS, MCP_TOOLS, MCP_VERSIONS, mirroredHeaders, ToolRefusal } from '../utils/mcpLocal';
+import { answerMcp, mcpClientName, McpHeaders, REVIEW_INSTRUCTIONS, SETUP_INSTRUCTIONS, MCP_ALL_VERSIONS, MCP_TOOLS, MCP_VERSIONS, mirroredHeaders, ToolRefusal } from '../utils/mcpLocal';
+
+/** Both rules, in order, while the move and the setup tools are listed (BL-113). */
+const INSTRUCTIONS = `${REVIEW_INSTRUCTIONS} ${SETUP_INSTRUCTIONS}`;
 
 // BL-PM-007: the protocol of POST /mcp without a server. The tools are stubbed; specServer.test.ts runs the real ones.
 const calls: Array<[string, Record<string, unknown>]> = [];
@@ -23,7 +26,7 @@ describe('initialize', () => {
     const r = await ask(req('initialize', { protocolVersion: v, capabilities: {}, clientInfo: { name: 't', version: '1' } }));
     expect(r).toEqual({
       status: 200,
-      body: { jsonrpc: '2.0', id: 1, result: { protocolVersion: v, capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '9.9.9' }, instructions: SETUP_INSTRUCTIONS } },
+      body: { jsonrpc: '2.0', id: 1, result: { protocolVersion: v, capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '9.9.9' }, instructions: INSTRUCTIONS } },
     });
   });
 
@@ -117,6 +120,18 @@ describe('tools', () => {
     expect(tools.find((t: { name: string }) => t.name === 'specpilot_setup_project').inputSchema.required).toEqual(['path', 'answers']);
     expect(tools.find((t: any) => t.name === 'specpilot_new_task').inputSchema.required).toEqual(['description', 'section', 'sha256']);
     expect(tools.find((t: any) => t.name === 'specpilot_move_task').inputSchema.required).toEqual(['id', 'toSection', 'toIndex', 'sha256']);
+    expect(tools.find((t: any) => t.name === 'specpilot_move_task').inputSchema.properties.toSection.enum).toEqual(['backlog', 'currentSprint', 'review']); // BL-113
+    expect(tools.find((t: any) => t.name === 'specpilot_new_task').inputSchema.properties.section.enum).toEqual(['backlog', 'currentSprint']);
+  });
+
+  it('carries the Review rule alone when the move tool is listed without the setup tools, both with both, and neither without either (BL-113)', async () => {
+    const noSetup = MCP_TOOLS.filter(t => !t.setup);
+    const instructionsOf = async (tools: typeof MCP_TOOLS) => ((await ask(req('initialize', { protocolVersion: '2025-11-25' }), undefined, tools)).body as { result: { instructions?: string } }).result.instructions;
+    expect(await instructionsOf(noSetup)).toBe(REVIEW_INSTRUCTIONS);
+    expect(await instructionsOf(MCP_TOOLS)).toBe(INSTRUCTIONS);
+    expect(await instructionsOf(MCP_TOOLS.filter(t => !t.writes && !t.setup))).toBeUndefined();
+    expect(REVIEW_INSTRUCTIONS).toContain('never straight to Completed');
+    expect(REVIEW_INSTRUCTIONS).toContain('"Approved <date>"');
   });
 
   it('lists only the tools it is given (the server drops the writes and the setup tools with --read-only), with no instructions then', async () => {
@@ -193,7 +208,7 @@ describe('revision 2026-07-28', () => {
       body: {
         jsonrpc: '2.0',
         id: 1,
-        result: { resultType: 'complete', supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'], capabilities: { tools: {} }, instructions: SETUP_INSTRUCTIONS, ttlMs: 0, cacheScope: 'private', _meta: serverInfo },
+        result: { resultType: 'complete', supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'], capabilities: { tools: {} }, instructions: INSTRUCTIONS, ttlMs: 0, cacheScope: 'private', _meta: serverInfo },
       },
     });
   });

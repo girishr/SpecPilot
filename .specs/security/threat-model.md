@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-18 (BL-TB-06 rebuilt on D8, review fixes)
-version: 1.34
+lastUpdated: 2026-10-20 (BL-113 Spec Report)
+version: 1.35
 contributors: [girishr]
 relatedFiles:
   [
@@ -179,6 +179,7 @@ An AI IDE with the token can set up a folder (REQ-002.H.42).
 | `POST /api/tasks/move`               | JSON `{id, toSection, toIndex}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, If-Match, row lookup | One line moved in `tasks.md` (SEC-002.5 f, h) |
 | `POST /api/tasks/new` (BL-PM-005)   | JSON `{description, section}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; description one line of at most 4000 code points, no control character, no unpaired surrogate, no `|`, no trailing `\`, not empty; section `backlog` or `currentSprint`; ID computed by the server | One line appended to Backlog or Current Sprint in `tasks.md`; `tasks-archive.md` read for IDs (SEC-004.18) |
 | `POST /api/tasks/archive` (BL-TB-06) | JSON `{}` or `{force: <boolean>}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; body exactly `{}` or `{force}`; what moves is `planCompletedArchive()`'s choice, never the request's: `force` only lifts the 40-line trigger, the keep-20 rule stands | The oldest `## Completed` lines appended to `tasks-archive.md` as the CLI's block, then removed from `tasks.md`; each file temp file + `fsync` + `rename`, neither through a link (SEC-004.30) |
+| `POST /api/tasks/review` (BL-113) | JSON `{id, action, note?, date?, toIndex?}`, `If-Match`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; action one of four; the note one line of at most 200 code points, no control character, no unpaired surrogate, no trailing `\`, `|` escaped as `\|`; the date the server's; an undo must name the cell's last marker byte for byte | One `## Review` row's description cell appended to with a dated marker (and the row moved to Current Sprint for a send back), or its last marker removed (and the row moved back); nothing else in the line or file (SEC-004.31) |
 | `POST /api/commands/regenerate` (BL-PM-006) | JSON `{}`, `X-SpecPilot-Token`, `Origin` | ✅ as the move route; body must be `{}`; targets fixed by `KNOWN_COMMAND_HASHES` and IDE signal files | Adds missing and replaces byte-exact known `specpilot-*` command files of detected IDEs; links on the way kept (SEC-004.19) |
 | `POST /mcp` (BL-PM-007; on unless `--no-mcp` since BL-105) | JSON-RPC (one message), `X-SpecPilot-Token`, `Origin` absent or the page's own | ✅ Host, Origin, token, JSON only, ≤ 64 KB; tool arguments through the page routes' shape checks; `sha256` as If-Match; on revision `2026-07-28` (BL-089) the mirrored `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` headers must equal the body (-32020), and nothing is routed on a header | The page's read and write functions under the one lock (SEC-002.9) |
 | `GET /api/setup` (removed by BL-103) | `project` index      | ✅ Host check; 404 unless a named folder without `.specs`; 405 with `--read-only` | Questions, detector result and the kept list, read-only (SEC-002.5 j) |

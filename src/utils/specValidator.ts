@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
-import { TASK_COLUMNS, TASK_HEADINGS, TaskHeadings, taskHeadings } from './specReader';
+import { REQUIRED_TASK_HEADINGS, TASK_COLUMNS, TaskHeadings, taskHeadings } from './specReader';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -44,7 +44,7 @@ export interface HeadingRename {
 }
 
 /**
- * BL-111: the TASK_HEADINGS the content lacks, worded as `specpilot validate` warns, and the renames
+ * BL-111: the REQUIRED_TASK_HEADINGS the content lacks (BL-113), worded as `specpilot validate` warns, and the renames
  * `--fix` may make: the reader's own `taskHeadings()` says what is found and missing (so the
  * validator and the board agree, BL-112) and lists the candidates (`variants`); a missing one is
  * renamable when exactly one candidate exists. Anything else is a warning only.
@@ -448,7 +448,7 @@ export class SpecValidator {
         result.warnings.push(TASKS_STATUS_WARNING);
       }
 
-      // BL-111: the three section headings the board reads; an unambiguous variant is a --fix rename
+      // BL-111: the section headings the board reads (four since BL-113; Won't do is optional); an unambiguous variant is a --fix rename
       const headings = tasksHeadingChecks(content);
       result.warnings.push(...headings.warnings);
       for (const r of headings.renames) result.fixable.push(`${RENAME_HEADING_PREFIX}${r.found}:${r.expected}`);
@@ -492,7 +492,7 @@ export class SpecValidator {
         break;
       case 'planning/tasks.md':
         // each heading with its table header and separator, so the file passes the heading checks and New Task can write to it (BL-116)
-        content = `# Tasks\n\n${TASK_HEADINGS.map(h => `${h}\n\n| ${TASK_COLUMNS[h].join(' | ')} |\n|${TASK_COLUMNS[h].map(() => '---').join('|')}|`).join('\n\n')}\n`;
+        content = `# Tasks\n\n${REQUIRED_TASK_HEADINGS.map(h => `${h}\n\n| ${TASK_COLUMNS[h].join(' | ')} |\n|${TASK_COLUMNS[h].map(() => '---').join('|')}|`).join('\n\n')}\n`;
         break;
       default:
         content = `# ${fileName.split('/').pop()?.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;

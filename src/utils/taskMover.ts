@@ -1,30 +1,37 @@
 import { chmodSync, closeSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from 'fs';
 import { createHash, randomBytes } from 'crypto';
 import { basename, dirname, join } from 'path';
-import { taskRowLines } from './specReader';
+import { endsWithApproved, taskRowLines, TaskSection } from './specReader';
 import { tasksChecks } from './specValidator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, completedArchiveBlock, planCompletedArchive } from './specArchiver';
 import { findSectionBounds } from './markdownSections';
 
 // The one writer behind `specpilot serve` (BL-053, ARCH-003.18, ARCH-004.36). A move removes one
 // line of tasks.md and inserts the identical line elsewhere; a new task (BL-PM-005) inserts one line;
+// a review action (BL-113) appends a dated marker to one row's description cell, or removes the last one;
 // every other byte stays as it was. An archive (BL-TB-06) appends lines of tasks.md to tasks-archive.md
 // and removes them from tasks.md: the second written file, never request text.
 
 /** The write allowlist: tasks.md, and since BL-TB-06 TASKS_ARCHIVE_FILE (appended to only); separate from what the server may read. */
 export const WRITABLE_TASKS_FILE = '.specs/planning/tasks.md';
 
-export type MovableSection = 'backlog' | 'currentSprint';
+export type MovableSection = 'backlog' | 'currentSprint' | 'review';
+/** The sections New Task appends to (REQ-002.H.29). */
+export type AddableSection = 'backlog' | 'currentSprint';
 
 /** The section headings as tasks.md writes them (what readSpecs() matches). */
-export const SECTION_HEADINGS = { backlog: 'Backlog', currentSprint: 'Current Sprint', completed: 'Completed' } as const;
+export const SECTION_HEADINGS: Record<TaskSection, string> = { backlog: 'Backlog', currentSprint: 'Current Sprint', review: 'Review', completed: 'Completed', wontDo: "Won't do" };
 
 /**
- * The allowed lane moves (BL-TB-11, REQ-002.H.52): a lane to the lanes its rows may move to; a lane in the table
- * may always reorder its own rows; a lane absent from it (Completed) is neither a source nor a target. The one
- * source for planMove(), moveShapeError() and, through GET /api/specs, the page's menu, drop targets and keys.
+ * The allowed lane moves (BL-TB-11, REQ-002.H.52; BL-113 adds Review): a lane to the lanes its rows may move to; a
+ * lane in the table may always reorder its own rows; a lane absent from it (Completed, Won't do) is neither a source
+ * nor a target. The one source for planMove(), moveShapeError() and, through GET /api/specs, the page's menu, drop
+ * targets and keys.
  */
-export const MOVES: Record<MovableSection, readonly MovableSection[]> = { backlog: ['currentSprint'], currentSprint: ['backlog'] };
+export const MOVES: Record<MovableSection, readonly MovableSection[]> = { backlog: ['currentSprint'], currentSprint: ['backlog', 'review'], review: ['currentSprint'] };
+/** Why nothing is moved to Completed (BL-113, REQ-002.H.55): the route's and the MCP tool's refusal. */
+export const COMPLETED_BY_HAND =
+  'Nothing is moved to Completed: when a Review row is marked Approved, write its numbered row (CD ID, task ID, commit) under ## Completed by hand and remove it from ## Review. An unapproved row stays in Review.';
 const MOVE_KEYS = Object.keys(MOVES) as MovableSection[]; // own keys only: `in` would admit `__proto__` and other inherited names
 
 export interface TaskMove {
@@ -40,12 +47,15 @@ export type PlanResult =
 
 export const sha256 = (data: string | Buffer): string => createHash('sha256').update(data).digest('hex');
 
+const joinOr = (a: string[]): string => (a.length > 1 ? `${a.slice(0, -1).join(', ')} or ${a[a.length - 1]}` : a.join(''));
+
 /** Check a request body's shape; returns a plain-words problem or null. */
 export function moveShapeError(body: unknown): string | null {
   const b = body as Partial<TaskMove> | null;
   if (!b || typeof b !== 'object') return 'The request must be a JSON object with id, toSection and toIndex.';
   if (typeof b.id !== 'string' || !b.id) return 'The request has no task ID.';
-  if (!MOVE_KEYS.includes(b.toSection as MovableSection)) return `Tasks can only be moved to ${MOVE_KEYS.map(k => SECTION_HEADINGS[k]).join(' or ')}.`;
+  if ((b.toSection as string) === 'completed') return COMPLETED_BY_HAND;
+  if (!MOVE_KEYS.includes(b.toSection as MovableSection)) return `Tasks can only be moved to ${joinOr(MOVE_KEYS.map(k => SECTION_HEADINGS[k]))}.`;
   if (!Number.isInteger(b.toIndex) || (b.toIndex as number) < 0) return 'The position must be a whole number, 0 or more.';
   return null;
 }
@@ -54,7 +64,7 @@ export function moveShapeError(body: unknown): string | null {
 export function planMove(content: string, move: TaskMove, moves: Record<string, readonly string[]> = MOVES): PlanResult {
   const lines = content.split('\n');
   const where = taskRowLines(content);
-  const hits = (['backlog', 'currentSprint', 'completed'] as const).flatMap(sec =>
+  const hits = (Object.keys(where) as TaskSection[]).flatMap(sec =>
     (where[sec]?.rows ?? []).map((r, i) => ({ sec, i, line: r.line })).filter((_, i) => where[sec]!.rows[i].id === move.id),
   );
   if (!hits.length) return { ok: false, error: `No task row in planning/tasks.md has the ID ${move.id}.` };
@@ -191,7 +201,7 @@ export const TASKS_ARCHIVE_FILE = '.specs/planning/tasks-archive.md';
 
 export interface NewTask {
   description: string;
-  section: MovableSection;
+  section: AddableSection;
 }
 
 const PREFIX = { backlog: 'BL', currentSprint: 'CS' } as const;
@@ -205,12 +215,17 @@ export function newTaskShapeError(body: unknown): string | null {
   const d = b.description;
   if (typeof d !== 'string' || !d.trim()) return 'Type a description for the task.';
   if (/[\r\n\u2028\u2029]/.test(d)) return 'The description must be one line: a table row cannot hold a line break.';
-  // eslint-disable-next-line no-control-regex
-  if (/[\u0000-\u001f\u007f-\u009f]/.test(d)) return 'The description contains a control character (such as a tab), which a table row cannot hold as typed.';
-  if (/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(d)) return 'The description contains a character that cannot be written as UTF-8.';
   if (d.includes('|')) return 'The description cannot contain |, because it would split the table cell. Write it another way, e.g. "or".';
-  if (d.trim().endsWith('\\')) return 'The description cannot end in \\, because the table would read it with the closing | as an escaped pipe.';
-  if ([...d.trim()].length > MAX_DESCRIPTION) return `The description is longer than ${MAX_DESCRIPTION} characters.`;
+  return cellError(d, 'description', MAX_DESCRIPTION);
+}
+
+/** What any text inside one table cell must not hold (SEC-004.18), worded for `what`: a control character, an unpaired surrogate, a trailing backslash, too many code points. */
+function cellError(text: string, what: string, max: number): string | null {
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f-\u009f]/.test(text)) return `The ${what} contains a control character (such as a tab), which a table row cannot hold as typed.`;
+  if (/[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(text)) return `The ${what} contains a character that cannot be written as UTF-8.`;
+  if (text.trim().endsWith('\\')) return `The ${what} cannot end in \\, because the table would read it with the closing | as an escaped pipe.`;
+  if ([...text.trim()].length > max) return `The ${what} is longer than ${max} characters.`;
   return null;
 }
 
@@ -264,7 +279,7 @@ export function planNewTask(content: string, archive: string, task: NewTask): Ne
   return { ok: true, content: out.join('\n'), id, index: target.rows.length };
 }
 
-export type NewTaskOutcome = { status: 200; sha256: string; id: string; section: MovableSection; index: number } | Refusal;
+export type NewTaskOutcome = { status: 200; sha256: string; id: string; section: AddableSection; index: number } | Refusal;
 
 export const NEW_STALE_ERROR =
   'planning/tasks.md changed on disk since this page loaded, so the task was not added. The page now shows the file as it is: check it, then press Add Task again.';
@@ -314,6 +329,147 @@ export function newTask(root: string, task: NewTask, ifMatch: string): NewTaskOu
   const written = writeTasks(loaded, ifMatch, plan.content);
   if (written === null) return { status: 409, error: NEW_STALE_ERROR };
   return { status: 200, sha256: written, id: plan.id, section: task.section, index: plan.index };
+}
+
+// ---- Review (BL-113, REQ-002.H.55, ARCH-004.71, SEC-004.31): a dated marker appended to one Review row's description
+// cell (Approve; Send back, which then moves the row to the top of Current Sprint: a rework is the next thing to do, D12), or the last marker removed again
+// by naming it (the undos). The cell's other bytes, its closing `|` and the line ending stay as they were.
+
+export type ReviewAction = 'approve' | 'unapprove' | 'sendBack' | 'unsendBack';
+
+export interface ReviewRequest {
+  id: string;
+  action: ReviewAction;
+  /** sendBack: the note as typed; unsendBack: the note as the server wrote it ('' for the dot form). */
+  note?: string;
+  /** unapprove, unsendBack: the date the marker carries. */
+  date?: string;
+  /** unsendBack: the row's position in Review after the move, 0-based. */
+  toIndex?: number;
+}
+
+export const MAX_NOTE = 200;
+const DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The note as it goes into the cell: runs of line breaks become one space, `|` is escaped, surrounding white space removed; or why it cannot. */
+export function reviewNote(raw: unknown): { note: string } | { error: string } {
+  if (raw !== undefined && typeof raw !== 'string') return { error: 'The note must be text.' };
+  const typed = (raw ?? '').replace(/[\r\n\u2028\u2029]+/g, ' ').trim();
+  const problem = cellError(typed, 'note', MAX_NOTE);
+  if (problem) return { error: problem };
+  return { note: typed.replace(/\|/g, '\\|') };
+}
+
+/** Check a review request's shape; returns a plain-words problem or null. */
+export function reviewShapeError(body: unknown): string | null {
+  const b = body as Partial<ReviewRequest> | null;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with id and action.';
+  if (typeof b.id !== 'string' || !b.id) return 'The request has no task ID.';
+  if (!['approve', 'unapprove', 'sendBack', 'unsendBack'].includes(b.action as string)) return 'action must be approve, unapprove, sendBack or unsendBack.';
+  if (b.action === 'sendBack') {
+    const n = reviewNote(b.note);
+    return 'error' in n ? n.error : null;
+  }
+  if (b.action === 'unapprove' || b.action === 'unsendBack') {
+    if (typeof b.date !== 'string' || !DATE_SHAPE.test(b.date)) return 'date must be the YYYY-MM-DD the action wrote.';
+  }
+  if (b.action === 'unsendBack') {
+    if (typeof b.note !== 'string') return 'note must be the text the send back wrote, or empty.';
+    if (!Number.isInteger(b.toIndex) || (b.toIndex as number) < 0) return 'The position must be a whole number, 0 or more.';
+  }
+  return null;
+}
+
+/** The server's local day as the markers write it. */
+export function localDate(now = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+/**
+ * Edit the description cell of one raw table line: the line's tail (`(\s*\|)?\s*\r?$`: optional closing pipe with
+ * its spacing, the line ending) is kept as it is and `edit` gets the text before it, which ends with the description.
+ * Returns null when `edit` does.
+ */
+function editCell(line: string, edit: (head: string) => string | null): string | null {
+  const tail = /(\s*\|)?\s*\r?$/.exec(line)![0];
+  const head = line.slice(0, line.length - tail.length);
+  const out = edit(head);
+  return out === null ? null : out + tail;
+}
+
+export type ReviewPlan = { ok: true; content: string; date: string; note: string; fromIndex: number; index: number } | { ok: false; error: string };
+
+/** Work out a review action on tasks.md content in memory: the new content, or why it cannot be done. */
+export function planReview(content: string, req: ReviewRequest, today: string): ReviewPlan {
+  const lines = content.split('\n');
+  const where = taskRowLines(content);
+  const hits = (Object.keys(where) as TaskSection[]).flatMap(sec => (where[sec]?.rows ?? []).map((r, i) => ({ sec, i, line: r.line, id: r.id })).filter(h => h.id === req.id));
+  if (!hits.length) return { ok: false, error: `No task row in planning/tasks.md has the ID ${req.id}.` };
+  if (hits.length > 1) return { ok: false, error: `${req.id} is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to change.` };
+  const hit = hits[0];
+  const wanted: TaskSection = req.action === 'unsendBack' ? 'currentSprint' : 'review';
+  if (hit.sec !== wanted) {
+    return { ok: false, error: `${req.id} is in ${SECTION_HEADINGS[hit.sec]}, so it cannot be ${req.action === 'approve' ? 'approved' : req.action === 'sendBack' ? 'sent back' : 'put back'}: ${req.action === 'unsendBack' ? 'only a Current Sprint row that was sent back can be' : 'only a Review row can be'}.` };
+  }
+  const fail = (error: string): ReviewPlan => ({ ok: false, error });
+  let date = today;
+  let note = '';
+  let edited: string | null;
+  if (req.action === 'approve') {
+    edited = editCell(lines[hit.line], head => {
+      if (endsWithApproved(head)) return null;
+      return `${head} Approved ${today}`;
+    });
+    if (edited === null) return fail(`${req.id} is already marked Approved.`);
+  } else if (req.action === 'unapprove') {
+    date = req.date!;
+    edited = editCell(lines[hit.line], head => (endsWithApproved(head, date) ? head.slice(0, -` Approved ${date}`.length) : null));
+    if (edited === null) return fail(`${req.id} is not marked Approved ${date}, so there is nothing to undo.`);
+  } else if (req.action === 'sendBack') {
+    const n = reviewNote(req.note);
+    if ('error' in n) return fail(n.error);
+    note = n.note;
+    edited = editCell(lines[hit.line], head => `${head} Sent back ${today}${note ? `: ${note}` : '.'}`);
+  } else {
+    date = req.date!;
+    note = req.note ?? '';
+    const suffix = ` Sent back ${date}${note ? `: ${note}` : '.'}`;
+    edited = editCell(lines[hit.line], head => (head.endsWith(suffix) ? head.slice(0, -suffix.length) : null));
+    if (edited === null) return fail(`${req.id} does not end with that Sent back note, so there is nothing to undo.`);
+  }
+  const out = lines.slice();
+  out[hit.line] = edited!;
+  let next = out.join('\n');
+  let index = hit.i;
+  if (req.action === 'sendBack' || req.action === 'unsendBack') {
+    const to: MovableSection = req.action === 'sendBack' ? 'currentSprint' : 'review';
+    const toIndex = req.action === 'sendBack' ? 0 : req.toIndex!;
+    const moved = planMove(next, { id: req.id, toSection: to, toIndex });
+    if (!moved.ok) return fail(moved.error);
+    next = moved.content;
+    index = toIndex;
+  }
+  return { ok: true, content: next, date, note, fromIndex: hit.i, index };
+}
+
+export type ReviewOutcome = { status: 200; sha256: string; date: string; note: string; fromIndex: number; index: number } | Refusal;
+
+export const REVIEW_STALE_ERROR = 'planning/tasks.md changed on disk since this page loaded. Nothing was changed.';
+
+/** Apply a review action to tasks.md on disk if `ifMatch` is its current sha256: loadTasks(), planReview(), the validator's checks, writeTasks(). */
+export function reviewTask(root: string, req: ReviewRequest, ifMatch: string, now = new Date()): ReviewOutcome {
+  const loaded = loadTasks(root, ifMatch, REVIEW_STALE_ERROR, 'change a line');
+  if ('status' in loaded) return loaded;
+  const plan = planReview(loaded.content, req, localDate(now));
+  if (!plan.ok) return { status: 422, error: plan.error };
+
+  const introduced = newChecks(loaded.content, plan.content);
+  if (introduced.length) return { status: 422, error: `Nothing was changed, because \`specpilot validate\` would then report: ${introduced.join(' ')}` };
+
+  const written = writeTasks(loaded, ifMatch, plan.content);
+  if (written === null) return { status: 409, error: REVIEW_STALE_ERROR };
+  return { status: 200, sha256: written, date: plan.date, note: plan.note, fromIndex: plan.fromIndex, index: plan.index };
 }
 
 // ---- Archive Completed (BL-TB-06, REQ-002.H.51, ARCH-004.65, SEC-004.30): the Completed step of `specpilot archive`

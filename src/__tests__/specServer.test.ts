@@ -7,7 +7,7 @@ import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
-import { ARCHIVE_STALE_ERROR, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError } from '../utils/taskMover';
+import { ARCHIVE_STALE_ERROR, COMPLETED_BY_HAND, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError, REVIEW_STALE_ERROR } from '../utils/taskMover';
 import { planCompletedArchive } from '../utils/specArchiver';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
@@ -16,7 +16,7 @@ import * as gitClone from '../utils/gitClone';
 import * as specServerModule from '../utils/specServer';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
-import { SETUP_INSTRUCTIONS } from '../utils/mcpLocal';
+import { REVIEW_INSTRUCTIONS, SETUP_INSTRUCTIONS } from '../utils/mcpLocal';
 import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
 import { initOptions, InitAnswers } from '../utils/initQuestions';
 import { render } from '../core/render';
@@ -229,7 +229,7 @@ describe('buildSpecsPayload against this repo', () => {
 
   it('tasks.moves is the move table the server enforces (BL-TB-11)', () => {
     expect(payload.tasks!.moves).toBe(MOVES);
-    expect(payload.tasks!.moves).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog'] });
+    expect(payload.tasks!.moves).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog', 'review'], review: ['currentSprint'] }); // BL-113
   });
 
   it('tasks.archive is the Completed section\'s lines and what POST /api/tasks/archive would move now with force (BL-TB-06)', () => {
@@ -261,12 +261,14 @@ describe('buildSpecsPayload against this repo', () => {
     const rebuilt = [
       ...t.backlog.map(r => `| ${r.id} | ${r.description} |`),
       ...t.currentSprint.map(r => `| ${r.id} | ${r.description} |`),
+      ...t.review.map(r => `| ${r.id} | ${r.description} |`),
       ...t.completed.map(r => `| ${r.num} | ${r.id} | ${r.description} |`),
+      ...t.wontDo.map(r => `| ${r.id} | ${r.description} | ${r.reason} |`),
     ];
     for (const line of rebuilt) expect(tasksMd).toContain(line);
     // ...and no table row in those sections was dropped: the rows between each served heading and the next `## `,
-    // not every row in the file (BL-115: `## Won't do` is not served until BL-113).
-    const bodyRows = ['## Backlog', '## Current Sprint', '## Completed'].flatMap(heading => {
+    // not every row in the file (BL-115; the five served headings since BL-113).
+    const bodyRows = ['## Backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do"].flatMap(heading => {
       const start = tasksMd.findIndex(l => l.trim() === heading);
       const end = tasksMd.findIndex((l, i) => i > start && /^## /.test(l));
       return tasksMd.slice(start + 1, end < 0 ? undefined : end).filter(l => /^\| (BL|CS|\d)/.test(l));
@@ -1249,6 +1251,8 @@ const MOVE_TASKS = [
   '## Current Sprint', '', '| ID | Description |', '|---|---|', '| CS-001 | Sprint |', '',
   '## Completed', '', '| # | ID | Description |', '|---|---|---|', '| 1 | [CD-001] | Done |', '',
 ].join('\n');
+/** MOVE_TASKS with a Review section (BL-113): two rows, one sent back once already. */
+const REVIEW_TASKS = MOVE_TASKS + ['## Review', '', '| ID | Description |', '|---|---|', '| BL-003 | Three |', '| BL-004 | Four Sent back 2026-10-01: earlier |', ''].join('\n');
 
 /** POST /api/tasks/move with full control over the headers that the security checks read. */
 function post(port: number, body: string, headers: Record<string, string | string[] | undefined>, path = '/api/tasks/move') {
@@ -1363,7 +1367,8 @@ describe('task moves over HTTP', () => {
   it.each([
     [{ id: 'BL-999', toSection: 'backlog', toIndex: 0 }, 'No task row in planning/tasks.md has the ID BL-999.'],
     [{ id: '[CD-001]', toSection: 'backlog', toIndex: 0 }, 'Completed rows cannot be moved.'],
-    [{ id: 'BL-001', toSection: 'completed', toIndex: 0 }, 'Tasks can only be moved to Backlog or Current Sprint.'],
+    [{ id: 'BL-001', toSection: 'completed', toIndex: 0 }, COMPLETED_BY_HAND], // BL-113: the by-hand rule
+    [{ id: 'BL-001', toSection: 'wontDo', toIndex: 0 }, 'Tasks can only be moved to Backlog, Current Sprint or Review.'],
   ])('422s on %j with a plain-words message and no write', async (move, error) => {
     const res = await post(port, JSON.stringify(move), good());
     expect(res.status).toBe(422);
@@ -1397,6 +1402,118 @@ describe('task moves over HTTP', () => {
     expect(hash()).toBe(winner.json.sha256);
     const moved = readFileSync(file, 'utf-8').split('\n');
     expect(moved.filter(l => /^\| (BL|CS)-/.test(l))).toHaveLength(3); // nothing lost or duplicated
+  });
+});
+
+describe('review over HTTP (BL-113)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  let file: string;
+  const hash = () => createHash('sha256').update(readFileSync(file)).digest('hex');
+  const good = (over: Record<string, string | undefined> = {}) => ({ Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token, 'If-Match': hash(), ...over });
+  const review = (body: unknown, over: Record<string, string | undefined> = {}) => post(port, JSON.stringify(body), good(over), '/api/tasks/review');
+  const lineOf = (id: string) => readFileSync(file, 'utf-8').split('\n').find(l => l.startsWith(`| ${id} |`));
+  const today = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  beforeEach(async () => {
+    p = makeProject();
+    file = join(p.root, '.specs/planning/tasks.md');
+    writeFileSync(file, REVIEW_TASKS);
+    spec = await startSpecServer([p.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it('approve appends the dated marker to the one cell; undo gives the file back byte for byte; the payload carries approved and history', async () => {
+    const r = await review({ id: 'BL-003', action: 'approve' });
+    expect(r.status).toBe(200);
+    expect(r.json).toMatchObject({ action: 'approve', date: today(), note: '', fromIndex: 0, index: 0 });
+    expect(r.json.sha256).toBe(hash());
+    expect(lineOf('BL-003')).toBe(`| BL-003 | Three Approved ${today()} |`);
+    expect(r.json.specs.tasks.review).toEqual([
+      { id: 'BL-003', description: `Three Approved ${today()}`, line: 30, approved: today(), history: [] },
+      { id: 'BL-004', description: 'Four Sent back 2026-10-01: earlier', line: 31, approved: null, history: [{ date: '2026-10-01', note: 'earlier' }] },
+    ]);
+    expect(r.json.specs.tasks.wontDo).toEqual([]);
+    const again = await review({ id: 'BL-003', action: 'approve' });
+    expect(again.status).toBe(422);
+    expect(again.json.error).toBe('BL-003 is already marked Approved.');
+    const undo = await review({ id: 'BL-003', action: 'unapprove', date: r.json.date });
+    expect(undo.status).toBe(200);
+    expect(readFileSync(file, 'utf-8')).toBe(REVIEW_TASKS);
+    expect(undo.json.specs.tasks.review[0].approved).toBeNull();
+  });
+
+  it('send back appends the note (a line break as a space, | escaped) and moves the row to the top of Current Sprint; undo puts it back', async () => {
+    const r = await review({ id: 'BL-004', action: 'sendBack', note: ' tests | docs\nmissing ' });
+    expect(r.status).toBe(200);
+    expect(r.json).toMatchObject({ action: 'sendBack', date: today(), note: 'tests \\| docs missing', fromIndex: 1, index: 0 });
+    const after = readFileSync(file, 'utf-8');
+    expect(lineOf('BL-004')).toBe(`| BL-004 | Four Sent back 2026-10-01: earlier Sent back ${today()}: tests \\| docs missing |`);
+    expect(r.json.specs.tasks.currentSprint.map((x: { id: string }) => x.id)).toEqual(['BL-004', 'CS-001']);
+    expect(r.json.specs.tasks.review.map((x: { id: string }) => x.id)).toEqual(['BL-003']);
+    expect(after.split('\n').filter(l => !REVIEW_TASKS.split('\n').includes(l))).toEqual([lineOf('BL-004')]); // one line changed, and moved
+    const undo = await review({ id: 'BL-004', action: 'unsendBack', date: r.json.date, note: r.json.note, toIndex: r.json.fromIndex });
+    expect(undo.status).toBe(200);
+    expect(undo.json).toMatchObject({ action: 'unsendBack', index: 1 });
+    expect(readFileSync(file, 'utf-8')).toBe(REVIEW_TASKS);
+    const dot = await review({ id: 'BL-003', action: 'sendBack' });
+    expect(dot.status).toBe(200);
+    expect(lineOf('BL-003')).toBe(`| BL-003 | Three Sent back ${today()}. |`);
+  });
+
+  it.each<[unknown, string]>([
+    [{ id: 'BL-001', action: 'approve' }, 'BL-001 is in Backlog, so it cannot be approved: only a Review row can be.'],
+    [{ id: 'BL-999', action: 'sendBack' }, 'No task row in planning/tasks.md has the ID BL-999.'],
+    [{ id: 'BL-003', action: 'unapprove', date: '2026-10-01' }, 'BL-003 is not marked Approved 2026-10-01, so there is nothing to undo.'],
+    [{ id: 'BL-003', action: 'unsendBack', date: '2026-10-01', note: '', toIndex: 0 }, 'BL-003 is in Review, so it cannot be put back: only a Current Sprint row that was sent back can be.'],
+    [{ id: 'BL-003', action: 'sendBack', note: 'a\tb' }, 'The note contains a control character (such as a tab), which a table row cannot hold as typed.'],
+    [{ id: 'BL-003', action: 'sendBack', note: 'x'.repeat(201) }, 'The note is longer than 200 characters.'],
+    [{ id: 'BL-003', action: 'done' }, 'action must be approve, unapprove, sendBack or unsendBack.'],
+    [{ id: 'BL-003', action: 'unapprove' }, 'date must be the YYYY-MM-DD the action wrote.'],
+  ])('422s on %j with a plain-words message and no write', async (body, error) => {
+    const r = await review(body);
+    expect(r.status).toBe(422);
+    expect(r.json.error).toBe(error);
+    expect(readFileSync(file, 'utf-8')).toBe(REVIEW_TASKS);
+  });
+
+  it('428s without If-Match, 409s on a stale one with the fresh payload, 403s a foreign Origin, 405s other methods, and writes nothing', async () => {
+    expect((await review({ id: 'BL-003', action: 'approve' }, { 'If-Match': undefined })).status).toBe(428);
+    const stale = await review({ id: 'BL-003', action: 'approve' }, { 'If-Match': 'a'.repeat(64) });
+    expect(stale.status).toBe(409);
+    expect(stale.json.error).toBe(REVIEW_STALE_ERROR);
+    expect(stale.json.specs.tasks.sha256).toBe(hash());
+    expect((await review({ id: 'BL-003', action: 'approve' }, { Origin: 'http://evil.com' })).status).toBe(403);
+    const get = await hit(port, '/api/tasks/review');
+    expect(get.status).toBe(405);
+    expect(get.headers['allow']).toBe('POST');
+    expect(readFileSync(file, 'utf-8')).toBe(REVIEW_TASKS);
+  });
+
+  it('is absent with --read-only: 405 with an empty Allow', async () => {
+    const q = makeProject();
+    writeFileSync(join(q.root, '.specs/planning/tasks.md'), REVIEW_TASKS);
+    const ro = await startSpecServer([q.root], 0, 'x', { readOnly: true });
+    try {
+      const rp = (ro.server.address() as AddressInfo).port;
+      const r = await post(rp, JSON.stringify({ id: 'BL-003', action: 'approve' }), { Host: `127.0.0.1:${rp}`, Origin: `http://127.0.0.1:${rp}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64), 'If-Match': 'a'.repeat(64) }, '/api/tasks/review');
+      expect(r.status).toBe(405);
+      expect(r.headers['allow']).toBe('');
+      expect(readFileSync(join(q.root, '.specs/planning/tasks.md'), 'utf-8')).toBe(REVIEW_TASKS);
+    } finally {
+      await ro.close();
+      q.cleanup();
+    }
   });
 });
 
@@ -3574,7 +3691,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     const init = await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'test', version: '1' } }, { 'MCP-Protocol-Version': undefined });
     expect(init.status).toBe(200);
     expect(init.headers['content-type']).toBe('application/json; charset=utf-8');
-    expect(init.json.result).toEqual({ protocolVersion: '2025-11-25', capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '0.0.0-test' }, instructions: SETUP_INSTRUCTIONS });
+    expect(init.json.result).toEqual({ protocolVersion: '2025-11-25', capabilities: { tools: {} }, serverInfo: { name: 'specpilot-local', version: '0.0.0-test' }, instructions: `${REVIEW_INSTRUCTIONS} ${SETUP_INSTRUCTIONS}` });
     for (const method of ['notifications/initialized', 'notifications/cancelled']) {
       const n = await post(port, JSON.stringify({ jsonrpc: '2.0', method }), headers(), '/mcp');
       expect(n.status).toBe(202);
@@ -3678,6 +3795,26 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(r.structuredContent).toEqual({ from: 'backlog', fromIndex: 1, sha256: hashOf(a.root) });
     expect((await pageWrite('/api/tasks/move', { id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }, b.root, 1)).status).toBe(200);
     expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
+  });
+
+  it('moves a row to Review and back, and refuses every move to Completed with the by-hand rule (BL-113)', async () => {
+    await start();
+    writeFileSync(fileOf(a.root), REVIEW_TASKS);
+    const toReview = await tool('specpilot_move_task', { id: 'CS-001', toSection: 'review', toIndex: 0, sha256: hashOf(a.root) });
+    expect(toReview.structuredContent).toEqual({ from: 'currentSprint', fromIndex: 0, sha256: hashOf(a.root) });
+    const tasks = (await tool('specpilot_list_tasks')).structuredContent;
+    expect(tasks.review.map((r: { id: string }) => r.id)).toEqual(['CS-001', 'BL-003', 'BL-004']);
+    expect(tasks.review[2]).toMatchObject({ approved: null, history: [{ date: '2026-10-01', note: 'earlier' }] });
+    expect(tasks.moves).toEqual({ backlog: ['currentSprint'], currentSprint: ['backlog', 'review'], review: ['currentSprint'] });
+    const back = await tool('specpilot_move_task', { id: 'CS-001', toSection: 'currentSprint', toIndex: 0, sha256: hashOf(a.root) });
+    expect(back.structuredContent).toMatchObject({ from: 'review', fromIndex: 0 });
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(REVIEW_TASKS);
+    for (const id of ['BL-003', 'BL-004', 'BL-001']) {
+      const refused = await tool('specpilot_move_task', { id, toSection: 'completed', toIndex: 0, sha256: hashOf(a.root) });
+      expect(refused).toEqual({ content: [{ type: 'text', text: COMPLETED_BY_HAND }], isError: true });
+    }
+    expect((await tool('specpilot_move_task', { id: 'BL-003', toSection: 'backlog', toIndex: 0, sha256: hashOf(a.root) })).content[0].text).toBe('Review rows cannot be moved to Backlog.');
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(REVIEW_TASKS);
   });
 
   it('refuses a stale sha256 with "since you last read it" and writes nothing', async () => {
@@ -3798,7 +3935,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
       resultType: 'complete',
       supportedVersions: ['2026-07-28', '2025-11-25', '2025-06-18'],
       capabilities: { tools: {} },
-      instructions: SETUP_INSTRUCTIONS,
+      instructions: `${REVIEW_INSTRUCTIONS} ${SETUP_INSTRUCTIONS}`,
       ttlMs: 0,
       cacheScope: 'private',
       _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'specpilot-local', version: '0.0.0-test' } },

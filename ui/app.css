@@ -114,8 +114,7 @@ a{color:var(--accent);text-decoration:none}
 .ib{width:30px;height:30px;border-radius:var(--r);display:grid;place-items:center;color:var(--label-2)}
 .ib:hover{background:var(--hover);color:var(--label)}
 .content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:6px calc(22px + env(safe-area-inset-right,0px)) calc(40px + env(safe-area-inset-bottom,0px)) 22px}
-.content>.view{display:none;flex-direction:column;gap:18px;max-width:880px}
-#v-file{max-width:1060px}
+.content>.view{display:none;flex-direction:column;gap:18px} /* no width cap on any view since BL-113 (D11): each fills the content column; Home alone keeps its centred welcome column below */
 .content>.view.on{display:flex}
 #specBody{display:flex;flex-direction:column;gap:18px}
 
@@ -212,7 +211,7 @@ input.txt{width:100%}
 .desc.md code{white-space:normal}
 
 /* board mode */
-.board{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:14px;align-items:start}
+.board{display:grid;grid-template-columns:var(--cols,repeat(3,minmax(220px,1fr)));gap:14px;align-items:start} /* --cols: one column per drawn lane, set by renderTasks() (BL-113) */
 .board .gl{min-width:0}
 /* BL-TB-03: the board takes the rest of the content area's height; a lane is no taller than that and its box scrolls on its own, the header staying put. */
 #v-board.on{height:100%}
@@ -252,6 +251,14 @@ input.txt{width:100%}
 @media (hover:none),(max-width:900px){.board .card .dots{opacity:1}}
 .board .card .row{padding-right:40px}
 @media (prefers-reduced-motion:reduce){.row.moved{animation:none;background:var(--accent-soft)}}
+/* BL-113: the Review lane's HITL pill, the Approved chip, the folded Won't do strip */
+.hitl{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--violet-ink);background:var(--violet-soft);border-radius:var(--rs);padding:1px 5px;text-decoration:none;cursor:help;text-transform:none}
+.board .row .chip{font-size:11px;padding:1px 7px}
+.gl .gh .fold{display:inline-flex;align-items:center;gap:8px;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;padding:2px 4px;margin:-2px -4px;border-radius:var(--rs)}
+.gl .gh .fold:hover{background:var(--hover);color:var(--label)}
+.gl .gh .fold .chev{width:12px;height:12px;transition:transform var(--t)}
+.gl .gh .fold[aria-expanded="true"] .chev{transform:rotate(90deg)}
+@media (min-width:901px){.board .gl.fold .gh{writing-mode:vertical-rl;min-height:0;padding:6px 0;height:auto;align-self:start}.board .gl.fold .gh .fold{margin:0;padding:4px 2px}.board .gl.fold .gh .fold .chev{transform:rotate(90deg)}}
 
 /* ---------- inspector ---------- */
 .insp{position:absolute;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--ground);border-left:1px solid var(--sep);border-left:1px solid var(--sep-2);transform:translateX(102%);visibility:hidden;transition:transform .26s cubic-bezier(.2,.8,.2,1),visibility .26s;display:flex;flex-direction:column;z-index:20}
@@ -260,7 +267,21 @@ input.txt{width:100%}
 .insp .ih{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--sep);background:var(--group)}
 .insp .ih .id{font-family:var(--mono);font-size:12px;color:var(--label-3)}
 .insp .ih .x{margin-left:auto}
-.insp .ib2{overflow:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:16px}
+.insp .ib2{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:16px}
+/* BL-113: a Review row's History and the footer pinned to the panel's bottom (Approve, Send back, the inline note form) */
+.hist{padding:8px 12px;border-top:1px solid var(--sep);font-size:13px;line-height:1.5}
+.hist:first-child{border-top:0}
+.hist .hd{font-family:var(--mono);font-size:12px;color:var(--label-3)}
+.hist .hn{color:var(--label-2);overflow-wrap:anywhere}
+.insp .if{flex:none;border-top:1px solid var(--sep);background:var(--group);padding:10px 14px;display:flex;flex-direction:column;gap:8px}
+.insp .if .fb{display:flex;gap:8px;flex-wrap:wrap}
+.insp .if form{display:flex;flex-direction:column;gap:6px;margin:0}
+.insp .if label{font-size:12.5px;color:var(--label-2)}
+.insp .if textarea{width:100%;background:var(--ground);border:1px solid var(--sep-2);border-radius:var(--r);padding:6px 9px;color:var(--label);font:14px/1.45 var(--sans);resize:none}
+.insp .if .fc{font-family:var(--mono);font-size:11px;color:var(--label-3);text-align:right}
+.insp .if .err{margin:0;overflow-wrap:anywhere}
+.insp .if .rvdone{margin:0;font-size:13px;line-height:1.5;color:var(--label-2)} /* D14 */
+.insp .if button:disabled{opacity:.6;cursor:default}
 .insp h2{font-size:17px;font-weight:600;margin:0;line-height:1.35;text-wrap:balance;padding:0 2px}
 .insp .gl .gh{font-size:12px}
 .insp .row{min-height:40px;padding:0 12px}
@@ -353,6 +374,11 @@ input.txt{width:100%}
 .gl.drop .box{border-color:var(--focus);box-shadow:inset 0 0 0 1px var(--focus)}
 .toast.has-action.show{pointer-events:auto}
 .toast .tact{margin-left:12px;color:var(--ground);font-weight:600;text-decoration:underline;text-underline-offset:2px}
+/* BL-UI-03: the close button; the toast takes the pointer while it holds one */
+.toast.show{pointer-events:auto}
+.toast .tx{margin-left:10px;width:24px;height:24px;display:inline-grid;place-items:center;vertical-align:middle;border-radius:var(--rs);color:var(--ground)}
+.toast .tx:hover{background:rgba(15,23,42,.1)}
+.toast .tx .ico{width:13px;height:13px}
 
 /* Open a Project sheet (BL-067): the mockup's sheet and + tile; its tab row (BL-PM-003) */
 .tabs{display:flex;gap:2px;background:var(--muted);padding:2px;border-radius:var(--r);width:max-content;max-width:100%;overflow-x:auto}
@@ -406,7 +432,6 @@ input.txt{width:100%}
 .win.insetup .src{display:none} /* no spec nav for a folder without specs, as the chat had it */
 @media (min-width:901px){.win.insetup{grid-template-columns:60px minmax(0,1fr)}}
 .win.insetup #subName,.win.insetup #subPath{display:none}
-.setupv{max-width:760px}
 .setupv .lead{color:var(--label-2);margin:0;line-height:1.55;max-width:66ch;overflow-wrap:anywhere}
 .setupv .lead .mono{color:var(--label)}
 .setupv .gl{background:var(--group);border:1px solid var(--sep);border-radius:6px;padding:14px 16px}

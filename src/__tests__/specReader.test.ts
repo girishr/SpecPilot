@@ -1,4 +1,4 @@
-import { readSpecs, TASK_COLUMNS, taskHeadings } from '../utils/specReader';
+import { endsWithApproved, readSpecs, REQUIRED_TASK_HEADINGS, reviewMarks, TASK_COLUMNS, TASK_HEADINGS, taskHeadings } from '../utils/specReader';
 import { render } from '../core/render';
 
 // Shaped like the real .specs/planning/tasks.md: 2-column Backlog / Current Sprint,
@@ -13,6 +13,13 @@ const COMPLETED_ROWS = [
   "| 95 | [CD-girishr-013] [CS-070] [BL-036] | Conditional `api.yaml` — `apiParadigm: 'rest' | 'cli' | 'graphql' | 'none'` added |",
   '| 124 | [CD-girishr-033] [CS-090] | Fix same bug in the `specpilot-archive` copy |',
 ];
+// BL-113: Review rows with their marker chains, and a three-column Won't do as the real file has it
+const REVIEW_ROWS = [
+  '| BL-113 | Review lane Sent back 2026-10-18: tests \\| docs missing Approved 2026-10-20 |',
+  '| CS-078 | Force AI to write tests Approved 2026-10-01 Sent back 2026-10-02. |',
+  '| BL-050 | Plain, nothing yet |',
+];
+const WONTDO_ROWS = ["| BL-009 | Enhanced `add-specs` | Superseded by BL-103/BL-104 (2026-10-15): the IDE writes the specs |"];
 
 const TASKS_MD = [
   '---',
@@ -39,6 +46,12 @@ const TASKS_MD = [
   '',
   '_(empty — all sprint items completed; see Completed section below)_',
   '',
+  '## Review',
+  '',
+  '| ID | Description |',
+  '|---|---|',
+  ...REVIEW_ROWS,
+  '',
   '## Completed',
   '',
   '> CD-001 through CD-039 have been archived to [tasks-archive.md](tasks-archive.md).',
@@ -46,6 +59,12 @@ const TASKS_MD = [
   '| # | ID | Description |',
   '|---|---|---|',
   ...COMPLETED_ROWS,
+  '',
+  "## Won't do",
+  '',
+  '| ID | Description | Reason |',
+  '|---|---|---|',
+  ...WONTDO_ROWS,
   '',
   '## Multi-Dev Notes',
   '',
@@ -112,9 +131,40 @@ describe('readSpecs', () => {
       num: '95',
       id: '[CD-girishr-013] [CS-070] [BL-036]',
       description: "Conditional `api.yaml` — `apiParadigm: 'rest' | 'cli' | 'graphql' | 'none'` added",
-      line: 32,
+      line: 40,
     });
     expect(tasks.malformed).toEqual([]);
+  });
+
+  it('serves Review rows with what their markers say, and Won\'t do rows with their Reason (BL-113)', () => {
+    const tasks = readSpecs({ 'planning/tasks.md': TASKS_MD }).tasks!;
+    expect(tasks.review).toEqual([
+      { id: 'BL-113', description: 'Review lane Sent back 2026-10-18: tests \\| docs missing Approved 2026-10-20', line: 30, approved: '2026-10-20', history: [{ date: '2026-10-18', note: 'tests \\| docs missing' }] },
+      { id: 'CS-078', description: 'Force AI to write tests Approved 2026-10-01 Sent back 2026-10-02.', line: 31, approved: null, history: [{ date: '2026-10-02', note: '' }] },
+      { id: 'BL-050', description: 'Plain, nothing yet', line: 32, approved: null, history: [] },
+    ]);
+    expect(tasks.wontDo).toEqual([{ id: 'BL-009', description: 'Enhanced `add-specs`', reason: 'Superseded by BL-103/BL-104 (2026-10-15): the IDE writes the specs', line: 47 }]);
+    expect(tasks.malformed).toEqual([]);
+    // a two-cell Won't do row is malformed like any short row; the rest of the lane is served
+    const short = readSpecs({ 'planning/tasks.md': TASKS_MD.replace(WONTDO_ROWS[0], '| BL-010 | No reason cell |\n' + WONTDO_ROWS[0]) }).tasks!;
+    expect(short.malformed).toEqual(['| BL-010 | No reason cell |']);
+    expect(short.wontDo.map(r => r.id)).toEqual(['BL-009']);
+  });
+
+  it('reviewMarks and endsWithApproved: the chain at the end of the cell, one rule for the reader and the writer (BL-113)', () => {
+    expect(reviewMarks('Done Approved 2026-10-20')).toEqual({ approved: '2026-10-20', history: [] });
+    expect(reviewMarks('Approved 2026-10-20')).toEqual({ approved: '2026-10-20', history: [] }); // an otherwise empty cell
+    expect(reviewMarks('Done Sent back 2026-10-18: fix it Approved 2026-10-20')).toEqual({ approved: '2026-10-20', history: [{ date: '2026-10-18', note: 'fix it' }] });
+    expect(reviewMarks('Done Approved 2026-10-19 Sent back 2026-10-20: again')).toEqual({ approved: null, history: [{ date: '2026-10-20', note: 'again' }] });
+    expect(reviewMarks('Done Sent back 2026-10-18. Sent back 2026-10-19: two')).toEqual({ approved: null, history: [{ date: '2026-10-18', note: '' }, { date: '2026-10-19', note: 'two' }] });
+    expect(reviewMarks('Approved 2026-10-01 by the team')).toEqual({ approved: null, history: [] }); // running text, not a marker
+    expect(reviewMarks('See Approved2026-10-01 and Sent back 2026-10-02:x')).toEqual({ approved: null, history: [] });
+    expect(reviewMarks('')).toEqual({ approved: null, history: [] });
+    expect(endsWithApproved('Done Approved 2026-10-20')).toBe(true);
+    expect(endsWithApproved('Done Approved 2026-10-20', '2026-10-20')).toBe(true);
+    expect(endsWithApproved('Done Approved 2026-10-20', '2026-10-19')).toBe(false);
+    expect(endsWithApproved('DoneApproved 2026-10-20')).toBe(false);
+    expect(endsWithApproved('Approved 2026-10-01 by the team')).toBe(false);
   });
 
   it('gives every row its 1-based line in the file, front matter counted, the same with CRLF (BL-PM-008)', () => {
@@ -122,11 +172,11 @@ describe('readSpecs', () => {
       const t = readSpecs({ 'planning/tasks.md': md }).tasks!;
       return [t.backlog, t.currentSprint, t.completed].map(rows => rows.map(r => r.line));
     };
-    expect(lines(TASKS_MD)).toEqual([[15, 16], [22], [32, 33]]);
-    expect(lines(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual([[15, 16], [22], [32, 33]]);
+    expect(lines(TASKS_MD)).toEqual([[15, 16], [22], [40, 41]]);
+    expect(lines(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual([[15, 16], [22], [40, 41]]);
     const all = TASKS_MD.split('\n');
     const t = readSpecs({ 'planning/tasks.md': TASKS_MD }).tasks!;
-    for (const r of [...t.backlog, ...t.currentSprint, ...t.completed]) expect(all[r.line - 1]).toContain(`| ${r.id} |`); // the line holds that row
+    for (const r of [...t.backlog, ...t.currentSprint, ...t.review, ...t.completed, ...t.wontDo]) expect(all[r.line - 1]).toContain(`| ${r.id} |`); // the line holds that row
   });
 
   it('keeps the lines right after a header row and after a malformed row (BL-PM-008)', () => {
@@ -143,6 +193,8 @@ describe('readSpecs', () => {
       ...SPRINT_ROWS,
     ]);
     expect(tasks.completed.map(r => `| ${r.num} | ${r.id} | ${r.description} |`)).toEqual(COMPLETED_ROWS);
+    expect(tasks.review.map(r => `| ${r.id} | ${r.description} |`)).toEqual(REVIEW_ROWS);
+    expect(tasks.wontDo.map(r => `| ${r.id} | ${r.description} | ${r.reason} |`)).toEqual(WONTDO_ROWS);
   });
 
   it('does not let a section after ## Completed bleed into it', () => {
@@ -184,41 +236,51 @@ describe('readSpecs', () => {
 
   it('reports the headings found, missing and unknown, the candidates, the row counts and the columns, the same with CRLF (BL-112)', () => {
     const h = (md: string) => readSpecs({ 'planning/tasks.md': md }).tasks!.headings;
-    const columns = { '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'] };
-    const all = { found: ['## Backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns, untabled: {} };
+    const columns = { '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Review': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'], "## Won't do": ['ID', 'Description', 'Reason'] };
+    const all = { found: ['## Backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns, untabled: {} };
     expect(h(TASKS_MD)).toEqual(all);
     expect(h(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual(all);
     expect(taskHeadings(TASKS_MD.split('\n'))).toEqual(all);
-    expect(h(TASKS_MD.replace('## Backlog', '### Backlog'))).toEqual({ ...all, found: ['## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: ['## Backlog'], variants: { '## Backlog': ['### Backlog'] } });
-    expect(h(TASKS_MD.replace('## Backlog', '## backlog'))).toEqual({ ...all, found: ['## backlog', '## Current Sprint', '## Completed', '## Multi-Dev Notes'], missing: ['## Backlog'], unknown: ['## backlog', '## Multi-Dev Notes'], variants: { '## Backlog': ['## backlog'] }, unknownRows: { '## backlog': 2, '## Multi-Dev Notes': 1 } });
+    expect(h(TASKS_MD.replace('## Backlog', '### Backlog'))).toEqual({ ...all, found: ['## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: ['## Backlog'], variants: { '## Backlog': ['### Backlog'] } });
+    expect(h(TASKS_MD.replace('## Backlog', '## backlog'))).toEqual({ ...all, found: ['## backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: ['## Backlog'], unknown: ['## backlog', '## Multi-Dev Notes'], variants: { '## Backlog': ['## backlog'] }, unknownRows: { '## backlog': 2, '## Multi-Dev Notes': 1 } });
+    // BL-113: `## Review` is required, `## Won't do` optional and never unknown
+    expect(h(TASKS_MD.replace('## Review', '## Reviewing'))).toMatchObject({ missing: ['## Review'], unknown: ['## Reviewing', '## Multi-Dev Notes'], variants: { '## Review': [] } });
+    expect(h(TASKS_MD.replace("## Won't do", '## Dropped'))).toMatchObject({ missing: [], unknown: ['## Dropped', '## Multi-Dev Notes'], variants: {} });
+    expect(TASK_HEADINGS).toEqual(['## Backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do"]);
+    expect(REQUIRED_TASK_HEADINGS).toEqual(['## Backlog', '## Current Sprint', '## Review', '## Completed']);
     expect(h(TASKS_MD.replace('## Backlog', '## backlog\n\n### Backlog')).variants).toEqual({ '## Backlog': ['## backlog', '### Backlog'] }); // two candidates, in file order
     expect(h(TASKS_MD + '## Later\n\nNothing tabled yet.\n').unknownRows).toEqual({ '## Multi-Dev Notes': 1, '## Later': 0 });
-    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Completed': [] }, unknownRows: {}, columns, untabled: {} });
+    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Review', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Review': [], '## Completed': [] }, unknownRows: {}, columns, untabled: {} });
   });
 
   it('counts the lines of a known section that has no table, [TODO] aside, and names the columns a table needs (BL-116)', () => {
     const u = (md: string) => readSpecs({ 'planning/tasks.md': md }).tasks!.headings.untabled;
     expect(u(TASKS_MD)).toEqual({}); // every section has a table
     const nine = Array.from({ length: 9 }, (_, i) => `[BL-00${i + 1}-handle] Task ${i + 1}`).join('\n');
-    const lines = `## Backlog\n\n${nine}\n\n## Current Sprint\n\n[TODO]\n\n## Completed\n\n1. [CD-001] Initialise .specs directory (2026-10-20)\n`;
-    expect(u(lines)).toEqual({ '## Backlog': 9, '## Completed': 1 }); // the init template's own list shape counts; its [TODO] placeholder does not
-    expect(u(lines.replace(/\n/g, '\r\n'))).toEqual({ '## Backlog': 9, '## Completed': 1 });
+    const lines = `## Backlog\n\n${nine}\n\n## Current Sprint\n\n[TODO]\n\n## Completed\n\n1. [CD-001] Initialise .specs directory (2026-10-20)\n\n## Won't do\n\n- BL-009 dropped\n`;
+    expect(u(lines)).toEqual({ '## Backlog': 9, '## Completed': 1, "## Won't do": 1 }); // the init template's own list shape counts; its [TODO] placeholder does not
+    expect(u(lines.replace(/\n/g, '\r\n'))).toEqual({ '## Backlog': 9, '## Completed': 1, "## Won't do": 1 });
     expect(u('## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | One |\n\nA note beside the table.\n')).toEqual({}); // a table: prose beside it is ignored, as today
     expect(u('## Backlog\n\n| ID | Description |\n')).toEqual({ '## Backlog': 1 }); // a header row with no separator is not a table
     expect(u('## Backlog\n\n\n\n## Completed\n')).toEqual({});
-    expect(TASK_COLUMNS).toEqual({ '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'] });
+    expect(TASK_COLUMNS).toEqual({ '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Review': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'], "## Won't do": ['ID', 'Description', 'Reason'] });
   });
 
   it('the tasks.md the core renders has the tables the board reads, headers equal to TASK_COLUMNS (BL-118)', () => {
     // the core cannot import the reader (REQ-002.I.2), so the template's literal headers are pinned here
     const md = render({ projectName: 'p', language: 'typescript', author: 'jsmith', date: '2031-02-03' }).files.find(f => f.path === '.specs/planning/tasks.md')!.content;
-    for (const [heading, cols] of Object.entries(TASK_COLUMNS)) expect(md).toContain(`${heading}\n\n| ${cols.join(' | ')} |\n|${cols.map(() => '---').join('|')}|\n`);
+    for (const heading of REQUIRED_TASK_HEADINGS) expect(md).toContain(`${heading}\n\n| ${TASK_COLUMNS[heading].join(' | ')} |\n|${TASK_COLUMNS[heading].map(() => '---').join('|')}|\n`);
+    expect(md).not.toContain("## Won't do"); // optional: the template does not write it (BL-113)
+    expect(md.indexOf('## Review')).toBeGreaterThan(md.indexOf('## Current Sprint'));
+    expect(md.indexOf('## Review')).toBeLessThan(md.indexOf('## Completed'));
     const t = readSpecs({ 'planning/tasks.md': md }).tasks!;
     expect(t.headings.missing).toEqual([]);
     expect(t.headings.unknown).toEqual([]);
     expect(t.headings.untabled).toEqual({});
     expect(t.backlog).toEqual([]);
     expect(t.currentSprint).toEqual([]);
+    expect(t.review).toEqual([]);
+    expect(t.wontDo).toEqual([]);
     expect(t.completed.map(r => [r.num, r.id, r.description])).toEqual([['1', '[CD-jsmith-001]', 'Initialise .specs directory (2031-02-03)']]);
     expect(t.malformed).toEqual([]);
   });

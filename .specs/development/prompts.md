@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-21 (v2.18.0 prepared)
-version: 2.194
+lastUpdated: 2026-10-21 (v2.18.0 shipped)
+version: 2.195
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-21: `I have publish and released`: checked `origin/main` at `08459c4`, the tag `v2.18.0` on origin, `npm view specpilot dist-tags` latest 2.18.0, `gh release view v2.18.0` live (17:03 UTC); row 235 reworded, row 236 added, this entry; the `docs(tasks): v2.18.0 shipped` commit; its push waits for the developer's typed `push`.
 - 2026-10-21: `push and prepare for publish`, then `yes proceed`: `main` pushed (`fbb18c6..8e5a93d`, read by eye); v2.18.0 prepared by docs/RELEASING.md on `main`: `npm version`, project.yaml, api.yaml, CHANGELOG `[2.18.0] - 2026-10-21`, roadmap (the Timeline line, the group heading to v2.18.0), the context Phase line, the release row 235, headers; the checks, the commit and the annotated tag next, then spec-reviewer D; nothing pushed or published.
 - 2026-10-21: BL-113 merged: `8e5a93d` (`--no-ff`) on `main`, `npm test` 1726/1726 and `npm run test:browser` 75/75 on `main`, `specpilot validate` clean, read by eye; branch `feat/bl-113-review-lane` deleted (local only); `main` three commits ahead of `origin/main`. This line is uncommitted on the tree. Push waits for the developer's typed `push`.
 - 2026-10-21: on the developer's typed `commit`, both Review rows ending with `Approved 2026-10-21`: feature commit `55b3b4d` on `feat/bl-113-review-lane` (tasks.md not in it), then this completion commit (rows 233 and 234, CD-girishr-142 and 143, the two rows out of Review), then the `--no-ff` merge into `main`, `npm test` and `npm run test:browser` on `main`; push waits for the developer's typed `push`.

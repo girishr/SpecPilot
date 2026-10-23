@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-23 (BL-120 built, to Review)
-version: 7.35
+lastUpdated: 2026-10-23 (BL-120 to Completed, row 237)
+version: 7.36
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -67,7 +67,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-120 | A tasks.md section whose table has the wrong number of columns gets a Warning with the fix, as BL-116 gave a section with no table. Seen 2026-10-22 on a project set up through the MCP connector: its `## Completed` was `\| ID \| Task \|`, two columns where the lane reads three, so all 36 rows fell into `Rows that could not be parsed` with no word why. `taskHeadings()` gains `columnsFound`: for each known heading with a table, the header row's cell count when it differs from the lane's (`TASK_COLUMNS`); fewer columns means every row is malformed, more means the extra cells run into the last cell. The Tasks view draws a **Warning** in the BL-112 shape, after the untabled ones and counted in the strip: title `The <Lane> lane cannot read its table: it has <n> columns, the board reads <m>` (`1 column`), body `<rows> rows are listed under Rows that could not be parsed.` for fewer, or `The extra columns show inside each row's description.` for more; the fix line `Fix: edit .specs/planning/tasks.md and give the table <columns> columns, one row per task, best done by your AI IDE so that every task keeps its ID and text.`; actions `Open tasks.md in VS Code` and `Copy prompt`, which puts exactly `In .specs/planning/tasks.md, turn the "## <Lane>" section into a markdown table with <columns> columns, one row per task (for Completed: numbered from 1 with the oldest entry first), keeping every task's ID and text, so SpecPilot's Tasks board reads it.` on the clipboard. `specpilot validate` warns `planning/tasks.md \`## <Lane>\` has a table with <n> columns, but the Tasks board reads <m> (<columns>); make it one row per task with those columns.`, no `--fix` (restructuring rows is the AI IDE's job, as BL-116 and D10 said); pushed by `validateTasksContent()`, not `tasksChecks()`, for the same reason as the untabled warning. The raw-rows box stays. Tests: reader (two-column Completed, three-column Backlog, a matching table, CRLF), validator, browser at 1280px and 420px with the strip. Feature: Spec Report first. Approved 2026-10-23 |
 
 ## Won't do
 
@@ -125,3 +124,4 @@ Notes
 | 234 | [CD-girishr-143] [BL-UI-03] | `specpilot serve` toast: a close (×) button on every toast (`aria-label` `Dismiss`, hides it early, clears the timer); every toast stays 8 s (the developer's Send back note D13, over the row's own `keep the timers`). Built in BL-113's branch (the architect folded it in, Q5); browser cases for the early hide and the timer. Feature commit `55b3b4d`. |
 | 235 | [CD-girishr-144] | v2.18.0 release prepared and shipped (BL-111, BL-112, BL-113, BL-116, BL-117, BL-118, BL-UI-03): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.18.0]`, annotated tag `v2.18.0`; pushed and published by the developer (row 236) |
 | 236 | [CD-girishr-145] | v2.18.0 shipped (BL-111, BL-112, BL-113, BL-116, BL-117, BL-118, BL-UI-03): pushed, npm `specpilot@2.18.0` latest, GitHub release live (2026-10-21) |
+| 237 | [CD-girishr-146] [BL-120] | `specpilot serve` Tasks view and `specpilot validate`: a tasks.md table whose header has another column count than its lane reads gets a Warning (`The <Lane> lane cannot read its table: it has <n> columns, the board reads <m>`, the unread rows or the extra-columns line, the fix, `Open tasks.md in VS Code` and `Copy prompt`) and a validate warning, no `--fix`; `tasks.headings.columnsFound` (`{columns, unread}`) from `taskHeadings()`. REQ-002.H.56, ARCH-004.72. Jest 1726 → 1728, browser 75 → 76. Approved 2026-10-23. Feature commit `99e6ffe`. |

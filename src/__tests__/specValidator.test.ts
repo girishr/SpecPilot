@@ -463,6 +463,19 @@ describe('SpecValidator', () => {
     expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8')).filter(w => w.includes('no table'))).toEqual([]);
   });
 
+  it('a table with another column count than its lane warns, without a fix, and tasksChecks does not carry it (BL-120)', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '', '| ID | Description | Owner |', '|---|---|---|', '| BL-001 | One | me |', '', '## Current Sprint', '', '| Task |', '|---|', '| Two |', '', '## Review', '', '## Completed', '', '| ID | Task |', '|---|---|', '| CD-001 | First |'));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.warnings.filter(w => w.includes('has a table with'))).toEqual([
+      'planning/tasks.md `## Backlog` has a table with 3 columns, but the Tasks board reads 2 (ID and Description); make it one row per task with those columns.',
+      'planning/tasks.md `## Current Sprint` has a table with 1 column, but the Tasks board reads 2 (ID and Description); make it one row per task with those columns.',
+      'planning/tasks.md `## Completed` has a table with 2 columns, but the Tasks board reads 3 (#, ID and Description); make it one row per task with those columns.',
+    ]);
+    expect(result.fixable).toEqual([]);
+    expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8')).filter(w => w.includes('has a table with'))).toEqual([]);
+  });
+
   it('two candidates for one heading stay a warning with no fix', async () => {
     createValidSpecsDir(testDir);
     writeFileSync(tasksPath(testDir), tasksWith('## backlog', '### Backlog', '## Current Sprint', '## Review', '## Completed'));

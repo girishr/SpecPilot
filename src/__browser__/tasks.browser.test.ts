@@ -694,6 +694,49 @@ browserTest('a section whose tasks are lines or a list, not a table, gets a Warn
   }
 });
 
+// BL-120: a table whose header has another column count than its lane reads: a Warning per section, after the others, counted in the strip
+browserTest('a table with the wrong column count gets a Warning per section at 1280px and 420px, counted in the strip', b, async open => {
+  const before = read(env.tasks());
+  const lines = before.split('\n');
+  const header = (h: string, row: string, sep: string) => {
+    const s = lines.findIndex(l => l.trim() === h);
+    const i = lines.findIndex((l, j) => j > s && /^\|[\s:|-]+$/.test(l.trim()));
+    lines.splice(i - 1, 2, row, sep);
+  };
+  const cs = lines.findIndex(l => l.trim() === '## Completed'); // the later section first, so the earlier indices hold
+  const ce = lines.findIndex((l, i) => i > cs && /^## /.test(l));
+  lines.splice(cs + 1, ce - cs - 1, '', '| ID | Task |', '|---|---|', '| CD-fixture-002 | Two cells, not three |', '| CD-fixture-003 | Another two-cell row |', '');
+  header('## Backlog', '| ID | Description | Owner | Due |', '|---|---|---|---|');
+  writeFileSync(env.tasks(), lines.join('\n'));
+  const wide = (await open(srv)).page;
+  const narrow = (await open(srv, '', { width: 420 })).page;
+  for (const page of [wide, narrow]) {
+    await waitView(page, 'v-board');
+    await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
+    const warns = await page.locator('#gHead .msg.warn').allTextContents();
+    expect(warns[0]).toContain('Warning The Backlog lane cannot read its table: it has 4 columns, the board reads 2');
+    expect(warns[0]).toContain("The extra columns show inside each row's description.");
+    expect(warns[0]).toContain('Fix: edit .specs/planning/tasks.md and give the table ID and Description columns, one row per task, best done by your AI IDE so that every task keeps its ID and text.');
+    expect(warns[1]).toContain('Warning The Completed lane cannot read its table: it has 2 columns, the board reads 3');
+    expect(warns[1]).toContain('2 rows are listed under Rows that could not be parsed.');
+    expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(0);
+    expect(await page.locator('#boardMode .row[data-col="backlog"]').count()).toBeGreaterThan(0); // more columns still read, extras in the description
+  }
+  expect(await noSideScroll(narrow)).toBe(true);
+  await narrow.locator('#gHead .msg.warn [data-prompt]').nth(1).click();
+  await waitToast(narrow, /Copied\./);
+  expect(await narrow.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, turn the "## Completed" section into a markdown table with #, ID and Description columns, one row per task (numbered from 1 with the oldest entry first), keeping every task\'s ID and text, so SpecPilot\'s Tasks board reads it.');
+  await narrow.click('#gHead .msg.warn [data-hidewarn]');
+  await narrow.locator('#gHead .msgbar').waitFor({ state: 'visible' });
+  expect(await narrow.locator('#gHead .msgbar').textContent()).toContain('2 warnings about tasks.md');
+  expect(await noSideScroll(narrow)).toBe(true);
+  writeFileSync(env.tasks(), before);
+  for (const page of [wide, narrow]) {
+    await page.locator('#gHead').waitFor({ state: 'hidden' });
+    await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="completed"]').length > 0);
+  }
+});
+
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
   const { page } = await open(srv);
   await waitView(page, 'v-board');

@@ -38,6 +38,12 @@ export function untabledWarnings(report: TaskHeadings): string[] {
     `planning/tasks.md \`${h}\` has ${n === 1 ? '1 line' : `${n} lines`} but no table, so the Tasks board ${n === 1 ? 'does not show it' : 'shows none of them'}; make the section a table with ${joinAnd(report.columns[h])} columns, one row per task.`);
 }
 
+/** BL-120: a known section whose table header has another column count than its lane reads, worded and placed as `untabledWarnings()`. */
+export function columnWarnings(report: TaskHeadings): string[] {
+  return Object.entries(report.columnsFound).map(([h, { columns }]) =>
+    `planning/tasks.md \`${h}\` has a table with ${columns === 1 ? '1 column' : `${columns} columns`}, but the Tasks board reads ${report.columns[h].length} (${joinAnd(report.columns[h])}); make it one row per task with those columns.`);
+}
+
 export interface HeadingRename {
   found: string;
   expected: string;
@@ -452,7 +458,8 @@ export class SpecValidator {
       const headings = tasksHeadingChecks(content);
       result.warnings.push(...headings.warnings);
       for (const r of headings.renames) result.fixable.push(`${RENAME_HEADING_PREFIX}${r.found}:${r.expected}`);
-      result.warnings.push(...untabledWarnings(taskHeadings(content.split('\n')))); // BL-116: no fix token
+      const report = taskHeadings(content.split('\n'));
+      result.warnings.push(...untabledWarnings(report), ...columnWarnings(report)); // BL-116, BL-120: no fix token
 
     } catch (error) {
       if (verbose) {

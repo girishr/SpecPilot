@@ -256,7 +256,17 @@ function headingMessages(T){
       `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and turn the section into a table with ${esc(cols)} columns, one row per task, best done by your AI IDE so that every task keeps its ID and references.</p>`+
       `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
   });
-  warns.push(...lineWarns);
+  // BL-120: a table whose header has another column count than the lane reads
+  const colWarns=Object.entries(H.columnsFound||{}).map(([h,{columns:n,unread:k}])=>{
+    const lane=h.slice(3),names=H.columns[h]||['ID','Description'],cols=joinAnd(names),m=names.length;
+    const prompt=`In ${TASKS_FILE}, turn the "${h}" section into a markdown table with ${cols} columns, one row per task${h==='## Completed'?' (numbered from 1 with the oldest entry first)':''}, keeping every task's ID and text, so SpecPilot's Tasks board reads it.`;
+    const body=n>m?'The extra columns show inside each row\'s description.':k?`${k===1?'1 row is':k+' rows are'} listed under Rows that could not be parsed.`:'';
+    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane cannot read its table: it has ${n===1?'1 column':n+' columns'}, the board reads ${m}</div>`+
+      (body?`<p>${body}</p>`:'')+
+      `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and give the table ${esc(cols)} columns, one row per task, best done by your AI IDE so that every task keeps its ID and text.</p>`+
+      `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
+  });
+  warns.push(...lineWarns,...colWarns);
   const candidates=new Set([].concat(...Object.values(H.variants)));
   const hidden=hiddenNotes(H.unknown.slice().sort());
   const notes=H.unknown.filter(h=>!candidates.has(h)&&!hidden.includes(h)).map(h=>{

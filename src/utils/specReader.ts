@@ -158,6 +158,8 @@ export interface TaskHeadings {
   columns: Record<string, string[]>;
   /** Each known heading present without a table → the count of non-blank lines under it, `[TODO]` aside (BL-116). */
   untabled: Record<string, number>;
+  /** Each known heading whose table header has another cell count than its lane reads → that count and the section's malformed rows (BL-120). */
+  columnsFound: Record<string, { columns: number; unread: number }>;
 }
 
 /** Each known heading's column names, by the count its lane is read with (BL-116): what `columns` reports and the `--fix` stub writes. */
@@ -188,7 +190,19 @@ export function taskHeadings(lines: string[]): TaskHeadings {
     const n = trimmed.slice(b.start + 1, b.end).filter(l => l && l !== '[TODO]').length;
     if (n) untabled[h] = n;
   }
-  return { found, missing, unknown, variants, unknownRows, columns: { ...TASK_COLUMNS }, untabled };
+  // BL-120: a table whose header row is wider or narrower than its lane is read at the lane's count, rows misplaced
+  const columnsFound: Record<string, { columns: number; unread: number }> = {};
+  for (const h of TASK_HEADINGS) {
+    const b = findSectionBounds(trimmed, h);
+    if (!b) continue;
+    const unread: string[] = [];
+    const { separator } = tableRows(trimmed, b, TASK_COLUMNS[h].length, unread);
+    const header = separator === null ? '' : trimmed[separator - 1];
+    if (separator === null || separator - 1 <= b.start || !header.startsWith('|')) continue;
+    const columns = header.replace(/^\|/, '').replace(/\|$/, '').split('|').length;
+    if (columns !== TASK_COLUMNS[h].length) columnsFound[h] = { columns, unread: unread.length };
+  }
+  return { found, missing, unknown, variants, unknownRows, columns: { ...TASK_COLUMNS }, untabled, columnsFound };
 }
 
 function parseTasks(lines: string[]): TasksData {

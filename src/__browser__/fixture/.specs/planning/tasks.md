@@ -17,22 +17,22 @@ Task ID conventions
 
 ## Backlog
 
-| ID | Description |
-|---|---|
-| BL-001 | Fixture backlog row one |
-| BL-002 | Fixture backlog row two |
+| ID | Type | Priority | Description |
+|---|---|---|---|
+| BL-001 | feat | P1 | Fixture backlog row one |
+| BL-002 |  |  | Fixture backlog row two |
 
 ## Current Sprint
 
-| ID | Description |
-|---|---|
-| CS-001 | Fixture sprint row |
+| ID | Type | Priority | Description |
+|---|---|---|---|
+| CS-001 | bug | P2 | Fixture sprint row |
 
 ## Review
 
-| ID | Description |
-|---|---|
-| CS-801 | Fixture review row Sent back 2026-10-01: an earlier note |
+| ID | Type | Priority | Description |
+|---|---|---|---|
+| CS-801 | chore |  | Fixture review row Sent back 2026-10-01: an earlier note |
 
 ## Completed
 

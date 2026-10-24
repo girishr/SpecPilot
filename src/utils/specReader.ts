@@ -13,6 +13,9 @@ export interface SpecMeta {
 
 export interface TaskRow {
   id: string;
+  /** Backlog, Current Sprint and Review (BL-125): the Type and Priority cells as written, trimmed; null in a plain table. */
+  type: string | null;
+  priority: string | null;
   description: string;
   /** The row's 1-based line in tasks.md, as an editor shows it (BL-PM-008). */
   line: number;
@@ -127,7 +130,7 @@ function parseMeta(lines: string[]): SpecMeta {
   return meta;
 }
 
-// Heading, column count, and (BL-113) whether the section is optional: `## Won't do` is read when present and
+// Heading, column count (for the first three the plain shape's; their header picks the shape, BL-125), and (BL-113) whether the section is optional: `## Won't do` is read when present and
 // never asked for; the other four are required (missing, the validator's warning, the `--fix` stub).
 const TASK_SECTIONS = {
   backlog: ['## Backlog', 2, false],
@@ -154,17 +157,46 @@ export interface TaskHeadings {
   variants: Record<string, string[]>;
   /** Each unknown heading → the count of table rows under it. */
   unknownRows: Record<string, number>;
-  /** Each known heading → its table's column names, by the count its lane is read with. */
+  /** Each known heading → its table's column names as its lane is read (BL-125: the typed four for a typed lane), else as it is written. */
   columns: Record<string, string[]>;
+  /** Backlog, Current Sprint and Review present with a table → the shape its header names (BL-125). */
+  shapes: Record<string, LaneShape>;
   /** Each known heading present without a table → the count of non-blank lines under it, `[TODO]` aside (BL-116). */
   untabled: Record<string, number>;
-  /** Each known heading whose table header has another cell count than its lane reads → that count and the section's malformed rows (BL-120). */
-  columnsFound: Record<string, { columns: number; unread: number }>;
+  /** Each known heading whose table header has another cell count than its lane reads → that count, the header's names and the section's
+   *  malformed rows (BL-120); for Backlog, Current Sprint and Review, a header that names neither shape (BL-125). */
+  columnsFound: Record<string, { columns: number; names: string[]; unread: number }>;
 }
 
-/** Each known heading's column names, by the count its lane is read with (BL-116): what `columns` reports and the `--fix` stub writes. */
+// BL-125: Backlog, Current Sprint and Review are read in one of two shapes, told apart by the header's names.
+export type LaneShape = 'typed' | 'plain';
+export const TYPED_COLUMNS = ['ID', 'Type', 'Priority', 'Description'];
+export const PLAIN_COLUMNS = ['ID', 'Description'];
+export const TASK_TYPES = ['feat', 'bug', 'chore'];
+export const TASK_PRIORITIES = ['P1', 'P2', 'P3'];
+/** The headings whose rows move between lanes, and so may carry Type and Priority. */
+export const SHAPED_HEADINGS = ['## Backlog', '## Current Sprint', '## Review'];
+
+/** Each known heading's column names as the template and the `--fix` stub write them (BL-116; the typed shape since BL-125). */
 export const TASK_COLUMNS: Record<string, string[]> = {};
-for (const [heading, cols] of Object.values(TASK_SECTIONS)) TASK_COLUMNS[heading] = heading === "## Won't do" ? ['ID', 'Description', 'Reason'] : cols === 3 ? ['#', 'ID', 'Description'] : ['ID', 'Description'];
+for (const [heading, cols] of Object.values(TASK_SECTIONS)) TASK_COLUMNS[heading] = heading === "## Won't do" ? ['ID', 'Description', 'Reason'] : cols === 3 ? ['#', 'ID', 'Description'] : TYPED_COLUMNS;
+
+/** A section's table header: the `|` line straight above its first separator (BL-120's rule), its cells trimmed; null when there is none. */
+function headerCells(lines: string[], b: SectionBounds): string[] | null {
+  const { separator } = tableRows(lines, b, 1, []);
+  const header = separator === null ? '' : lines[separator - 1].trim();
+  if (separator === null || separator - 1 <= b.start || !header.startsWith('|')) return null;
+  return header.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+}
+
+const sameNames = (cells: string[], names: string[]) => cells.length === names.length && cells.every((c, i) => c.toLowerCase() === names[i].toLowerCase());
+
+/** The columns a section is read with: for the three shaped lanes the typed four when the header names them, case ignored, else the plain two. */
+function readColumns(lines: string[], heading: string, b: SectionBounds): string[] {
+  if (!SHAPED_HEADINGS.includes(heading)) return TASK_COLUMNS[heading];
+  const cells = headerCells(lines, b);
+  return cells && sameNames(cells, TYPED_COLUMNS) ? TYPED_COLUMNS : PLAIN_COLUMNS;
+}
 
 /** tasks.md's headings as the page's messages and the validator's check report them (BL-112). */
 export function taskHeadings(lines: string[]): TaskHeadings {
@@ -190,33 +222,49 @@ export function taskHeadings(lines: string[]): TaskHeadings {
     const n = trimmed.slice(b.start + 1, b.end).filter(l => l && l !== '[TODO]').length;
     if (n) untabled[h] = n;
   }
-  // BL-120: a table whose header row is wider or narrower than its lane is read at the lane's count, rows misplaced
-  const columnsFound: Record<string, { columns: number; unread: number }> = {};
+  // BL-120: a table whose header row is wider or narrower than its lane is read at the lane's count, rows misplaced;
+  // BL-125: for the shaped lanes, a header that names neither shape, read in the plain one
+  const columnsFound: Record<string, { columns: number; names: string[]; unread: number }> = {};
+  const columns: Record<string, string[]> = { ...TASK_COLUMNS };
+  const shapes: Record<string, LaneShape> = {};
   for (const h of TASK_HEADINGS) {
     const b = findSectionBounds(trimmed, h);
     if (!b) continue;
+    const names = headerCells(trimmed, b);
+    if (!names) continue;
+    const read = readColumns(trimmed, h, b);
     const unread: string[] = [];
-    const { separator } = tableRows(trimmed, b, TASK_COLUMNS[h].length, unread);
-    const header = separator === null ? '' : trimmed[separator - 1];
-    if (separator === null || separator - 1 <= b.start || !header.startsWith('|')) continue;
-    const columns = header.replace(/^\|/, '').replace(/\|$/, '').split('|').length;
-    if (columns !== TASK_COLUMNS[h].length) columnsFound[h] = { columns, unread: unread.length };
+    tableRows(trimmed, b, read.length, unread);
+    if (SHAPED_HEADINGS.includes(h)) {
+      columns[h] = read;
+      shapes[h] = read === TYPED_COLUMNS ? 'typed' : 'plain';
+      if (sameNames(names, read)) continue;
+    } else if (names.length === read.length) continue;
+    columnsFound[h] = { columns: names.length, names, unread: unread.length };
   }
-  return { found, missing, unknown, variants, unknownRows, columns: { ...TASK_COLUMNS }, untabled, columnsFound };
+  return { found, missing, unknown, variants, unknownRows, columns, shapes, untabled, columnsFound };
 }
 
 function parseTasks(lines: string[]): TasksData {
   const malformed: string[] = [];
-  const rows = (heading: string, cols: number): { cells: string[]; line: number }[] => {
+  const rows = (heading: string): { cells: string[]; line: number }[] => {
     const b = findSectionBounds(lines, heading);
-    return b ? tableRows(lines, b, cols, malformed).rows : [];
+    return b ? tableRows(lines, b, readColumns(lines, heading, b).length, malformed).rows : [];
   };
+  // BL-125: a typed row's cells are ID, Type, Priority, Description; a plain row has no Type or Priority
+  const task = ({ cells, line }: { cells: string[]; line: number }): TaskRow =>
+    cells.length === 4
+      ? { id: cells[0], type: cells[1], priority: cells[2], description: cells[3], line: line + 1 }
+      : { id: cells[0], type: null, priority: null, description: cells[1], line: line + 1 };
   return {
-    backlog: rows('## Backlog', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
-    currentSprint: rows('## Current Sprint', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1 })),
-    review: rows('## Review', 2).map(({ cells: [id, description], line }) => ({ id, description, line: line + 1, ...reviewMarks(description) })),
-    completed: rows('## Completed', 3).map(({ cells: [num, id, description], line }) => ({ num, id, description, line: line + 1 })),
-    wontDo: rows("## Won't do", 3).map(({ cells: [id, description, reason], line }) => ({ id, description, reason, line: line + 1 })),
+    backlog: rows('## Backlog').map(task),
+    currentSprint: rows('## Current Sprint').map(task),
+    review: rows('## Review').map(r => {
+      const t = task(r);
+      return { ...t, ...reviewMarks(t.description) };
+    }),
+    completed: rows('## Completed').map(({ cells: [num, id, description], line }) => ({ num, id, description, line: line + 1 })),
+    wontDo: rows("## Won't do").map(({ cells: [id, description, reason], line }) => ({ id, description, reason, line: line + 1 })),
     malformed,
     headings: taskHeadings(lines),
   };
@@ -251,6 +299,8 @@ export interface TaskRowLines {
   rows: { id: string; line: number }[];
   /** Index of the table's separator row (`|---|---|`), or null when the section has no table. */
   separator: number | null;
+  /** Backlog, Current Sprint and Review with a table: the shape they are read in (BL-125); otherwise null. */
+  shape: LaneShape | null;
 }
 
 /**
@@ -260,14 +310,16 @@ export interface TaskRowLines {
 export function taskRowLines(content: string): Record<TaskSection, TaskRowLines | null> {
   const lines = content.split('\n');
   const out = {} as Record<TaskSection, TaskRowLines | null>;
-  for (const [key, [heading, cols]] of Object.entries(TASK_SECTIONS) as [TaskSection, readonly [string, number, boolean]][]) {
+  for (const [key, [heading]] of Object.entries(TASK_SECTIONS) as [TaskSection, readonly [string, number, boolean]][]) {
     const b = findSectionBounds(lines, heading);
     if (!b) {
       out[key] = null;
       continue;
     }
-    const t = tableRows(lines, b, cols, []);
-    out[key] = { rows: t.rows.map(r => ({ id: key === 'completed' ? r.cells[1] : r.cells[0], line: r.line })), separator: t.separator };
+    const cols = readColumns(lines, heading, b);
+    const t = tableRows(lines, b, cols.length, []);
+    const shape = SHAPED_HEADINGS.includes(heading) && t.separator !== null ? (cols === TYPED_COLUMNS ? 'typed' : 'plain') : null;
+    out[key] = { rows: t.rows.map(r => ({ id: key === 'completed' ? r.cells[1] : r.cells[0], line: r.line })), separator: t.separator, shape };
   }
   return out;
 }

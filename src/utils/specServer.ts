@@ -6,7 +6,7 @@ import { homedir } from 'os';
 import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
 import { readSpecs } from './specReader';
-import { archiveCompleted, completedArchiveStatus, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, REVIEW_STALE_ERROR, ReviewRequest, reviewShapeError, reviewTask, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
+import { archiveCompleted, completedArchiveStatus, FIELDS_STALE_ERROR, FieldsRequest, fieldsShapeError, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, REVIEW_STALE_ERROR, ReviewRequest, reviewShapeError, reviewTask, setTaskFields, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
@@ -442,11 +442,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (problem) return sendJson(res, 422, { error: problem });
       const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
       if (!ifMatch) return sendJson(res, 428, { error: 'A new task needs an If-Match header with the file hash the page last loaded.' });
-      const { description, section } = body as NewTask;
+      const { description, section, type, priority } = body as NewTask;
       underLock(res, () => {
         let out;
         try {
-          out = newTask(roots[i], { description, section }, ifMatch);
+          out = newTask(roots[i], { description, section, type, priority }, ifMatch);
         } catch {
           return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
         }
@@ -476,6 +476,31 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
           return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
         }
         if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, action, date: out.date, note: out.note, fromIndex: out.fromIndex, index: out.index, specs: payload(i) });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
+        return sendJson(res, 422, { error: out.error });
+      });
+    });
+  };
+
+  /** Type and Priority (BL-125): one row's two cells set or cleared; the move route's checks, under the same lock. */
+  const handleFields = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      const problem = fieldsShapeError(body);
+      if (problem) return sendJson(res, 422, { error: problem });
+      const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
+      if (!ifMatch) return sendJson(res, 428, { error: 'This change needs an If-Match header with the file hash the page last loaded.' });
+      const { id, type, priority } = body as FieldsRequest;
+      underLock(res, () => {
+        let out;
+        try {
+          out = setTaskFields(roots[i], { id, type, priority }, ifMatch);
+        } catch {
+          return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
+        }
+        if (out.status === 200) return sendJson(res, 200, { sha256: out.sha256, specs: payload(i) });
         if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
         return sendJson(res, 422, { error: out.error });
       });
@@ -754,6 +779,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     [STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it. The move was not made.',
     [NEW_STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it, so the task was not added. Call specpilot_list_tasks for the current sha256, then try again.',
     [REVIEW_STALE_ERROR]: REVIEW_STALE_ERROR,
+    [FIELDS_STALE_ERROR]: 'planning/tasks.md changed on disk since you last read it, so Type and Priority were not changed. Call specpilot_list_tasks for the current sha256, then try again.',
   };
   const mcpTools = MCP_TOOLS.filter(t => token || (!t.writes && !t.setup)); // --read-only: no write tools, no setup tools (D3)
   const mcpProject = (args: Record<string, unknown>): number => {
@@ -916,7 +942,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       return asJson(tasks);
     }
     if (name === 'specpilot_new_task') {
-      const task = { description: args.description, section: args.section };
+      const task = { description: args.description, section: args.section, type: args.type, priority: args.priority };
       const problem = newTaskShapeError(task);
       if (problem) throw new ToolRefusal(problem);
       const hash = mcpHash(args);
@@ -930,6 +956,14 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const hash = mcpHash(args);
       const out = await taskWrite(() => moveTask(roots[i], move as TaskMove, hash));
       return asJson({ from: out.from, fromIndex: out.fromIndex, sha256: out.sha256 });
+    }
+    if (name === 'specpilot_set_task') {
+      const req = { id: args.id, type: args.type, priority: args.priority };
+      const problem = fieldsShapeError(req);
+      if (problem) throw new ToolRefusal(problem);
+      const hash = mcpHash(args);
+      const out = await taskWrite(() => setTaskFields(roots[i], req as FieldsRequest, hash));
+      return asJson({ sha256: out.sha256 });
     }
     if (name === 'specpilot_validate_specs') {
       const r = await new SpecValidator().validate(roots[i], { fix: false, verbose: false });
@@ -1050,6 +1084,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/api/tasks/review') {
         if (req.method === 'POST' && token) return handleReview(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/tasks/fields') {
+        if (req.method === 'POST' && token) return handleFields(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

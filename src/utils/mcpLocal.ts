@@ -93,6 +93,9 @@ export const SETUP_INSTRUCTIONS =
 const project = { type: 'integer', minimum: 0, description: 'Index of the served project, as specpilot_list_projects gives it. Default 0.' };
 const sha256 = { type: 'string', description: 'The tasks.md hash specpilot_list_tasks returned. A stale hash is refused and nothing is written.' };
 const section = { type: 'string', enum: ['backlog', 'currentSprint'] };
+/** Type and Priority (BL-125): a value of the set, or '' to leave or make the cell empty. */
+const taskType = { type: 'string', enum: ['feat', 'bug', 'chore', ''] };
+const priority = { type: 'string', enum: ['P1', 'P2', 'P3', ''] };
 /** The lanes a row may be moved to (BL-113): the move table's keys; `completed` is refused with the by-hand rule. */
 const moveSection = { type: 'string', enum: ['backlog', 'currentSprint', 'review'] };
 const READ = { readOnlyHint: true, idempotentHint: true, destructiveHint: false, openWorldHint: false };
@@ -119,7 +122,7 @@ export const MCP_TOOLS: McpTool[] = [
   {
     name: 'specpilot_list_tasks',
     title: 'SpecPilot: list tasks',
-    description: "The rows of .specs/planning/tasks.md by section (Backlog, Current Sprint, Review, Completed, Won't do), verbatim (a Review row also says whether it is approved and lists its Sent back notes), and the file hash (sha256) the task writes need. The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.",
+    description: "The rows of .specs/planning/tasks.md by section (Backlog, Current Sprint, Review, Completed, Won't do), verbatim (a Review row also says whether it is approved and lists its Sent back notes), and the file hash (sha256) the task writes need. The sections are tables: ID, Type, Priority and Description under Backlog, Current Sprint and Review (or ID and Description in a table without Type and Priority, where type and priority are null); #, ID and Description under Completed; ID, Description and Reason under Won't do.",
     inputSchema: schema({}),
     annotations: READ,
     writes: false,
@@ -127,8 +130,10 @@ export const MCP_TOOLS: McpTool[] = [
   {
     name: 'specpilot_new_task',
     title: 'SpecPilot: add a task',
-    description: 'Add one row to Backlog (BL-###) or Current Sprint (CS-###) in .specs/planning/tasks.md, with the next free ID. The description is one line, without |.',
-    inputSchema: schema({ description: { type: 'string' }, section, sha256 }, ['description', 'section', 'sha256']),
+    description:
+      'Add one row to Backlog (BL-###) or Current Sprint (CS-###) in .specs/planning/tasks.md, with the next free ID. The description is one line, without |. ' +
+      'type (feat, bug, chore) and priority (P1, P2, P3) are optional, for a section whose table has Type and Priority columns.',
+    inputSchema: schema({ description: { type: 'string' }, section, type: taskType, priority, sha256 }, ['description', 'section', 'sha256']),
     annotations: WRITE,
     writes: true,
   },
@@ -136,9 +141,20 @@ export const MCP_TOOLS: McpTool[] = [
     name: 'specpilot_move_task',
     title: 'SpecPilot: move a task',
     description:
-      'Move one row of .specs/planning/tasks.md to Backlog, Current Sprint or Review at a 0-based position (Backlog and Current Sprint either way; Current Sprint to Review when the work is finished; a row leaves Review only when the person sends it back, so do not move it out yourself). The row itself is not changed. ' +
+      'Move one row of .specs/planning/tasks.md to Backlog, Current Sprint or Review at a 0-based position (Backlog and Current Sprint either way; Current Sprint to Review when the work is finished; a row leaves Review only when the person sends it back, so do not move it out yourself). The row itself is not changed, ' +
+      'except that moving into a table with Type and Priority columns from one without gives it two empty cells, and moving the other way drops two empty cells and is refused when the row has a Type or Priority. ' +
       'Nothing moves to Completed: a Review row gets its numbered Completed entry (CD ID, commit) by hand only once its description ends with "Approved <date>".',
     inputSchema: schema({ id: { type: 'string' }, toSection: moveSection, toIndex: { type: 'integer', minimum: 0 }, sha256 }, ['id', 'toSection', 'toIndex', 'sha256']),
+    annotations: WRITE,
+    writes: true,
+  },
+  {
+    name: 'specpilot_set_task',
+    title: 'SpecPilot: set type and priority',
+    description:
+      'Set or clear the Type (feat, bug, chore) and Priority (P1, P2, P3) of one row in Backlog, Current Sprint or Review of .specs/planning/tasks.md, in a table with Type and Priority columns. ' +
+      'Give type, priority or both; an empty string clears the cell. Nothing else in the row changes.',
+    inputSchema: schema({ id: { type: 'string' }, type: taskType, priority, sha256 }, ['id', 'sha256']),
     annotations: WRITE,
     writes: true,
   },

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
-import { REQUIRED_TASK_HEADINGS, TASK_COLUMNS, TaskHeadings, taskHeadings } from './specReader';
+import { readSpecs, REQUIRED_TASK_HEADINGS, SHAPED_HEADINGS, TASK_COLUMNS, TASK_PRIORITIES, TASK_TYPES, TaskHeadings, taskHeadings } from './specReader';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -38,10 +38,40 @@ export function untabledWarnings(report: TaskHeadings): string[] {
     `planning/tasks.md \`${h}\` has ${n === 1 ? '1 line' : `${n} lines`} but no table, so the Tasks board ${n === 1 ? 'does not show it' : 'shows none of them'}; make the section a table with ${joinAnd(report.columns[h])} columns, one row per task.`);
 }
 
-/** BL-120: a known section whose table header has another column count than its lane reads, worded and placed as `untabledWarnings()`. */
+/** BL-120: a known section whose table header has another column count than its lane reads, worded and placed as `untabledWarnings()`;
+ *  BL-125: for Backlog, Current Sprint and Review, a header that names neither of their two shapes. */
 export function columnWarnings(report: TaskHeadings): string[] {
-  return Object.entries(report.columnsFound).map(([h, { columns }]) =>
-    `planning/tasks.md \`${h}\` has a table with ${columns === 1 ? '1 column' : `${columns} columns`}, but the Tasks board reads ${report.columns[h].length} (${joinAnd(report.columns[h])}); make it one row per task with those columns.`);
+  return Object.entries(report.columnsFound).map(([h, { columns, names }]) => {
+    const n = columns === 1 ? '1 column' : `${columns} columns`;
+    return SHAPED_HEADINGS.includes(h)
+      ? `planning/tasks.md \`${h}\` has a table with ${n} (${joinAnd(names)}), but the Tasks board reads ID, Type, Priority and Description, or ID and Description; make it one row per task with those columns.`
+      : `planning/tasks.md \`${h}\` has a table with ${n}, but the Tasks board reads ${report.columns[h].length} (${joinAnd(report.columns[h])}); make it one row per task with those columns.`;
+  });
+}
+
+/** BL-125: Backlog, Current Sprint and Review do not share one table shape, so rows with a Type or Priority cannot move into the plain ones. */
+export function shapeWarnings(report: TaskHeadings): string[] {
+  const lanes = (shape: string) => SHAPED_HEADINGS.filter(h => report.shapes[h] === shape).map(h => h.slice(3));
+  const typed = lanes('typed');
+  const plain = lanes('plain');
+  if (!typed.length || !plain.length) return [];
+  return [
+    `planning/tasks.md has Type and Priority columns under ${joinAnd(typed)} but not under ${joinAnd(plain)}, so a row with a Type or Priority cannot move into ${joinAnd(plain)}; give ${plain.length === 1 ? 'that table' : 'those tables'} ID, Type, Priority and Description columns.`,
+  ];
+}
+
+/** BL-125: a Type or Priority cell holding something other than its set or nothing; the board shows it as written. */
+export function valueWarnings(content: string): string[] {
+  const tasks = readSpecs({ 'planning/tasks.md': content }).tasks;
+  if (!tasks) return [];
+  const out: string[] = [];
+  for (const [key, h] of [['backlog', '## Backlog'], ['currentSprint', '## Current Sprint'], ['review', '## Review']] as const) {
+    for (const t of tasks[key]) {
+      if (t.type && !TASK_TYPES.includes(t.type)) out.push(`planning/tasks.md \`${h}\` row ${t.id} has Type "${t.type}"; the board reads ${TASK_TYPES.join(', ')} or empty.`);
+      if (t.priority && !TASK_PRIORITIES.includes(t.priority)) out.push(`planning/tasks.md \`${h}\` row ${t.id} has Priority "${t.priority}"; the board reads ${TASK_PRIORITIES.join(', ')} or empty.`);
+    }
+  }
+  return out;
 }
 
 export interface HeadingRename {
@@ -459,7 +489,7 @@ export class SpecValidator {
       result.warnings.push(...headings.warnings);
       for (const r of headings.renames) result.fixable.push(`${RENAME_HEADING_PREFIX}${r.found}:${r.expected}`);
       const report = taskHeadings(content.split('\n'));
-      result.warnings.push(...untabledWarnings(report), ...columnWarnings(report)); // BL-116, BL-120: no fix token
+      result.warnings.push(...untabledWarnings(report), ...columnWarnings(report), ...shapeWarnings(report), ...valueWarnings(content)); // BL-116, BL-120, BL-125: no fix token
 
     } catch (error) {
       if (verbose) {

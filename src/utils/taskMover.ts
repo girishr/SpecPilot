@@ -1,7 +1,7 @@
 import { chmodSync, closeSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from 'fs';
 import { createHash, randomBytes } from 'crypto';
 import { basename, dirname, join } from 'path';
-import { endsWithApproved, taskRowLines, TaskSection } from './specReader';
+import { endsWithApproved, LaneShape, TASK_PRIORITIES, TASK_TYPES, taskRowLines, TaskSection } from './specReader';
 import { tasksChecks } from './specValidator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, completedArchiveBlock, planCompletedArchive } from './specArchiver';
 import { findSectionBounds } from './markdownSections';
@@ -9,7 +9,8 @@ import { findSectionBounds } from './markdownSections';
 // The one writer behind `specpilot serve` (BL-053, ARCH-003.18, ARCH-004.36). A move removes one
 // line of tasks.md and inserts the identical line elsewhere; a new task (BL-PM-005) inserts one line;
 // a review action (BL-113) appends a dated marker to one row's description cell, or removes the last one;
-// every other byte stays as it was. An archive (BL-TB-06) appends lines of tasks.md to tasks-archive.md
+// a fields edit (BL-125) replaces one row's Type and Priority cells, and a move between lanes of the two table
+// shapes adds or drops those two cells; every other byte stays as it was. An archive (BL-TB-06) appends lines of tasks.md to tasks-archive.md
 // and removes them from tasks.md: the second written file, never request text.
 
 /** The write allowlist: tasks.md, and since BL-TB-06 TASKS_ARCHIVE_FILE (appended to only); separate from what the server may read. */
@@ -94,8 +95,32 @@ export function planMove(content: string, move: TaskMove, moves: Record<string, 
   }
   const out = lines.slice();
   const [row] = out.splice(hit.line, 1);
-  out.splice(at > hit.line ? at - 1 : at, 0, row);
+  const to = where[from]!.shape && target.shape && where[from]!.shape !== target.shape ? reshape(row, target.shape) : row;
+  if (to === null) {
+    const name = SECTION_HEADINGS[move.toSection];
+    return { ok: false, error: `${name} has no Type and Priority columns, so moving ${move.id} there would drop its values. Give the ${name} table those columns first.` };
+  }
+  out.splice(at > hit.line ? at - 1 : at, 0, to);
   return { ok: true, content: out.join('\n'), from, fromIndex: hit.i, noop: false };
+}
+
+/** The first `n` pipe positions of a raw table line, or null when it has fewer; tableRows()' split, so a parsed row has them. */
+function pipeAt(line: string, n: number): number[] | null {
+  const at: number[] = [];
+  for (let i = line.indexOf('|'); i !== -1 && at.length < n; i = line.indexOf('|', i + 1)) at.push(i);
+  return at.length === n ? at : null;
+}
+
+/** A row's line for a lane of the other shape (BL-125): plain to typed gains two empty cells after its ID; typed to plain loses
+ *  its two cells when both are empty, else null. Every other byte stays. */
+function reshape(line: string, shape: LaneShape): string | null {
+  if (shape === 'typed') {
+    const [, id] = pipeAt(line, 2)!;
+    return `${line.slice(0, id + 1)}  |  |${line.slice(id + 1)}`;
+  }
+  const [, id, type, priority] = pipeAt(line, 4)!;
+  if (line.slice(id + 1, type).trim() || line.slice(type + 1, priority).trim()) return null;
+  return line.slice(0, id + 1) + line.slice(priority + 1);
 }
 
 export type MoveOutcome =
@@ -202,6 +227,18 @@ export const TASKS_ARCHIVE_FILE = '.specs/planning/tasks-archive.md';
 export interface NewTask {
   description: string;
   section: AddableSection;
+  /** BL-125: for a typed lane only; '' or absent leaves the cell empty. */
+  type?: string;
+  priority?: string;
+}
+
+/** Type and Priority as a request names them (BL-125): each absent, '' or one of its set, compared exactly; a plain-words problem or null. */
+function fieldValuesError(b: { type?: unknown; priority?: unknown }): string | null {
+  for (const [key, name, set] of [['type', 'Type', TASK_TYPES], ['priority', 'Priority', TASK_PRIORITIES]] as const) {
+    const v = b[key];
+    if (v !== undefined && v !== '' && !(typeof v === 'string' && set.includes(v))) return `${name} must be ${joinOr(set)}, or empty.`;
+  }
+  return null;
 }
 
 const PREFIX = { backlog: 'BL', currentSprint: 'CS' } as const;
@@ -216,7 +253,7 @@ export function newTaskShapeError(body: unknown): string | null {
   if (typeof d !== 'string' || !d.trim()) return 'Type a description for the task.';
   if (/[\r\n\u2028\u2029]/.test(d)) return 'The description must be one line: a table row cannot hold a line break.';
   if (d.includes('|')) return 'The description cannot contain |, because it would split the table cell. Write it another way, e.g. "or".';
-  return cellError(d, 'description', MAX_DESCRIPTION);
+  return cellError(d, 'description', MAX_DESCRIPTION) ?? fieldValuesError(b);
 }
 
 /** What any text inside one table cell must not hold (SEC-004.18), worded for `what`: a control character, an unpaired surrogate, a trailing backslash, too many code points. */
@@ -272,10 +309,15 @@ export function planNewTask(content: string, archive: string, task: NewTask): Ne
   if (after === lines.length - 1) {
     return { ok: false, error: 'The new row would become the last line of planning/tasks.md, which has no line break after its last line. Add one and try again.' };
   }
+  const type = task.type ?? '';
+  const priority = task.priority ?? '';
+  if (target.shape !== 'typed' && (type || priority)) {
+    return { ok: false, error: `${name} has no Type and Priority columns, so the task cannot carry them. Give the ${name} table those columns first.` };
+  }
   const id = nextTaskId(PREFIX[task.section], [content, archive]);
   const eol = lines[after].endsWith('\r') ? '\r' : '';
   const out = lines.slice();
-  out.splice(after + 1, 0, `| ${id} | ${task.description.trim()} |${eol}`);
+  out.splice(after + 1, 0, target.shape === 'typed' ? `| ${id} | ${type} | ${priority} | ${task.description.trim()} |${eol}` : `| ${id} | ${task.description.trim()} |${eol}`);
   return { ok: true, content: out.join('\n'), id, index: target.rows.length };
 }
 
@@ -470,6 +512,67 @@ export function reviewTask(root: string, req: ReviewRequest, ifMatch: string, no
   const written = writeTasks(loaded, ifMatch, plan.content);
   if (written === null) return { status: 409, error: REVIEW_STALE_ERROR };
   return { status: 200, sha256: written, date: plan.date, note: plan.note, fromIndex: plan.fromIndex, index: plan.index };
+}
+
+// ---- Type and Priority (BL-125, REQ-002.H.58, ARCH-004.73, SEC-004.32): one row's two cells in a typed Backlog,
+// Current Sprint or Review table, each set to a value of its set or cleared. The ID and Description cells stay as they were.
+
+export interface FieldsRequest {
+  id: string;
+  type?: string;
+  priority?: string;
+}
+
+/** Check a fields request's shape; returns a plain-words problem or null. */
+export function fieldsShapeError(body: unknown): string | null {
+  const b = body as Partial<FieldsRequest> | null;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with id and a type or priority.';
+  if (typeof b.id !== 'string' || !b.id) return 'The request has no task ID.';
+  if (b.type === undefined && b.priority === undefined) return 'Name a type or a priority to set.';
+  return fieldValuesError(b);
+}
+
+export type FieldsPlan = { ok: true; content: string; noop: boolean } | { ok: false; error: string };
+
+/** Work out a fields edit on tasks.md content in memory: the content with the row's cells replaced, or why not. */
+export function planFields(content: string, req: FieldsRequest): FieldsPlan {
+  const lines = content.split('\n');
+  const where = taskRowLines(content);
+  const hits = (Object.keys(where) as TaskSection[]).flatMap(sec => (where[sec]?.rows ?? []).filter(r => r.id === req.id).map(r => ({ sec, line: r.line })));
+  if (!hits.length) return { ok: false, error: `No task row in planning/tasks.md has the ID ${req.id}.` };
+  if (hits.length > 1) return { ok: false, error: `${req.id} is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to change.` };
+  const { sec, line: at } = hits[0];
+  const name = SECTION_HEADINGS[sec];
+  if (sec === 'completed' || sec === 'wontDo') return { ok: false, error: `${name} rows have no Type and Priority.` };
+  if (where[sec]!.shape !== 'typed') return { ok: false, error: `${name} has no Type and Priority columns. Give the ${name} table those columns first.` };
+  const line = lines[at];
+  const [, id, type, priority] = pipeAt(line, 4)!;
+  const cell = (v: string | undefined, from: number, to: number) => (v === undefined ? line.slice(from + 1, to) : v ? ` ${v} ` : '  ');
+  const edited = `${line.slice(0, id + 1)}${cell(req.type, id, type)}|${cell(req.priority, type, priority)}${line.slice(priority)}`;
+  if (edited === line) return { ok: true, content, noop: true };
+  const out = lines.slice();
+  out[at] = edited;
+  return { ok: true, content: out.join('\n'), noop: false };
+}
+
+export type FieldsOutcome = { status: 200; sha256: string } | Refusal;
+
+export const FIELDS_STALE_ERROR = 'planning/tasks.md changed on disk since this page loaded, so Type and Priority were not changed.';
+
+/** Set or clear one row's Type and Priority on disk if `ifMatch` is tasks.md's current sha256: loadTasks(), planFields(), the validator's checks, writeTasks(). */
+export function setTaskFields(root: string, req: FieldsRequest, ifMatch: string): FieldsOutcome {
+  const loaded = loadTasks(root, ifMatch, FIELDS_STALE_ERROR, 'change a line');
+  if ('status' in loaded) return loaded;
+  const plan = planFields(loaded.content, req);
+  if (!plan.ok) return { status: 422, error: plan.error };
+  if (plan.noop) return { status: 200, sha256: ifMatch };
+
+  const introduced = newChecks(loaded.content, plan.content);
+  if (introduced.length) return { status: 422, error: `Nothing was changed, because \`specpilot validate\` would then report: ${introduced.join(' ')}` };
+
+  const written = writeTasks(loaded, ifMatch, plan.content);
+  if (written === null) return { status: 409, error: FIELDS_STALE_ERROR };
+  return { status: 200, sha256: written };
 }
 
 // ---- Archive Completed (BL-TB-06, REQ-002.H.51, ARCH-004.65, SEC-004.30): the Completed step of `specpilot archive`

@@ -16,16 +16,16 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".specs/architecture/api.yaml": "e902111a80715628e91550d372313deb34c828c0dd845c40ec5053865786adcd",
   ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
   ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
-  ".specs/development/onboarding.md": "7e45f2446f6a99b6394e764d6b90570f73dcacf6a3f8e4ef57d887918bd24b6b",
+  ".specs/development/onboarding.md": "026a236d6d91175357862ec53258ea46400942dbc35655ceed60d239a19a517e",
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
   ".specs/planning/roadmap.md": "7ed6626df8a290f46af85065cee2cd6e34cc11ae4f07c062275ef4fed751d2fb",
-  ".specs/planning/tasks.md": "fcd266c8b8d4c4fd922e4a8e9159a623db5ef477bd94dd49409f36350b16eabe",
+  ".specs/planning/tasks.md": "2d2dd1507d62ddc135cb16f411d6b31ab2a00201ed96eee3cd2054b453ad781d",
   ".specs/project/project.yaml": "0a62377f8873d07abf30094dd9bc294cf62696c9878bd49c09375f6fa03c780c",
   ".specs/project/requirements.md": "c0ec426aca3abe814c9b00e833a9e5fa9b57af8e777c4f46e7b458e2da771975",
   ".specs/quality/tests.md": "0b54fa1bef850f4bf53d6a21c8e25afc876554d9ca2f829ef3cbd353a7f7b4f9",
   ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
   ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
-  "CLAUDE.md": "5b0d8499cc64f06de7aad94d025c88f9da04b6f0907509a8684ff04d2c8c46b3",
+  "CLAUDE.md": "608d508744709ed19a012586a265ec30d4919978a5dfb8367aa5a53e74b813eb",
 }
 `;
 
@@ -40,15 +40,15 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "b08217a3ffccf9d0b9be5af1f7ce18ef43e1e6ace4e4f89be74c891c9bbc558d",
+  ".github/copilot-instructions.md": "81b3ce0e6c26a3e7a67d035889f3d4bb9be26785ad60f11d491c016de9e49e37",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
   ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
   ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
-  ".specs/development/onboarding.md": "7e45f2446f6a99b6394e764d6b90570f73dcacf6a3f8e4ef57d887918bd24b6b",
+  ".specs/development/onboarding.md": "026a236d6d91175357862ec53258ea46400942dbc35655ceed60d239a19a517e",
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
   ".specs/planning/roadmap.md": "7ed6626df8a290f46af85065cee2cd6e34cc11ae4f07c062275ef4fed751d2fb",
-  ".specs/planning/tasks.md": "fcd266c8b8d4c4fd922e4a8e9159a623db5ef477bd94dd49409f36350b16eabe",
+  ".specs/planning/tasks.md": "2d2dd1507d62ddc135cb16f411d6b31ab2a00201ed96eee3cd2054b453ad781d",
   ".specs/project/project.yaml": "0a62377f8873d07abf30094dd9bc294cf62696c9878bd49c09375f6fa03c780c",
   ".specs/project/requirements.md": "c0ec426aca3abe814c9b00e833a9e5fa9b57af8e777c4f46e7b458e2da771975",
   ".specs/quality/tests.md": "0b54fa1bef850f4bf53d6a21c8e25afc876554d9ca2f829ef3cbd353a7f7b4f9",
@@ -97,7 +97,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Type | Priority | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\` (Type \`feat\`, \`bug\` or \`chore\`, Priority \`P1\`, \`P2\` or \`P3\`, either may be empty; a table there that is \`| ID | Description |\` keeps that shape), \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
 
 ## Context — read on demand by task type
 
@@ -822,7 +822,7 @@ Based on this context, populate all .specs files following these strict conventi
 - \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
 - \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
 - \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
-- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Description |\`; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else
+- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Type | Priority | Description |\` under Backlog, Current Sprint and Review, Type \`feat\`, \`bug\` or \`chore\` and Priority \`P1\`, \`P2\` or \`P3\`, either may be empty, a table there that is \`| ID | Description |\` keeping that shape; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else
 - \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
 - \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
 - \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
@@ -953,18 +953,18 @@ Task ID conventions
 
 ## Backlog
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Current Sprint
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Review
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Completed
 
@@ -1168,17 +1168,17 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
   ".agent/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".agent/workflows/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".antigravity/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".antigravity/rules.md": "16c4fd660c38f8d3abe177080fc5e4e98a4ed4858ff316cacc4321f2a8866ce9",
+  ".antigravity/rules.md": "d7837fc03adf35765db54b771d795db1e9ced6fe7a5e193980170bb8aae3278f",
   ".antigravity/settings.json": "abfe0583c667af7f587b3f37d40226e79a577ae59ddb9405a533754984e46f42",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "f8c0d041587ac536be3bb29ec28e3dda817806e8caa788ebb8db5c92da7b56dd",
   ".specs/architecture/architecture.md": "1e09a48f30641c4cf4364ba3129f42973a5b598c43efd6829046d9566d965066",
   ".specs/development/context.md": "c6f80dfecccc8b227c1bc30d52f9e90c3d94cabb1d30aca7c85dd02697af6bdc",
-  ".specs/development/onboarding.md": "6562dc760b138f190b4ada7b112a4b3c3dea43392cd98a4c8f41d3fca6c71933",
+  ".specs/development/onboarding.md": "30c4af9ab971437a84ccdcde02f19f59d929cf9dda95e7ff7c9e5f79f0d5d7ea",
   ".specs/development/prompts.md": "d1ca2f9d6f3c24af84e698351a7dcd49fbd47802b9115f2b1f5ecd503a498094",
   ".specs/planning/roadmap.md": "2ff37cee892d14d570d86e3b873b032424c8c15e3afb8f467c20c90a0fba7d6c",
-  ".specs/planning/tasks.md": "71572f74a1af471d890d4e7a4cc64941d11dbd80dea003d87cb3de259e862609",
+  ".specs/planning/tasks.md": "524f43938b1cd1ba293d3887e3ac9436d2da6ba83fdf8febadff5800dec5d0d8",
   ".specs/project/project.yaml": "43c04d24a1b78149f3f81983269ae47121a3dc1977589bc6cff8c3b1bdcd86cb",
   ".specs/project/requirements.md": "2c79efce5efafd5ad1bd041cdf3e88992a41950e91db0405a24307d597110748",
   ".specs/quality/tests.md": "438f96d17689bacf512edd58c8ce6cf4277b46ae89645227725514c81ac8f36d",
@@ -1203,16 +1203,16 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
   ".specs/architecture/api.yaml": "b6e312a288db4bf4302b9fc040b16734eef3efe7275c719d00952c8bcf0c6ab3",
   ".specs/architecture/architecture.md": "16cbf967bc8567094abd2d6b2fd3ebf42e8b9cce3d5d3ea48e43e43cc4e5fb77",
   ".specs/development/context.md": "859cf077a7652d235b581d4e4bf13bfd4426bf30cc0f3935e3912873484cf79d",
-  ".specs/development/onboarding.md": "0d5177f01930a3c6b1bf0dbe42f300046a8b5051eb7d4d9e4af24fa1a82c692d",
+  ".specs/development/onboarding.md": "da16673a6c1baa5021e243832cf692ecd8bc772c70798aeda9a86741bf894a01",
   ".specs/development/prompts.md": "8161f5064fc91caed7dacc3e896b641e7f3cb55d424975a6c33c7e0bb45a695f",
   ".specs/planning/roadmap.md": "2a658c4ef644b0884739534e7cc142a2a83b26185ed394cd93182e7f710bf535",
-  ".specs/planning/tasks.md": "90017ded07effe75dbf76fd1e8b1625a64fb4b34d3239442d3e492efa77bd2eb",
+  ".specs/planning/tasks.md": "fd295b6449438f665baf9ada9c38cddbec1d05d7a8c155d826483021de661b32",
   ".specs/project/project.yaml": "49e010a7d4f50521c5ab2cb1fee5108f198952f584372563bb3a5d68d092c933",
   ".specs/project/requirements.md": "dd5b8bbbc4dbb962b253a45c179b2a2df48a185dc89f49b648a898b2c90c6d85",
   ".specs/quality/tests.md": "c259ce6b0adb6ac3d1cf2564a61191b9a60447b10622894f3d131a4205e1f050",
   ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
   ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
-  "CLAUDE.md": "799df13ed81c3739574b66b33640378e3c794875eb47a7b5754dd1a2ccd50084",
+  "CLAUDE.md": "83c15222e4989441ba0b3cafcd25d5912f0c0209b0af70250bc4ff38a386e0d3",
 }
 `;
 
@@ -1227,15 +1227,15 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "77ec72ca39705050f48bad6ed1ebd4fb7850a5805349316d3fc8e63a74cf4199",
+  ".github/copilot-instructions.md": "e46873b2b0e00e10fdf9b1d436494f5d29c8afa0395d9dafbcd932c1b9ea4e1d",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "8fa3ff6fdc5c8269285007fa754fcae14f39ac543a682bb2a1a58988e6def0c8",
   ".specs/architecture/architecture.md": "3e14693f91a127e70d1c57432a284a35317e173b646a940870a3a903d06068d5",
   ".specs/development/context.md": "603e6c8c9b46652928fe92cf3edabe3d8c528c8b74c17cc8583ea4f630a41179",
-  ".specs/development/onboarding.md": "f7ffaa8142320b2d7e7dd461ea7dad39fc46eeb5651745bcf5833cd60ea899b9",
+  ".specs/development/onboarding.md": "21193bb104c75031491bd5b66c894f122170f775d1e287ce427268b8aebd3959",
   ".specs/development/prompts.md": "ba25c99b916e20a348965ba79ac441e1eb73f38bc76ed667609fbc61baa12bc8",
   ".specs/planning/roadmap.md": "c2dc950f4c47f6b397c64db9cfc37438beab5c260c2e2ede5b46316ebfb92520",
-  ".specs/planning/tasks.md": "4385d8aefbcd194c74264b5bc7ed6ff9ea3cc0585a6eeb18520e35c860d65343",
+  ".specs/planning/tasks.md": "b4b60202a6125778540709dfdbc368c8b0807773ee12a0dadf15f8689ba84d10",
   ".specs/project/project.yaml": "00dfbfa5f81cb48da4f1a69ec0028d362f8f76e2438fed11011830024ebe2719",
   ".specs/project/requirements.md": "d86489519a3f82486b40ff146be9aaad2063c721347f9058ad72a7346aeab402",
   ".specs/quality/tests.md": "c23efcc280452241204382f059b3929ec9824d43225b1c5c716ed486f6d433e5",
@@ -1256,17 +1256,17 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
   ".cursor/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".cursor/commands/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".cursor/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".cursor/rules/specpilot.mdc": "f96c53bbdcce8ba3980616f7508fdd37ba9250816623a797d1a6b68de1bc24d8",
+  ".cursor/rules/specpilot.mdc": "8e784144deed9411ad51683bec9828f68cf785c8365bd456cdfc8cebb8809a01",
   ".cursor/settings.json": "040a19c3ec92aa93f255ee9d3c1b1c8f0c1e4991508d01bfb22421c84f72677d",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "82921e367104d9a4deac9d469dd027e2d79bae2ab53513838db7ae0962263d97",
   ".specs/architecture/architecture.md": "e3be761c787aeec52a5a3db811aaad82dc7fbe327f150aac5c814ad3a8b2b341",
   ".specs/development/context.md": "1212b910b202e4f58e0bc9f9941907e67939c4cbe252f5dbafda4f86459c2bff",
-  ".specs/development/onboarding.md": "33c4a6feb2c2eed06a7f7b0b2373cba76a24ae512ab8929773a0668556ccd95d",
+  ".specs/development/onboarding.md": "e31fc3476b9854b40d6af103b5fc8eeca64a50aaa4b04e585477f0549fd788e5",
   ".specs/development/prompts.md": "3bb615c051b9395b146404ab46644b6eab249e82c6e8c6d92b77bcc3a27ccbf8",
   ".specs/planning/roadmap.md": "9abb611721aa27d9f812d2817387df1b4da6d1f53fb75f75767e005f2a83c24a",
-  ".specs/planning/tasks.md": "8e7460f950458d82ab46f56a6872ad8fa5c6dbb65819ec1b60f901cd4813c13d",
+  ".specs/planning/tasks.md": "5a05551edeefd16818768cb7fcbcce0d8c16de5733be68d83f2d29b45c5c6f9b",
   ".specs/project/project.yaml": "eaff06974d95f7a84438ba0181883d6539800777937b73e13fe622b559a6e0a1",
   ".specs/project/requirements.md": "ac263f97cfe4c687cb9a12806dc8f66c1ba65adfda8f4f1beea87759be78bd58",
   ".specs/quality/tests.md": "758726dca2efcf630d8938d715558865d76ac6288a0e022227a49efc550814d5",
@@ -1278,7 +1278,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
 exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "4b800aa2778229a2d1b99cfa5141138ba4e5627a6fbb242e78536676ed4044af",
+  ".github/copilot-instructions.md": "5382be791bac53e2426fd8b0dc9953b859e3d8f0024f1d652a9e6380677e8250",
   ".github/prompts/specpilot-archive.prompt.md": "9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58",
   ".github/prompts/specpilot-backfill.prompt.md": "0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -1291,10 +1291,10 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
   ".specs/architecture/api.yaml": "d7faf6abd96e65c6eb9f1270c94f0bbf85910446a6b724c88250b65c9a41e294",
   ".specs/architecture/architecture.md": "efca65b70e5766e32f0cd4d9f43c3d3a1b4bfe21f0f8058310f76442a9e60672",
   ".specs/development/context.md": "ca71313b8ef2a50dc8cdee4d4e4a10ab5bd511234ae229d6b743f02db9aa80d0",
-  ".specs/development/onboarding.md": "b12f80512e7c6cdf0c55ef3dbe968ff5d2cc953ba811e9bf90cf1e43b6d45a49",
+  ".specs/development/onboarding.md": "7eb3273c0aa70eef4a2375c954aabe7dc9210b0108d84789c5acb1437e958d59",
   ".specs/development/prompts.md": "e64401154b4bcab77359fc0df556410d511d0adcd23b2be2a04e2078ab426f1d",
   ".specs/planning/roadmap.md": "3ff6e44d56f7567c92feaa34d13fe2579909d69dd40b57afaf00effd6af7833e",
-  ".specs/planning/tasks.md": "5aa4e035e2e58aa47196f42c2231cccafa155654e2ea4869714ce07a62c72ecf",
+  ".specs/planning/tasks.md": "54900a47e9953da55295ec7c50fec9ab2a6123f8afd5daeea4e940ade8477ddd",
   ".specs/project/project.yaml": "4d101d93bb4778b394d329beef8a4e4aeb748e38a6d0e4975235a03dfa316daa",
   ".specs/project/requirements.md": "38370b9218fda6f3b9678a23e990830aa435dd3958ad6bc143a1e51626604dc5",
   ".specs/quality/tests.md": "44e53732fe5134629ac95457ee5e1482078f78fe933bc1476dbb32466cc751cc",
@@ -1308,7 +1308,7 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
 exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "59ed79694ef6d0334e357ec939e3d8bc44df45bc37586498866e384a11d78a77",
+  ".github/copilot-instructions.md": "4b4e9a8b10c23ceb3a660fba8c6a555c34dad844649026a77610ed43b84d5e69",
   ".github/prompts/specpilot-archive.prompt.md": "9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58",
   ".github/prompts/specpilot-backfill.prompt.md": "0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -1321,10 +1321,10 @@ exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] =
   ".specs/architecture/api.yaml": "c1ee01c9c6a2a7a64cb6da4a77f68d3ede4395ae7daf1fc0995bb8020725a22d",
   ".specs/architecture/architecture.md": "a5734eaf7fd3fd46418bb2d6f95a242bcdd89526fb7ef5d2f335988ff2b1d219",
   ".specs/development/context.md": "88f1c32be52e81fc02cbf7244647d365673db19d72f1068cb67be296e154f1c8",
-  ".specs/development/onboarding.md": "e6068bc686b84e55aa2b582ebea488543968162a68ad0deff846353b306aabbc",
+  ".specs/development/onboarding.md": "9210d49260200eb67eb2db82591911f25060e9510d338dcbabe062846dd1cb2c",
   ".specs/development/prompts.md": "968fd85f0c282eebbc3ca8b499b1cbf9624a99341f701c9ae6e7ce365e59f313",
   ".specs/planning/roadmap.md": "443f480b5199ff263d6ada7c99060b2ac9c3b4a213278533f9a9e1c5f4aabb0e",
-  ".specs/planning/tasks.md": "7a78b1d9e38e5137c24f90cf353158b5c5889191fa7962a8f51cd042f69c1203",
+  ".specs/planning/tasks.md": "1a3cd5e9aed11a3e08c803b371d4da22945e3a37df45f3df206d78627a31b9c2",
   ".specs/project/project.yaml": "81cb345a6e8688d281b23155ed25466d67ebe63046c0c533253a8f9f9ddcd389",
   ".specs/project/requirements.md": "11c47e93730acc855553f32a9fcf11497ae4bdfb1ae13097873b8d79d08422d0",
   ".specs/quality/tests.md": "3011ecbee45b41a99da14b04008566ccddb0d29221cf437332b5d2c954065768",
@@ -1374,7 +1374,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Type | Priority | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\` (Type \`feat\`, \`bug\` or \`chore\`, Priority \`P1\`, \`P2\` or \`P3\`, either may be empty; a table there that is \`| ID | Description |\` keeps that shape), \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
 
 ## Context — read on demand by task type
 
@@ -2068,7 +2068,7 @@ Based on this context, populate all .specs files following these strict conventi
 - \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
 - \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
 - \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
-- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Description |\`; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else
+- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Type | Priority | Description |\` under Backlog, Current Sprint and Review, Type \`feat\`, \`bug\` or \`chore\` and Priority \`P1\`, \`P2\` or \`P3\`, either may be empty, a table there that is \`| ID | Description |\` keeping that shape; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else
 - \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
 - \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
 - \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
@@ -2197,18 +2197,18 @@ Task ID conventions
 
 ## Backlog
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Current Sprint
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Review
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Completed
 
@@ -2410,7 +2410,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Type | Priority | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\` (Type \`feat\`, \`bug\` or \`chore\`, Priority \`P1\`, \`P2\` or \`P3\`, either may be empty; a table there that is \`| ID | Description |\` keeps that shape), \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
 
 ## Context — read on demand by task type
 
@@ -3097,7 +3097,7 @@ You are onboarding as the specification co-pilot for this repository. We just in
 - \`project/requirements.md\`: ## Functional/Non-Functional Requirements, REQ-XXX IDs
 - \`architecture/architecture.md\`: ## Overview, Components, Data Flow, Decisions (ADR)
 - \`architecture/api.yaml\`: endpoints with methods, paths, descriptions
-- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Description |\`; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else
+- \`planning/tasks.md\`: keep the four headings exactly as written, \`## Backlog\`, \`## Current Sprint\`, \`## Review\`, \`## Completed\`; each holds a markdown table (\`| ID | Type | Priority | Description |\` under Backlog, Current Sprint and Review, Type \`feat\`, \`bug\` or \`chore\` and Priority \`P1\`, \`P2\` or \`P3\`, either may be empty, a table there that is \`| ID | Description |\` keeping that shape; \`| # | ID | Description |\` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else
 - \`planning/roadmap.md\`: ## Milestones with versions, dates, features, status
 - \`quality/tests.md\`: ## Test Strategy, Test Cases (TEST-XXX), Coverage Goals
 - \`development/context.md\`: ## Project Context, Key Decisions, Known Issues
@@ -3227,18 +3227,18 @@ Task ID conventions
 
 ## Backlog
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Current Sprint
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Review
 
-| ID | Description |
-|---|---|
+| ID | Type | Priority | Description |
+|---|---|---|---|
 
 ## Completed
 
@@ -3396,7 +3396,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 exports[`spec core golden recording (BL-032) vscode typescript/react none inferred 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "6ec90bc8c920c7b6273aeec70038bdfc3393bafb33296c17b98947a4f557c5c0",
+  ".github/copilot-instructions.md": "95c336a94ad060d1f41a1281b07b9be61b352a1d5b68dbe991a04bb2053ff627",
   ".github/prompts/specpilot-archive.prompt.md": "9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58",
   ".github/prompts/specpilot-backfill.prompt.md": "0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -3408,10 +3408,10 @@ exports[`spec core golden recording (BL-032) vscode typescript/react none inferr
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/architecture.md": "5060cc6ee98f58c2c6f612f87aa13f21a94bf480dfa758ad9505f9461a3ea1d7",
   ".specs/development/context.md": "5673c13e7542f485334bc81a58023b970d03230938312c685e1e21a2726519a7",
-  ".specs/development/onboarding.md": "350a0c11208d6085696b46986c38602e82070b17eb19cfdc94b225e5eb0a46f0",
+  ".specs/development/onboarding.md": "918d697796bf0d36a99b9421deda28315dee91c97c5d6b4124bfd8a5e5b45f8d",
   ".specs/development/prompts.md": "537946701d725d0b34a5f8528bff4d9fa34942c771f8aab4125682147878cf84",
   ".specs/planning/roadmap.md": "c462f4d74def35734d672a27cbf54b7d3b09f886523ecf079ce271af73bc6876",
-  ".specs/planning/tasks.md": "6277ca0588e0e90cbc6afe3d2028a3974242b57ece09c2fcce5b63046b3dc6e3",
+  ".specs/planning/tasks.md": "d89aed1c410c1ae58b6f0be27af4723257148ff37ef563e82252e4ca3a97d1b3",
   ".specs/project/project.yaml": "df0c5d340333117be6747f577f3177f733b0c30ee2cdb5677e54db5d0475498e",
   ".specs/project/requirements.md": "88f7833d4733cec0eb0c0851c28834101d618c7ef1d7613340a8bb7d9a5463ba",
   ".specs/quality/tests.md": "351b11e3e7b42396ba915fbf5656b16e3a90f7f0956676b843c08ece08455553",
@@ -3429,10 +3429,10 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".specs/architecture/api.yaml": "093c04fa9daf2ccfa44249b87adf915a19ddcd68f52f2db67b3d0c2e23ce9dd4",
   ".specs/architecture/architecture.md": "84ca1dbf45c875c33e7fce00bf99f3023ccf411ad51b091d2bb6fb80ce42f530",
   ".specs/development/context.md": "bc31cc7c5593b99db88cbc6fbd3a0fccbfae9009a69fe7243bbf8301590fb9ab",
-  ".specs/development/onboarding.md": "120a8c54eb70ccd84eceec76b45e19ccd752e87c0a8061725757664d930792a0",
+  ".specs/development/onboarding.md": "cd89e51d936ec3657104a1e8005d1db8178948d75a95d12d8f14abac500c5a7a",
   ".specs/development/prompts.md": "c0681890c4e99cda37fdd19fb6bcee4d57600d2989c28d38b1b216058da86883",
   ".specs/planning/roadmap.md": "b693f9ae1a82c887dfd5e977a98351d9b63bd08dfc9db68ee690e19f5ac5cb21",
-  ".specs/planning/tasks.md": "bf642c22c80db7e49733e05b39c038648ef8ee872a3b57aa2299428817bec4e2",
+  ".specs/planning/tasks.md": "71e5ae6c6aac376fc68fb41bccde8ab45dbc13b1edc77a401ea550e6a50873bb",
   ".specs/project/project.yaml": "645232ad7c475d214a3bbe824ab9b7683fcbdd553aa47ce5680116866cc88bb4",
   ".specs/project/requirements.md": "d1905f1f97d40a660fb0597ecd90875cd156f3d99785a5c7383b1b06a79108ab",
   ".specs/quality/tests.md": "2db364325db4dccad2aa401e2714368cc21efc0d29a5c513785a3d5515984a0c",
@@ -3448,6 +3448,6 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".windsurf/workflows/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
   ".windsurf/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".windsurf/workflows/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
-  ".windsurfrules": "803a2a44631f091509b4824058b9b13715285bfb4de8c2724ebf7a672342d1af",
+  ".windsurfrules": "389828326e013bd607fbe6b76770c76cde746653e2d89bad8b35ca7c273f8d22",
 }
 `;

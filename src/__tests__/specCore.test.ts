@@ -98,7 +98,7 @@ describe('spec core golden recording (BL-032)', () => {
   });
 
   test('both onboarding prompts describe tasks.md as init writes it and the board reads it (BL-117)', () => {
-    const line = '- `planning/tasks.md`: keep the four headings exactly as written, `## Backlog`, `## Current Sprint`, `## Review`, `## Completed`; each holds a markdown table (`| ID | Description |`; `| # | ID | Description |` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else';
+    const line = '- `planning/tasks.md`: keep the four headings exactly as written, `## Backlog`, `## Current Sprint`, `## Review`, `## Completed`; each holds a markdown table (`| ID | Type | Priority | Description |` under Backlog, Current Sprint and Review, Type `feat`, `bug` or `chore` and Priority `P1`, `P2` or `P3`, either may be empty, a table there that is `| ID | Description |` keeping that shape; `| # | ID | Description |` under Completed), one row per task; IDs BL-###, CS-###, CD-girishr-###. The SpecPilot Tasks board reads those tables and nothing else';
     const green = file(BASE, '.specs/development/onboarding.md');
     const brown = file({ ...BASE, mode: 'existing', projectType: 'brownfield' }, '.specs/development/onboarding.md');
     for (const md of [green, brown]) {
@@ -126,7 +126,7 @@ describe('the Tasks line in every instruction file (BL-PM-007)', () => {
   it.each(IDE_CHOICES.map(c => [c.value]))('%s', ide => {
     const { aiContextFile } = require('../core/ideConfig') as typeof import('../core/ideConfig');
     const { content } = aiContextFile({ projectName: 'p', language: 'typescript', framework: '' } as never, ide);
-    const line = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format: `| ID | Description |` under `## Backlog`, `## Current Sprint` and `## Review`, `| # | ID | Description |` under `## Completed`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
+    const line = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format: `| ID | Type | Priority | Description |` under `## Backlog`, `## Current Sprint` and `## Review` (Type `feat`, `bug` or `chore`, Priority `P1`, `P2` or `P3`, either may be empty; a table there that is `| ID | Description |` keeps that shape), `| # | ID | Description |` under `## Completed`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
     expect(content.split('\n').filter(l => l === line)).toHaveLength(1);
   });
 });

@@ -254,6 +254,23 @@ input.txt{width:100%}
 /* BL-113: the Review lane's HITL pill, the Approved chip, the folded Won't do strip */
 .hitl{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--violet-ink);background:var(--violet-soft);border-radius:var(--rs);padding:1px 5px;text-decoration:none;cursor:help;text-transform:none}
 .board .row .chip{font-size:11px;padding:1px 7px}
+/* BL-125: Priority and Type on the card's bottom line, and the two radio groups of the detail panel and New Task */
+.pill.chip.pri,.pill.chip.ty{color:var(--label-2);font-family:var(--mono)}
+/* each value's ink on its soft colour: Priority by urgency, Type apart from the Approved chip's green; on the card and on the chosen radio */
+.v-p1{--tone:var(--red-ink);--tone-bg:var(--red-soft)}.v-p2{--tone:var(--orange-ink);--tone-bg:var(--orange-soft)}.v-p3{--tone:var(--blue-ink);--tone-bg:var(--blue-soft)}
+.v-feat{--tone:var(--violet-ink);--tone-bg:var(--violet-soft)}.v-bug{--tone:var(--red-ink);--tone-bg:var(--red-soft)}.v-chore{--tone:var(--label-2);--tone-bg:var(--muted)}
+.pill.chip:is(.v-p1,.v-p2,.v-p3,.v-feat,.v-bug,.v-chore){color:var(--tone);background:var(--tone-bg)}
+.tf .seg button.on:is(.v-p1,.v-p2,.v-p3,.v-feat,.v-bug,.v-chore){color:var(--tone);background:var(--tone-bg);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tone) 45%,transparent)}
+.tf{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px 14px}
+.box.tf{padding:10px 12px}
+.tf .tfr{display:contents}
+.tf .tfl{font-size:13px;color:var(--label-2)}
+.tf .seg{flex-wrap:wrap;justify-self:start;max-width:100%}
+.tf .err{grid-column:1/-1;margin:0}
+.tf[aria-busy="true"] .seg{opacity:.6}
+#taskFields{margin-top:10px}
+.tfnote{font-size:13px;color:var(--label-3);margin:0 0 12px}
+.tfv{margin:0;font-size:13px;color:var(--label-2);font-family:var(--mono)}
 .gl .gh .fold{display:inline-flex;align-items:center;gap:8px;color:inherit;font:inherit;text-transform:inherit;letter-spacing:inherit;padding:2px 4px;margin:-2px -4px;border-radius:var(--rs)}
 .gl .gh .fold:hover{background:var(--hover);color:var(--label)}
 .gl .gh .fold .chev{width:12px;height:12px;transition:transform var(--t)}

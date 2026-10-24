@@ -1219,7 +1219,7 @@ rules:
 });
 
 describe('the MCP Tasks line (BL-088)', () => {
-  const TASKS = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format: `| ID | Description |` under `## Backlog`, `## Current Sprint` and `## Review`, `| # | ID | Description |` under `## Completed`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
+  const TASKS = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format: `| ID | Type | Priority | Description |` under `## Backlog`, `## Current Sprint` and `## Review` (Type `feat`, `bug` or `chore`, Priority `P1`, `P2` or `P3`, either may be empty; a table there that is `| ID | Description |` keeps that shape), `| # | ID | Description |` under `## Completed`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
   const PROCESS = '## 🟡 Process Mandates\n\n- **Spec-First:** Update `.specs/` before writing code.\n- **Document decisions** in `.specs/development/context.md`.\n';
   /** The input with exactly one line added at line index `at`. */
   const oneLineAt = (input: string, at: number, eol = '\n') => {
@@ -1271,6 +1271,12 @@ describe('the MCP Tasks line (BL-088)', () => {
     const old = `# X\n\n${PROCESS}${TASKS.replace(/: `\| ID .*one row per task\./, '.')}\n`;
     expect(old).toContain('directly and keep its table format. Finished work goes');
     expect(withTasksLine(old)).toBeNull();
+  });
+
+  it('is null on a file with the BL-122 line, which stays byte for byte (BL-125)', () => {
+    const bl122 = `# X\n\n${PROCESS}${TASKS.replace(/`\| ID \| Type .*keeps that shape\), /, '`| ID | Description |` under `## Backlog`, `## Current Sprint` and `## Review`, ')}\n`;
+    expect(bl122).toContain('keep its table format: `| ID | Description |` under `## Backlog`, `## Current Sprint` and `## Review`, `| # | ID | Description |` under');
+    expect(withTasksLine(bl122)).toBeNull();
   });
 
   describe('through specpilot backfill', () => {

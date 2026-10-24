@@ -8,6 +8,9 @@ import {
   archiveCompleted,
   COMPLETED_BY_HAND,
   completedArchiveStatus,
+  FIELDS_STALE_ERROR,
+  FieldsRequest,
+  fieldsShapeError,
   localDate,
   moveShapeError,
   MOVES,
@@ -21,6 +24,7 @@ import {
   NOTHING_TO_ARCHIVE_ERROR,
   nothingPastKeepError,
   planMove,
+  planFields,
   planNewTask,
   planReview,
   REVIEW_STALE_ERROR,
@@ -28,6 +32,7 @@ import {
   ReviewRequest,
   reviewShapeError,
   reviewTask,
+  setTaskFields,
   suggestedIds,
   sha256,
   STALE_ERROR,
@@ -960,5 +965,207 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     expect(readFileSync(file, 'utf-8')).toBe(BIG);
     expect(existsSync(archive)).toBe(false);
     expect(leftovers()).toEqual([]);
+  });
+});
+
+// ---- BL-125: Type and Priority, the two table shapes of Backlog, Current Sprint and Review
+
+const TYPED = [
+  '# Tasks',
+  '',
+  '## Backlog',
+  '',
+  '| ID | Type | Priority | Description |',
+  '|---|---|---|---|',
+  '| BL-001 | feat | P1 | One |',
+  '| BL-002 |  |  | Two |',
+  '| BL-003 | bug | P2 | Three `a | b` | wide |',
+  '  | BL-004 | chore |  | Indented |',
+  '| BL-009 | feat | Short |',
+  '',
+  '## Current Sprint',
+  '',
+  '| ID | Description |',
+  '|---|---|',
+  '| CS-001 | Plain one |',
+  '',
+  '## Review',
+  '',
+  '| ID | Type | Priority | Description |',
+  '|---|---|---|---|',
+  '| BL-005 | feat | P3 | Reviewed |',
+  '| BL-006 |  |  | Reviewed empty |',
+  '',
+  '## Completed',
+  '',
+  '| # | ID | Description |',
+  '|---|---|---|',
+  '| 1 | [CD-001] | Done |',
+  '',
+].join('\n');
+
+describe('planMove across the two shapes (BL-125)', () => {
+  const move = (id: string, toSection: TaskMove['toSection'], toIndex: number, content = TYPED) => planMove(content, { id, toSection, toIndex });
+
+  it('plain to typed gains two empty cells after the ID; nothing else in the line changes', () => {
+    const out = move('CS-001', 'backlog', 0);
+    expect(out.ok && line(out.content, 'CS-001')).toBe('| CS-001 |  |  | Plain one |');
+    const crlf = move('CS-001', 'backlog', 0, TYPED.replace(/\n/g, '\r\n'));
+    expect(crlf.ok && crlf.content.split('\n').find(l => l.includes('| CS-001 |'))).toBe('| CS-001 |  |  | Plain one |\r');
+  });
+
+  it('typed to plain drops two empty cells, and refuses a row with a value, the text naming the lane', () => {
+    const empty = move('BL-002', 'currentSprint', 1);
+    expect(empty.ok && line(empty.content, 'BL-002')).toBe('| BL-002 | Two |');
+    expect(move('BL-001', 'currentSprint', 0)).toEqual({ ok: false, error: 'Current Sprint has no Type and Priority columns, so moving BL-001 there would drop its values. Give the Current Sprint table those columns first.' });
+    expect(move('BL-004', 'currentSprint', 0)).toMatchObject({ ok: false }); // a Type alone is a value
+  });
+
+  it('same-shape moves keep the line byte for byte, the wide row too', () => {
+    const out = move('BL-003', 'backlog', 0);
+    expect(out.ok && line(out.content, 'BL-003')).toBe('| BL-003 | bug | P2 | Three `a | b` | wide |');
+    // two typed lanes: Backlog into a typed Current Sprint, the line as it was
+    const typedSprint = TYPED.replace('| ID | Description |\n|---|---|\n| CS-001 | Plain one |', '| ID | Type | Priority | Description |\n|---|---|---|---|\n| CS-001 |  |  | Typed one |');
+    const across = planMove(typedSprint, { id: 'BL-001', toSection: 'currentSprint', toIndex: 1 });
+    expect(across.ok && line(across.content, 'BL-001')).toBe('| BL-001 | feat | P1 | One |');
+    expect(across.ok && across.content.split('\n').length).toBe(typedSprint.split('\n').length);
+  });
+
+  it('a three-cell row in a typed lane is no row: the unknown-ID refusal answers it', () => {
+    expect(move('BL-009', 'currentSprint', 0)).toEqual({ ok: false, error: 'No task row in planning/tasks.md has the ID BL-009.' });
+  });
+
+  it('Send back from a typed Review into a plain Current Sprint follows the same rule', () => {
+    expect(planReview(TYPED, { id: 'BL-006', action: 'sendBack', note: '' }, '2026-10-24')).toMatchObject({ ok: true });
+    const kept = planReview(TYPED, { id: 'BL-006', action: 'sendBack', note: '' }, '2026-10-24');
+    expect(kept.ok && line(kept.content, 'BL-006')).toBe('| BL-006 | Reviewed empty Sent back 2026-10-24. |');
+    expect(planReview(TYPED, { id: 'BL-005', action: 'sendBack', note: 'fix' }, '2026-10-24')).toMatchObject({ ok: false, error: expect.stringContaining('would drop its values') });
+  });
+
+  it('Approve on a typed row appends to the Description, the last cell', () => {
+    const out = planReview(TYPED, { id: 'BL-005', action: 'approve' }, '2026-10-24');
+    expect(out.ok && line(out.content, 'BL-005')).toBe('| BL-005 | feat | P3 | Reviewed Approved 2026-10-24 |');
+  });
+});
+
+describe('planNewTask in the two shapes (BL-125)', () => {
+  it('writes Type and Priority in a typed lane, empty cells when absent', () => {
+    const a = planNewTask(TYPED, '', { description: 'New', section: 'backlog', type: 'bug', priority: 'P1' });
+    expect(a.ok && line(a.content, a.id)).toBe('| BL-010 | bug | P1 | New |');
+    const b = planNewTask(TYPED, '', { description: 'Bare', section: 'backlog' });
+    expect(b.ok && line(b.content, b.id)).toBe('| BL-010 |  |  | Bare |');
+  });
+
+  it('refuses a value for a plain lane and writes the plain row without one', () => {
+    expect(planNewTask(TYPED, '', { description: 'x', section: 'currentSprint', priority: 'P2' })).toEqual({ ok: false, error: 'Current Sprint has no Type and Priority columns, so the task cannot carry them. Give the Current Sprint table those columns first.' });
+    const ok = planNewTask(TYPED, '', { description: 'x', section: 'currentSprint', type: '', priority: '' });
+    expect(ok.ok && line(ok.content, ok.id)).toBe('| CS-002 | x |');
+  });
+
+  it('newTaskShapeError refuses a value outside its set, compared exactly', () => {
+    expect(newTaskShapeError({ description: 'x', section: 'backlog', type: 'Feat' })).toBe('Type must be feat, bug or chore, or empty.');
+    expect(newTaskShapeError({ description: 'x', section: 'backlog', priority: 'p1' })).toBe('Priority must be P1, P2 or P3, or empty.');
+    expect(newTaskShapeError({ description: 'x', section: 'backlog', priority: 1 })).toBe('Priority must be P1, P2 or P3, or empty.');
+    expect(newTaskShapeError({ description: 'x', section: 'backlog', type: 'chore', priority: '' })).toBeNull();
+  });
+
+  it('nextTaskId reads typed rows by their first cell', () => {
+    expect(nextTaskId('BL', [TYPED])).toBe('BL-010');
+  });
+});
+
+describe('planFields: the two cells of one typed row, every other byte kept (BL-125)', () => {
+  it('sets, changes and clears each cell and both at once', () => {
+    const at = (req: FieldsRequest, content = TYPED) => {
+      const out = planFields(content, req);
+      return out.ok ? line(out.content, req.id) : out.error;
+    };
+    expect(at({ id: 'BL-002', priority: 'P2' })).toBe('| BL-002 |  | P2 | Two |');
+    expect(at({ id: 'BL-002', type: 'feat' })).toBe('| BL-002 | feat |  | Two |');
+    expect(at({ id: 'BL-001', type: 'bug', priority: 'P3' })).toBe('| BL-001 | bug | P3 | One |');
+    expect(at({ id: 'BL-001', type: '', priority: '' })).toBe('| BL-001 |  |  | One |');
+    expect(at({ id: 'BL-005', priority: 'P1' })).toBe('| BL-005 | feat | P1 | Reviewed |'); // Review is typed too
+    expect(at({ id: 'BL-003', priority: 'P1' })).toBe('| BL-003 | bug | P1 | Three `a | b` | wide |'); // more than four cells: only cells 2 and 3
+    expect(at({ id: 'BL-004', priority: 'P1' })).toBe('  | BL-004 | chore | P1 | Indented |'); // the leading white space stays
+    expect(at({ id: 'BL-001', type: 'feat', priority: 'P1' }, TYPED.replace('| BL-001 | feat | P1 | One |', '| BL-001 | feat | P2 | One'))).toBe('| BL-001 | feat | P1 | One'); // no closing pipe
+  });
+
+  it('changes nothing but that line, CRLF kept, and is a no-op when the cells already hold the values', () => {
+    const crlf = TYPED.replace(/\n/g, '\r\n');
+    const out = planFields(crlf, { id: 'BL-002', priority: 'P1' });
+    expect(out.ok && out.content).toBe(crlf.replace('| BL-002 |  |  | Two |', '| BL-002 |  | P1 | Two |'));
+    expect(planFields(TYPED, { id: 'BL-001', type: 'feat', priority: 'P1' })).toEqual({ ok: true, content: TYPED, noop: true });
+  });
+
+  it('refuses an unknown or duplicate ID, a short row, a plain lane and Completed', () => {
+    expect(planFields(TYPED, { id: 'BL-099', type: 'feat' })).toEqual({ ok: false, error: 'No task row in planning/tasks.md has the ID BL-099.' });
+    expect(planFields(TYPED, { id: 'BL-009', type: 'feat' })).toEqual({ ok: false, error: 'No task row in planning/tasks.md has the ID BL-009.' }); // three cells: no row
+    expect(planFields(TYPED.replace('| BL-002 |', '| BL-001 |'), { id: 'BL-001', type: 'feat' })).toEqual({ ok: false, error: 'BL-001 is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to change.' });
+    expect(planFields(TYPED, { id: 'CS-001', type: 'feat' })).toEqual({ ok: false, error: 'Current Sprint has no Type and Priority columns. Give the Current Sprint table those columns first.' });
+    expect(planFields(TYPED, { id: '[CD-001]', type: 'feat' })).toEqual({ ok: false, error: 'Completed rows have no Type and Priority.' });
+  });
+
+  it('fieldsShapeError: an object with an ID and at least one value of its set', () => {
+    expect(fieldsShapeError(null)).toBe('The request must be a JSON object with id and a type or priority.');
+    expect(fieldsShapeError([])).toBe('The request must be a JSON object with id and a type or priority.');
+    expect(fieldsShapeError({ type: 'feat' })).toBe('The request has no task ID.');
+    expect(fieldsShapeError({ id: 'BL-001' })).toBe('Name a type or a priority to set.');
+    expect(fieldsShapeError({ id: 'BL-001', type: 'story' })).toBe('Type must be feat, bug or chore, or empty.');
+    expect(fieldsShapeError({ id: 'BL-001', priority: 'high' })).toBe('Priority must be P1, P2 or P3, or empty.');
+    expect(fieldsShapeError({ id: 'BL-001', priority: '' })).toBeNull();
+  });
+});
+
+describe('setTaskFields: the write on disk (BL-125)', () => {
+  let root: string;
+  let file: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(os.tmpdir(), 'specpilot-fields-'));
+    mkdirSync(join(root, '.specs', 'planning'), { recursive: true });
+    file = join(root, '.specs', 'planning', 'tasks.md');
+    writeFileSync(file, TYPED);
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it('writes the one line, returns the new hash, keeps the mode, leaves no temp file', () => {
+    chmodSync(file, 0o640);
+    const out = setTaskFields(root, { id: 'BL-002', type: 'chore', priority: 'P3' }, sha256(TYPED));
+    const after = readFileSync(file, 'utf-8');
+    expect(out).toEqual({ status: 200, sha256: sha256(after) });
+    expect(after).toBe(TYPED.replace('| BL-002 |  |  | Two |', '| BL-002 | chore | P3 | Two |'));
+    expect(statSync(file).mode & 0o777).toBe(0o640);
+    expect(readdirSync(join(root, '.specs', 'planning'))).toEqual(['tasks.md']);
+  });
+
+  it('409s on a stale hash and 422s on a refusal, writing nothing', () => {
+    expect(setTaskFields(root, { id: 'BL-002', priority: 'P1' }, sha256('something else'))).toEqual({ status: 409, error: FIELDS_STALE_ERROR });
+    expect(setTaskFields(root, { id: 'CS-001', priority: 'P1' }, sha256(TYPED)).status).toBe(422);
+    expect(readFileSync(file, 'utf-8')).toBe(TYPED);
+  });
+
+  it('refuses bytes that are not UTF-8 and a symbolic-link tasks.md', () => {
+    const bad = Buffer.concat([Buffer.from(TYPED), Buffer.from([0xff])]);
+    writeFileSync(file, bad);
+    expect(setTaskFields(root, { id: 'BL-002', priority: 'P1' }, sha256(bad))).toEqual({ status: 422, error: expect.stringContaining('not valid UTF-8') });
+    rmSync(file);
+    writeFileSync(join(root, 'real.md'), TYPED);
+    symlinkSync(join(root, 'real.md'), file);
+    expect(setTaskFields(root, { id: 'BL-002', priority: 'P1' }, sha256(TYPED))).toEqual({ status: 422, error: 'planning/tasks.md is a symbolic link, and SpecPilot will not replace it with a regular file.' });
+    expect(readFileSync(join(root, 'real.md'), 'utf-8')).toBe(TYPED);
+  });
+
+  it('refuses an edit after which `specpilot validate` would report something new', () => {
+    jest.spyOn(validator, 'tasksChecks').mockImplementation(c => (c.includes('| chore | P3 | Two |') ? ['planted warning'] : []));
+    expect(setTaskFields(root, { id: 'BL-002', type: 'chore', priority: 'P3' }, sha256(TYPED))).toEqual({ status: 422, error: 'Nothing was changed, because `specpilot validate` would then report: planted warning' });
+    expect(readFileSync(file, 'utf-8')).toBe(TYPED);
+  });
+
+  it('newTask writes the typed row on disk', () => {
+    const out = newTask(root, { description: 'Disk', section: 'backlog', priority: 'P2' }, sha256(TYPED));
+    expect(out).toMatchObject({ status: 200, id: 'BL-010' });
+    expect(line(readFileSync(file, 'utf-8'), 'BL-010')).toBe('| BL-010 |  | P2 | Disk |');
   });
 });

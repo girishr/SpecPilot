@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-20 (BL-113 Spec Report, architect decision)
-version: 1.30
+lastUpdated: 2026-10-24 (BL-125 Spec Report)
+version: 1.31
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -377,6 +377,16 @@ This file records security-related architectural and implementation decisions ma
   - Refusing `|` in the note as New Task does — rejected: a note is feedback, not an identifier; `\|` is GFM's own escape, which GitHub renders as `|`; the page shows the cell as the file has it, backslash included (the content rule, no unescaping); the reader splits cells on the first pipes only, so the escaped one stays in the cell. This supersedes SEC-004.18's rejected escape for the note alone.
   - Moving an Approved row to Completed from the page or the tool — rejected: the numbered row carries a CD ID, a number and a commit that only the agent's commit step knows; the tool refuses every move into Completed and says why.
 - **Reference**: SEC-004.10, SEC-004.18, SEC-004.20, SEC-002.5 (f, h), REQ-002.H.55, ARCH-004.71
+
+### [SEC-004.32] Type and Priority from the page: one of a fixed set written into two existing cells
+
+- **Date**: 2026-10-24 (BL-125 Spec Report, Architectural)
+- **Decision**: `POST /api/tasks/fields` replaces the text of the Type cell, the Priority cell or both of one row in a typed `## Backlog`, `## Current Sprint` or `## Review` table. It sits behind every guard of the move route (SEC-004.10): Host, exact `Origin`, the per-start token, `application/json` only, 16 KB, `If-Match` on the file's sha256, the one in-process lock, temp file + `fsync` + `rename` keeping the mode, no write through a symbolic link, bytes that are not UTF-8 refused, the validator's `tasks.md` checks in memory before and after, no route with `--read-only`. No request text reaches the file: each value must be one of `feat`, `bug`, `chore` (Type) or `P1`, `P2`, `P3` (Priority), or empty, compared exactly, and the server writes its own copy of the value. The edit stays inside the two cells of the one row; the ID and description cells, the line's ending and every other line are kept byte for byte. The MCP tool `specpilot_set_task` calls the same function behind the MCP endpoint's guards (SEC-004.20).
+- **Rationale**: a forged request that passed every layer could at most change a row's Type or Priority to another value of the set, one visible change in a file under git. A closed set is the narrowest write a field can have: no escaping, no length rule, nothing for a cell, heading or front matter to be built from.
+- **Alternatives considered**:
+  - A general cell edit route — rejected, as in SEC-004.31.
+  - Free-text values (any word) — rejected: the board's chips and the agent rule need a known set, and free text would bring back the cell rules of SEC-004.18 for nothing.
+- **Reference**: SEC-004.10, SEC-004.18, SEC-004.20, SEC-004.31, REQ-002.H.58, ARCH-004.73
 
 ## Open Questions [SEC-005]
 

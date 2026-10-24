@@ -1,4 +1,4 @@
-import { endsWithApproved, readSpecs, REQUIRED_TASK_HEADINGS, reviewMarks, TASK_COLUMNS, TASK_HEADINGS, taskHeadings } from '../utils/specReader';
+import { endsWithApproved, readSpecs, REQUIRED_TASK_HEADINGS, reviewMarks, TASK_COLUMNS, TASK_HEADINGS, taskHeadings, taskRowLines } from '../utils/specReader';
 import { render } from '../core/render';
 
 // Shaped like the real .specs/planning/tasks.md: 2-column Backlog / Current Sprint,
@@ -125,7 +125,7 @@ describe('readSpecs', () => {
     const tasks = readSpecs({ 'planning/tasks.md': TASKS_MD }).tasks!;
     expect(tasks.backlog.map(r => r.id)).toEqual(['BL-009', 'BL-032']);
     expect(tasks.currentSprint).toEqual([
-      { id: 'CS-078', description: 'Force AI to write tests for every feature — two-part enforcement, not text-only', line: 22 },
+      { id: 'CS-078', type: null, priority: null, description: 'Force AI to write tests for every feature — two-part enforcement, not text-only', line: 22 },
     ]);
     expect(tasks.completed[0]).toEqual({
       num: '95',
@@ -139,9 +139,9 @@ describe('readSpecs', () => {
   it('serves Review rows with what their markers say, and Won\'t do rows with their Reason (BL-113)', () => {
     const tasks = readSpecs({ 'planning/tasks.md': TASKS_MD }).tasks!;
     expect(tasks.review).toEqual([
-      { id: 'BL-113', description: 'Review lane Sent back 2026-10-18: tests \\| docs missing Approved 2026-10-20', line: 30, approved: '2026-10-20', history: [{ date: '2026-10-18', note: 'tests \\| docs missing' }] },
-      { id: 'CS-078', description: 'Force AI to write tests Approved 2026-10-01 Sent back 2026-10-02.', line: 31, approved: null, history: [{ date: '2026-10-02', note: '' }] },
-      { id: 'BL-050', description: 'Plain, nothing yet', line: 32, approved: null, history: [] },
+      { id: 'BL-113', type: null, priority: null, description: 'Review lane Sent back 2026-10-18: tests \\| docs missing Approved 2026-10-20', line: 30, approved: '2026-10-20', history: [{ date: '2026-10-18', note: 'tests \\| docs missing' }] },
+      { id: 'CS-078', type: null, priority: null, description: 'Force AI to write tests Approved 2026-10-01 Sent back 2026-10-02.', line: 31, approved: null, history: [{ date: '2026-10-02', note: '' }] },
+      { id: 'BL-050', type: null, priority: null, description: 'Plain, nothing yet', line: 32, approved: null, history: [] },
     ]);
     expect(tasks.wontDo).toEqual([{ id: 'BL-009', description: 'Enhanced `add-specs`', reason: 'Superseded by BL-103/BL-104 (2026-10-15): the IDE writes the specs', line: 47 }]);
     expect(tasks.malformed).toEqual([]);
@@ -182,7 +182,7 @@ describe('readSpecs', () => {
   it('keeps the lines right after a header row and after a malformed row (BL-PM-008)', () => {
     const md = ['## Backlog', '| ID | Description |', '|---|---|', '| BL-001 | One |', '| broken', '| BL-002 | Two |', '## Current Sprint', '| ID | Description |', '|---|---|'].join('\n');
     const t = readSpecs({ 'planning/tasks.md': md }).tasks!;
-    expect(t.backlog).toEqual([{ id: 'BL-001', description: 'One', line: 4 }, { id: 'BL-002', description: 'Two', line: 6 }]);
+    expect(t.backlog).toEqual([{ id: 'BL-001', type: null, priority: null, description: 'One', line: 4 }, { id: 'BL-002', type: null, priority: null, description: 'Two', line: 6 }]);
     expect(t.malformed).toEqual(['| broken']);
   });
 
@@ -216,7 +216,7 @@ describe('readSpecs', () => {
     ].join('\n');
     const tasks = readSpecs({ 'planning/tasks.md': md }).tasks!;
     expect(tasks.completed).toEqual([{ num: '1', id: '[CD-001]', description: 'Done', line: 4 }]);
-    expect(tasks.backlog).toEqual([{ id: 'BL-001', description: 'Later', line: 8 }]);
+    expect(tasks.backlog).toEqual([{ id: 'BL-001', type: null, priority: null, description: 'Later', line: 8 }]);
   });
 
   it('returns an empty list for a missing section', () => {
@@ -236,13 +236,16 @@ describe('readSpecs', () => {
 
   it('reports the headings found, missing and unknown, the candidates, the row counts and the columns, the same with CRLF (BL-112)', () => {
     const h = (md: string) => readSpecs({ 'planning/tasks.md': md }).tasks!.headings;
+    // the fixture's three moving lanes are plain tables, read as they are written (BL-125); a lane with no table names the typed shape it would be written in
     const columns = { '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Review': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'], "## Won't do": ['ID', 'Description', 'Reason'] };
-    const all = { found: ['## Backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns, untabled: {}, columnsFound: {} };
+    const shapes = { '## Backlog': 'plain', '## Current Sprint': 'plain', '## Review': 'plain' };
+    const all = { found: ['## Backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: [], unknown: ['## Multi-Dev Notes'], variants: {}, unknownRows: { '## Multi-Dev Notes': 1 }, columns, shapes, untabled: {}, columnsFound: {} };
+    const noBacklog = { columns: { ...columns, '## Backlog': ['ID', 'Type', 'Priority', 'Description'] }, shapes: { '## Current Sprint': 'plain', '## Review': 'plain' } };
     expect(h(TASKS_MD)).toEqual(all);
     expect(h(TASKS_MD.replace(/\n/g, '\r\n'))).toEqual(all);
     expect(taskHeadings(TASKS_MD.split('\n'))).toEqual(all);
-    expect(h(TASKS_MD.replace('## Backlog', '### Backlog'))).toEqual({ ...all, found: ['## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: ['## Backlog'], variants: { '## Backlog': ['### Backlog'] } });
-    expect(h(TASKS_MD.replace('## Backlog', '## backlog'))).toEqual({ ...all, found: ['## backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: ['## Backlog'], unknown: ['## backlog', '## Multi-Dev Notes'], variants: { '## Backlog': ['## backlog'] }, unknownRows: { '## backlog': 2, '## Multi-Dev Notes': 1 } });
+    expect(h(TASKS_MD.replace('## Backlog', '### Backlog'))).toEqual({ ...all, ...noBacklog, found: ['## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: ['## Backlog'], variants: { '## Backlog': ['### Backlog'] } });
+    expect(h(TASKS_MD.replace('## Backlog', '## backlog'))).toEqual({ ...all, ...noBacklog, found: ['## backlog', '## Current Sprint', '## Review', '## Completed', "## Won't do", '## Multi-Dev Notes'], missing: ['## Backlog'], unknown: ['## backlog', '## Multi-Dev Notes'], variants: { '## Backlog': ['## backlog'] }, unknownRows: { '## backlog': 2, '## Multi-Dev Notes': 1 } });
     // BL-113: `## Review` is required, `## Won't do` optional and never unknown
     expect(h(TASKS_MD.replace('## Review', '## Reviewing'))).toMatchObject({ missing: ['## Review'], unknown: ['## Reviewing', '## Multi-Dev Notes'], variants: { '## Review': [] } });
     expect(h(TASKS_MD.replace("## Won't do", '## Dropped'))).toMatchObject({ missing: [], unknown: ['## Dropped', '## Multi-Dev Notes'], variants: {} });
@@ -250,7 +253,7 @@ describe('readSpecs', () => {
     expect(REQUIRED_TASK_HEADINGS).toEqual(['## Backlog', '## Current Sprint', '## Review', '## Completed']);
     expect(h(TASKS_MD.replace('## Backlog', '## backlog\n\n### Backlog')).variants).toEqual({ '## Backlog': ['## backlog', '### Backlog'] }); // two candidates, in file order
     expect(h(TASKS_MD + '## Later\n\nNothing tabled yet.\n').unknownRows).toEqual({ '## Multi-Dev Notes': 1, '## Later': 0 });
-    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Review', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Review': [], '## Completed': [] }, unknownRows: {}, columns, untabled: {}, columnsFound: {} });
+    expect(h('# Tasks\n\n- one\n')).toEqual({ found: [], missing: ['## Backlog', '## Current Sprint', '## Review', '## Completed'], unknown: [], variants: { '## Backlog': [], '## Current Sprint': [], '## Review': [], '## Completed': [] }, unknownRows: {}, columns: TASK_COLUMNS, shapes: {}, untabled: {}, columnsFound: {} });
   });
 
   it('counts the lines of a known section that has no table, [TODO] aside, and names the columns a table needs (BL-116)', () => {
@@ -263,7 +266,8 @@ describe('readSpecs', () => {
     expect(u('## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | One |\n\nA note beside the table.\n')).toEqual({}); // a table: prose beside it is ignored, as today
     expect(u('## Backlog\n\n| ID | Description |\n')).toEqual({ '## Backlog': 1 }); // a header row with no separator is not a table
     expect(u('## Backlog\n\n\n\n## Completed\n')).toEqual({});
-    expect(TASK_COLUMNS).toEqual({ '## Backlog': ['ID', 'Description'], '## Current Sprint': ['ID', 'Description'], '## Review': ['ID', 'Description'], '## Completed': ['#', 'ID', 'Description'], "## Won't do": ['ID', 'Description', 'Reason'] });
+    const typed = ['ID', 'Type', 'Priority', 'Description']; // BL-125: the shape the template and the stub write
+    expect(TASK_COLUMNS).toEqual({ '## Backlog': typed, '## Current Sprint': typed, '## Review': typed, '## Completed': ['#', 'ID', 'Description'], "## Won't do": ['ID', 'Description', 'Reason'] });
   });
 
   it('reports a table whose header has another column count than its lane, with the rows it cannot read, the same with CRLF (BL-120)', () => {
@@ -272,18 +276,53 @@ describe('readSpecs', () => {
     const two = '## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | One |\n\n## Completed\n\n| ID | Task |\n|---|---|\n| CD-001 | First |\n| CD-002 | Second |\n| CD-003 | Third |\n';
     for (const md of [two, two.replace(/\n/g, '\r\n')]) {
       const t = r(md);
-      expect(t.headings.columnsFound).toEqual({ '## Completed': { columns: 2, unread: 3 } });
+      expect(t.headings.columnsFound).toEqual({ '## Completed': { columns: 2, names: ['ID', 'Task'], unread: 3 } });
       expect(t.malformed.map(l => l.trim())).toEqual(['| CD-001 | First |', '| CD-002 | Second |', '| CD-003 | Third |']);
-      expect(t.backlog).toEqual([{ id: 'BL-001', description: 'One', line: 5 }]);
+      expect(t.backlog).toEqual([{ id: 'BL-001', type: null, priority: null, description: 'One', line: 5 }]);
     }
     const wide = r('## Backlog\n\n| ID | Description | Owner |\n|---|---|---|\n| BL-001 | One | me |\n');
-    expect(wide.headings.columnsFound).toEqual({ '## Backlog': { columns: 3, unread: 0 } });
+    expect(wide.headings.columnsFound).toEqual({ '## Backlog': { columns: 3, names: ['ID', 'Description', 'Owner'], unread: 0 } });
     expect(wide.backlog[0].description).toBe('One | me'); // the extra cell runs into the description
-    expect(r('## Completed\n\n| ID | Task |\n|---|---|\n').headings.columnsFound).toEqual({ '## Completed': { columns: 2, unread: 0 } }); // an empty table still warns
+    expect(r('## Completed\n\n| ID | Task |\n|---|---|\n').headings.columnsFound).toEqual({ '## Completed': { columns: 2, names: ['ID', 'Task'], unread: 0 } }); // an empty table still warns
     expect(r('## Backlog\n\n|---|---|---|\n| BL-001 | One |\n').headings.columnsFound).toEqual({}); // a separator with no header row
     const lines = r('## Backlog\n\n[BL-001] One\n').headings;
     expect(lines.untabled).toEqual({ '## Backlog': 1 }); // no table: BL-116's, not this
     expect(lines.columnsFound).toEqual({});
+  });
+
+  it('reads Backlog, Current Sprint and Review in the typed or the plain shape by their header names, case ignored (BL-125)', () => {
+    const md = [
+      '## Backlog', '', '| ID | Type | Priority | Description |', '|---|---|---|---|',
+      '| BL-001 | feat | P1 | One |', '| BL-002 |  |  | Two `a | b` |', '| BL-003 | high | soon | Three |', '| BL-004 | feat | Short |', '',
+      '## Current Sprint', '', '| id | TYPE | priority | description |', '|---|---|---|---|', '  | CS-001 | bug | P3 | Lead |', '',
+      '## Review', '', '| ID | Description |', '|---|---|', '| BL-005 | Plain Approved 2026-10-24 |', '',
+      '## Completed', '', '| # | ID | Description |', '|---|---|---|', '| 1 | [CD-001] | Done |', '',
+    ].join('\n');
+    for (const text of [md, md.replace(/\n/g, '\r\n')]) {
+      const t = readSpecs({ 'planning/tasks.md': text }).tasks!;
+      expect(t.backlog).toEqual([
+        { id: 'BL-001', type: 'feat', priority: 'P1', description: 'One', line: 5 },
+        { id: 'BL-002', type: '', priority: '', description: 'Two `a | b`', line: 6 },
+        { id: 'BL-003', type: 'high', priority: 'soon', description: 'Three', line: 7 }, // served as written
+      ]);
+      expect(t.malformed.map(l => l.trim())).toEqual(['| BL-004 | feat | Short |']); // three cells in a typed lane: no row
+      expect(t.currentSprint).toEqual([{ id: 'CS-001', type: 'bug', priority: 'P3', description: 'Lead', line: 14 }]);
+      expect(t.review).toEqual([{ id: 'BL-005', type: null, priority: null, description: 'Plain Approved 2026-10-24', line: 20, approved: '2026-10-24', history: [] }]);
+      expect(t.completed).toEqual([{ num: '1', id: '[CD-001]', description: 'Done', line: 26 }]);
+      expect(t.headings.shapes).toEqual({ '## Backlog': 'typed', '## Current Sprint': 'typed', '## Review': 'plain' });
+      expect(t.headings.columns['## Backlog']).toEqual(['ID', 'Type', 'Priority', 'Description']);
+      expect(t.headings.columns['## Review']).toEqual(['ID', 'Description']);
+      expect(t.headings.columnsFound).toEqual({});
+    }
+    // BL-120 by names for the three lanes: a four-column header that is not the typed one is read plain and reported with its names
+    const status = readSpecs({ 'planning/tasks.md': '## Backlog\n\n| ID | Status | Priority | Description |\n|---|---|---|---|\n| BL-001 | open | high | One |\n' }).tasks!;
+    expect(status.headings.shapes).toEqual({ '## Backlog': 'plain' });
+    expect(status.headings.columnsFound).toEqual({ '## Backlog': { columns: 4, names: ['ID', 'Status', 'Priority', 'Description'], unread: 0 } });
+    expect(status.backlog[0]).toMatchObject({ type: null, priority: null, description: 'open | high | One' });
+    // Completed keeps BL-120's count rule: other names with the right count are not reported
+    expect(readSpecs({ 'planning/tasks.md': '## Completed\n\n| # | Task | Text |\n|---|---|---|\n' }).tasks!.headings.columnsFound).toEqual({});
+    const where = taskRowLines(md);
+    expect([where.backlog!.shape, where.currentSprint!.shape, where.review!.shape, where.completed!.shape]).toEqual(['typed', 'typed', 'plain', null]);
   });
 
   it('the tasks.md the core renders has the tables the board reads, headers equal to TASK_COLUMNS (BL-118)', () => {

@@ -189,7 +189,7 @@ function taskRow({t,i},col){
   return `<div class="card"><button type="button" class="row act" data-col="${col}" data-i="${i}"${mv?' draggable="true" aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight"':''}>
     <span class="st ${DOT[col]}" aria-hidden="true"></span>
     <div class="body"><div class="ttl clamp">${col==='completed'?`<span class="num" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span>${mdi(t.description)}</div></div>
-    <div class="trail">${col==='review'&&t.approved?'<span class="pill green chip">Approved</span>':''}${chev}</div>
+    <div class="trail">${chips(t)}${col==='review'&&t.approved?'<span class="pill green chip">Approved</span>':''}${chev}</div>
   </button><button type="button" class="dots" data-menu="${col}:${i}" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for ${esc(t.id)}"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-dots"/></svg></button></div>`;
 }
 function group(col,items){
@@ -257,16 +257,29 @@ function headingMessages(T){
       `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
   });
   // BL-120: a table whose header has another column count than the lane reads
-  const colWarns=Object.entries(H.columnsFound||{}).map(([h,{columns:n,unread:k}])=>{
-    const lane=h.slice(3),names=H.columns[h]||['ID','Description'],cols=joinAnd(names),m=names.length;
-    const prompt=`In ${TASKS_FILE}, turn the "${h}" section into a markdown table with ${cols} columns, one row per task${h==='## Completed'?' (numbered from 1 with the oldest entry first)':''}, keeping every task's ID and text, so SpecPilot's Tasks board reads it.`;
+  // BL-125: for Backlog, Current Sprint and Review the header names neither shape; it is read in the plain one
+  const TYPED_COLS='ID, Type, Priority and Description';
+  const colWarns=Object.entries(H.columnsFound||{}).map(([h,{columns:n,names:found,unread:k}])=>{
+    const lane=h.slice(3),shaped=SHAPED.some(c=>'## '+COLS[c]===h),names=H.columns[h]||['ID','Description'],m=names.length,cols=shaped?TYPED_COLS:joinAnd(names);
+    const prompt=shaped?`In ${TASKS_FILE}, turn the "${h}" section into a markdown table with ${TYPED_COLS} columns, one row per task, keeping every task's ID and text; put an existing priority into Priority as P1, P2 or P3 (high, medium, low), and move any status that says more than "open" to the start of the description, so SpecPilot's Tasks board reads it.`
+      :`In ${TASKS_FILE}, turn the "${h}" section into a markdown table with ${cols} columns, one row per task${h==='## Completed'?' (numbered from 1 with the oldest entry first)':''}, keeping every task's ID and text, so SpecPilot's Tasks board reads it.`;
     const body=n>m?'The extra columns show inside each row\'s description.':k?`${k===1?'1 row is':k+' rows are'} listed under Rows that could not be parsed.`:'';
-    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane cannot read its table: it has ${n===1?'1 column':n+' columns'}, the board reads ${m}</div>`+
+    const title=shaped?`it has ${n===1?'1 column':n+' columns'}, ${esc(joinAnd(found||[]))}; the board reads ${TYPED_COLS}, or ID and Description`:`it has ${n===1?'1 column':n+' columns'}, the board reads ${m}`;
+    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> The ${esc(lane)} lane cannot read its table: ${title}</div>`+
       (body?`<p>${body}</p>`:'')+
       `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and give the table ${esc(cols)} columns, one row per task, best done by your AI IDE so that every task keeps its ID and text.</p>`+
       `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
   });
-  warns.push(...lineWarns,...colWarns);
+  // BL-125: the three lanes do not share one shape, so rows with a Type or Priority cannot move into the plain ones
+  const sh=H.shapes||{},plain=SHAPED.filter(c=>sh['## '+COLS[c]]==='plain').map(c=>COLS[c]);
+  const shapeWarns=plain.length&&SHAPED.some(c=>sh['## '+COLS[c]]==='typed')?[(()=>{
+    const prompt=`In ${TASKS_FILE}, give the ${joinAnd(plain)} table${plain.length===1?'':'s'} ${TYPED_COLS} columns, with empty Type and Priority cells in every row, so SpecPilot's Tasks board can move rows between lanes.`;
+    return `<div class="msg warn"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-warn"/></svg><div class="mb"><div class="mt"><span class="mw">Warning</span> Backlog, Current Sprint and Review have different table shapes</div>`+
+      `<p>${esc(joinAnd(plain))} ${plain.length===1?'has':'have'} no Type and Priority columns, so a row with a Type or Priority cannot move into ${plain.length===1?'it':'them'}.</p>`+
+      `<p>Fix: edit <span class="mono" translate="no">${TASKS_FILE}</span> and give ${plain.length===1?'that table':'those tables'} ${TYPED_COLS} columns, with empty cells in every row, best done by your AI IDE.</p>`+
+      `<div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x('data-hidewarn','Hide the warnings for now')}</div>`;
+  })()]:[];
+  warns.push(...lineWarns,...colWarns,...shapeWarns);
   const candidates=new Set([].concat(...Object.values(H.variants)));
   const hidden=hiddenNotes(H.unknown.slice().sort());
   const notes=H.unknown.filter(h=>!candidates.has(h)&&!hidden.includes(h)).map(h=>{
@@ -275,6 +288,12 @@ function headingMessages(T){
     return `<div class="msg info"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div class="mb"><div class="mt"><span class="mw">Note</span> ${title}</div>`+
       `<p>The board shows ${joinAnd(REQUIRED.map(l=>COLS[l]))}. The rows stay in tasks.md.</p><div class="actions">${openBtn}</div></div>${x(`data-hidenote="${esc(h)}"`,'Hide this note')}</div>`;
   });
+  // BL-125 (d): every moving lane with a table is plain, so no card has Type or Priority; a note, since nothing is wrong
+  if(SHAPED.some(c=>sh['## '+COLS[c]]==='plain')&&!SHAPED.some(c=>sh['## '+COLS[c]]==='typed')&&!hidden.includes(PLAIN_NOTE)){
+    const prompt=`In ${TASKS_FILE}, give the Backlog, Current Sprint and Review tables ${TYPED_COLS} columns, with empty Type and Priority cells in every row, keeping every task's ID and text, so SpecPilot's Tasks board can show and set Type and Priority.`;
+    notes.push(`<div class="msg info"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div class="mb"><div class="mt"><span class="mw">Note</span> Type and Priority are off: Backlog, Current Sprint and Review have no Type and Priority columns</div>`+
+      `<p>Add the columns to show Priority and Type on each card and set them in the task details. Rows keep their text; each gets two empty cells.</p><div class="actions">${openBtn}<button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button></div></div>${x(`data-hidenote="${PLAIN_NOTE}"`,'Hide this note')}</div>`);
+  }
   const bar=warns.length&&warnHidden?`<div class="msgbar"><span>${warns.length} warning${warns.length===1?'':'s'} about tasks.md</span><button type="button" class="btn sm" data-showwarn>Show</button></div>`:'';
   return (warnHidden?bar:warns.join(''))+notes.join('');
 }
@@ -303,11 +322,64 @@ function openTask(col,i,quiet){
   insp.innerHTML=`<div class="ih">${col==='completed'?`<span class="id" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span><span class="pill ${PILL[col]}">${esc(COLS[col])}</span>${col==='review'&&t.approved?'<span class="pill green">Approved</span>':''}<button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>
   <div class="ib2">
     <div class="gl"><div class="gh">Description <span class="cnt" translate="no">tasks.md · ## ${esc(COLS[col])}</span></div><div class="box"><div class="desc md">${md(t.description)}</div></div></div>
-    ${reason}${hist}
+    ${fieldsBlock(col,t)}${reason}${hist}
     <div class="actions"><a class="btn sm" href="${esc(editorUrl(DATA.project.root+'/.specs/planning/tasks.md',t.line))}">Open tasks.md in VS Code</a></div>
   </div>${foot}`;
   if(foot)bindReview(col,i);
+  bindRadios(insp,(key,btn)=>chooseField(col,i,key,btn));
   openInsp(quiet);
+}
+/* ---------------- Type and Priority (BL-125) ----------------
+   A row of a typed Backlog, Current Sprint or Review table carries a Type and a Priority: chips on the card's bottom
+   line, two radio groups in the detail panel that write through POST /api/tasks/fields on choice, the same two in
+   New Task. A value outside the set is shown as written and checks no radio; a plain table has neither. */
+const PRIORITIES=['P1','P2','P3'],TYPES=['feat','bug','chore'],SHAPED=['backlog','currentSprint','review'];
+const PLAIN_NOTE='#plain-tables'; // the plain-tables note's key among the hidden notes: no heading starts with #
+const shapeOf=col=>((DATA.tasks&&DATA.tasks.headings&&DATA.tasks.headings.shapes)||{})['## '+COLS[col]];
+/* A value's colour class, shared by its chip and its chosen radio; none for a value outside the set, which stays muted. */
+const tone=v=>[...PRIORITIES,...TYPES].includes(v)?' v-'+v.toLowerCase():'';
+function chips(t){
+  return (t.priority?`<span class="pill chip pri${tone(t.priority)}" translate="no">${esc(t.priority)}</span>`:'')+(t.type?`<span class="pill chip ty${tone(t.type)}" translate="no">${esc(t.type)}</span>`:'');
+}
+/* One radio group: `id` names it (its buttons are `<id>-<value>`, `<id>-none`), `key` is the field it sets. */
+function radios(id,key,label,vals,cur){
+  const all=[...vals,''],on=all.includes(cur||'')?(cur||''):null;
+  return `<div class="tfr"><span class="tfl" id="${id}L">${label}</span><div class="seg" role="radiogroup" aria-labelledby="${id}L" id="${id}" data-key="${key}">${all.map(v=>{const c=v===on,first=on===null&&v===all[0];
+    return `<button type="button" role="radio" id="${id}-${v||'none'}" data-v="${v}" aria-checked="${c}" tabindex="${c||first?0:-1}" class="${((c?'on':'')+tone(v)).trim()}" translate="no">${v||'None'}</button>`;}).join('')}</div></div>`;
+}
+function checkRadio(btn){btn.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]').forEach(b=>{const c=b===btn;b.setAttribute('aria-checked',c);b.classList.toggle('on',c);b.tabIndex=c?0:-1;});}
+/* Click chooses; arrow keys move and choose, as a radio group does. */
+function bindRadios(root,choose){
+  root.querySelectorAll('[role="radiogroup"]').forEach(g=>{
+    const bs=[...g.querySelectorAll('[role="radio"]')];
+    bs.forEach((b,n)=>{
+      b.onclick=()=>choose(g.dataset.key,b);
+      b.onkeydown=e=>{const d={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(!d||e.altKey||e.metaKey||e.ctrlKey)return;e.preventDefault();e.stopPropagation();const nb=bs[(n+d+bs.length)%bs.length];nb.focus();choose(g.dataset.key,nb);};
+    });
+  });
+}
+function fieldsBlock(col,t){
+  if(!SHAPED.includes(col))return '';
+  if(shapeOf(col)!=='typed')return '<p class="tfnote" id="tfNote">This lane\'s table has no Type and Priority columns. Add them to set Priority and Type here.</p>';
+  if(!TOKEN)return `<div class="gl"><div class="gh">Priority and Type</div><div class="box"><p class="tfv" translate="no">Priority ${esc(t.priority||'None')} · Type ${esc(t.type||'None')}</p></div></div>`;
+  return `<div class="gl"><div class="gh">Priority and Type</div><div class="box tf" id="tfBox">${radios('tfPri','priority','Priority',PRIORITIES,t.priority)}${radios('tfType','type','Type',TYPES,t.type)}<p class="err" id="tfErr" role="alert" hidden></p></div></div>`;
+}
+let fielding=false;
+async function chooseField(col,i,key,btn){
+  const t=DATA.tasks[col]&&DATA.tasks[col][i],p=PROJECT,v=btn.dataset.v;if(!t||fielding||(t[key]||'')===v)return;
+  fielding=true;checkRadio(btn);const box=$('#tfBox');if(box)box.setAttribute('aria-busy','true');
+  let r,body={};
+  try{
+    r=await fetch('/api/tasks/fields?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({id:t.id,[key]:v})});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  fielding=false;
+  if(p!==PROJECT)return;
+  if(r&&r.status===200){await apply(body.specs,['.specs/planning/tasks.md']);return;} // the panel is redrawn from the file; focus stays on the chosen radio
+  if(r&&r.status===409&&body.specs)await apply(body.specs,null);
+  const k=findRow(col,t.id,i);if(k>=0&&inspOpen&&inspOpen.id===t.id)openTask(col,k,true); // the earlier choice, as the file has it
+  const e=$('#tfErr');if(e){e.textContent=!r?'The server did not answer. Nothing was changed.':body.error||`Nothing was changed (HTTP ${r.status}).`;e.hidden=false;}
+  const g='#'+(key==='priority'?'tfPri':'tfType'),f=$(`${g} [aria-checked="true"]`)||$(`${g} [role="radio"]`);if(f)f.focus();
 }
 /* ---------------- review (BL-113) ----------------
    Approve appends ` Approved <date>` to the row; Send back appends ` Sent back <date>: <note>` and moves the row to the
@@ -686,7 +758,10 @@ let taskSection='backlog',adding=false,taskFrom=null; // taskFrom: the opener, a
 function taskError(m){const e=$('#taskErr');e.textContent=m||'';e.hidden=!m;}
 /* The ID the server would give now, from the last payload; a suggestion, the write picks the ID (BL-TB-05). */
 function taskHint(){const n=DATA&&DATA.tasks&&DATA.tasks.nextIds;$('#taskNext').textContent=n?n[taskSection]:'';$('#taskNextWrap').hidden=!n;}
-function openNewTask(section,from){if(!TOKEN||!DATA||!DATA.tasks||!ADDABLE[section])return;hideTip();taskIn.value='';taskError('');taskSection=section;taskFrom=from;$('#taskLane').textContent=COLS[section];taskHint();taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
+function openNewTask(section,from){if(!TOKEN||!DATA||!DATA.tasks||!ADDABLE[section])return;hideTip();taskIn.value='';taskError('');taskSection=section;taskFrom=from;$('#taskLane').textContent=COLS[section];taskHint();taskFields();taskVeil.classList.add('open');setTimeout(()=>taskIn.focus(),50);}
+/* BL-125: Priority and Type, both None, for a typed lane; nothing for a plain one. */
+function taskFields(){const f=$('#taskFields'),typed=shapeOf(taskSection)==='typed';f.innerHTML=typed?radios('ntPri','priority','Priority',PRIORITIES,'')+radios('ntType','type','Type',TYPES,''):'';f.hidden=!typed;bindRadios(f,(key,b)=>checkRadio(b));}
+const taskValue=id=>{const b=$(`#${id} [aria-checked="true"]`);return b?b.dataset.v:'';};
 function focusOpener(){const b=(taskFrom&&$(taskFrom))||$('#v-board [data-add]');if(b)b.focus();}
 function closeNewTask(){if(!taskVeil.classList.contains('open')||adding)return;taskVeil.classList.remove('open');focusOpener();}
 async function addTask(){
@@ -696,7 +771,7 @@ async function addTask(){
   adding=true;$('#taskGo').disabled=true;taskError('');
   let r,body={};
   try{
-    r=await fetch('/api/tasks/new?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({description:taskIn.value,section})});
+    r=await fetch('/api/tasks/new?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({description:taskIn.value,section,...(shapeOf(section)==='typed'?{priority:taskValue('ntPri'),type:taskValue('ntType')}:{})})});
     body=await r.json().catch(()=>({}));
   }catch(e){r=null;}
   adding=false;$('#taskGo').disabled=false;

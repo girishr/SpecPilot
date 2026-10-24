@@ -14,7 +14,7 @@ beforeEach(async () => {
   // A known row at the top of each movable section, beside the fixture's own rows (BL-099), so the tests
   // below find their rows by these IDs.
   const lines = read(env.tasks()).split('\n');
-  for (const [heading, line] of [['Current Sprint', '| CS-901 | Fixture sprint row |'], ['Backlog', '| BL-901 | Fixture backlog row |']]) {
+  for (const [heading, line] of [['Current Sprint', '| CS-901 |  |  | Fixture sprint row |'], ['Backlog', '| BL-901 |  |  | Fixture backlog row |']]) {
     const at = lines.findIndex(l => l.trim() === `## ${heading}`);
     lines.splice(lines.findIndex((l, i) => i > at && /^\|---/.test(l)) + 1, 0, line);
   }
@@ -80,7 +80,7 @@ for (const section of ['backlog', 'currentSprint'] as const) {
     await page.fill('#taskIn', 'Browser suite task');
     await page.click('#taskGo');
     const heading = section === 'backlog' ? 'Backlog' : 'Current Sprint';
-    await until(() => rowsIn(read(env.tasks()), heading).includes(`| ${id} | Browser suite task |`), 'the new row on disk');
+    await until(() => rowsIn(read(env.tasks()), heading).includes(`| ${id} |  |  | Browser suite task |`), 'the new row on disk');
     expect(read(env.tasks()).split('\n').length).toBe(before.split('\n').length + 1);
     await waitToast(page, new RegExp(`${id} added to ## ${heading}`));
     const index = rowsIn(read(env.tasks()), heading).length - 1;
@@ -168,7 +168,7 @@ browserTest('a row written to tasks.md outside the page appears through live rel
   await waitView(t.page, 'v-board');
   const lines = read(env.tasks()).split('\n');
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  lines.splice(sep + 1, 0, '| CS-900 |  |  | Written outside the page |');
   writeFileSync(env.tasks(), lines.join('\n'));
   await t.page.locator('#boardMode .gl[data-col="currentSprint"] .row', { hasText: 'Written outside the page' }).waitFor();
   expect(t.loads).toBe(1);
@@ -195,7 +195,7 @@ browserTest('Tasks is the board alone: no switch, no list, the lanes in order, e
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Backlog');
   const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, ...[2, 3, 4, 5, 6, 7].map(n => `| BL-90${n} | Fixture backlog row ${n} |`)); // nine Backlog rows in all
+  lines.splice(sep + 1, 0, ...[2, 3, 4, 5, 6, 7].map(n => `| BL-90${n} |  |  | Fixture backlog row ${n} |`)); // nine Backlog rows in all
   writeFileSync(env.tasks(), lines.join('\n'));
   const backlog = rowsIn(read(env.tasks()), 'Backlog').length;
   expect(backlog).toBeGreaterThan(6);
@@ -217,7 +217,7 @@ function addBacklogRows(): number {
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Backlog');
   const sep = lines.findIndex((l, i) => i > at && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, ...Array.from({ length: 30 }, (_, n) => `| BL-9${String(n + 10)} | Fixture backlog row ${n + 10} with a longer description so that the card wraps onto two lines |`));
+  lines.splice(sep + 1, 0, ...Array.from({ length: 30 }, (_, n) => `| BL-9${String(n + 10)} |  |  | Fixture backlog row ${n + 10} with a longer description so that the card wraps onto two lines |`));
   writeFileSync(env.tasks(), lines.join('\n'));
   return rowsIn(read(env.tasks()), 'Backlog').length;
 }
@@ -238,7 +238,7 @@ async function reloadThrough(page: Page, id: string): Promise<void> {
   const rev = Number(await page.evaluate(() => document.documentElement.dataset.rev || 0));
   const lines = read(env.tasks()).split('\n');
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, `| ${id} | Written outside the page |`);
+  lines.splice(sep + 1, 0, `| ${id} |  |  | Written outside the page |`);
   writeFileSync(env.tasks(), lines.join('\n'));
   await page.waitForFunction(r => Number(document.documentElement.dataset.rev || 0) > r, rev);
 }
@@ -293,7 +293,7 @@ browserTest('the lanes fit the window at 1280px: the page does not scroll, a lon
   expect(kept).toBeGreaterThan(0);
   const lines = read(env.tasks()).split('\n');
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  lines.splice(sep + 1, 0, '| CS-900 |  |  | Written outside the page |');
   writeFileSync(env.tasks(), lines.join('\n'));
   await page.waitForFunction(() => document.documentElement.dataset.rev === '1');
   expect((await laneGeom(page, 'backlog'))[4]).toBe(kept);
@@ -358,7 +358,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   await laneAdd(page, 'backlog').focus();
   const lines = read(env.tasks()).split('\n');
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  lines.splice(sep + 1, 0, '| CS-900 |  |  | Written outside the page |');
   writeFileSync(env.tasks(), lines.join('\n'));
   await page.waitForFunction(() => document.documentElement.dataset.rev === '1');
   await focusOn(page, 'backlog');
@@ -372,7 +372,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   expect(await page.locator('#taskNext').textContent()).toBe(id);
   await page.keyboard.type('Lane header task');
   await page.keyboard.press('Enter');
-  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(`| ${id} | Lane header task |`), 'the new row on disk');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(`| ${id} |  |  | Lane header task |`), 'the new row on disk');
   expect(read(env.tasks()).split('\n').length).toBe(before.split('\n').length + 1);
   await page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
   expect(await page.locator('#insp .ih .id').first().textContent()).toBe(id);
@@ -670,8 +670,8 @@ browserTest('a section whose tasks are lines or a list, not a table, gets a Warn
     await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
     const warns = await page.locator('#gHead .msg.warn').allTextContents();
     expect(warns[0]).toContain('Warning The Backlog lane shows none of the 3 lines under "## Backlog"');
-    expect(warns[0]).toContain('They are not table rows. The board reads a markdown table with ID and Description columns.');
-    expect(warns[0]).toContain('Fix: edit .specs/planning/tasks.md and turn the section into a table with ID and Description columns, one row per task, best done by your AI IDE so that every task keeps its ID and references.');
+    expect(warns[0]).toContain('They are not table rows. The board reads a markdown table with ID, Type, Priority and Description columns.');
+    expect(warns[0]).toContain('Fix: edit .specs/planning/tasks.md and turn the section into a table with ID, Type, Priority and Description columns, one row per task, best done by your AI IDE so that every task keeps its ID and references.');
     expect(warns[1]).toContain('Warning The Completed lane shows none of the 1 line under "## Completed"');
     expect(warns[1]).toContain('a markdown table with #, ID and Description columns.');
     expect(await page.locator('#gHead .msg.info').count()).toBe(0);
@@ -712,11 +712,13 @@ browserTest('a table with the wrong column count gets a Warning per section at 1
   const narrow = (await open(srv, '', { width: 420 })).page;
   for (const page of [wide, narrow]) {
     await waitView(page, 'v-board');
-    await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 3);
     const warns = await page.locator('#gHead .msg.warn').allTextContents();
-    expect(warns[0]).toContain('Warning The Backlog lane cannot read its table: it has 4 columns, the board reads 2');
+    // BL-125: Backlog names neither of its shapes, so the title names both, and the lanes' shapes now differ
+    expect(warns[0]).toContain('Warning The Backlog lane cannot read its table: it has 4 columns, ID, Description, Owner and Due; the board reads ID, Type, Priority and Description, or ID and Description');
     expect(warns[0]).toContain("The extra columns show inside each row's description.");
-    expect(warns[0]).toContain('Fix: edit .specs/planning/tasks.md and give the table ID and Description columns, one row per task, best done by your AI IDE so that every task keeps its ID and text.');
+    expect(warns[0]).toContain('Fix: edit .specs/planning/tasks.md and give the table ID, Type, Priority and Description columns, one row per task, best done by your AI IDE so that every task keeps its ID and text.');
+    expect(warns[2]).toContain('Warning Backlog, Current Sprint and Review have different table shapes');
     expect(warns[1]).toContain('Warning The Completed lane cannot read its table: it has 2 columns, the board reads 3');
     expect(warns[1]).toContain('2 rows are listed under Rows that could not be parsed.');
     expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(0);
@@ -728,7 +730,7 @@ browserTest('a table with the wrong column count gets a Warning per section at 1
   expect(await narrow.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, turn the "## Completed" section into a markdown table with #, ID and Description columns, one row per task (numbered from 1 with the oldest entry first), keeping every task\'s ID and text, so SpecPilot\'s Tasks board reads it.');
   await narrow.click('#gHead .msg.warn [data-hidewarn]');
   await narrow.locator('#gHead .msgbar').waitFor({ state: 'visible' });
-  expect(await narrow.locator('#gHead .msgbar').textContent()).toContain('2 warnings about tasks.md');
+  expect(await narrow.locator('#gHead .msgbar').textContent()).toContain('3 warnings about tasks.md');
   expect(await noSideScroll(narrow)).toBe(true);
   writeFileSync(env.tasks(), before);
   for (const page of [wide, narrow]) {
@@ -748,7 +750,7 @@ browserTest('the tasks.md intro sits above the lanes, folded on load, and stays 
   expect(await page.locator('#gIntro .box').textContent()).toContain('Task ID conventions');
   const lines = read(env.tasks()).split('\n');
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
-  lines.splice(sep + 1, 0, '| CS-900 | Written outside the page |');
+  lines.splice(sep + 1, 0, '| CS-900 |  |  | Written outside the page |');
   writeFileSync(env.tasks(), lines.join('\n'));
   await page.waitForFunction(() => document.documentElement.dataset.rev === '1');
   expect(await page.locator('#gIntro').getAttribute('open')).not.toBeNull();
@@ -986,7 +988,7 @@ const formOpen = (page: Page) => page.waitForFunction(() => !(document.querySele
 const formClosed = (page: Page) => page.waitForFunction(() => (document.querySelector('#rvForm') as HTMLElement | null)?.hidden === true);
 const toastHidden = (page: Page, timeout = 10000) => page.waitForFunction(() => !document.querySelector('#toast')!.classList.contains('show'), undefined, { timeout });
 /** The fixture's Review row, as the file has it. */
-const REVIEW_ROW = '| CS-801 | Fixture review row Sent back 2026-10-01: an earlier note |';
+const REVIEW_ROW = '| CS-801 | chore |  | Fixture review row Sent back 2026-10-01: an earlier note |';
 /** The row with `suffix` appended inside its cell, before the closing pipe. */
 const mark = (suffix: string) => REVIEW_ROW.slice(0, -2) + suffix + ' |';
 
@@ -1077,7 +1079,7 @@ browserTest('Approve from the panel appends the dated marker as one line, shows 
   const after = read(env.tasks());
   expect(after.split('\n').length).toBe(before.split('\n').length);
   expect(after.split('\n').filter(l => !before.split('\n').includes(l))).toEqual([approved]); // one line changed
-  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip')?.textContent === 'Approved');
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green')?.textContent === 'Approved');
   await waitToast(page, /^CS-801 approved: marked in planning\/tasks\.md\. Next: tell your agent to wrap it up; it writes the Completed entry\./); // D14
   expect(await page.locator('#toast .tact').textContent()).toBe('Undo');
   expect(await page.locator('#toast .tx').getAttribute('aria-label')).toBe('Dismiss');
@@ -1091,7 +1093,7 @@ browserTest('Approve from the panel appends the dated marker as one line, shows 
   await page.click('#toast .tact');
   await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
   await waitToast(page, /^CS-801 is no longer marked Approved/);
-  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip') === null);
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green') === null);
   expect(await page.locator('#rvApprove').count()).toBe(1);
   expect(await page.locator('#rvDone').count()).toBe(0);
   // BL-UI-03: × hides the toast before its 8 s timer (the toast is shown again by Copy ID); a toast left alone hides by itself (D13: every toast 8 s)
@@ -1182,7 +1184,7 @@ browserTest('Send back with a note (a line break and a | typed) writes one space
   await page.keyboard.press('Escape');
   await inspClosed(page);
   writeFileSync(env.tasks(), before); // the fixture as it was for the rest of the case
-  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip') === null && document.querySelectorAll('#boardMode .row[data-col="currentSprint"]').length === 2);
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green') === null && document.querySelectorAll('#boardMode .row[data-col="currentSprint"]').length === 2);
   // no note: the dot form, sent with Cmd/Ctrl+Enter from the box; the History of a row that was sent back before lists both notes when it comes back
   await row(page, 'review', 0).click();
   await inspOpen(page);
@@ -1213,7 +1215,7 @@ browserTest('Send back with a note (a line break and a | typed) writes one space
   await menuOpen(page);
   await (await item(page, 'Approve')).click();
   await until(() => rowsIn(read(env.tasks()), 'Review')[0] === mark(` Approved ${today()}`), 'the Approved marker on disk');
-  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip')?.textContent === 'Approved'); // drawn by the page's apply
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green')?.textContent === 'Approved'); // drawn by the page's apply
   await page.keyboard.press('Escape'); // the panel the menu's Approve opened
   await inspClosed(page);
   await row(page, 'review', 0).click({ button: 'right' });
@@ -1244,7 +1246,7 @@ browserTest('Send back with a note (a line break and a | typed) writes one space
   await page.waitForFunction(() => document.activeElement?.matches('#boardMode .row[data-col="currentSprint"][data-i="0"]') ?? false);
   await page.keyboard.press('Alt+ArrowRight'); // back to Review as a plain move: no chip now
   await until(() => rowsIn(read(env.tasks()), 'Review')[0] === out, 'the row back in Review');
-  await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="review"]').length === 1 && document.querySelector('#boardMode .row[data-col="review"] .chip') === null);
+  await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="review"]').length === 1 && document.querySelector('#boardMode .row[data-col="review"] .chip.green') === null);
   await row(page, 'review', 0).dragTo(page.locator('#boardMode .gl[data-col="currentSprint"] .gh'));
   await until(() => rowsIn(read(env.tasks()), 'Current Sprint')[0] === mark(` Approved ${today()} Sent back ${today()}. Sent back ${today()}.`), 'a drag out of Review is a Send back too');
 });
@@ -1299,3 +1301,224 @@ browserTest('a Send back refused by the server (the file changed under a slow po
     await slow.close();
   }
 }, [/status of 409/, /status of 422/]);
+
+// ---- BL-125: Type and Priority. The fixture's three moving lanes are typed: BL-001 feat P1, CS-001 bug P2, CS-801 chore.
+
+/** The row of the fixture's file with this ID. */
+const fileRow = (id: string) => read(env.tasks()).split('\n').find(l => l.startsWith(`| ${id} |`));
+/** The texts and classes on a card's bottom line, in order. */
+const trail = (page: Page, col: string, i: number) => row(page, col, i).locator('.trail > span').evaluateAll(els => els.map(e => `${e.className}:${e.textContent}`));
+/** The fixture with Current Sprint's table plain again: the shape a file from before BL-125 has. */
+function plainSprint(): void {
+  const lines = read(env.tasks()).split('\n');
+  const at = lines.findIndex(l => l.trim() === '## Current Sprint');
+  const end = lines.findIndex((l, i) => i > at && /^## /.test(l));
+  lines.splice(at + 1, end - at - 1, '', '| ID | Description |', '|---|---|', '| CS-001 | Fixture sprint row |', '');
+  writeFileSync(env.tasks(), lines.join('\n'));
+}
+
+browserTest('the card shows Priority, then Type, then Approved on its bottom line; P1 stands out; an empty cell shows nothing', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const i = await page.$$eval('#boardMode .row[data-col="backlog"]', els => els.findIndex(e => e.textContent!.includes('Fixture backlog row one')));
+  expect(await trail(page, 'backlog', i)).toEqual(['pill chip pri v-p1:P1', 'pill chip ty v-feat:feat']);
+  expect(await trail(page, 'backlog', 0)).toEqual([]); // BL-901: empty cells
+  expect(await trail(page, 'review', 0)).toEqual(['pill chip ty v-chore:chore']);
+  // every value its own colour: P1 red and P2 orange differ, feat violet differs from both
+  const ink = (sel: string) => page.locator(sel).first().evaluate(e => getComputedStyle(e).color);
+  const [p1, p2, feat] = [await ink('#boardMode .chip.v-p1'), await ink('#boardMode .chip.v-p2'), await ink('#boardMode .chip.v-feat')];
+  expect(new Set([p1, p2, feat]).size).toBe(3);
+  // the chips sit left of the chevron, and the description keeps the full card width above them
+  const [desc, chip, chev] = await row(page, 'backlog', i).evaluate(r => [r.querySelector('.ttl')!.getBoundingClientRect(), r.querySelector('.trail .pri')!.getBoundingClientRect(), r.querySelector('.trail .chev')!.getBoundingClientRect()].map(x => ({ l: x.left, r: x.right, t: x.top, b: x.bottom })));
+  expect(chip.t).toBeGreaterThanOrEqual(desc.b - 1);
+  expect(chip.r).toBeLessThan(chev.l);
+  // Approve: the Approved chip comes after Type
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  await page.click('#rvApprove');
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green')?.textContent === 'Approved');
+  expect(await trail(page, 'review', 0)).toEqual(['pill chip ty v-chore:chore', 'pill green chip:Approved']);
+});
+
+browserTest('the detail panel sets Priority and Type on choice, arrow keys move and choose, and the card follows', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await row(page, 'backlog', 0).click(); // BL-901, both empty
+  await inspOpen(page);
+  expect(await page.locator('#tfPri [aria-checked="true"]').getAttribute('id')).toBe('tfPri-none');
+  expect(await page.locator('#tfPri').getAttribute('role')).toBe('radiogroup');
+  expect(await page.locator('#tfPri').getAttribute('aria-labelledby')).toBe('tfPriL');
+  // below the Description; the labels inside the box's padding; the two groups' left edges in line
+  const box = (sel: string) => page.locator(sel).evaluate(e => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, b: r.bottom }; });
+  const [desc, tf, priL, pri, type] = [await box('#insp .desc'), await box('#tfBox'), await box('#tfPriL'), await box('#tfPri'), await box('#tfType')];
+  expect(tf.t).toBeGreaterThan(desc.b);
+  expect(priL.l - tf.l).toBeGreaterThanOrEqual(8);
+  expect(Math.abs(pri.l - type.l)).toBeLessThan(1);
+  await page.click('#tfPri-P2');
+  await until(() => fileRow('BL-901') === '| BL-901 |  | P2 | Fixture backlog row |', 'P2 on disk');
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="backlog"][data-i="0"] .trail .pri')?.textContent === 'P2');
+  await page.waitForFunction(() => { // the chosen radio in the card's colour, once its colour transition has run
+    const chip = document.querySelector('#boardMode .row[data-col="backlog"][data-i="0"] .trail .pri');
+    return !!chip && getComputedStyle(document.getElementById('tfPri-P2')!).color === getComputedStyle(chip).color;
+  });
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe('tfPri-P2'); // focus stays on the choice through the redraw
+  await page.keyboard.press('ArrowLeft'); // P1
+  await until(() => fileRow('BL-901') === '| BL-901 |  | P1 | Fixture backlog row |', 'P1 on disk');
+  await page.waitForFunction(() => document.activeElement?.id === 'tfPri-P1' && document.activeElement?.getAttribute('aria-checked') === 'true');
+  await page.click('#tfType-bug');
+  await until(() => fileRow('BL-901') === '| BL-901 | bug | P1 | Fixture backlog row |', 'bug on disk');
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="backlog"][data-i="0"] .trail .ty')?.textContent === 'bug');
+  await page.click('#tfPri-none');
+  await until(() => fileRow('BL-901') === '| BL-901 | bug |  | Fixture backlog row |', 'Priority cleared on disk');
+  await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="backlog"][data-i="0"] .trail .pri') === null);
+});
+
+browserTest('New Task offers Priority and Type for a typed lane and writes them', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const id = taskMover.nextTaskId('BL', [read(env.tasks()), archive()]);
+  await laneAdd(page, 'backlog').click();
+  await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
+  expect(await page.locator('#taskFields').isVisible()).toBe(true);
+  expect(await page.locator('#ntPri [aria-checked="true"]').getAttribute('id')).toBe('ntPri-none');
+  await page.fill('#taskIn', 'Typed from the dialog');
+  await page.click('#ntPri-P3');
+  await page.click('#ntType-chore');
+  // the chosen radio in its card colour (no write here: checkRadio() alone), once its colour transition has run
+  await page.waitForFunction(() => {
+    const ink = (s: string) => { const e = document.createElement('span'); e.className = s; document.body.append(e); const c = getComputedStyle(e).color; e.remove(); return c; };
+    const of = (id: string) => getComputedStyle(document.getElementById(id)!).color;
+    return of('ntPri-P3') === ink('pill chip v-p3') && of('ntType-chore') === ink('pill chip v-chore') && of('ntPri-P2') !== of('ntPri-P3');
+  });
+  await page.click('#taskGo');
+  await until(() => fileRow(id) === `| ${id} | chore | P3 | Typed from the dialog |`, 'the typed row on disk');
+});
+
+browserTest('a plain Current Sprint: the panel says it has no columns, New Task offers none, the shapes warning shows, a valued row cannot move in', b, async open => {
+  plainSprint();
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('#gHead .msg.warn')).some(e => e.textContent!.includes('Backlog, Current Sprint and Review have different table shapes')));
+  const warn = (await page.locator('#gHead .msg.warn').allTextContents()).find(t => t.includes('different table shapes'))!;
+  expect(warn).toContain('Current Sprint has no Type and Priority columns, so a row with a Type or Priority cannot move into it.');
+  await page.locator('#gHead .msg.warn', { hasText: 'different table shapes' }).locator('[data-prompt]').click();
+  await waitToast(page, /Copied\./);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('In .specs/planning/tasks.md, give the Current Sprint table ID, Type, Priority and Description columns, with empty Type and Priority cells in every row, so SpecPilot\'s Tasks board can move rows between lanes.');
+  await row(page, 'currentSprint', 0).click();
+  await inspOpen(page);
+  expect(await page.locator('#tfNote').textContent()).toBe("This lane's table has no Type and Priority columns. Add them to set Priority and Type here.");
+  expect(await page.locator('#insp [role="radiogroup"]').count()).toBe(0);
+  await page.keyboard.press('Escape');
+  await laneAdd(page, 'currentSprint').click();
+  await page.waitForFunction(() => document.activeElement?.id === 'taskIn');
+  expect(await page.locator('#taskFields').isHidden()).toBe(true);
+  await page.click('#taskCancel');
+  // BL-001 has feat and P1: Alt+Right toward Current Sprint is refused with the reason, the file unchanged
+  const before = read(env.tasks());
+  const i = await page.$$eval('#boardMode .row[data-col="backlog"]', els => els.findIndex(e => e.textContent!.includes('Fixture backlog row one')));
+  await row(page, 'backlog', i).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await waitToast(page, /Current Sprint has no Type and Priority columns, so moving BL-001 there would drop its values/);
+  expect(read(env.tasks())).toBe(before);
+  // BL-901 has neither: it moves, its two empty cells dropped
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await until(() => fileRow('BL-901') === '| BL-901 | Fixture backlog row |', 'the row moved plain');
+}, [/status of 422/]);
+
+browserTest('with --read-only the panel shows Priority and Type as text', b, async open => {
+  const ro = await serve(env, [env.project], { readOnly: true });
+  try {
+    const { page } = await open(ro);
+    await waitView(page, 'v-board');
+    const i = await page.$$eval('#boardMode .row[data-col="backlog"]', els => els.findIndex(e => e.textContent!.includes('Fixture backlog row one')));
+    await row(page, 'backlog', i).click();
+    await inspOpen(page);
+    expect(await page.locator('#insp .tfv').textContent()).toBe('Priority P1 · Type feat');
+    expect(await page.locator('#insp [role="radiogroup"]').count()).toBe(0);
+  } finally {
+    await ro.close();
+  }
+});
+
+browserTest('Priority and Type at 420px: the panel idle, a write in progress, a refused write with the earlier choice restored, the plain-lane line and the shapes warning, with no sideways scroll', b, async open => {
+  const slow = await serve(env, [env.project], { pollMs: 60000 }); // the page keeps the old hash while the file changes under it
+  try {
+    const { page } = await open(slow, '', { width: 420 });
+    await waitView(page, 'v-board');
+    await row(page, 'backlog', 0).click();
+    await inspOpen(page);
+    expect(await noSideScroll(page)).toBe(true); // idle
+    let release: () => void = () => undefined;
+    const held = new Promise<void>(r => (release = r));
+    await page.route('**/api/tasks/fields**', async route => {
+      await held;
+      await route.continue();
+    });
+    await page.click('#tfPri-P3');
+    await page.waitForFunction(() => document.querySelector('#tfBox')?.getAttribute('aria-busy') === 'true');
+    expect(await noSideScroll(page)).toBe(true); // in progress
+    await page.waitForFunction(() => { // coloured while the write is out
+      const e = document.createElement('span'); e.className = 'pill chip v-p3'; document.body.append(e); const c = getComputedStyle(e).color; e.remove();
+      return document.querySelector('#tfBox')?.getAttribute('aria-busy') === 'true' && getComputedStyle(document.getElementById('tfPri-P3')!).color === c;
+    });
+    release();
+    await until(() => fileRow('BL-901') === '| BL-901 |  | P3 | Fixture backlog row |', 'P3 on disk');
+    await page.unroute('**/api/tasks/fields**');
+    await page.waitForFunction(() => document.querySelector('#tfPri-P3')?.getAttribute('aria-checked') === 'true' && document.querySelector('#tfBox')?.getAttribute('aria-busy') === null);
+    const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
+    writeFileSync(env.tasks(), changed);
+    await page.click('#tfPri-P1');
+    await page.locator('#tfErr').waitFor({ state: 'visible' });
+    expect(await page.locator('#tfErr').textContent()).toBe(taskMover.FIELDS_STALE_ERROR);
+    expect(await page.locator('#tfPri [aria-checked="true"]').getAttribute('id')).toBe('tfPri-P3'); // the earlier choice, as the file has it
+    expect(read(env.tasks())).toBe(changed);
+    expect(await noSideScroll(page)).toBe(true); // the error
+  } finally {
+    await slow.close();
+  }
+  plainSprint();
+  const { page } = await open(srv, '', { width: 420 });
+  await waitView(page, 'v-board');
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('#gHead .msg.warn')).some(e => e.textContent!.includes('different table shapes')));
+  expect(await noSideScroll(page)).toBe(true); // the shapes warning
+  await row(page, 'currentSprint', 0).click();
+  await inspOpen(page);
+  await page.locator('#tfNote').waitFor({ state: 'visible' });
+  expect(await noSideScroll(page)).toBe(true); // the plain-lane line
+}, [/status of 409/]);
+
+/** The fixture's three moving lanes plain: a project from before BL-125. */
+function allPlain(): void {
+  writeFileSync(env.tasks(), read(env.tasks()).replace(/\| ID \| Type \| Priority \| Description \|\n\|---\|---\|---\|---\|/g, '| ID | Description |\n|---|---|').replace(/^(\| [A-Z]+-\d+ \|)[^|\n]*\|[^|\n]*\|/gm, '$1'));
+}
+
+browserTest('all three lanes plain: a Note, not a Warning, says why there is no Type or Priority, with its prompt; hidden, it stays hidden through a reload; at 420px too', b, async open => {
+  allPlain();
+  expect(rowsIn(read(env.tasks()), 'Backlog')).toContain('| BL-001 | Fixture backlog row one |');
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).waitFor();
+  expect(await page.locator('#gHead .msg.warn').count()).toBe(0);
+  const note = page.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' });
+  expect(await note.textContent()).toContain('Note Type and Priority are off: Backlog, Current Sprint and Review have no Type and Priority columns');
+  expect(await note.textContent()).toContain('Add the columns to show Priority and Type on each card and set them in the task details. Rows keep their text; each gets two empty cells.');
+  await note.locator('[data-prompt]').click();
+  await waitToast(page, /Copied\./);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("In .specs/planning/tasks.md, give the Backlog, Current Sprint and Review tables ID, Type, Priority and Description columns, with empty Type and Priority cells in every row, keeping every task's ID and text, so SpecPilot's Tasks board can show and set Type and Priority.");
+  expect(await row(page, 'backlog', 0).locator('.trail .chip').count()).toBe(0);
+  const narrow = (await open(srv, '', { width: 420 })).page;
+  await waitView(narrow, 'v-board');
+  await narrow.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).waitFor();
+  expect(await noSideScroll(narrow)).toBe(true);
+  await note.locator('[data-hidenote]').click();
+  await note.waitFor({ state: 'detached' });
+  await page.reload();
+  await waitView(page, 'v-board');
+  await row(page, 'backlog', 0).waitFor();
+  expect(await page.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).count()).toBe(0);
+  // one lane typed again: the note gives way to the shapes warning
+  writeFileSync(env.tasks(), read(env.tasks()).replace('## Backlog\n\n| ID | Description |\n|---|---|\n| BL-901 | Fixture backlog row |\n| BL-001 | Fixture backlog row one |\n| BL-002 | Fixture backlog row two |', '## Backlog\n\n| ID | Type | Priority | Description |\n|---|---|---|---|\n| BL-901 |  |  | Fixture backlog row |\n| BL-001 | feat | P1 | Fixture backlog row one |\n| BL-002 |  |  | Fixture backlog row two |'));
+  await page.locator('#gHead .msg.warn', { hasText: 'different table shapes' }).waitFor();
+  expect(await page.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).count()).toBe(0);
+});

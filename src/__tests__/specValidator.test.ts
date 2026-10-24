@@ -455,7 +455,7 @@ describe('SpecValidator', () => {
     writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '', nine, '', '## Current Sprint', '', '[TODO]', '', '## Review', '', '## Completed', '', '1. [CD-001] Initialise .specs directory (2026-10-20)'));
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.warnings.filter(w => w.includes('no table'))).toEqual([
-      'planning/tasks.md `## Backlog` has 9 lines but no table, so the Tasks board shows none of them; make the section a table with ID and Description columns, one row per task.',
+      'planning/tasks.md `## Backlog` has 9 lines but no table, so the Tasks board shows none of them; make the section a table with ID, Type, Priority and Description columns, one row per task.',
       'planning/tasks.md `## Completed` has 1 line but no table, so the Tasks board does not show it; make the section a table with #, ID and Description columns, one row per task.',
     ]);
     expect(headingWarnings(result)).toEqual([]);
@@ -468,12 +468,31 @@ describe('SpecValidator', () => {
     writeFileSync(tasksPath(testDir), tasksWith('## Backlog', '', '| ID | Description | Owner |', '|---|---|---|', '| BL-001 | One | me |', '', '## Current Sprint', '', '| Task |', '|---|', '| Two |', '', '## Review', '', '## Completed', '', '| ID | Task |', '|---|---|', '| CD-001 | First |'));
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     expect(result.warnings.filter(w => w.includes('has a table with'))).toEqual([
-      'planning/tasks.md `## Backlog` has a table with 3 columns, but the Tasks board reads 2 (ID and Description); make it one row per task with those columns.',
-      'planning/tasks.md `## Current Sprint` has a table with 1 column, but the Tasks board reads 2 (ID and Description); make it one row per task with those columns.',
+      'planning/tasks.md `## Backlog` has a table with 3 columns (ID, Description and Owner), but the Tasks board reads ID, Type, Priority and Description, or ID and Description; make it one row per task with those columns.',
+      'planning/tasks.md `## Current Sprint` has a table with 1 column (Task), but the Tasks board reads ID, Type, Priority and Description, or ID and Description; make it one row per task with those columns.',
       'planning/tasks.md `## Completed` has a table with 2 columns, but the Tasks board reads 3 (#, ID and Description); make it one row per task with those columns.',
     ]);
     expect(result.fixable).toEqual([]);
     expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8')).filter(w => w.includes('has a table with'))).toEqual([]);
+  });
+
+  it('lanes of the two shapes, a header naming neither and values outside the sets warn, without a fix, and tasksChecks carries none (BL-125)', async () => {
+    createValidSpecsDir(testDir);
+    writeFileSync(tasksPath(testDir), tasksWith(
+      '## Backlog', '', '| ID | Type | Priority | Description |', '|---|---|---|---|', '| BL-001 | feat | P1 | One |', '| BL-002 | story | high | Two |', '| BL-003 |  |  | Three |', '',
+      '## Current Sprint', '', '| ID | Description |', '|---|---|', '| CS-001 | Four |', '',
+      '## Review', '', '| ID | Status | Priority | Description |', '|---|---|---|---|', '| BL-004 | open | high | Five |', '',
+      '## Completed', '', '| # | ID | Description |', '|---|---|---|',
+    ));
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.warnings.filter(w => /has a table with|Type and Priority columns|has (Type|Priority) "/.test(w))).toEqual([
+      'planning/tasks.md `## Review` has a table with 4 columns (ID, Status, Priority and Description), but the Tasks board reads ID, Type, Priority and Description, or ID and Description; make it one row per task with those columns.',
+      'planning/tasks.md has Type and Priority columns under Backlog but not under Current Sprint and Review, so a row with a Type or Priority cannot move into Current Sprint and Review; give those tables ID, Type, Priority and Description columns.',
+      'planning/tasks.md `## Backlog` row BL-002 has Type "story"; the board reads feat, bug, chore or empty.',
+      'planning/tasks.md `## Backlog` row BL-002 has Priority "high"; the board reads P1, P2, P3 or empty.',
+    ]);
+    expect(result.fixable).toEqual([]);
+    expect(tasksChecks(readFileSync(tasksPath(testDir), 'utf-8')).filter(w => /has a table with|Type and Priority columns|has (Type|Priority) "/.test(w))).toEqual([]);
   });
 
   it('two candidates for one heading stay a warning with no fix', async () => {
@@ -521,9 +540,9 @@ describe('SpecValidator', () => {
     expect(headingWarnings(again)).toEqual([]);
     expect(again.warnings.filter(w => w.includes('no table'))).toEqual([]); // BL-116: the stub's tables
     const stub = readFileSync(tasksPath(testDir), 'utf-8');
-    expect(stub).toContain('## Backlog\n\n| ID | Description |\n|---|---|\n');
-    expect(stub).toContain('## Current Sprint\n\n| ID | Description |\n|---|---|\n');
-    expect(stub).toContain('## Review\n\n| ID | Description |\n|---|---|\n'); // required since BL-113
+    expect(stub).toContain('## Backlog\n\n| ID | Type | Priority | Description |\n|---|---|---|---|\n'); // BL-125: the typed shape
+    expect(stub).toContain('## Current Sprint\n\n| ID | Type | Priority | Description |\n|---|---|---|---|\n'); // BL-125: the typed shape
+    expect(stub).toContain('## Review\n\n| ID | Type | Priority | Description |\n|---|---|---|---|\n'); // required since BL-113
     expect(stub).not.toContain("## Won't do"); // optional: never asked for
     expect(stub).toContain('## Completed\n\n| # | ID | Description |\n|---|---|---|\n');
   });

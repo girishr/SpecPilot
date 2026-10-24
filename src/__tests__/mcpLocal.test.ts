@@ -86,7 +86,7 @@ describe('messages', () => {
 });
 
 describe('tools', () => {
-  it('lists the nine tools with the hosted server naming, titles, schemas and annotations, and nothing internal', async () => {
+  it('lists the ten tools with the hosted server naming, titles, schemas and annotations, and nothing internal', async () => {
     const tools = ((await ask(req('tools/list'))).body as any).result.tools;
     expect(tools.map((t: any) => t.name)).toEqual([
       'specpilot_list_projects',
@@ -94,6 +94,7 @@ describe('tools', () => {
       'specpilot_list_tasks',
       'specpilot_new_task',
       'specpilot_move_task',
+      'specpilot_set_task',
       'specpilot_validate_specs',
       'specpilot_regenerate_commands',
       'specpilot_setup_questions',
@@ -112,6 +113,7 @@ describe('tools', () => {
       specpilot_list_tasks: true,
       specpilot_new_task: false,
       specpilot_move_task: false,
+      specpilot_set_task: false,
       specpilot_validate_specs: true,
       specpilot_regenerate_commands: false,
       specpilot_setup_questions: true,
@@ -122,6 +124,14 @@ describe('tools', () => {
     expect(tools.find((t: any) => t.name === 'specpilot_move_task').inputSchema.required).toEqual(['id', 'toSection', 'toIndex', 'sha256']);
     expect(tools.find((t: any) => t.name === 'specpilot_move_task').inputSchema.properties.toSection.enum).toEqual(['backlog', 'currentSprint', 'review']); // BL-113
     expect(tools.find((t: any) => t.name === 'specpilot_new_task').inputSchema.properties.section.enum).toEqual(['backlog', 'currentSprint']);
+    // BL-125: Type and Priority on new_task, and set_task to change them
+    const props = (name: string) => tools.find((t: any) => t.name === name).inputSchema.properties;
+    for (const name of ['specpilot_new_task', 'specpilot_set_task']) {
+      expect(props(name).type.enum).toEqual(['feat', 'bug', 'chore', '']);
+      expect(props(name).priority.enum).toEqual(['P1', 'P2', 'P3', '']);
+    }
+    expect(tools.find((t: any) => t.name === 'specpilot_set_task').inputSchema.required).toEqual(['id', 'sha256']);
+    expect(tools.find((t: any) => t.name === 'specpilot_move_task').description).toContain('moving the other way drops two empty cells and is refused when the row has a Type or Priority');
   });
 
   it('carries the Review rule alone when the move tool is listed without the setup tools, both with both, and neither without either (BL-113)', async () => {
@@ -133,7 +143,7 @@ describe('tools', () => {
     expect(REVIEW_INSTRUCTIONS).toContain('never straight to Completed');
     expect(REVIEW_INSTRUCTIONS).toContain('"Approved <date>"');
     expect(REVIEW_INSTRUCTIONS).toContain('When you edit tasks.md by hand, keep each section a table with the columns specpilot_list_tasks describes, one row per task.'); // BL-122
-    expect(MCP_TOOLS.find(t => t.name === 'specpilot_list_tasks')!.description).toContain("The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.");
+    expect(MCP_TOOLS.find(t => t.name === 'specpilot_list_tasks')!.description).toContain("The sections are tables: ID, Type, Priority and Description under Backlog, Current Sprint and Review (or ID and Description in a table without Type and Priority, where type and priority are null); #, ID and Description under Completed; ID, Description and Reason under Won't do."); // BL-125
   });
 
   it('lists only the tools it is given (the server drops the writes and the setup tools with --read-only), with no instructions then', async () => {

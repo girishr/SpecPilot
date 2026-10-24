@@ -241,6 +241,7 @@
   <div class="sh"><div><h2 id="taskTitle">New Task · <span id="taskLane">Backlog</span></h2><p>Adds one row to <span class="mono" translate="no">planning/tasks.md</span>, as you type it. <span id="taskNextWrap" hidden>Next ID <span class="mono" id="taskNext" translate="no"></span></span></p></div></div>
   <form class="sb" id="taskForm" autocomplete="off">
     <div class="gl"><div class="gh"><label for="taskIn">Description</label></div><div class="box"><div class="field"><textarea id="taskIn" name="task-description" rows="3" aria-describedby="taskErr" placeholder="What needs doing"></textarea></div></div></div>
+    <div class="tf" id="taskFields" hidden></div>
     <p class="err" id="taskErr" role="alert" hidden></p>
   </form>
   <div class="sf"><button type="button" class="btn" id="taskCancel">Cancel</button><button type="submit" class="btn pri" id="taskGo" form="taskForm">Add Task</button></div>

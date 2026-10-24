@@ -7,7 +7,8 @@ import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
 import { resolveAllowedPath } from '../utils/specPaths';
-import { ARCHIVE_STALE_ERROR, COMPLETED_BY_HAND, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError, REVIEW_STALE_ERROR } from '../utils/taskMover';
+import { ARCHIVE_STALE_ERROR, COMPLETED_BY_HAND, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError, REVIEW_STALE_ERROR, FIELDS_STALE_ERROR } from '../utils/taskMover';
+import * as validator from '../utils/specValidator';
 import { planCompletedArchive } from '../utils/specArchiver';
 import * as specPoller from '../utils/specPoller';
 import { watchedFiles } from '../utils/specPoller';
@@ -1254,6 +1255,15 @@ const MOVE_TASKS = [
 /** MOVE_TASKS with a Review section (BL-113): two rows, one sent back once already. */
 const REVIEW_TASKS = MOVE_TASKS + ['## Review', '', '| ID | Description |', '|---|---|', '| BL-003 | Three |', '| BL-004 | Four Sent back 2026-10-01: earlier |', ''].join('\n');
 
+/** BL-125: a typed Backlog and Review, a plain Current Sprint. */
+const FIELDS_TASKS = [
+  '---', 'fileID: TASKS-001', 'relatedFiles: [roadmap.md, requirements.md, project.yaml]', '---', '', '# Tasks', '',
+  '## Backlog', '', '| ID | Type | Priority | Description |', '|---|---|---|---|', '| BL-001 | feat | P1 | One |', '| BL-002 |  |  | Two |', '',
+  '## Current Sprint', '', '| ID | Description |', '|---|---|', '| CS-001 | Sprint |', '',
+  '## Review', '', '| ID | Type | Priority | Description |', '|---|---|---|---|', '| BL-003 | bug |  | Three |', '',
+  '## Completed', '', '| # | ID | Description |', '|---|---|---|', '| 1 | [CD-001] | Done |', '',
+].join('\n');
+
 /** POST /api/tasks/move with full control over the headers that the security checks read. */
 function post(port: number, body: string, headers: Record<string, string | string[] | undefined>, path = '/api/tasks/move') {
   return new Promise<{ status: number; headers: Record<string, unknown>; json: any }>((resolve, reject) => {
@@ -1440,8 +1450,8 @@ describe('review over HTTP (BL-113)', () => {
     expect(r.json.sha256).toBe(hash());
     expect(lineOf('BL-003')).toBe(`| BL-003 | Three Approved ${today()} |`);
     expect(r.json.specs.tasks.review).toEqual([
-      { id: 'BL-003', description: `Three Approved ${today()}`, line: 30, approved: today(), history: [] },
-      { id: 'BL-004', description: 'Four Sent back 2026-10-01: earlier', line: 31, approved: null, history: [{ date: '2026-10-01', note: 'earlier' }] },
+      { id: 'BL-003', type: null, priority: null, description: `Three Approved ${today()}`, line: 30, approved: today(), history: [] },
+      { id: 'BL-004', type: null, priority: null, description: 'Four Sent back 2026-10-01: earlier', line: 31, approved: null, history: [{ date: '2026-10-01', note: 'earlier' }] },
     ]);
     expect(r.json.specs.tasks.wontDo).toEqual([]);
     const again = await review({ id: 'BL-003', action: 'approve' });
@@ -1517,6 +1527,124 @@ describe('review over HTTP (BL-113)', () => {
   });
 });
 
+describe('Type and Priority over HTTP (BL-125)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  let file: string;
+  const hash = () => createHash('sha256').update(readFileSync(file)).digest('hex');
+  const good = (over: Record<string, string | undefined> = {}) => ({ Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token, 'If-Match': hash(), ...over });
+  const fields = (body: unknown, over: Record<string, string | undefined> = {}) => post(port, JSON.stringify(body), good(over), '/api/tasks/fields');
+
+  beforeEach(async () => {
+    p = makeProject();
+    file = join(p.root, '.specs/planning/tasks.md');
+    writeFileSync(file, FIELDS_TASKS);
+    spec = await startSpecServer([p.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  it('sets the two cells of one row and answers {sha256, specs}, the payload carrying type, priority and shapes', async () => {
+    const r = await fields({ id: 'BL-002', type: 'chore', priority: 'P2' });
+    expect(r.status).toBe(200);
+    expect(r.json.sha256).toBe(hash());
+    expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS.replace('| BL-002 |  |  | Two |', '| BL-002 | chore | P2 | Two |'));
+    expect(r.json.specs.tasks.backlog[1]).toMatchObject({ id: 'BL-002', type: 'chore', priority: 'P2', description: 'Two' });
+    expect(r.json.specs.tasks.currentSprint[0]).toMatchObject({ id: 'CS-001', type: null, priority: null });
+    expect(r.json.specs.tasks.headings.shapes).toEqual({ '## Backlog': 'typed', '## Current Sprint': 'plain', '## Review': 'typed' });
+    const clear = await fields({ id: 'BL-002', type: '', priority: '' });
+    expect(clear.status).toBe(200);
+    expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS);
+  });
+
+  it.each([
+    [{ id: 'BL-002' }, 'Name a type or a priority to set.'],
+    [{ id: 'BL-002', priority: 'high' }, 'Priority must be P1, P2 or P3, or empty.'],
+    [{ id: 'BL-002', type: 'story' }, 'Type must be feat, bug or chore, or empty.'],
+    [{ priority: 'P1' }, 'The request has no task ID.'],
+    [[], 'The request must be a JSON object with id and a type or priority.'],
+    [{ id: 'BL-099', priority: 'P1' }, 'No task row in planning/tasks.md has the ID BL-099.'],
+    [{ id: 'CS-001', priority: 'P1' }, 'Current Sprint has no Type and Priority columns. Give the Current Sprint table those columns first.'],
+    [{ id: '[CD-001]', priority: 'P1' }, 'Completed rows have no Type and Priority.'],
+  ])('422s on %j with a plain-words message and no write', async (body, error) => {
+    const r = await fields(body);
+    expect(r.status).toBe(422);
+    expect(r.json.error).toBe(error);
+    expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS);
+  });
+
+  it('422s on a symbolic-link tasks.md, bytes that are not UTF-8, and a change validate would newly report', async () => {
+    const bad = Buffer.concat([Buffer.from(FIELDS_TASKS), Buffer.from([0xff])]);
+    writeFileSync(file, bad);
+    const utf = await fields({ id: 'BL-002', priority: 'P1' });
+    expect(utf.status).toBe(422);
+    expect(utf.json.error).toContain('not valid UTF-8');
+    rmSync(file);
+    writeFileSync(join(p.root, 'real.md'), FIELDS_TASKS);
+    symlinkSync(join(p.root, 'real.md'), file);
+    const link = await fields({ id: 'BL-002', priority: 'P1' });
+    expect(link.status).toBe(422);
+    expect(link.json.error).toBe('planning/tasks.md is a symbolic link, and SpecPilot will not replace it with a regular file.');
+    rmSync(file);
+    writeFileSync(file, FIELDS_TASKS);
+    const spy = jest.spyOn(validator, 'tasksChecks').mockImplementation(c => (c.includes('| BL-002 |  | P1 | Two |') ? ['planted warning'] : []));
+    try {
+      const checked = await fields({ id: 'BL-002', priority: 'P1' });
+      expect(checked.status).toBe(422);
+      expect(checked.json.error).toBe('Nothing was changed, because `specpilot validate` would then report: planted warning');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS);
+  });
+
+  it('428s without If-Match, 409s on a stale one with the fresh payload, 403s a foreign Origin or a bad token, 405s other methods, and writes nothing', async () => {
+    expect((await fields({ id: 'BL-002', priority: 'P1' }, { 'If-Match': undefined })).status).toBe(428);
+    const stale = await fields({ id: 'BL-002', priority: 'P1' }, { 'If-Match': 'a'.repeat(64) });
+    expect(stale.status).toBe(409);
+    expect(stale.json.error).toBe(FIELDS_STALE_ERROR);
+    expect(stale.json.specs.tasks.sha256).toBe(hash());
+    expect((await fields({ id: 'BL-002', priority: 'P1' }, { Origin: 'http://evil.com' })).status).toBe(403);
+    expect((await fields({ id: 'BL-002', priority: 'P1' }, { 'X-SpecPilot-Token': 'f'.repeat(64) })).status).toBe(403);
+    expect((await fields({ id: 'BL-002', priority: 'P1' }, { 'Content-Type': 'text/plain' })).status).toBe(415);
+    const get = await hit(port, '/api/tasks/fields');
+    expect(get.status).toBe(405);
+    expect(get.headers['allow']).toBe('POST');
+    expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS);
+  });
+
+  it('new tasks carry Type and Priority in a typed lane, and are refused them in a plain one', async () => {
+    const r = await post(port, JSON.stringify({ description: 'Typed', section: 'backlog', type: 'feat', priority: 'P3' }), good(), '/api/tasks/new');
+    expect(r.status).toBe(200);
+    expect(readFileSync(file, 'utf-8').split('\n')).toContain(`| ${r.json.id} | feat | P3 | Typed |`);
+    const plain = await post(port, JSON.stringify({ description: 'x', section: 'currentSprint', priority: 'P1' }), good(), '/api/tasks/new');
+    expect(plain.status).toBe(422);
+    expect(plain.json.error).toBe('Current Sprint has no Type and Priority columns, so the task cannot carry them. Give the Current Sprint table those columns first.');
+  });
+
+  it('is absent with --read-only: 405 with an empty Allow', async () => {
+    const q = makeProject();
+    writeFileSync(join(q.root, '.specs/planning/tasks.md'), FIELDS_TASKS);
+    const ro = await startSpecServer([q.root], 0, 'x', { readOnly: true });
+    try {
+      const rp = (ro.server.address() as AddressInfo).port;
+      const r = await post(rp, JSON.stringify({ id: 'BL-002', priority: 'P1' }), { Host: `127.0.0.1:${rp}`, Origin: `http://127.0.0.1:${rp}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': 'f'.repeat(64), 'If-Match': 'a'.repeat(64) }, '/api/tasks/fields');
+      expect(r.status).toBe(405);
+      expect(r.headers['allow']).toBe('');
+      expect(readFileSync(join(q.root, '.specs/planning/tasks.md'), 'utf-8')).toBe(FIELDS_TASKS);
+    } finally {
+      await ro.close();
+      q.cleanup();
+    }
+  });
+});
+
 describe('--read-only', () => {
   it('has no write route, no token in the page, and writes nothing', async () => {
     const p = makeProject();
@@ -1582,7 +1710,7 @@ describe('new tasks over HTTP (BL-PM-005)', () => {
     expect(res.status).toBe(200);
     expect(res.json).toMatchObject({ sha256: hashOf(a), id: 'BL-003', section: 'backlog', index: 2 });
     expect(res.json.specs.tasks.sha256).toBe(res.json.sha256);
-    expect(res.json.specs.tasks.backlog[2]).toEqual({ id: 'BL-003', description: 'Write the `serve` docs, see [the spec](x.md)', line: 14 }); // the new row's line, right after BL-002 (BL-PM-008)
+    expect(res.json.specs.tasks.backlog[2]).toEqual({ id: 'BL-003', type: null, priority: null, description: 'Write the `serve` docs, see [the spec](x.md)', line: 14 }); // the new row's line, right after BL-002 (BL-PM-008)
     const after = readFileSync(tasks(a), 'utf-8').split('\n');
     const before = MOVE_TASKS.split('\n');
     expect(after).toHaveLength(before.length + 1);
@@ -3749,9 +3877,9 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(bad.json.error.code).toBe(-32700);
   });
 
-  it('lists nine tools (BL-104)', async () => {
+  it('lists ten tools (BL-104; specpilot_set_task since BL-125)', async () => {
     await start();
-    expect((await rpc('tools/list')).json.result.tools.map((t: any) => t.name)).toHaveLength(9);
+    expect((await rpc('tools/list')).json.result.tools.map((t: any) => t.name)).toHaveLength(10);
   });
 
   it('lists projects and tasks as /api/specs gives them', async () => {
@@ -3787,6 +3915,33 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(r.structuredContent).toEqual({ id: 'CS-002', section: 'currentSprint', index: 1, sha256: hashOf(a.root) });
     expect((await pageWrite('/api/tasks/new', { description: ' Ship the MCP card ', section: 'currentSprint' }, b.root, 1)).status).toBe(200);
     expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
+  });
+
+  it('sets Type and Priority with the same bytes the page route writes, its refusals in the words of the route (BL-125)', async () => {
+    await start();
+    writeFileSync(fileOf(a.root), FIELDS_TASKS);
+    writeFileSync(fileOf(b.root), FIELDS_TASKS);
+    const r = await tool('specpilot_set_task', { id: 'BL-002', type: 'bug', priority: 'P1', sha256: hashOf(a.root) });
+    expect(r.isError).toBeUndefined();
+    expect(r.structuredContent).toEqual({ sha256: hashOf(a.root) });
+    expect((await pageWrite('/api/tasks/fields', { id: 'BL-002', type: 'bug', priority: 'P1' }, b.root, 1)).status).toBe(200);
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
+    for (const args of [{ id: 'CS-001', priority: 'P1' }, { id: 'BL-002', priority: 'high' }, { id: 'BL-002' }]) {
+      const page = await pageWrite('/api/tasks/fields', args, b.root, 1);
+      const viaTool = await tool('specpilot_set_task', { ...args, sha256: hashOf(a.root) });
+      expect(viaTool).toEqual({ content: [{ type: 'text', text: page.json.error }], isError: true });
+    }
+    const stale = await tool('specpilot_set_task', { id: 'BL-002', priority: 'P2', sha256: 'a'.repeat(64) });
+    expect(stale.content[0].text).toBe('planning/tasks.md changed on disk since you last read it, so Type and Priority were not changed. Call specpilot_list_tasks for the current sha256, then try again.');
+    const added = await tool('specpilot_new_task', { description: 'Via tool', section: 'backlog', type: 'feat', priority: 'P2', sha256: hashOf(a.root) });
+    expect(readFileSync(fileOf(a.root), 'utf-8').split('\n')).toContain(`| ${added.structuredContent.id} | feat | P2 | Via tool |`);
+    expect((await tool('specpilot_list_tasks')).structuredContent.backlog[1]).toMatchObject({ id: 'BL-002', type: 'bug', priority: 'P1' });
+  });
+
+  it('lists no specpilot_set_task with --read-only (BL-125)', async () => {
+    await start({ readOnly: true });
+    const names = (await rpc('tools/list')).json.result.tools.map((t: any) => t.name);
+    expect(names).not.toContain('specpilot_set_task');
   });
 
   it('moves a task with the same bytes the page route writes', async () => {
@@ -3940,7 +4095,7 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
       cacheScope: 'private',
       _meta: { 'io.modelcontextprotocol/serverInfo': { name: 'specpilot-local', version: '0.0.0-test' } },
     });
-    expect((await modern('tools/list')).json.result.tools).toHaveLength(9);
+    expect((await modern('tools/list')).json.result.tools).toHaveLength(10);
     const add = await modern('tools/call', { name: 'specpilot_new_task', arguments: { description: ' Ship the MCP card ', section: 'currentSprint', sha256: hashOf(a.root) } });
     expect(add.status).toBe(200);
     expect(add.json.result.resultType).toBe('complete');

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-23 (BL-122 built, to Review)
-version: 7.37
+lastUpdated: 2026-10-24 (BL-122 to Completed, row 238)
+version: 7.38
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -68,7 +68,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-122 | The generated Tasks mandate line names the table shapes, and the local MCP says the same (2026-10-23, from the AllMyne case): `buildProcessMandatesMarkdown()`'s Tasks line becomes `- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.` (this repo's `CLAUDE.md` too); `mcpLocal.ts`: `specpilot_list_tasks`'s description gains `The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.` and `REVIEW_INSTRUCTIONS` gains `When you edit tasks.md by hand, keep each section a table with those columns, one row per task.` after its first sentence. `withTasksLine()`'s fingerprint still matches the line's start (BL-119 covers replacing an older line). Re-records the instruction-file snapshots. The connector adds the same line to its `ideConfig.ts`, which has no Tasks line at all (BL-121's sync list). Feature: Spec Report first. Approved 2026-10-24 |
 
 ## Won't do
 
@@ -127,3 +126,4 @@ Notes
 | 235 | [CD-girishr-144] | v2.18.0 release prepared and shipped (BL-111, BL-112, BL-113, BL-116, BL-117, BL-118, BL-UI-03): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.18.0]`, annotated tag `v2.18.0`; pushed and published by the developer (row 236) |
 | 236 | [CD-girishr-145] | v2.18.0 shipped (BL-111, BL-112, BL-113, BL-116, BL-117, BL-118, BL-UI-03): pushed, npm `specpilot@2.18.0` latest, GitHub release live (2026-10-21) |
 | 237 | [CD-girishr-146] [BL-120] | `specpilot serve` Tasks view and `specpilot validate`: a tasks.md table whose header has another column count than its lane reads gets a Warning (`The <Lane> lane cannot read its table: it has <n> columns, the board reads <m>`, the unread rows or the extra-columns line, the fix, `Open tasks.md in VS Code` and `Copy prompt`) and a validate warning, no `--fix`; `tasks.headings.columnsFound` (`{columns, unread}`) from `taskHeadings()`. REQ-002.H.56, ARCH-004.72. Jest 1726 → 1728, browser 75 → 76. Approved 2026-10-23. Feature commit `99e6ffe`. |
+| 238 | [CD-girishr-147] [BL-122] | Instruction files and the local MCP name the tasks.md table shapes: the Tasks mandate line in generated `CLAUDE.md`, Copilot, Cursor, Windsurf and Antigravity files (and this repo's `CLAUDE.md`) names ID and Description under Backlog, Current Sprint and Review and #, ID and Description under Completed, one row per task, where it only said to keep the table format; `specpilot_list_tasks`' description and `REVIEW_INSTRUCTIONS` say the same; README's Instruction files bullet too. REQ-002.H.57. Jest 1728 → 1729, 13 snapshot lines re-recorded. Approved 2026-10-24. Feature commit `24a150b`. |

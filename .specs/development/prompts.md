@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-24: BL-125 approved on the card (`all good, apporoved`); `commit`: the feature commit `942fed6`, BL-125 to Completed as row 239 (`CD-girishr-148`), then the `--no-ff` merge.
 - 2026-10-24: a screenshot of the Priority and Type block, `the alignment and layout are a bit broken ... move the Priority and Type below the Description ... colorize all`: BL-125 back to Current Sprint; REQ-002.H.58 and context.md first (P1 red, P2 orange, P3 blue; feat violet, bug red, chore gray), then the grid, the move, the colour classes; screenshots read; browser 83/83 three runs.
 - 2026-10-24: `why are the cards not havning prio and tasks input on the cards?` (this repo and a scratch project are all plain), `shld we use a warning for this type of project?`: a Note, not a Warning, recommended; `move to CS`: BL-125 back to Current Sprint, REQ-002.H.58 (d) and the tests entry first, then the Note and the panel line built; browser 83/83 three runs. Waiting for spec-reviewer.
 - 2026-10-24: `yes proceed`: BL-125 built on `feat/bl-125-type-priority` (reader, writer, route, MCP tool, validator, template, page, fixture); Jest 1729 → 1766, 16 snapshots re-recorded after reading the 114 changed lines, browser 76 → 82 three runs; New Task's selects became the panel's radio groups (recorded). Waiting for spec-reviewer, then BL-125 to Review.

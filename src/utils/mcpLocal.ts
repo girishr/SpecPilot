@@ -85,7 +85,7 @@ export interface McpTool {
 
 /** The Review rule (BL-113, REQ-002.H.55): the `instructions` of initialize and server/discover while the move tool is listed. */
 export const REVIEW_INSTRUCTIONS =
-  'Finished work goes from Current Sprint to Review with specpilot_move_task (toSection review), never straight to Completed: a person checks it there. A Review row gets its Completed entry (number, CD ID, commit), written by hand under ## Completed and removed from ## Review, only once its description ends with "Approved <date>"; a row ending with "Sent back <date>: <note>" is back in Current Sprint with what needs fixing. Never move a row out of Review yourself: the person sends it back from the board.';
+  'Finished work goes from Current Sprint to Review with specpilot_move_task (toSection review), never straight to Completed: a person checks it there. When you edit tasks.md by hand, keep each section a table with the columns specpilot_list_tasks describes, one row per task. A Review row gets its Completed entry (number, CD ID, commit), written by hand under ## Completed and removed from ## Review, only once its description ends with "Approved <date>"; a row ending with "Sent back <date>: <note>" is back in Current Sprint with what needs fixing. Never move a row out of Review yourself: the person sends it back from the board.';
 /** The order an agent should follow to set up a folder (BL-104): the `instructions` of initialize and server/discover. */
 export const SETUP_INSTRUCTIONS =
   'To set up SpecPilot for a folder: call specpilot_setup_questions with its path; answer every question you can from the code; ask the user only what is left, in one go; call specpilot_setup_project with the answers and, in asked, the keys the user answered; then report the validate result.';
@@ -119,7 +119,7 @@ export const MCP_TOOLS: McpTool[] = [
   {
     name: 'specpilot_list_tasks',
     title: 'SpecPilot: list tasks',
-    description: "The rows of .specs/planning/tasks.md by section (Backlog, Current Sprint, Review, Completed, Won't do), verbatim (a Review row also says whether it is approved and lists its Sent back notes), and the file hash (sha256) the task writes need.",
+    description: "The rows of .specs/planning/tasks.md by section (Backlog, Current Sprint, Review, Completed, Won't do), verbatim (a Review row also says whether it is approved and lists its Sent back notes), and the file hash (sha256) the task writes need. The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.",
     inputSchema: schema({}),
     annotations: READ,
     writes: false,

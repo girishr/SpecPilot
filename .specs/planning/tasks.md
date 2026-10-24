@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-23 (BL-120 to Completed, row 237)
-version: 7.36
+lastUpdated: 2026-10-23 (BL-122 built, to Review)
+version: 7.37
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -54,7 +54,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-122 | The generated Tasks mandate line names the table shapes, and the local MCP says the same (2026-10-23, from the AllMyne case): `buildProcessMandatesMarkdown()`'s Tasks line becomes `- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.` (this repo's `CLAUDE.md` too); `mcpLocal.ts`: `specpilot_list_tasks`'s description gains `The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.` and `REVIEW_INSTRUCTIONS` gains `When you edit tasks.md by hand, keep each section a table with those columns, one row per task.` after its first sentence. `withTasksLine()`'s fingerprint still matches the line's start (BL-119 covers replacing an older line). Re-records the instruction-file snapshots. The connector adds the same line to its `ideConfig.ts`, which has no Tasks line at all (BL-121's sync list). Feature: Spec Report first. |
 | BL-123 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. |
 | BL-TB-02 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-08 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
@@ -67,6 +66,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-122 | The generated Tasks mandate line names the table shapes, and the local MCP says the same (2026-10-23, from the AllMyne case): `buildProcessMandatesMarkdown()`'s Tasks line becomes `- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.` (this repo's `CLAUDE.md` too); `mcpLocal.ts`: `specpilot_list_tasks`'s description gains `The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.` and `REVIEW_INSTRUCTIONS` gains `When you edit tasks.md by hand, keep each section a table with those columns, one row per task.` after its first sentence. `withTasksLine()`'s fingerprint still matches the line's start (BL-119 covers replacing an older line). Re-records the instruction-file snapshots. The connector adds the same line to its `ideConfig.ts`, which has no Tasks line at all (BL-121's sync list). Feature: Spec Report first. Approved 2026-10-24 |
 
 ## Won't do
 

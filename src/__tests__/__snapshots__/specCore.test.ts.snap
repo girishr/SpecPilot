@@ -25,7 +25,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".specs/quality/tests.md": "0b54fa1bef850f4bf53d6a21c8e25afc876554d9ca2f829ef3cbd353a7f7b4f9",
   ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
   ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
-  "CLAUDE.md": "02d1cae6e1e03a61d474cb2bf7e86754231f4a74864282e33e0fbce2876d1575",
+  "CLAUDE.md": "5b0d8499cc64f06de7aad94d025c88f9da04b6f0907509a8684ff04d2c8c46b3",
 }
 `;
 
@@ -40,7 +40,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "d33bf21e6b13b1c559c8c19788a595045756944328840ed01b5ee8fc90fe7dcc",
+  ".github/copilot-instructions.md": "b08217a3ffccf9d0b9be5af1f7ce18ef43e1e6ace4e4f89be74c891c9bbc558d",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
   ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
@@ -97,7 +97,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
 
 ## Context — read on demand by task type
 
@@ -1168,7 +1168,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
   ".agent/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".agent/workflows/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".antigravity/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".antigravity/rules.md": "c4ec53a3649d724d71c80447cca3abf78ad30830ab12f5286d80539c6dbf1b87",
+  ".antigravity/rules.md": "16c4fd660c38f8d3abe177080fc5e4e98a4ed4858ff316cacc4321f2a8866ce9",
   ".antigravity/settings.json": "abfe0583c667af7f587b3f37d40226e79a577ae59ddb9405a533754984e46f42",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
@@ -1212,7 +1212,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
   ".specs/quality/tests.md": "c259ce6b0adb6ac3d1cf2564a61191b9a60447b10622894f3d131a4205e1f050",
   ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
   ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
-  "CLAUDE.md": "2e96e30062babe0c330b2d3f9ad463fd42f8b4b90685516ae3eea1fd545ca51e",
+  "CLAUDE.md": "799df13ed81c3739574b66b33640378e3c794875eb47a7b5754dd1a2ccd50084",
 }
 `;
 
@@ -1227,7 +1227,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "75e33cd5ffc95c51f39841e9a9133b07f45b8d777b81e2c332a3d043a342464f",
+  ".github/copilot-instructions.md": "77ec72ca39705050f48bad6ed1ebd4fb7850a5805349316d3fc8e63a74cf4199",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "8fa3ff6fdc5c8269285007fa754fcae14f39ac543a682bb2a1a58988e6def0c8",
   ".specs/architecture/architecture.md": "3e14693f91a127e70d1c57432a284a35317e173b646a940870a3a903d06068d5",
@@ -1256,7 +1256,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
   ".cursor/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".cursor/commands/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".cursor/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".cursor/rules/specpilot.mdc": "01eb10f497eaa6175d6bf8b280b2efa9e81294e229c17dbaf71d51350df683c4",
+  ".cursor/rules/specpilot.mdc": "f96c53bbdcce8ba3980616f7508fdd37ba9250816623a797d1a6b68de1bc24d8",
   ".cursor/settings.json": "040a19c3ec92aa93f255ee9d3c1b1c8f0c1e4991508d01bfb22421c84f72677d",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
@@ -1278,7 +1278,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
 exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "672638ddcb35031ac3a2e5d068f8e47a95d611f18479471d13638d4d2b47c8ad",
+  ".github/copilot-instructions.md": "4b800aa2778229a2d1b99cfa5141138ba4e5627a6fbb242e78536676ed4044af",
   ".github/prompts/specpilot-archive.prompt.md": "9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58",
   ".github/prompts/specpilot-backfill.prompt.md": "0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -1308,7 +1308,7 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
 exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "39dfc95f79e91222986618a24d13b5bed93f500d68b80190c4b4428d8b0bcf3d",
+  ".github/copilot-instructions.md": "59ed79694ef6d0334e357ec939e3d8bc44df45bc37586498866e384a11d78a77",
   ".github/prompts/specpilot-archive.prompt.md": "9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58",
   ".github/prompts/specpilot-backfill.prompt.md": "0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -1374,7 +1374,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
 
 ## Context — read on demand by task type
 
@@ -2410,7 +2410,7 @@ CHANGELOG.md merge=union
 - **Spec-First:** Update \`.specs/\` before writing code.
 - **Log all AI interactions** in \`.specs/development/prompts.md\` with timestamps.
 - **Document decisions** in \`.specs/development/context.md\`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit \`.specs/planning/tasks.md\` directly and keep its table format: \`| ID | Description |\` under \`## Backlog\`, \`## Current Sprint\` and \`## Review\`, \`| # | ID | Description |\` under \`## Completed\`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with \`Approved <date>\`.
 
 ## Context — read on demand by task type
 
@@ -3396,7 +3396,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 exports[`spec core golden recording (BL-032) vscode typescript/react none inferred 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "af2b3612f4ef640a44b2e2450c2a612e3228f3d9f7c08b51393c8fbfae84513a",
+  ".github/copilot-instructions.md": "6ec90bc8c920c7b6273aeec70038bdfc3393bafb33296c17b98947a4f557c5c0",
   ".github/prompts/specpilot-archive.prompt.md": "9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58",
   ".github/prompts/specpilot-backfill.prompt.md": "0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
@@ -3448,6 +3448,6 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".windsurf/workflows/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
   ".windsurf/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".windsurf/workflows/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
-  ".windsurfrules": "41a0af42d2c2795f47f79035cdd6e35cc7c2b938d7a54e46c07098c37df5af48",
+  ".windsurfrules": "803a2a44631f091509b4824058b9b13715285bfb4de8c2724ebf7a672342d1af",
 }
 `;

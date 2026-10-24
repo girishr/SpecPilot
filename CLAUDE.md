@@ -32,7 +32,7 @@
 - **Spec-First:** Update `.specs/` before writing code.
 - **Log all AI interactions** in `.specs/development/prompts.md` with timestamps.
 - **Document decisions** in `.specs/development/context.md`.
-- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.
+- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format: `| ID | Description |` under `## Backlog`, `## Current Sprint` and `## Review`, `| # | ID | Description |` under `## Completed`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.
 
 ## Code Philosophy — Write Only What Needed
 

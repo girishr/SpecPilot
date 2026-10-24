@@ -132,6 +132,8 @@ describe('tools', () => {
     expect(await instructionsOf(MCP_TOOLS.filter(t => !t.writes && !t.setup))).toBeUndefined();
     expect(REVIEW_INSTRUCTIONS).toContain('never straight to Completed');
     expect(REVIEW_INSTRUCTIONS).toContain('"Approved <date>"');
+    expect(REVIEW_INSTRUCTIONS).toContain('When you edit tasks.md by hand, keep each section a table with the columns specpilot_list_tasks describes, one row per task.'); // BL-122
+    expect(MCP_TOOLS.find(t => t.name === 'specpilot_list_tasks')!.description).toContain("The sections are tables: ID and Description under Backlog, Current Sprint and Review; #, ID and Description under Completed; ID, Description and Reason under Won't do.");
   });
 
   it('lists only the tools it is given (the server drops the writes and the setup tools with --read-only), with no instructions then', async () => {

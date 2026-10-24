@@ -126,7 +126,7 @@ describe('the Tasks line in every instruction file (BL-PM-007)', () => {
   it.each(IDE_CHOICES.map(c => [c.value]))('%s', ide => {
     const { aiContextFile } = require('../core/ideConfig') as typeof import('../core/ideConfig');
     const { content } = aiContextFile({ projectName: 'p', language: 'typescript', framework: '' } as never, ide);
-    const line = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
+    const line = '- **Tasks:** When the SpecPilot MCP tools are connected, use them to add and move tasks. Otherwise edit `.specs/planning/tasks.md` directly and keep its table format: `| ID | Description |` under `## Backlog`, `## Current Sprint` and `## Review`, `| # | ID | Description |` under `## Completed`, one row per task. Finished work goes from Current Sprint to Review, never straight to Completed; a Review row gets its Completed entry (number, CD ID, commit) only once it ends with `Approved <date>`.';
     expect(content.split('\n').filter(l => l === line)).toHaveLength(1);
   });
 });

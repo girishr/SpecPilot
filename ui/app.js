@@ -375,7 +375,7 @@ async function chooseField(col,i,key,btn){
   }catch(e){r=null;}
   fielding=false;
   if(p!==PROJECT)return;
-  if(r&&r.status===200){await apply(body.specs,['.specs/planning/tasks.md']);return;} // the panel is redrawn from the file; focus stays on the chosen radio
+  if(r&&r.status===200){wrote(['.specs/planning/tasks.md'],body.specs);await apply(body.specs,['.specs/planning/tasks.md']);return;} // the panel is redrawn from the file; focus stays on the chosen radio
   if(r&&r.status===409&&body.specs)await apply(body.specs,null);
   const k=findRow(col,t.id,i);if(k>=0&&inspOpen&&inspOpen.id===t.id)openTask(col,k,true); // the earlier choice, as the file has it
   const e=$('#tfErr');if(e){e.textContent=!r?'The server did not answer. Nothing was changed.':body.error||`Nothing was changed (HTTP ${r.status}).`;e.hidden=false;}
@@ -427,7 +427,7 @@ async function review(col,i,action,extra,isUndo){
   if(r.status===200){
     const toLane=action==='sendBack'?'currentSprint':'review';
     if(action==='sendBack'||action==='unsendBack'){lastFocus=null;closeInsp();}
-    await apply(body.specs,['.specs/planning/tasks.md']);
+    wrote(['.specs/planning/tasks.md'],body.specs);await apply(body.specs,['.specs/planning/tasks.md']);
     const j=DATA.tasks[toLane].findIndex(x=>x.id===t.id);
     if(action==='sendBack'||action==='unsendBack'){const el=$(`#v-board .row[data-col="${toLane}"][data-i="${j}"]`);if(el)el.focus();}
     else{const b=$(action==='approve'?'#rvSend':'#rvApprove')||$('#inspX');if(b&&insp.classList.contains('open'))b.focus();}
@@ -680,8 +680,8 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],n[1]);return}
-  if(e.key==='Escape'){if(!ideMenu.hidden){closeIde(true);return}if(!cardMenu.hidden){closeCardMenu(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
-  if(inField||mod||e.altKey||!cardMenu.hidden||taskVeil.classList.contains('open')||archVeil.classList.contains('open'))return;
+  if(e.key==='Escape'){if(busyVeil.classList.contains('open')){closeBusy();return}if(!ideMenu.hidden){closeIde(true);return}if(!cardMenu.hidden){closeCardMenu(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
+  if(inField||mod||e.altKey||!cardMenu.hidden||taskVeil.classList.contains('open')||archVeil.classList.contains('open')||busyVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$('#v-board .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}
@@ -728,8 +728,15 @@ function altMove(r,e){
   else if(go2)move(col,i,go2[0],go2[1]);
   else if(e.key==='ArrowRight'&&LANES[LANES.indexOf(col)+1]==='completed')toast(COMPLETED_HINT); // D15: Alt+→ from the lane before Completed
 }
-async function move(col,i,toSection,toIndex,isUndo){
+async function move(col,i,toSection,toIndex,isUndo,asked){
   const t=DATA.tasks[col][i],p=PROJECT;if(!t||moving)return;
+  // BL-127: on a branch or while something else writes .specs/, ask first; an Undo is not asked again
+  if(!isUndo&&!asked){const s=busySignals();if(s.length)return askBusy(t,col,s,()=>{
+    if(p!==PROJECT)return; // asked for this project only
+    const k=DATA.tasks[col].findIndex(x=>x.id===t.id);
+    if(k<0){toast(`${t.id} is no longer in ## ${COLS[col]}. Nothing was moved.`);return;}
+    move(col,k,toSection,toIndex,false,true);
+  });}
   moving=true;
   let r,body={};
   try{
@@ -739,7 +746,7 @@ async function move(col,i,toSection,toIndex,isUndo){
   moving=false;
   if(p!==PROJECT)return; // the page switched projects while the move was in flight
   if(r.status===200){
-    await apply(body.specs,['.specs/planning/tasks.md']);
+    wrote(['.specs/planning/tasks.md'],body.specs);await apply(body.specs,['.specs/planning/tasks.md']);
     const j=DATA.tasks[toSection].findIndex(x=>x.id===t.id);
     const el=$(`#v-board .row[data-col="${toSection}"][data-i="${j}"]`);if(el)el.focus();
     const msg=col===toSection?`${t.id} moved within ## ${COLS[col]} in planning/tasks.md`:`${t.id} moved from ## ${COLS[col]} to ## ${COLS[toSection]} in planning/tasks.md`;
@@ -749,6 +756,53 @@ async function move(col,i,toSection,toIndex,isUndo){
     toast(body.error||'planning/tasks.md changed on disk since this page loaded. The move was not made.');
   }else toast(body.error||`The move was not made (HTTP ${r.status}).`);
 }
+
+/* ---------------- work in progress (BL-127) ----------------
+   Two signals before a move or Archive: a branch other than main or master, and a .specs/ change drawn in the last
+   120 s that is not the echo of this page's own last write (same paths, the hash that write answered with). Only
+   what the page has seen counts; no git is run. */
+const BUSY_MS=120000,busyVeil=$('#busyVeil');
+let lastWrite=null,activity=null,busyGo=null,busyFrom=null; // activity: {p, at, paths}; busyFrom: the card's lane and ID, for focus
+function wrote(paths,d){lastWrite={paths,sha:d&&d.tasks?d.tasks.sha256:null};}
+function noteActivity(paths,d){
+  const sp=(paths||[]).filter(x=>x.startsWith('.specs/'));if(!sp.length)return;
+  if(lastWrite&&d.tasks&&d.tasks.sha256===lastWrite.sha&&sp.every(x=>lastWrite.paths.includes(x)))return; // our own write's echo
+  activity={p:PROJECT,at:Date.now(),paths:sp};
+}
+const branchOff=()=>{const b=DATA&&DATA.project&&DATA.project.branch;return b&&b!=='main'&&b!=='master'?b:null;};
+const branchRisk=what=>`${what} is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch.`;
+/* `<file> changed on disk <n> seconds ago, not from this page`, or null outside the window. */
+function recentActivity(){
+  if(!activity||activity.p!==PROJECT)return null;
+  const ms=Date.now()-activity.at;if(ms<0||ms>=BUSY_MS)return null;
+  const n=Math.floor(ms/1000),ps=activity.paths,f=ps.includes('.specs/planning/tasks.md')?'.specs/planning/tasks.md':ps[0],k=ps.length-1;
+  return `${f}${k?` and ${k} more ${k===1?'file':'files'}`:''} changed on disk ${n} ${n===1?'second':'seconds'} ago, not from this page`;
+}
+function busySignals(){
+  const out=[],b=branchOff(),a=recentActivity();
+  if(b)out.push(`You are on branch ${b}, not the default branch. ${branchRisk('The move')}`);
+  if(a)out.push(`${a}: an agent or editor may still be working on the specs. If it saves planning/tasks.md from a copy it read before your move, your move is lost; if it edits after, its edit can fail or land on the wrong row because the rows moved under it. Wait until it is done, or ask it to make the move.`);
+  return out;
+}
+function askBusy(t,col,signals,go){
+  closeCardMenu(false);hideTip();
+  busyGo=go;busyFrom={col,id:t.id};
+  $('#busyTitle').textContent=`Move ${t.id} while work is in progress?`;
+  $('#busyBody').innerHTML=signals.map(x=>`<div class="gate warn"><span class="st orange" aria-hidden="true"></span><span class="gt">${esc(x)}</span></div>`).join('');
+  busyVeil.classList.add('open');
+  setTimeout(()=>$('#busyCancel').focus(),50);
+}
+/* Cancel, Escape or the backdrop: nothing written, focus back on the card. */
+function closeBusy(){
+  if(!busyVeil.classList.contains('open'))return;
+  busyVeil.classList.remove('open');busyGo=null;
+  const f=busyFrom;busyFrom=null;
+  const k=f&&DATA&&DATA.tasks&&DATA.tasks[f.col]?DATA.tasks[f.col].findIndex(x=>x.id===f.id):-1;
+  const el=k>=0&&$(`#v-board .row[data-col="${f.col}"][data-i="${k}"]`);if(el)el.focus();
+}
+$('#busyCancel').onclick=closeBusy;
+busyVeil.onclick=e=>{if(e.target===busyVeil)closeBusy();};
+$('#busyGo').onclick=()=>{const go=busyGo;busyGo=null;busyFrom=null;busyVeil.classList.remove('open');if(go)go();};
 
 /* ---------------- new task (BL-PM-005) ----------------
    The server appends one row, `| <ID> | <description> |`, to the chosen section and picks the ID.
@@ -779,7 +833,7 @@ async function addTask(){
   if(p!==PROJECT)return;
   if(r.status===200){
     taskVeil.classList.remove('open');
-    await apply(body.specs,['.specs/planning/tasks.md']);
+    wrote(['.specs/planning/tasks.md'],body.specs);await apply(body.specs,['.specs/planning/tasks.md']);
     focusOpener(); // what closing the inspector returns to
     openTask(section,body.index);
     const el=$(`#v-board .row[data-col="${section}"][data-i="${body.index}"]`);if(el)el.scrollIntoView({block:'nearest'});
@@ -805,10 +859,12 @@ function archGates(){
   const b=DATA.project.branch,a=DATA.tasks.archive,n=DATA.tasks.completed.length,out=[];
   if(!b)out.push({key:'branch',text:'No git branch.'});
   else if(b==='main'||b==='master')out.push({key:'branch',text:`On ${b}.`});
-  else out.push({key:'branch:'+b,warn:true,text:`On branch ${b}. Archive is recommended only on the default branch after merging. Archive on this branch anyway.`});
+  else out.push({key:'branch:'+b,warn:true,text:`On branch ${b}. Archive is recommended only on the default branch after merging. ${branchRisk('The archive')} Archive on this branch anyway.`});
   if(!a.rows)out.push({key:'none',off:true,text:`Nothing to archive: ## Completed has ${n} ${n===1?'row':'rows'}, and an archive keeps the newest 20.`});
   else if(a.lines>40)out.push({key:'limit',text:`## Completed is ${a.lines} lines, over its 40-line limit: ${a.rows} rows move, the newest 20 stay.`});
   else out.push({key:'force',warn:true,text:`## Completed is ${a.lines} lines, within its 40-line limit. Archive ${a.rows} rows anyway; the newest 20 stay.`});
+  const act=recentActivity();
+  if(act)out.push({key:'activity',warn:true,text:`${act}: an agent or editor may still be working on the specs. If it saves planning/tasks.md from a copy it read before the archive, the archive is lost; if it edits after, its edit can fail or land on the wrong row because the rows moved under it. Archive anyway.`});
   return out;
 }
 /* Draw the gates from the latest payload; a tick stays on a gate still shown under the same key (a redraw while open). */
@@ -841,7 +897,7 @@ async function archiveCompleted(){
   if(p!==PROJECT)return;
   if(r.status===200){
     archVeil.classList.remove('open');
-    await apply(body.specs,['.specs/planning/tasks.md','.specs/planning/tasks-archive.md']);
+    wrote(['.specs/planning/tasks.md','.specs/planning/tasks-archive.md'],body.specs);await apply(body.specs,['.specs/planning/tasks.md','.specs/planning/tasks-archive.md']);
     focusArchive();
     toast(`Moved ${body.linesMoved} rows from ## Completed to planning/tasks-archive.md`);
     return;
@@ -985,6 +1041,7 @@ async function redraw(paths){
   let d;const p=PROJECT;
   try{const r=await fetch('/api/specs?'+pq(),{cache:'no-store'});if(!r.ok)return;d=await r.json();}catch(e){return;} // server gone: keep what is shown
   if(p!==PROJECT)return; // switched projects meanwhile
+  noteActivity(paths,d);
   // The poller's echo of a move this page just made: same tasks.md hash, nothing to redraw.
   if(paths&&paths.length&&paths.every(p=>p==='.specs/planning/tasks.md')&&DATA&&DATA.tasks&&d.tasks&&d.tasks.sha256===DATA.tasks.sha256)return;
   await apply(d,paths);document.documentElement.dataset.rev=+(document.documentElement.dataset.rev||0)+1; // live reloads drawn: the browser tests wait on it
@@ -1039,6 +1096,7 @@ async function switchProject(n,keepRoute){
 }
 /* Draw project PROJECT from payload d: the tail of a switch, also used with the payload an open returns (BL-067). */
 function showProject(d,keepRoute){
+  busyVeil.classList.remove('open');busyGo=null;busyFrom=null; // BL-127: a dialog never outlives its project
   Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
   DATA=d;selected=null;setRegenNote([]);
   renderAll();listen();

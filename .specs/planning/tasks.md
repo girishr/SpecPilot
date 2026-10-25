@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-24 (BL-125 to Completed, row 239)
-version: 7.44
+lastUpdated: 2026-10-25 (BL-127 to Review, BL-128 filed and to Current Sprint)
+version: 7.45
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -57,6 +57,7 @@ Notes
 | ID | Description |
 |---|---|
 | BL-123 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. |
+| BL-128 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-08 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
 | BL-UI-01 | `specpilot serve` Home: pretty-print (indented, multi-line) the MCP config JSON in "Connect Your AI IDE (optional, one line)" so it is readable and easy to copy. |
@@ -68,6 +69,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-127 | Tasks board: a blocking warning before a move or Archive while work is in progress, when the project is on a branch other than main or master, or a `.specs/` file changed on disk in the last two minutes not from the page (an agent at work); the dialog says what could happen, `Cancel` or `Move anyway` (REQ-002.H.59). Approved 2026-10-25 |
 
 ## Won't do
 

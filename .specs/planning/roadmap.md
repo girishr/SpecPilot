@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-10-21 (v2.18.0 prepared)
-version: 1.48
+lastUpdated: 2026-10-25 (v2.19.0 prepared)
+version: 1.49
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -77,7 +77,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-08-02: v2.2.3 — two "Press Enter" pauses on the `init` success screen, skipped under `--no-prompts` (CS-091)
 - 2026-09-27: v2.2.4 — `archive` handles a table-shaped `## Completed` (BL-057); a shared section-bounds helper and a pure spec reader
 
-### v2.3.0–v2.18.0 - `specpilot serve` (September–October 2026)
+### v2.3.0–v2.19.0 - `specpilot serve` (September–October 2026)
 
 - 2026-09-29: v2.3.0 — `specpilot serve`, a read-only local web UI over `.specs/` with live reload (BL-051, BL-052); `fs-extra` removed
 - 2026-09-29: v2.4.0 — move tasks in `specpilot serve` (BL-053); `archive` takes the oldest `prompts.md` entries (BL-061)
@@ -96,6 +96,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-10-14: v2.16.0 — command fixes: the `specpilot-validate` command treats `api.yaml` as optional (BL-108), `init --dry-run` lists the files `init` writes (BL-083), `add-specs --no-analysis` works and `--deep-analysis` is removed (BL-074); lint errors fixed (BL-068), a flaky clone test fixed (BL-109), prompts archived (BL-110)
 - 2026-10-19: v2.17.0 — the Tasks board reworked from the developer's review notes: the board alone (BL-TB-01), lanes Backlog, Current Sprint, Completed (BL-TB-04) that fit the window (BL-TB-03), Completed showing every row (BL-TB-07), `+ Add` in the lane headers (BL-TB-05), `Archive` in the Completed header with `POST /api/tasks/archive` (BL-TB-06), a card context menu over one move table (BL-TB-11); `specpilot serve` with no project (BL-080) and the remembered projects reopened at startup (BL-114); the row-count test fixed (BL-115)
 - 2026-10-21: v2.18.0 — the Review lane (BL-113): `## Review` between Current Sprint and Completed, a human-in-the-loop check with Approve and Send back on the card through `POST /api/tasks/review`, `## Won't do` shown read-only, the agent rule in the generated mandates and the MCP server, every view uncapped; a close button on every toast and 8-second toasts (BL-UI-03); `specpilot validate` checks tasks.md's section headings with `--fix` renames (BL-111) and the Tasks view explains missing, unknown and untabled sections (BL-112, BL-116); the onboarding prompt's tasks.md line fixed (BL-117); `init` writes tasks.md as tables (BL-118)
+- 2026-10-25: v2.19.0 — Type and Priority columns in tasks.md (BL-125): Backlog, Current Sprint and Review read `ID, Type, Priority, Description` or `ID, Description`, coloured chips on the cards, Priority and Type set from the task details and by the MCP's `specpilot_set_task` through `POST /api/tasks/fields`; a blocking warning before a move or Archive while work is in progress, on a branch or while `.specs/` changes from outside the page (BL-127); the wrong-column-count warning on the Tasks view and in `validate` (BL-120); the Tasks mandate and the local MCP name the table shapes (BL-122).
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 

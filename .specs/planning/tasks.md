@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-25 (BL-127 to Review, BL-128 filed and to Current Sprint)
-version: 7.45
+lastUpdated: 2026-10-25 (BL-127 to Completed, row 240)
+version: 7.46
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -69,7 +69,6 @@ Notes
 
 | ID | Description |
 |---|---|
-| BL-127 | Tasks board: a blocking warning before a move or Archive while work is in progress, when the project is on a branch other than main or master, or a `.specs/` file changed on disk in the last two minutes not from the page (an agent at work); the dialog says what could happen, `Cancel` or `Move anyway` (REQ-002.H.59). Approved 2026-10-25 |
 
 ## Won't do
 
@@ -130,3 +129,4 @@ Notes
 | 237 | [CD-girishr-146] [BL-120] | `specpilot serve` Tasks view and `specpilot validate`: a tasks.md table whose header has another column count than its lane reads gets a Warning (`The <Lane> lane cannot read its table: it has <n> columns, the board reads <m>`, the unread rows or the extra-columns line, the fix, `Open tasks.md in VS Code` and `Copy prompt`) and a validate warning, no `--fix`; `tasks.headings.columnsFound` (`{columns, unread}`) from `taskHeadings()`. REQ-002.H.56, ARCH-004.72. Jest 1726 → 1728, browser 75 → 76. Approved 2026-10-23. Feature commit `99e6ffe`. |
 | 238 | [CD-girishr-147] [BL-122] | Instruction files and the local MCP name the tasks.md table shapes: the Tasks mandate line in generated `CLAUDE.md`, Copilot, Cursor, Windsurf and Antigravity files (and this repo's `CLAUDE.md`) names ID and Description under Backlog, Current Sprint and Review and #, ID and Description under Completed, one row per task, where it only said to keep the table format; `specpilot_list_tasks`' description and `REVIEW_INSTRUCTIONS` say the same; README's Instruction files bullet too. REQ-002.H.57. Jest 1728 → 1729, 13 snapshot lines re-recorded. Approved 2026-10-24. Feature commit `24a150b`. |
 | 239 | [CD-girishr-148] [BL-125] | Type and Priority columns in tasks.md: Backlog, Current Sprint and Review read `ID, Type, Priority, Description` (Type feat, bug or chore; Priority P1, P2 or P3; either empty) or the plain `ID, Description`, told apart by header names; coloured pills on each card's bottom line (P1 red, P2 orange, P3 blue; feat violet, bug red, chore gray); radio groups below the Description in the task details and in New Task, writing through `POST /api/tasks/fields` (a fixed set only, SEC-004.32); `specpilot_new_task` takes them and `specpilot_set_task` sets them; moves between the shapes add or drop two empty cells and refuse to lose a value; BL-120's warning by names for the three lanes, a different-shapes warning, a plain-tables Note, `validate` on values outside the set; the template, `--fix` stub and Tasks line write the typed shape. This repo's tasks.md stays plain (BL-126). REQ-002.H.58, ARCH-004.73. Jest 1729 → 1766, browser 76 → 83, 16 snapshots re-recorded. Approved 2026-10-24. Feature commit `942fed6`. |
+| 240 | [CD-girishr-149] [BL-127] | Warning before a move or Archive while work is in progress: on a branch other than main or master, or within 120 seconds of a `.specs/` change not from the page, a move on the Tasks board (drag, Alt+arrows, card menu, reorder) opens a blocking dialog that says what could happen, `Cancel` or `Move anyway`; Archive gains an `activity` gate and a branch consequence sentence. Approve and Send back never ask; a project switch closes the dialog. BL-128 filed for the archive script's parity. REQ-002.H.59. Jest 1766, browser 83 → 90. Approved 2026-10-25. Feature commit `f0dc8b2`. |

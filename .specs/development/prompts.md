@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-21 (v2.18.0 shipped)
-version: 2.195
+lastUpdated: 2026-10-25 (BL-127 Spec Report)
+version: 2.196
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-25: `we will need to add a warning when the user click on an action that could break the spec files ... when agent is runnig ... or if an active work on branch is happening ... Archive or moving task items ... blocking alert modal ... Say want could happen`: BL-127 filed in Current Sprint; Spec Report (Feature) on `feat/bl-127-busy-warning`: REQ-002.H.59, planned tests, eight defaults in context.md. spec-reviewer A ESCALATE; the architect DECIDE (branch signal kept, Send back not covered by any gesture, defaults confirmed, BL-128 filed for the archive script's parity); applied to the specs; spec-reviewer FIX (version, singulars, the Completed hint, two Send back cases) applied; built: Jest 1766, browser 83 → 89 three runs, lint 0 errors; spec-reviewer B FIX (the dialog outlived a project switch) fixed, browser 90/90 three runs.
+- 2026-10-25: `move BL-128 to CS into the appropriate position`: BL-128 to Current Sprint, after BL-123 (its row says to take it with BL-123).
+- 2026-10-25: `the commit`, then (asked: no Approved marker yet) `Approve and full flow`: BL-127 marked `Approved 2026-10-25`; the feature commit, BL-127 to Completed, the `--no-ff` merge, tests on main, the branch deleted. No push.
+- 2026-10-25: BL-127 to Completed as row 240 (`CD-girishr-149`), citing the feature commit `f0dc8b2`.
 - 2026-10-24: BL-125 approved on the card (`all good, apporoved`); `commit`: the feature commit `942fed6`, BL-125 to Completed as row 239 (`CD-girishr-148`), then the `--no-ff` merge.
 - 2026-10-24: a screenshot of the Priority and Type block, `the alignment and layout are a bit broken ... move the Priority and Type below the Description ... colorize all`: BL-125 back to Current Sprint; REQ-002.H.58 and context.md first (P1 red, P2 orange, P3 blue; feat violet, bug red, chore gray), then the grid, the move, the colour classes; screenshots read; browser 83/83 three runs.
 - 2026-10-24: `why are the cards not havning prio and tasks input on the cards?` (this repo and a scratch project are all plain), `shld we use a warning for this type of project?`: a Note, not a Warning, recommended; `move to CS`: BL-125 back to Current Sprint, REQ-002.H.58 (d) and the tests entry first, then the Note and the panel line built; browser 83/83 three runs. Waiting for spec-reviewer.

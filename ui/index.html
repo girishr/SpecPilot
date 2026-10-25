@@ -257,6 +257,13 @@
   <div class="sf"><button type="button" class="btn" id="archCancel">Cancel</button><button type="submit" class="btn pri" id="archGo" form="archForm">Archive</button></div>
 </div></div>
 
+<!-- BUSY (BL-127): a move while on a branch or while something else writes .specs/; what could happen, Cancel or Move anyway -->
+<div class="veil" id="busyVeil"><div class="sheet task" role="alertdialog" aria-modal="true" aria-labelledby="busyTitle" aria-describedby="busyBody" tabindex="-1">
+  <div class="sh"><div><h2 id="busyTitle">Move while work is in progress?</h2></div></div>
+  <div class="sb"><div class="gl"><div class="box" id="busyBody"></div></div></div>
+  <div class="sf"><button type="button" class="btn" id="busyCancel">Cancel</button><button type="button" class="btn pri" id="busyGo">Move anyway</button></div>
+</div></div>
+
 <!-- PALETTE -->
 <div class="veil pal-veil" id="palVeil"><div class="pal"><input id="palIn" type="search" name="q" aria-label="Search views, spec files and tasks" placeholder="Jump to a view, spec file or task…" autocomplete="off" spellcheck="false"><ul id="palList"></ul></div></div>
 <!-- CARD MENU (BL-TB-11): a task card's actions, built from the move table of /api/specs -->

@@ -2,7 +2,7 @@
 import { Browser, Page } from 'playwright-core';
 import { readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, launch, makeEnv, noSideScroll, read, routeJs, serve, Served, specArchiver, taskMover, until, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, routeJs, serve, Served, specArchiver, taskMover, until, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -253,6 +253,11 @@ const archOpen = (page: Page) => page.waitForFunction(() => document.querySelect
 const archClosed = (page: Page) => page.waitForFunction(() => !document.querySelector('#archVeil')!.classList.contains('open'));
 const focusOnArchive = (page: Page) => page.waitForFunction(() => document.activeElement?.hasAttribute('data-archive') ?? false);
 const gateText = (page: Page, i: number) => page.locator('#archGates .gate').nth(i).textContent();
+// BL-127: the Archive branch gate's consequence sentence, and the activity gate a write from outside the page adds
+const ARCHIVE_RISK = "The archive is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch.";
+const ACTIVITY_GATE = /^\.specs\/planning\/tasks\.md changed on disk \d+ seconds? ago, not from this page: an agent or editor may still be working on the specs\. If it saves planning\/tasks\.md from a copy it read before the archive, the archive is lost; if it edits after, its edit can fail or land on the wrong row because the rows moved under it\. Archive anyway\.$/;
+const busyOpen = (page: Page) => page.waitForFunction(() => document.querySelector('#busyVeil')!.classList.contains('open'));
+const busyClosed = (page: Page) => page.waitForFunction(() => !document.querySelector('#busyVeil')!.classList.contains('open'));
 const pageScrolls = (page: Page) => page.evaluate(() => { const c = document.querySelector('#content')!; return c.scrollHeight > c.clientHeight; });
 const laneBox = (page: Page, col: string) => page.locator(`#boardMode .gl[data-col="${col}"] .box`);
 /** [scrollHeight, clientHeight, header top, box bottom, scrollTop] of a lane's box. */
@@ -395,12 +400,13 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   // BL-TB-06 (D8): the fixture's one-row Completed opens the Archive dialog with nothing to archive and the action disabled
   await laneArchive(page).click();
   await archOpen(page);
-  expect(await page.locator('#archGates .gate').count()).toBe(2);
+  expect(await page.locator('#archGates .gate').count()).toBe(3); // BL-127: the row written from outside above adds the activity gate
   expect(await gateText(page, 0)).toBe('On main.');
   expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 1 row, and an archive keeps the newest 20.');
-  expect(await page.locator('#archGates input').count()).toBe(0);
+  expect(await page.locator('#archGates input').count()).toBe(1);
+  expect(await page.locator('#archGates input').getAttribute('data-gate')).toBe('activity');
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
-  await page.waitForFunction(() => document.activeElement?.id === 'archCancel');
+  await page.waitForFunction(() => document.activeElement?.matches('#archGates input') ?? false);
   await page.keyboard.press('Escape');
   await archClosed(page);
   await focusOnArchive(page);
@@ -437,13 +443,17 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   await laneArchive(page).click();
   await archOpen(page);
   expect(await page.locator('#archTitle').textContent()).toBe('Archive oldest Completed rows');
-  expect(await page.locator('#archGates .gate').count()).toBe(2);
-  expect(await page.locator('#archGates .gate.ok').count()).toBe(2);
-  expect(await page.locator('#archGates input').count()).toBe(0); // on main, over the limit: nothing warns
+  expect(await page.locator('#archGates .gate').count()).toBe(3);
+  expect(await page.locator('#archGates .gate.ok').count()).toBe(2); // on main, over the limit: neither warns
   expect(await gateText(page, 0)).toBe('On main.');
   expect(await gateText(page, 1)).toBe(`## Completed is ${lines} lines, over its 40-line limit: ${moved} rows move, the newest 20 stay.`);
+  // BL-127: the reload written from outside above is activity, a warned gate last with a box to tick
+  expect(await page.locator('#archGates input').count()).toBe(1);
+  expect(await gateText(page, 2)).toMatch(ACTIVITY_GATE);
+  expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  await page.check('#archGates input[data-gate="activity"]');
   expect(await page.locator('#archGo').isEnabled()).toBe(true);
-  await page.waitForFunction(() => document.activeElement?.id === 'archGo');
+  await page.focus('#archGo');
   for (const key of ['h', '1', 'j']) await page.keyboard.press(key); // the open dialog swallows the page's single-key shortcuts
   expect(await page.evaluate(() => document.querySelector('#archVeil')!.classList.contains('open'))).toBe(true);
   await waitView(page, 'v-board');
@@ -462,7 +472,9 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   await archOpen(page);
   expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 20 rows, and an archive keeps the newest 20.');
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
-  await page.waitForFunction(() => document.activeElement?.id === 'archCancel');
+  // BL-127: the outside write is still within its 120 seconds (the page's own archive is not activity): focus on its box
+  expect(await page.locator('#archGates input').getAttribute('data-gate')).toBe('activity');
+  await page.waitForFunction(() => document.activeElement?.matches('#archGates input') ?? false);
   await page.keyboard.press('Escape');
   await archClosed(page);
   await focusOnArchive(page);
@@ -480,7 +492,7 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   expect(await page.locator('#archGates .gate').count()).toBe(2);
   expect(await page.locator('#archGates .gate.warn').count()).toBe(2);
   expect(await page.locator('#archGates input').count()).toBe(2);
-  expect(await gateText(page, 0)).toBe('On branch feature. Archive is recommended only on the default branch after merging. Archive on this branch anyway.');
+  expect(await gateText(page, 0)).toBe(`On branch feature. Archive is recommended only on the default branch after merging. ${ARCHIVE_RISK} Archive on this branch anyway.`);
   expect(await gateText(page, 1)).toBe('## Completed is 31 lines, within its 40-line limit. Archive 6 rows anyway; the newest 20 stay.');
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
   await page.waitForFunction(() => document.activeElement?.matches('#archGates input') ?? false); // focus starts on the first box
@@ -493,6 +505,8 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   expect(await page.isChecked('#archGates input[data-gate="force"]')).toBe(true);
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
   await page.check('#archGates input[data-gate="branch:other"]');
+  expect(await page.locator('#archGo').isDisabled()).toBe(true); // BL-127: the reload from outside is activity, a third box
+  await page.check('#archGates input[data-gate="activity"]');
   expect(await page.locator('#archGo').isEnabled()).toBe(true);
   await page.click('#archCancel'); // nothing written, focus back on the button
   await archClosed(page);
@@ -504,7 +518,7 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   await reloadThrough(page, 'CS-901');
   await laneArchive(page).click();
   await archOpen(page);
-  expect(await gateText(page, 0)).toBe(`On branch ${'a'.repeat(40)}. Archive is recommended only on the default branch after merging. Archive on this branch anyway.`);
+  expect(await gateText(page, 0)).toBe(`On branch ${'a'.repeat(40)}. Archive is recommended only on the default branch after merging. ${ARCHIVE_RISK} Archive on this branch anyway.`);
   expect(await page.locator('#archGates input:checked').count()).toBe(0);
   await page.keyboard.press('Escape');
   await archClosed(page);
@@ -515,8 +529,9 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   await laneArchive(page).click();
   await archOpen(page);
   expect(await gateText(page, 0)).toBe('No git branch.');
-  expect(await page.locator('#archGates input').count()).toBe(1);
+  expect(await page.locator('#archGates input').count()).toBe(2); // the limit and the activity of the reload
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
+  await page.check('#archGates input[data-gate="activity"]');
   const { after, block, moved } = archivePlan(true);
   expect(moved).toBe(6);
   await page.check('#archGates input[data-gate="force"]');
@@ -819,6 +834,9 @@ browserTest('the Tasks view, a task\'s details, the New Task dialog, the card me
   await dots.click();
   await menuOpen(page);
   await page.locator('#cardMenu [role=menuitem]').first().click(); // Current Sprint, the lane's end
+  await busyOpen(page); // BL-127: on a branch the move asks first
+  expect(await noSideScroll(page)).toBe(true);
+  await page.click('#busyGo');
   await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(menuRow), 'the row in Current Sprint on disk');
   await waitToast(page, new RegExp(`${idOf(menuRow)} moved from ## Backlog to ## Current Sprint`));
   expect(await noSideScroll(page)).toBe(true);
@@ -1245,6 +1263,8 @@ browserTest('Send back with a note (a line break and a | typed) writes one space
   await waitToast(page, /^Sent CS-801 back to Current Sprint/);
   await page.waitForFunction(() => document.activeElement?.matches('#boardMode .row[data-col="currentSprint"][data-i="0"]') ?? false);
   await page.keyboard.press('Alt+ArrowRight'); // back to Review as a plain move: no chip now
+  await busyOpen(page); // BL-127: the fixture was written from outside above, so the move into Review asks first
+  await page.click('#busyGo');
   await until(() => rowsIn(read(env.tasks()), 'Review')[0] === out, 'the row back in Review');
   await page.waitForFunction(() => document.querySelectorAll('#boardMode .row[data-col="review"]').length === 1 && document.querySelector('#boardMode .row[data-col="review"] .chip.green') === null);
   await row(page, 'review', 0).dragTo(page.locator('#boardMode .gl[data-col="currentSprint"] .gh'));
@@ -1521,4 +1541,257 @@ browserTest('all three lanes plain: a Note, not a Warning, says why there is no 
   writeFileSync(env.tasks(), read(env.tasks()).replace('## Backlog\n\n| ID | Description |\n|---|---|\n| BL-901 | Fixture backlog row |\n| BL-001 | Fixture backlog row one |\n| BL-002 | Fixture backlog row two |', '## Backlog\n\n| ID | Type | Priority | Description |\n|---|---|---|---|\n| BL-901 |  |  | Fixture backlog row |\n| BL-001 | feat | P1 | Fixture backlog row one |\n| BL-002 |  |  | Fixture backlog row two |'));
   await page.locator('#gHead .msg.warn', { hasText: 'different table shapes' }).waitFor();
   expect(await page.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).count()).toBe(0);
+});
+
+// BL-127 (REQ-002.H.59): a move from the page asks first while the project is on a branch other than main or master, or
+// while a .specs/ file changed in the last 120 s not from the page; the dialog says what could happen. Send back, by any
+// gesture, and the Completed hint never ask.
+const BRANCH_TEXT = (branch: string) => `You are on branch ${branch}, not the default branch. The move is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch.`;
+const MOVE_ACTIVITY = (file: string) => new RegExp(`^${file} changed on disk \\d+ seconds? ago, not from this page: an agent or editor may still be working on the specs\\. If it saves planning/tasks\\.md from a copy it read before your move, your move is lost; if it edits after, its edit can fail or land on the wrong row because the rows moved under it\\. Wait until it is done, or ask it to make the move\\.$`);
+const TASKS_FILE = '\\.specs/planning/tasks\\.md';
+const busyTexts = (page: Page) => page.locator('#busyBody .gate').allTextContents();
+const busyIsOpen = (page: Page) => page.evaluate(() => document.querySelector('#busyVeil')!.classList.contains('open'));
+/** Both buttons inside the window (the 420px checks). */
+const busyButtonsInView = (page: Page) => page.evaluate(() => ['#busyCancel', '#busyGo'].every(s => {
+  const r = document.querySelector(s)!.getBoundingClientRect();
+  return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight;
+}));
+
+browserTest('on a branch a move asks first with the branch paragraph; Cancel, Escape and the backdrop write nothing; a reorder asks too; Move anyway moves and its Undo does not ask', b, async open => {
+  writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const before = read(env.tasks());
+  const first = rowsIn(before, 'Backlog')[0];
+  await row(page, 'backlog', 0).dragTo(page.locator('#boardMode .gl[data-col="currentSprint"] .gh'));
+  await busyOpen(page);
+  expect(await page.locator('#busyVeil .sheet').getAttribute('role')).toBe('alertdialog');
+  expect(await page.locator('#busyTitle').textContent()).toBe('Move BL-901 while work is in progress?');
+  expect(await busyTexts(page)).toEqual([BRANCH_TEXT('feature')]);
+  await page.waitForFunction(() => document.activeElement?.id === 'busyCancel');
+  await page.click('#busyCancel');
+  await busyClosed(page);
+  await rowFocused(page, 'backlog', 0);
+  expect(read(env.tasks())).toBe(before);
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  await rowFocused(page, 'backlog', 0);
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  await page.mouse.click(5, 5); // the backdrop
+  await busyClosed(page);
+  expect(read(env.tasks())).toBe(before);
+  await row(page, 'backlog', 0).focus(); // a reorder within the lane rewrites tasks.md too
+  await page.keyboard.press('Alt+ArrowDown');
+  await busyOpen(page);
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  expect(read(env.tasks())).toBe(before);
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  await page.click('#busyGo');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(first), 'the row in Current Sprint on disk');
+  await waitToast(page, /^BL-901 moved from ## Backlog to ## Current Sprint/);
+  await page.click('#toast .tact');
+  await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
+  expect(await busyIsOpen(page)).toBe(false);
+});
+
+browserTest('after a write from outside the page a move asks with the activity paragraph; two files name one and 1 more; with a detached HEAD too both paragraphs, branch first', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await reloadThrough(page, 'CS-900');
+  const before = read(env.tasks());
+  await row(page, 'backlog', 0).click({ button: 'right' });
+  await menuOpen(page);
+  await (await item(page, 'Current Sprint')).click();
+  await busyOpen(page);
+  const one = await busyTexts(page);
+  expect(one).toHaveLength(1);
+  expect(one[0]).toMatch(MOVE_ACTIVITY(TASKS_FILE));
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  expect(read(env.tasks())).toBe(before);
+  // two spec files in one reload: tasks.md named, the other counted
+  const rev = Number(await page.evaluate(() => document.documentElement.dataset.rev || 0));
+  const req = join(env.project, '.specs', 'project', 'requirements.md');
+  writeFileSync(req, read(req) + '\nWritten outside the page.\n');
+  writeFileSync(env.tasks(), read(env.tasks()).replace('| CS-900 |', '| CS-903 |'));
+  await page.waitForFunction(r => Number(document.documentElement.dataset.rev || 0) > r, rev);
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  expect((await busyTexts(page))[0]).toMatch(MOVE_ACTIVITY(`${TASKS_FILE} and 1 more file`));
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  // a detached HEAD and activity: both paragraphs, the branch first, the commit named
+  writeFileSync(HEAD(), 'a'.repeat(40) + '\n');
+  await reloadThrough(page, 'CS-904');
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  const both = await busyTexts(page);
+  expect(both).toHaveLength(2);
+  expect(both[0]).toBe(BRANCH_TEXT('a'.repeat(40)));
+  expect(both[1]).toMatch(MOVE_ACTIVITY(TASKS_FILE));
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  // Archive shows both gates, each needing its tick
+  await laneArchive(page).click();
+  await archOpen(page);
+  expect(await page.locator('#archGates input[data-gate^="branch:"]').count()).toBe(1);
+  expect(await page.locator('#archGates input[data-gate="activity"]').count()).toBe(1);
+  await page.keyboard.press('Escape');
+  await archClosed(page);
+});
+
+browserTest('on main with nothing written from outside, moves go through with no dialog, the page\'s own echo included; the window runs out after 120 seconds', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  const first = rowsIn(read(env.tasks()), 'Backlog')[0];
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(first), 'the first move on disk');
+  await waitToast(page, /^BL-901 moved from ## Backlog to ## Current Sprint/);
+  await page.waitForTimeout(1500); // six polls: the echo of the page's own move has been drawn (nothing to wait on, it draws nothing)
+  const second = rowsIn(read(env.tasks()), 'Backlog')[0];
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(second), 'the second move on disk');
+  expect(await busyIsOpen(page)).toBe(false);
+  // activity, then the clock 120 seconds on: no dialog
+  await page.clock.install();
+  await reloadThrough(page, 'CS-900');
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  await page.clock.fastForward(120000);
+  const third = rowsIn(read(env.tasks()), 'Backlog')[0];
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(third), 'the third move on disk');
+  expect(await busyIsOpen(page)).toBe(false);
+});
+
+browserTest('Send back by any gesture and the Completed hint never ask, on a branch after a write from outside', b, async open => {
+  writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await reloadThrough(page, 'CS-900');
+  const before = read(env.tasks());
+  const inSprint = () => rowsIn(read(env.tasks()), 'Current Sprint')[0]?.startsWith('| CS-801 |') ?? false;
+  const undo = async () => {
+    await waitToast(page, /^Sent CS-801 back to Current Sprint/);
+    expect(await busyIsOpen(page)).toBe(false);
+    await page.click('#toast .tact');
+    await until(() => read(env.tasks()) === before, 'tasks.md back as it was');
+    await waitToast(page, /^CS-801 is back in ## Review/);
+  };
+  await row(page, 'review', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight'); // toward Completed: the hint, nothing written
+  await waitToast(page, /^Nothing moves to Completed from here\./);
+  expect(await busyIsOpen(page)).toBe(false);
+  expect(read(env.tasks())).toBe(before);
+  await page.keyboard.press('Alt+ArrowLeft');
+  await until(inSprint, 'Alt+← sent the row back');
+  await undo();
+  await row(page, 'review', 0).dragTo(page.locator('#boardMode .gl[data-col="currentSprint"] .gh'));
+  await until(inSprint, 'the drag sent the row back');
+  await undo();
+  await row(page, 'review', 0).click();
+  await inspOpen(page);
+  await page.click('#rvSend');
+  await formOpen(page);
+  await page.click('#rvGo');
+  await until(inSprint, 'the panel sent the row back');
+  await undo();
+});
+
+browserTest('Move anyway after the row left its lane writes nothing and says so; with a stale page it is refused with the move\'s 409 text, at 420px too', b, async open => {
+  writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await row(page, 'backlog', 0).focus();
+  await page.keyboard.press('Alt+ArrowRight');
+  await busyOpen(page);
+  writeFileSync(env.tasks(), read(env.tasks()).replace(/^\| BL-901 \|.*\n/m, '')); // gone while the dialog is open
+  await until(async () => (await page.locator('#boardMode .row[data-col="backlog"]').allTextContents()).every(t => !t.includes('BL-901')), 'the reload drawn');
+  const gone = read(env.tasks());
+  await page.click('#busyGo');
+  await waitToast(page, /^BL-901 is no longer in ## Backlog\. Nothing was moved\.$/);
+  expect(read(env.tasks())).toBe(gone);
+  const slow = await serve(env, [env.project], { pollMs: 60000 }); // the page keeps the old hash
+  try {
+    const narrow = (await open(slow, '', { width: 420 })).page;
+    await waitView(narrow, 'v-board');
+    const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
+    writeFileSync(env.tasks(), changed);
+    await row(narrow, 'backlog', 0).focus();
+    await narrow.keyboard.press('Alt+ArrowRight');
+    await busyOpen(narrow);
+    await narrow.click('#busyGo');
+    await waitToast(narrow, new RegExp(`^${taskMover.STALE_ERROR.replace(/[.]/g, '\\.')}`));
+    expect(read(env.tasks())).toBe(changed);
+    expect(await noSideScroll(narrow)).toBe(true); // the error state at 420px
+  } finally {
+    await slow.close();
+  }
+}, [/status of 409/]);
+
+browserTest('a project switch while the dialog is open closes it, and neither project\'s tasks.md is written', b, async open => {
+  writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
+  const other = makeProject(join(env.home, 'dev'), 'other-project'); // the fixture again: BL-001 in both
+  const two = await serve(env, [env.project, other]);
+  try {
+    const { page } = await open(two);
+    await waitView(page, 'v-board');
+    const mine = read(env.tasks()), theirs = read(env.tasks(other));
+    expect(rowsIn(mine, 'Backlog')[1]).toMatch(/^\| BL-001 \|/);
+    await row(page, 'backlog', 1).focus();
+    await page.keyboard.press('Alt+ArrowRight');
+    await busyOpen(page);
+    await page.evaluate(() => { location.hash = '#1/board'; });
+    await busyClosed(page);
+    await page.waitForFunction(() => document.querySelector('#projList .tile[data-project="1"]')?.getAttribute('aria-current') === 'true');
+    expect(read(env.tasks())).toBe(mine);
+    expect(read(env.tasks(other))).toBe(theirs);
+  } finally {
+    await two.close();
+  }
+});
+
+browserTest('the dialog at 420px: idle, the branch paragraph, both, the activity paragraph alone, and a move in progress, with no sideways scroll and both buttons in view', b, async open => {
+  writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
+  const { page } = await open(srv, '', { width: 420 });
+  await waitView(page, 'v-board');
+  expect(await noSideScroll(page)).toBe(true); // idle
+  const check = async (n: number) => {
+    await row(page, 'backlog', 0).focus();
+    await page.keyboard.press('Alt+ArrowRight');
+    await busyOpen(page);
+    expect(await busyTexts(page)).toHaveLength(n);
+    expect(await noSideScroll(page)).toBe(true);
+    expect(await busyButtonsInView(page)).toBe(true);
+  };
+  await check(1); // the branch
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  await reloadThrough(page, 'CS-900');
+  await check(2); // the branch and the activity
+  await page.keyboard.press('Escape');
+  await busyClosed(page);
+  writeFileSync(HEAD(), 'ref: refs/heads/main\n');
+  await reloadThrough(page, 'CS-902');
+  await check(1); // the activity alone
+  expect((await busyTexts(page))[0]).toMatch(MOVE_ACTIVITY(TASKS_FILE));
+  const first = rowsIn(read(env.tasks()), 'Backlog')[0];
+  await page.click('#busyGo');
+  expect(await noSideScroll(page)).toBe(true); // the move in progress
+  await until(() => rowsIn(read(env.tasks()), 'Current Sprint').includes(first), 'the row in Current Sprint on disk');
+  await waitToast(page, /^BL-901 moved from ## Backlog to ## Current Sprint/);
+  expect(await noSideScroll(page)).toBe(true);
 });

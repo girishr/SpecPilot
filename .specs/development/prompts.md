@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-25 (v2.19.0 prepared)
-version: 2.197
+lastUpdated: 2026-10-25 (v2.19.0 shipped)
+version: 2.198
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -36,6 +36,7 @@ For full project context, read .specs/project/project.yaml.
 - 2026-10-25: `i see there are 10 items in push what are those?`: BL-122, BL-125 and BL-127 (feature, completion and merge commits each, plus BL-122's filing commit); `push` (`b7fa66c..5ca7c43`).
 - 2026-10-25: `get ready for publish. I will do it manually`: 2.19.0 chosen; validate's Completed-over-40 warning: `1.` (archive first, then the release); `specpilot archive`: 14 Completed lines (rows 207 to 220) to tasks-archive.md, validate clean.
 - 2026-10-25: v2.19.0 prepared (BL-120, BL-122, BL-125, BL-127) per `docs/RELEASING.md`: version, specs, CHANGELOG promoted (BL-120 and BL-122 moved from [2.18.0]), roadmap line, release row 241; checks, commit and annotated tag; not pushed or published (the developer ships by hand).
+- 2026-10-25: `shld we commit before the push and publish?` (no: tree clean, both commits and the tag go with the push); the developer ran step 4; the first check found `npm publish` had not landed (404 for 2.19.0), `try now`: checked `origin/main` at `f643421`, the tag `v2.19.0` on origin, `npm view specpilot dist-tags` latest 2.19.0, `gh release view v2.19.0` live (08:33 UTC); row 241 reworded, row 242 added, this entry; the `docs(tasks): v2.19.0 shipped` commit.
 - 2026-10-24: BL-125 approved on the card (`all good, apporoved`); `commit`: the feature commit `942fed6`, BL-125 to Completed as row 239 (`CD-girishr-148`), then the `--no-ff` merge.
 - 2026-10-24: a screenshot of the Priority and Type block, `the alignment and layout are a bit broken ... move the Priority and Type below the Description ... colorize all`: BL-125 back to Current Sprint; REQ-002.H.58 and context.md first (P1 red, P2 orange, P3 blue; feat violet, bug red, chore gray), then the grid, the move, the colour classes; screenshots read; browser 83/83 three runs.
 - 2026-10-24: `why are the cards not havning prio and tasks input on the cards?` (this repo and a scratch project are all plain), `shld we use a warning for this type of project?`: a Note, not a Warning, recommended; `move to CS`: BL-125 back to Current Sprint, REQ-002.H.58 (d) and the tests entry first, then the Note and the panel line built; browser 83/83 three runs. Waiting for spec-reviewer.

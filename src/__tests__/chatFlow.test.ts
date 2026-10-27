@@ -25,7 +25,7 @@ const keys = (a: Answers, mode: core.ChatMode = 'new') => ask(a, mode).map(q => 
 
 describe('the questions and their order (REQ-002.H.28)', () => {
   it('a new Greenfield project: the web\'s 33 in its order, the CLI\'s six in their places, plus language, framework and the parent folder', () => {
-    expect(keys({ projectDescription: 'CRM System', projectCategory: 'saas', apiParadigm: 'rest', localDatabases: ['SQLite'], technicalConstraints: ['Budget cap'] })).toEqual([
+    expect(keys({ projectDescription: 'CRM System', projectCategory: 'saas', apiParadigm: 'rest', localDatabases: ['SQLite'], technicalConstraints: ['Budget cap'], hasDesignAssets: 'Yes' })).toEqual([
       'parent', 'projectDescription', 'projectType', 'handle',
       'platforms', 'language', 'framework', 'ide',
       'userTypes', 'accessControl', 'specialConsiderations', 'accessibilityNotes',
@@ -34,8 +34,9 @@ describe('the questions and their order (REQ-002.H.28)', () => {
       'integrations', 'otherApis',
       'nonGoals', 'technicalConstraints', 'constraintDescription', 'compliance', 'apiResponseTime', 'availability',
       'securityConcerns', 'testingStrategy', 'cicd',
+      'hasDesignAssets', 'figmaUrl', 'designSystem', 'designNotes', 'uiStyle',
     ]);
-    expect(core.CHAT_STEPS).toHaveLength(8);
+    expect(core.CHAT_STEPS).toHaveLength(9);
   });
 
   it('Brownfield: the description and technical constraints stay (category, gate), user types, scale tier and non-goals go', () => {
@@ -44,8 +45,8 @@ describe('the questions and their order (REQ-002.H.28)', () => {
     for (const key of ['userTypes', 'scaleTier', 'nonGoals']) expect(k).not.toContain(key);
   });
 
-  it('guided setup: no name, folder, description, user types, scale tier or non-goals; the 23 fields\' questions all asked', () => {
-    const k = keys({ apiParadigm: 'rest', technicalConstraints: ['Budget cap'], localDatabases: ['SQLite'] }, 'setup');
+  it('guided setup: no name, folder, description, user types, scale tier or non-goals; the 28 fields\' questions all asked', () => {
+    const k = keys({ apiParadigm: 'rest', technicalConstraints: ['Budget cap'], localDatabases: ['SQLite'], hasDesignAssets: 'Yes' }, 'setup');
     for (const key of ['parent', 'projectDescription', 'userTypes', 'scaleTier', 'nonGoals']) expect(k).not.toContain(key);
     for (const key of Object.keys(core.OPTIONAL_FIELD_LIMITS)) expect(k).toContain(key);
     for (const key of ['packageManager', 'testFramework', 'repository', 'license']) expect(Object.keys(core.OPTIONAL_FIELD_LIMITS)).not.toContain(key); // BL-095: never from a request
@@ -225,7 +226,8 @@ describe('the field-to-file table is what render() changes (REQ-002.I.7)', () =>
       const apiOnly = core.FIELD_FILES[key].every(f => f === 'architecture/api.yaml');
       const expected = (p === 'cli' || p === 'none') ? core.FIELD_FILES[key].filter(f => f !== 'architecture/api.yaml') : core.FIELD_FILES[key];
       // databases and realtime have no file under cli or none, which is why the chat does not ask them there
-      expect([key, changed(base(p), { ...base(p), [key]: sample(key) })]).toEqual([key, apiOnly && (p === 'cli' || p === 'none') ? [] : [...expected].sort()]);
+      const gate = [...core.DESIGN_GATED, 'uiStyle'].includes(key) ? { hasDesignAssets: 'Yes' } : {}; // the section needs the gate (REQ-002.I.8)
+      expect([key, changed({ ...base(p), ...gate }, { ...base(p), ...gate, [key]: key === 'hasDesignAssets' ? 'Yes' : sample(key) })]).toEqual([key, apiOnly && (p === 'cli' || p === 'none') ? [] : [...expected].sort()]);
     }
     for (const key of ['whatItDoes', 'targetUsers', 'expectedScale', 'constraints']) {
       expect(changed(base(p), { ...base(p), projectContext: { ...base(p).projectContext, [key]: 'Z' } })).toEqual(core.FIELD_FILES[key]);
@@ -243,5 +245,63 @@ describe('the question list the chat core takes (ui/route.js)', () => {
     const a: Answers = { parent: '~/dev', projectDescription: 'CRM System', projectType: 'greenfield', handle: '', language: 'typescript', framework: 'none', ide: 'vscode', apiParadigm: 'rest' };
     const list = ask(a);
     expect(route.flowBody(list.filter(q => !q.core), a)).toEqual({ parent: '~/dev', projectType: 'greenfield', handle: '', language: 'typescript', framework: 'none', ide: 'vscode', apiParadigm: 'rest' });
+  });
+});
+
+describe('the Design & UI step (BL-129, REQ-002.I.8; Init\'s TEST-086)', () => {
+  const saas = { projectDescription: 'CRM System', projectCategory: 'saas', apiParadigm: 'rest' };
+  const design = (a: Answers) => ask(a).filter(q => q.step === 'Design & UI');
+  const sent = (a: Answers) => core.requestFields(ask(a), a, 'new');
+  const assets = { figmaUrl: 'https://www.figma.com/design/x', designSystem: 'shadcn/ui', designNotes: 'Colours final.' };
+
+  it('is the ninth step, right after Security & NFR, with the five keys in order and every earlier key where it was', () => {
+    expect(core.CHAT_STEPS.slice(7)).toEqual(['Security & NFR', 'Design & UI']);
+    expect(core.CHAT_KEYS.slice(-5)).toEqual([['hasDesignAssets', 8], ['figmaUrl', 8], ['designSystem', 8], ['designNotes', 8], ['uiStyle', 8]]);
+    expect(core.CHAT_KEYS.slice(0, -5).every(([, step]) => step < 8)).toBe(true);
+  });
+
+  it('gate No: the three asset questions are skipped and not sent, even with stale answers; UI style is still asked', () => {
+    const a = { ...saas, hasDesignAssets: 'No', ...assets, uiStyle: 'Playful' };
+    expect(design(a).map(q => q.key)).toEqual(['hasDesignAssets', 'uiStyle']);
+    const body = sent(a);
+    for (const key of core.DESIGN_GATED) expect(body).not.toHaveProperty(key);
+    expect(body).toMatchObject({ hasDesignAssets: 'No', uiStyle: 'Playful' });
+  });
+
+  it('gate Yes: all four are asked and sent with their labels', () => {
+    const a = { ...saas, hasDesignAssets: 'Yes', ...assets, uiStyle: 'Minimal-Clean' };
+    expect(design(a).map(q => q.key)).toEqual(['hasDesignAssets', 'figmaUrl', 'designSystem', 'designNotes', 'uiStyle']);
+    expect(sent(a)).toMatchObject({ hasDesignAssets: 'Yes', ...assets, uiStyle: 'Minimal-Clean' });
+  });
+
+  it('the gate changed from Yes to No: the asset answers are no longer sent', () => {
+    const a = { ...saas, hasDesignAssets: 'Yes', ...assets };
+    expect(sent(a)).toMatchObject(assets);
+    const body = sent({ ...a, hasDesignAssets: 'No' });
+    for (const key of core.DESIGN_GATED) expect(body).not.toHaveProperty(key);
+  });
+
+  it('a CLI or a library project skips the whole step and sends none of the five', () => {
+    for (const [projectDescription, projectCategory] of [['CLI Tool', 'cli'], ['Library', 'library']]) {
+      const a = { projectDescription, projectCategory, hasDesignAssets: 'Yes', ...assets, uiStyle: 'Playful' };
+      expect(design(a)).toEqual([]);
+      const body = sent(a);
+      for (const key of ['hasDesignAssets', ...core.DESIGN_GATED, 'uiStyle']) expect(body).not.toHaveProperty(key);
+    }
+  });
+
+  it('the option lists, bot lines and labels are Init\'s', () => {
+    const q = design({ ...saas, hasDesignAssets: 'Yes' });
+    expect(q.map(x => [x.label, x.chat])).toEqual([
+      ['Design assets', 'Do you have existing design assets - Figma files, a design system, mockups?'],
+      ['Figma', 'Got a Figma link? Optional.'],
+      ['Design system', 'Which design system are the designs built on?'],
+      ['Design notes', 'Anything about the designs worth noting? Optional.'],
+      ['UI style', 'What UI style are you going for?'],
+    ]);
+    expect(q[0].options!.map(o => o.id)).toEqual(['Yes', 'No']);
+    expect(q[0].required).toBe(true);
+    expect(q[2].options!.map(o => o.id)).toEqual(['Material Design', 'Human Interface Guidelines', 'shadcn/ui', 'Ant Design', 'Chakra UI', 'Custom']);
+    expect(q[4].options!.map(o => o.id)).toEqual(['Minimal-Clean', 'Bold-Vibrant', 'Dark-mode-first', 'Material', 'iOS-native feel', 'Corporate', 'Playful', 'Custom brand']);
   });
 });

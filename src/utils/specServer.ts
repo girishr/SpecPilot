@@ -10,7 +10,7 @@ import { archiveCompleted, completedArchiveStatus, FIELDS_STALE_ERROR, FieldsReq
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
 import { answersShapeError, checkTarget, createProject, newProjectQuestions, newProjectShapeError, pendingShapeError, reserveTarget, SetupQuestions, setupProject, setupQuestions, specsMissing } from './specSetup';
-import { chatQuestions, CliQuestion, OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
+import { chatQuestions, CliQuestion, DESIGN_GATED, OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
@@ -844,7 +844,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     const line = JSON.stringify({ ...(t.kind === 'existing' ? { project: t.index } : { pending: true }), ...data });
     allStreams().forEach(st => st.write(`event: setup\ndata: ${line}\n\n`));
   };
-  /** The questions for a target: the CLI's, then the 23 optional fields with the chat core's wording, labels and options. */
+  /** The questions for a target: the CLI's, then the 28 optional fields with the chat core's wording, labels and options. */
   const setupQuestionList = async (t: SetupTarget) => {
     let q: SetupQuestions | ReturnType<typeof newProjectQuestions>;
     try {
@@ -854,8 +854,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     }
     const mode = t.kind === 'existing' ? 'setup' : 'new';
     // Answers that open every optional field's question: databases and realtime follow a REST or GraphQL API, sync
-    // follows an offline store, constraint detail follows a technical constraint. The agent answers what applies.
-    const open = { apiParadigm: 'rest', localDatabases: ['SQLite'], technicalConstraints: ['Budget cap'] };
+    // follows an offline store, constraint detail follows a technical constraint, the design assets follow a Yes. The agent answers what applies.
+    const open = { apiParadigm: 'rest', localDatabases: ['SQLite'], technicalConstraints: ['Budget cap'], hasDesignAssets: 'Yes' };
     const core = chatQuestions(q.questions as unknown as CliQuestion[], flowQuestions(q, {}, []), open, mode, q.files.outside);
     const cli = (q.questions as unknown as CliQuestion[]).map(x => ({
       key: x.key, label: x.label ?? x.key, question: x.message, required: !!x.required,
@@ -867,6 +867,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       key: c.key, label: c.label, question: c.chat, kind: OPTIONAL_FIELD_LIMITS[c.key].kind, max: OPTIONAL_FIELD_LIMITS[c.key].max,
       ...(c.options?.length ? { options: c.options.filter(o => !o.todo).map(o => o.label) } : {}),
       ...(c.categories ? { categories: c.categories.map(k => ({ id: k.id, label: k.label, options: k.options })) } : {}),
+      ...(DESIGN_GATED.includes(c.key) ? { when: { hasDesignAssets: 'Yes' } } : {}),
     }));
     const detected = 'detected' in q && q.detected ? q.detected.rows.map(r => ({ label: r.label, value: r.value })) : [];
     const name = t.kind === 'new' ? basename(t.target) : ('detected' in q && q.detected ? q.detected.name : basename(t.root));

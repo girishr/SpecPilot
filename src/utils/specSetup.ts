@@ -170,7 +170,7 @@ function detectedRows(info: ProjectInfo): DetectedRow[] {
 const KEYS = ['projectType', 'language', 'framework', 'apiParadigm', 'handle', 'ide'];
 const oneOf = (key: string, values: string[]) => `"${key}" must be one of: ${values.join(', ')}.`;
 
-/** The 23 optional template fields a setup body may also carry (BL-PM-004b, REQ-002.H.28). */
+/** The 28 optional template fields a setup body may also carry (BL-PM-004b, REQ-002.H.28; BL-129, REQ-002.I.8). */
 const FIELD_KEYS = Object.keys(OPTIONAL_FIELD_LIMITS);
 // What one line typed at the CLI's prompt cannot hold: control characters and the two line separators.
 // eslint-disable-next-line no-control-regex
@@ -209,6 +209,7 @@ function fieldsShapeError(b: Record<string, unknown>): string | null {
         if (problem) break;
       }
     }
+    if (!problem && key === 'hasDesignAssets' && v !== 'Yes' && v !== 'No') problem = oneOf(key, ['Yes', 'No']);
     if (problem) return problem;
   }
   return null;

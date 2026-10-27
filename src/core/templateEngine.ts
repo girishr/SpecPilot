@@ -32,6 +32,12 @@ export interface OptionalFields {
   buildTimeline?: string;
   constraintDescription?: string;
   testingStrategy?: string[];
+  /** BL-129 (REQ-002.I.8): Init's Step 9; the gate is `Yes` or `No`, and the section is written only when it is sent. */
+  hasDesignAssets?: string;
+  figmaUrl?: string;
+  designSystem?: string;
+  designNotes?: string;
+  uiStyle?: string;
   /** BL-095 (REQ-002.H.39): detection-only, filled from `ProjectDetector`, never asked or taken from a request. */
   packageManager?: string;
   testFramework?: string;
@@ -44,7 +50,7 @@ export const OPTIONAL_FIELDS: (keyof OptionalFields)[] = [
   'platforms', 'accessControl', 'specialConsiderations', 'accessibilityNotes', 'systemPattern', 'activeUsers', 'teamSize',
   'deploymentTargets', 'localDatabases', 'dataSyncStrategy', 'integrations', 'otherApis', 'apiResponseTime', 'availability',
   'databases', 'authStrategy', 'realtimeTypes', 'compliance', 'cicd', 'securityConcerns', 'buildTimeline', 'constraintDescription',
-  'testingStrategy', 'packageManager', 'testFramework', 'repository', 'license',
+  'testingStrategy', 'hasDesignAssets', 'figmaUrl', 'designSystem', 'designNotes', 'uiStyle', 'packageManager', 'testFramework', 'repository', 'license',
 ];
 
 export interface TemplateContext extends OptionalFields {
@@ -119,6 +125,7 @@ export class TemplateEngine {
     );
     // BL-032 phase 2: `any` for a section that several optional fields share; `yaml`/`yamlList` for YAML values (REQ-002.I.5).
     Handlebars.registerHelper('any', (...args: unknown[]) => args.slice(0, -1).some(present));
+    Handlebars.registerHelper('eq', (a: unknown, b: unknown) => a === b);
     Handlebars.registerHelper('yaml', (value: unknown) => new Handlebars.SafeString(yamlScalar(String(value ?? ''))));
     Handlebars.registerHelper('yamlList', (items: unknown) =>
       new Handlebars.SafeString(Array.isArray(items) ? items.map(item => `  - ${yamlScalar(String(item))}`).join('\n') : '  []')
@@ -447,6 +454,21 @@ Based on analysis of the project structure:
 
 {{/if}}
 Other: {{otherApis}}
+{{/if}}
+
+{{/if}}
+{{#if hasDesignAssets}}
+## Design & UI
+- **UI style**: {{#if uiStyle}}{{uiStyle}}{{else}}TODO{{/if}}
+- **Existing design assets**: {{#if (eq hasDesignAssets "Yes")}}Yes{{else}}No{{/if}}
+{{#if (eq hasDesignAssets "Yes")}}
+- **Design system**: {{#if designSystem}}{{designSystem}}{{else}}TODO{{/if}}
+{{#if figmaUrl}}
+- **Figma**: {{figmaUrl}}
+{{/if}}
+{{#if designNotes}}
+- **Design notes**: {{designNotes}}
+{{/if}}
 {{/if}}
 
 {{/if}}

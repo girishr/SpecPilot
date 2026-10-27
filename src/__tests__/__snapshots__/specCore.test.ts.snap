@@ -14,7 +14,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "e902111a80715628e91550d372313deb34c828c0dd845c40ec5053865786adcd",
-  ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
+  ".specs/architecture/architecture.md": "8f25ac0ea6dcd1cfc8491e3b6183de222b6e7ec5f56e7c7d5c6944f2154b52a3",
   ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
   ".specs/development/onboarding.md": "026a236d6d91175357862ec53258ea46400942dbc35655ceed60d239a19a517e",
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
@@ -43,7 +43,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".github/copilot-instructions.md": "81b3ce0e6c26a3e7a67d035889f3d4bb9be26785ad60f11d491c016de9e49e37",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
-  ".specs/architecture/architecture.md": "d96edc424a5eec9dd929c8286127ce9e4f3eb0b53b80541bc81f3e0283094733",
+  ".specs/architecture/architecture.md": "8f25ac0ea6dcd1cfc8491e3b6183de222b6e7ec5f56e7c7d5c6944f2154b52a3",
   ".specs/development/context.md": "7119dd7eea29dfadb23c399e9bf648ef13300be18cca768f47866aad59e3ad68",
   ".specs/development/onboarding.md": "026a236d6d91175357862ec53258ea46400942dbc35655ceed60d239a19a517e",
   ".specs/development/prompts.md": "c97ccfaf816b51c543df45981a1247908d7fdc5e5ddd6adee7b8ce7399a63521",
@@ -734,6 +734,13 @@ This document outlines the architecture and design decisions for parcel-track, a
 - **ai**: OpenAI, Anthropic
 
 Other: Twilio for SMS
+
+## Design & UI
+- **UI style**: Minimal-Clean
+- **Existing design assets**: Yes
+- **Design system**: shadcn/ui
+- **Figma**: https://www.figma.com/design/abc123/Parcel-Track
+- **Design notes**: Brand colours are final, spacing is still in flux.
 
 ## Design Decisions
 

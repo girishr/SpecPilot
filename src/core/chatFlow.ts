@@ -704,6 +704,21 @@ export function getCicdBadge(deploymentTargets: string[]): Badges {
   return match ? { [match]: 'recommended' } : {};
 }
 
+// ---------------------------------------------------------------- design (designOptions.ts, BL-129)
+
+export const DESIGN_ASSET_OPTIONS = [{ emoji: '🎨', label: 'Yes' }, { emoji: '➖', label: 'No' }];
+
+export const DESIGN_SYSTEMS = [
+  { emoji: '🟦', label: 'Material Design' }, { emoji: '🍎', label: 'Human Interface Guidelines' }, { emoji: '⬛', label: 'shadcn/ui' },
+  { emoji: '🐜', label: 'Ant Design' }, { emoji: '⚡', label: 'Chakra UI' }, { emoji: '✏️', label: 'Custom' },
+];
+
+export const UI_STYLES = [
+  { emoji: '🤍', label: 'Minimal-Clean' }, { emoji: '🎨', label: 'Bold-Vibrant' }, { emoji: '🌙', label: 'Dark-mode-first' },
+  { emoji: '🟦', label: 'Material' }, { emoji: '📱', label: 'iOS-native feel' }, { emoji: '🏢', label: 'Corporate' },
+  { emoji: '🎈', label: 'Playful' }, { emoji: '🏷️', label: 'Custom brand' },
+];
+
 // ---------------------------------------------------------------- the flow
 
 export type QuestionType = 'text' | 'choice' | 'multi' | 'cards' | 'tabbed-chips' | 'grouped-multi' | 'platform-grid' | 'categorized';
@@ -769,7 +784,7 @@ export interface CliQuestion {
   [extra: string]: unknown;
 }
 
-export const CHAT_STEPS = ['Project identity', 'Platform & IDE', 'Target users', 'Scale & deploy', 'Architecture & data', 'Integrations', 'Constraints & non-goals', 'Security & NFR'];
+export const CHAT_STEPS = ['Project identity', 'Platform & IDE', 'Target users', 'Scale & deploy', 'Architecture & data', 'Integrations', 'Constraints & non-goals', 'Security & NFR', 'Design & UI'];
 
 /** Every question key in the chat's order, with its step (index into CHAT_STEPS). The parent folder is the page's own. */
 export const CHAT_KEYS: [string, number][] = [
@@ -781,12 +796,13 @@ export const CHAT_KEYS: [string, number][] = [
   ['integrations', 5], ['otherApis', 5],
   ['nonGoals', 6], ['technicalConstraints', 6], ['constraintDescription', 6], ['compliance', 6], ['apiResponseTime', 6], ['availability', 6],
   ['securityConcerns', 7], ['testingStrategy', 7], ['cicd', 7],
+  ['hasDesignAssets', 8], ['figmaUrl', 8], ['designSystem', 8], ['designNotes', 8], ['uiStyle', 8],
 ];
 
 /** The TODO answer of the non-goals question. */
 export const TODO = '__todo__';
 
-/** Each key the page sends: the 23 optional fields of REQ-002.I.4, their kind and longest text. */
+/** Each key the page sends: the 28 optional fields of REQ-002.I.4 and I.8, their kind and longest text. */
 export const OPTIONAL_FIELD_LIMITS: Record<string, { kind: 'text' | 'list' | 'map'; max: number }> = {
   platforms: { kind: 'list', max: 100 }, accessControl: { kind: 'text', max: 100 }, specialConsiderations: { kind: 'list', max: 100 },
   accessibilityNotes: { kind: 'text', max: 1000 }, systemPattern: { kind: 'text', max: 100 }, activeUsers: { kind: 'text', max: 100 },
@@ -796,6 +812,8 @@ export const OPTIONAL_FIELD_LIMITS: Record<string, { kind: 'text' | 'list' | 'ma
   authStrategy: { kind: 'text', max: 100 }, realtimeTypes: { kind: 'list', max: 100 }, compliance: { kind: 'list', max: 100 },
   cicd: { kind: 'list', max: 100 }, securityConcerns: { kind: 'list', max: 100 }, buildTimeline: { kind: 'text', max: 100 },
   constraintDescription: { kind: 'text', max: 1000 }, testingStrategy: { kind: 'list', max: 100 },
+  hasDesignAssets: { kind: 'text', max: 3 }, figmaUrl: { kind: 'text', max: 1000 }, designSystem: { kind: 'text', max: 100 },
+  designNotes: { kind: 'text', max: 1000 }, uiStyle: { kind: 'text', max: 100 },
 };
 /** Most items in one list (and in one integration category). */
 export const MAX_LIST_ITEMS = 25;
@@ -816,6 +834,8 @@ export const FIELD_FILES: Record<string, string[]> = {
   buildTimeline: ['planning/roadmap.md'], constraintDescription: ['development/context.md'], testingStrategy: ['quality/tests.md'],
   whatItDoes: ['development/onboarding.md'], targetUsers: ['development/onboarding.md'], expectedScale: ['development/onboarding.md'], constraints: ['development/onboarding.md'],
   projectType: ['development/onboarding.md'], apiParadigm: ['architecture/api.yaml'],
+  hasDesignAssets: ['architecture/architecture.md'], figmaUrl: ['architecture/architecture.md'], designSystem: ['architecture/architecture.md'],
+  designNotes: ['architecture/architecture.md'], uiStyle: ['architecture/architecture.md'],
 };
 
 /** Which context answer each folded question is sent in. */
@@ -855,6 +875,9 @@ const cap = (a: Answers) => getCapabilities(a.projectCategory as ProjectCategory
 const desc = (a: Answers) => str(a, 'projectDescription').toLowerCase();
 /** The App's own rule: `api.yaml` is the only home of databases and realtime, written after `rest` and `graphql` only. */
 const apiYamlHolds = (a: Answers) => ['rest', 'graphql'].includes(str(a, 'apiParadigm'));
+/** Init's Step 9 gate (BL-129): the three asset questions follow a graphical UI and a `Yes`. */
+export const DESIGN_GATED = ['figmaUrl', 'designSystem', 'designNotes'];
+const hasDesignAssets = (a: Answers) => cap(a).hasGraphicalUI && str(a, 'hasDesignAssets') === 'Yes';
 
 const CORE: Record<string, CoreDef> = {
   projectDescription: {
@@ -1000,6 +1023,28 @@ const CORE: Record<string, CoreDef> = {
   cicd: {
     type: 'multi', label: 'CI/CD', options: () => opts(CICD_OPTIONS), badges: a => getCicdBadge(list(a, 'deploymentTargets')),
     chat: 'CI / CD - automatically running tests and deploying on every code change. Pick everything that applies.',
+  },
+  hasDesignAssets: {
+    type: 'choice', required: true, label: 'Design assets', options: () => opts(DESIGN_ASSET_OPTIONS),
+    skip: a => !cap(a).hasGraphicalUI,
+    skipNote: a => `Skipping design and UI questions - a ${desc(a)} has no graphical UI to design.`,
+    chat: 'Do you have existing design assets - Figma files, a design system, mockups?',
+  },
+  figmaUrl: {
+    type: 'text', label: 'Figma', placeholder: 'e.g. https://www.figma.com/design/…', skip: a => !hasDesignAssets(a),
+    chat: 'Got a Figma link? Optional.',
+  },
+  designSystem: {
+    type: 'choice', label: 'Design system', options: () => opts(DESIGN_SYSTEMS), skip: a => !hasDesignAssets(a),
+    chat: 'Which design system are the designs built on?',
+  },
+  designNotes: {
+    type: 'text', label: 'Design notes', placeholder: 'e.g. Brand colours are final, spacing is still in flux…', skip: a => !hasDesignAssets(a),
+    chat: 'Anything about the designs worth noting? Optional.',
+  },
+  uiStyle: {
+    type: 'choice', label: 'UI style', options: () => opts(UI_STYLES), skip: a => !cap(a).hasGraphicalUI,
+    chat: 'What UI style are you going for?',
   },
 };
 

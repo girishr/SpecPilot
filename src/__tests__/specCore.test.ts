@@ -207,7 +207,7 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(file({ ...BASE, accessibilityNotes: 'Notes only.' }, '.specs/project/requirements.md')).toContain('[TODO]\n\n### Special considerations\n\nNotes only.\n\n## Assumptions');
     const arch = file(all, '.specs/architecture/architecture.md');
     expect(arch).toContain('- **Architecture Style**: Modular monolith\n');
-    expect(arch).toContain('## Scale\n- Active users: 1,000 - 10,000\n- Team size: 2-5 devs\n\n## Deployment targets\n- AWS\n- Vercel\n\n## Data layer\n- **Offline support**: Yes\n- **Local database(s)**: SQLite\n- **Data sync strategy**: Last write wins\n\n## Integrations\n- **payments**: Stripe\n- **ai**: OpenAI, Anthropic\n\nOther: Twilio for SMS\n\n## Design Decisions\n');
+    expect(arch).toContain('## Scale\n- Active users: 1,000 - 10,000\n- Team size: 2-5 devs\n\n## Deployment targets\n- AWS\n- Vercel\n\n## Data layer\n- **Offline support**: Yes\n- **Local database(s)**: SQLite\n- **Data sync strategy**: Last write wins\n\n## Integrations\n- **payments**: Stripe\n- **ai**: OpenAI, Anthropic\n\nOther: Twilio for SMS\n\n## Design & UI\n- **UI style**: Minimal-Clean\n- **Existing design assets**: Yes\n- **Design system**: shadcn/ui\n- **Figma**: https://www.figma.com/design/abc123/Parcel-Track\n- **Design notes**: Brand colours are final, spacing is still in flux.\n\n## Design Decisions\n');
     expect(arch).toContain('## Performance Considerations\n- **API response-time target**: < 200 ms (p95)\n- **Availability target**: 99.9%\n\n## Monitoring');
     expect(file({ ...BASE, teamSize: 'Solo' }, '.specs/architecture/architecture.md')).toContain('## Scale\n- Team size: Solo\n\n## Design Decisions');
     expect(file({ ...BASE, otherApis: 'Mapbox' }, '.specs/architecture/architecture.md')).toContain('## Integrations\nOther: Mapbox\n\n## Design Decisions');
@@ -220,6 +220,22 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(file(all, '.specs/planning/tasks.md')).not.toContain('3 months');
     expect(file(all, '.specs/development/context.md')).toMatch(/## Project Memory\n### Constraints\nMust run on the existing Postgres cluster\.\n$/);
     expect(file(all, '.specs/quality/tests.md')).toMatch(/## Overview\nTest framework: vitest\nStrategy: Unit, E2E\n$/);
+  });
+
+  test('the Design & UI section is Init\'s designLines (BL-129, REQ-002.I.8)', () => {
+    const arch = (fields: Partial<OptionalFields>) => file({ ...BASE, ...fields }, '.specs/architecture/architecture.md');
+    // SpecPilot.Init 46e2d46, src/lib/specCore/architectureMd.ts: the five lines, their order and TODO
+    const section = (lines: string[]) => `\n## Design & UI\n${lines.join('\n')}\n\n## Design Decisions\n`;
+    const assets = { figmaUrl: 'https://www.figma.com/design/x', designSystem: 'Ant Design', designNotes: 'Colours final.' };
+    expect(arch({ hasDesignAssets: 'No', uiStyle: 'Playful', ...assets })).toContain(section(['- **UI style**: Playful', '- **Existing design assets**: No']));
+    expect(arch({ hasDesignAssets: 'Yes', uiStyle: 'Corporate', ...assets })).toContain(section([
+      '- **UI style**: Corporate', '- **Existing design assets**: Yes', '- **Design system**: Ant Design',
+      '- **Figma**: https://www.figma.com/design/x', '- **Design notes**: Colours final.',
+    ]));
+    expect(arch({ hasDesignAssets: 'Yes' })).toContain(section(['- **UI style**: TODO', '- **Existing design assets**: Yes', '- **Design system**: TODO']));
+    expect(arch({ hasDesignAssets: 'No' })).toContain(section(['- **UI style**: TODO', '- **Existing design assets**: No']));
+    // no gate (a project without a graphical UI): no section, every file as without the fields
+    expect(generated({ ...BASE, uiStyle: 'Playful', ...assets })).toEqual(generated(BASE));
   });
 
   test('yaml values: plain when YAML reads them back unchanged, else double-quoted and escaped (REQ-002.I.5)', () => {

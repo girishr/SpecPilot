@@ -2614,7 +2614,14 @@ describe('setup tools on /mcp (BL-104)', () => {
     expect(q.questions.find((x: { key: string }) => x.key === 'ide')!.choices!.map((c: { value: string }) => c.value)).toContain('vscode');
     expect(q.questions.find((x: { key: string }) => x.key === 'platforms')).toMatchObject({ kind: 'list', max: 100 });
     expect(q.questions.find((x: { key: string }) => x.key === 'integrations')!.categories!.length).toBeGreaterThan(0);
-    for (const k of Object.keys(OPTIONAL_FIELD_LIMITS)) expect([k, keys.includes(k)]).toEqual([k, true]); // all 23, whatever the answers turn out to be
+    for (const k of Object.keys(OPTIONAL_FIELD_LIMITS)) expect([k, keys.includes(k)]).toEqual([k, true]); // all 28, whatever the answers turn out to be
+    // BL-129: the Design & UI fields last, in the flow's order; the three asset fields only after a Yes
+    expect(keys.slice(-6)).toEqual(['cicd', 'hasDesignAssets', 'figmaUrl', 'designSystem', 'designNotes', 'uiStyle']);
+    const field = (key: string) => q.questions.find((x: { key: string }) => x.key === key)!;
+    expect(field('hasDesignAssets')).toMatchObject({ kind: 'text', max: 3, options: ['Yes', 'No'] });
+    expect(field('uiStyle')).toMatchObject({ kind: 'text', max: 100, question: 'What UI style are you going for?' });
+    for (const key of ['figmaUrl', 'designSystem', 'designNotes']) expect(field(key).when).toEqual({ hasDesignAssets: 'Yes' });
+    for (const key of ['hasDesignAssets', 'uiStyle', 'platforms']) expect(field(key)).not.toHaveProperty('when');
     expect(snapshot(e.root)).toEqual(before);
   });
 
@@ -2656,7 +2663,15 @@ describe('setup tools on /mcp (BL-104)', () => {
     expect((await call('specpilot_setup_project', { path: e.root, answers: ANSWERS, asked: 'handle' })).refused).toBe('asked must be a list of answer keys.');
     expect((await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, ide: 'Emacs' } })).refused).toMatch(/^"ide" must be one of/);
     expect((await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, language: 'python' } })).refused).toBe('The language was detected, so "language" must not be sent.');
+    expect((await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, hasDesignAssets: 'maybe' } })).refused).toBe('"hasDesignAssets" must be at most 3 characters.');
     expect(snapshot(e.root)).toEqual(before);
+  });
+
+  it('specpilot_setup_project with the Design & UI answers writes the section into architecture.md (BL-129)', async () => {
+    await start([e.root, p.root]);
+    const design = { hasDesignAssets: 'Yes', figmaUrl: 'https://www.figma.com/design/x', designSystem: 'Chakra UI', uiStyle: 'Dark-mode-first' };
+    expect((await call('specpilot_setup_project', { path: e.root, answers: { ...ANSWERS, ...design } })).data.project).toBe(0);
+    expect(readFileSync(join(e.root, '.specs/architecture/architecture.md'), 'utf8')).toContain('\n## Design & UI\n- **UI style**: Dark-mode-first\n- **Existing design assets**: Yes\n- **Design system**: Chakra UI\n- **Figma**: https://www.figma.com/design/x\n\n## Design Decisions\n');
   });
 
   it('a write that fails sends write idle and is a tool error with the writer\'s text', async () => {

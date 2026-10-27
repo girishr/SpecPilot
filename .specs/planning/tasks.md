@@ -69,6 +69,7 @@ Notes
 
 | ID | Description |
 |---|---|
+| BL-129 | The chat core gains `SpecPilot.Init`'s Step 9 `Design & UI` (its CS-092, REQ-084, at `46e2d46`; the developer's handoff, 2026-10-25): five optional fields `hasDesignAssets` (`Yes` or `No`), `figmaUrl`, `designSystem`, `designNotes`, `uiStyle`, appended after `Security & NFR`; `specpilot_setup_questions` lists them and `specpilot_setup_project` takes them; `architecture/architecture.md` gets a `## Design & UI` section, byte-identical to Init's, when the gate is sent. REQ-002.I.8. Feature: Spec Report first; golden snapshots change, so never a trivial row. Approved 2026-10-27 |
 
 ## Won't do
 

@@ -189,6 +189,27 @@ describe('answersShapeError()', () => {
   it('accepts a 39-character handle', () => {
     expect(answersShapeError({ ...FULL, handle: 'a'.repeat(39) })).toBeNull();
   });
+
+  // BL-129 (REQ-002.I.8): the five Design & UI fields; the generic text check runs before the gate's Yes/No.
+  it('accepts the Design & UI fields at their limits', () => {
+    expect(answersShapeError({ ...FULL, hasDesignAssets: 'Yes', figmaUrl: 'x'.repeat(1000), designSystem: 'x'.repeat(100), designNotes: 'x'.repeat(1000), uiStyle: 'x'.repeat(100) })).toBeNull();
+    expect(answersShapeError({ ...FULL, hasDesignAssets: 'No' })).toBeNull();
+  });
+
+  it.each([
+    [{ hasDesignAssets: true }, '"hasDesignAssets" must be text.'],
+    [{ hasDesignAssets: 'maybe' }, '"hasDesignAssets" must be at most 3 characters.'],
+    [{ hasDesignAssets: 'yes' }, '"hasDesignAssets" must be one of: Yes, No.'],
+    [{ hasDesignAssets: '' }, '"hasDesignAssets" must be one of: Yes, No.'],
+    [{ figmaUrl: 'x'.repeat(1001) }, '"figmaUrl" must be at most 1000 characters.'],
+    [{ figmaUrl: 'a\nb' }, '"figmaUrl" must be one line of text, without control characters.'],
+    [{ designNotes: 'x'.repeat(1001) }, '"designNotes" must be at most 1000 characters.'],
+    [{ designNotes: 'a\nb' }, '"designNotes" must be one line of text, without control characters.'],
+    [{ designSystem: 'x'.repeat(101) }, '"designSystem" must be at most 100 characters.'],
+    [{ uiStyle: 'x'.repeat(101) }, '"uiStyle" must be at most 100 characters.'],
+  ])('refuses the Design & UI field %j', (fields, message) => {
+    expect(answersShapeError({ ...FULL, ...fields })).toBe(message);
+  });
 });
 
 describe('setupProject() writes what add-specs writes', () => {

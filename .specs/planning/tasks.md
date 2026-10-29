@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-29 (typed tables: Type and Priority columns; BL-126 to Review)
-version: 7.50
+lastUpdated: 2026-10-29 (BL-126 to Completed)
+version: 7.51
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -85,7 +85,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-126 |  |  | Convert this repo's `.specs/planning/tasks.md` Backlog, Current Sprint and Review tables to the typed shape (columns ID, Type, Priority, Description) with empty Type and Priority cells, after BL-125 merges (the architect, 2026-10-24, out of BL-125: a whole-file row rewrite on its own branch so the developer reads that diff alone; no Description text changes). Approved 2026-10-29 |
 
 ## Won't do
 
@@ -136,3 +135,4 @@ Notes
 | 241 | [CD-girishr-150] | v2.19.0 release prepared and shipped (BL-120, BL-122, BL-125, BL-127): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.19.0]` (the BL-120 and BL-122 entries moved there from `[2.18.0]`), annotated tag `v2.19.0`; pushed and published by the developer (row 242) |
 | 242 | [CD-girishr-151] | v2.19.0 shipped (BL-120, BL-122, BL-125, BL-127): pushed, npm `specpilot@2.19.0` latest, GitHub release live (2026-10-25) |
 | 243 | [CD-girishr-152] [BL-129] | Design & UI step from `SpecPilot.Init` (its CS-092, REQ-084): the chat core's ninth step after Security & NFR, five optional fields (`hasDesignAssets` `Yes` or `No`, `figmaUrl`, `designSystem`, `designNotes`, `uiStyle`), listed by `specpilot_setup_questions` (the three asset fields with `when`) and taken by `specpilot_setup_project`; `architecture/architecture.md` gets Init's `## Design & UI` lines when the gate is sent. REQ-002.I.8. Jest 1766 → 1785, no `ui/` change. Approved 2026-10-27. Feature commit `6a407b3`. |
+| 244 | [CD-girishr-153] [BL-126] | This repo's tasks.md Backlog, Current Sprint and Review tables in the typed shape (columns ID, Type, Priority, Description, BL-125) with empty Type and Priority cells; every ID and Description unchanged, checked byte for byte against the old file and parsed by `readSpecs()` with no malformed rows. Approved 2026-10-29. Feature commit `629a0bd`. |

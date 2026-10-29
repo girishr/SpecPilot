@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-28 (security audit run-1 logged)
-version: 2.199
+lastUpdated: 2026-10-29 (BL-126 logged)
+version: 2.200
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-29: `give the Backlog, Current Sprint and Review tables ID, Type, Priority and Description columns ... keeping every task's ID and text` (BL-126): the three tables in this repo's tasks.md rewritten to `| ID | Type | Priority | Description |` with empty Type and Priority cells, 49 rows; checked byte for byte against HEAD with the two cells taken out, and parsed by `readSpecs()` (no malformed rows); then `Yes, move it`: BL-126 from Backlog to Review. On `docs/security-audit-run-1`, uncommitted; `specpilot validate` was run read-only on the real `.specs/` (should have been a scratch copy).
 - 2026-10-28: `move all the BL to CS. at the top`: the 18 audit rows (BL-077, BL-130 to BL-146) moved from Backlog to the top of Current Sprint in that order, IDs kept; other rows untouched. Branch `docs/security-audit-run-1`, nothing committed
 - 2026-10-28: `add these rows to tasks.md under ## Backlog`: BL-130 to BL-146 added to Backlog (plain `| ID | Description |` shape, type and priority in the text), each attributed to SEC-002.12 to SEC-002.15 and the audit item; BL-077 gained its audit attribution and P1. Branch `docs/security-audit-run-1`, nothing committed
 - 2026-10-28: `did you check the threat-model and security-decisions files ... If not log in there ... How can we verify these findings ... convert the finding to tasks ... with attribution`: compared the 15 needs-validation leads of the security audit (run-1, `~/security-audit-skill/SpecPilot/run-1/`) with both files: 2 already accepted in part (SEC-002.5 residual (j)), 13 new or contradicting a stated premise; logged as SEC-002.12 to SEC-002.15 in threat-model.md, the Attack Surface row for existing project files corrected, six open questions in SEC-005; task list proposed in chat, not yet added to tasks.md. Branch `docs/security-audit-run-1`, nothing committed

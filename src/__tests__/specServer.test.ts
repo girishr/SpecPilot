@@ -260,9 +260,8 @@ describe('buildSpecsPayload against this repo', () => {
     const t = payload.tasks!;
     expect(t.malformed).toEqual([]);
     const rebuilt = [
-      ...t.backlog.map(r => `| ${r.id} | ${r.description} |`),
-      ...t.currentSprint.map(r => `| ${r.id} | ${r.description} |`),
-      ...t.review.map(r => `| ${r.id} | ${r.description} |`),
+      // Backlog, Current Sprint and Review are in the typed shape here since BL-126.
+      ...[...t.backlog, ...t.currentSprint, ...t.review].map(r => `| ${r.id} | ${r.type} | ${r.priority} | ${r.description} |`),
       ...t.completed.map(r => `| ${r.num} | ${r.id} | ${r.description} |`),
       ...t.wontDo.map(r => `| ${r.id} | ${r.description} | ${r.reason} |`),
     ];

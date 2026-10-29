@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-24 (BL-125 Spec Report)
-version: 1.36
+lastUpdated: 2026-10-28 (security audit run-1: SEC-002.12 to SEC-002.15)
+version: 1.37
 contributors: [girishr]
 relatedFiles:
   [
@@ -159,6 +159,58 @@ An AI IDE with the token can set up a folder (REQ-002.H.42).
 | **Mitigation**    | (1) D2's path rule on each call: a named served root without `.specs`, or exactly the pending target (a). (2) `createProject()` re-runs the target checks under the lock (b). (3) The old routes' shape checks, the staging and exclusive creates, nothing overwritten (c). (4) Not offered with `--read-only`. |
 | **Residual risk** | Low. The agent can set up the folder the user pointed it at with answers the user did not see; the files are new, under version control, and can be deleted. A local token holder can register its own pending target through the page's route (architect decision Q1): D2 limits an agent's mistakes, not a hostile local process, which can write files directly anyway. |
 
+### Untrusted repository content under the CLI (security audit run-1) [SEC-002.12]
+
+Found by the source-only security audit of 2026-10-28 (run-1, `main @ 9b73b53`; report, traces and bounded checks in `~/security-audit-skill/SpecPilot/run-1/`). The developer runs a `specpilot` command inside a repository they cloned; the lower-trust principal is that repository's author, who controls its files, their names and its symbolic links. Every item is **needs validation**: traced in source and independently checked, not yet reproduced, because the audit could not run code in a sandbox with memory and disk limits. The same audit found the server's own writers sound (SEC-004.12, SEC-004.19), rejected one candidate (an MCP agent writing a row ending in `Approved <date>`: nothing acts on the marker, consistent with SEC-004.31) and matched one note to an accepted residual (git-lfs, SEC-002.5 residual (m)).
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Write through a linked file**: `archive` (`tasks-archive.md`, `prompts-archive.md`), `refine` and `refine --update` (the `.specs/` branch of `generateSpecs()`), `validate --fix` (`createMissingFile()`, the heading rename), `backfill` (instruction files, `project.yaml`, `tasks.md`) and the `.gitattributes` merge write with `existsSync` then `writeFileSync` or `appendFileSync`, so a linked or dangling file sends the write outside the project. `archive` appends the moved Completed lines, which are the repository's text, to the link's target (for example `~/.zshrc`); `refine --update` writes `project: <name>` from the repository's `project.yaml`. (b) **Write through a linked folder**: `generateSpecs()` creates IDE files with `mkdirSync({recursive: true})` and `wx`, which guards only the file name, so `.claude` linked to `~/.claude` creates a global skill and commands when they are absent (the folder half is BL-077). (c) **Unfiltered project name in the Claude skill**: `claudeCodeSkill()` writes `Project: ${projectName}` and `{{projectName}}` without `skillValue()`'s control-character filter (SEC-004.25 applies it to the other fields), so a `package.json` name holding line breaks adds lines to `SKILL.md`; with (b) that file is global. (d) **Windows program lookup**: `serve --open` spawns the bare name `cmd` with no working directory, and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a `cmd.exe` or `git.bat` committed at the repository's root may run instead (the invariant SEC-002.5 residual (n) states for the folder dialog). (e) **Terminal escape sequences**: `validate`, `archive`, `refine`, `add-specs` and `migrate` print repository text (headings, cells, js-yaml snippets, the `package.json` name, file names) with no C0 or C1 filter, so it can hide or fake lines of output, set the window title, or emit OSC 8 links and OSC 52 clipboard writes where the terminal allows them. |
+| **Impact**        | High for (a): the repository's bytes appended to a file of the user's choosing by the attacker, such as a shell start-up file, which runs them. High for (b) with (c): persistent instructions in a global agent skill. High for (d), Windows only: code runs as the user. Low for (e): the person reading the terminal is misled; the exit code is unchanged. |
+| **Likelihood**    | Low to Medium: needs the user to run the command inside a hostile repository; (a) and (b) need the target's path (the home folder's name, or the clone's depth for a relative link) and git creating the link on checkout (`core.symlinks`, on by default on macOS and Linux); (d) needs Windows. |
+| **Entry point**   | The repository's `.specs/**`, `CLAUDE.md` and the other instruction files, `.claude/`, `.github/`, `.cursor/`, `.vscode/` (and the other IDE folders), `package.json`, `project.yaml`, `.gitattributes`, and executables at its root (Windows). |
+| **Mitigation**    | None on these paths today. The server's writers refuse links on every level (SEC-004.12, SEC-004.19) and the folder dialog and git probe pin the working directory (SEC-004.22); the CLI reuses neither. To decide (SEC-005): one shared no-follow writer for the CLI (`lstat` each level, `wx` or temp file and `rename`, links refused), `skillValue()` on the project name, absolute program paths or the home root as working directory, a control-character filter in `Logger`. |
+| **Residual risk** | Needs validation (audit items 1, 2, 3, 14; fingerprints `specpilot/cli-writers/specs-rewrite-follows-symlink`, `specpilot/specGenerator/ide-file-parent-symlink-escape`, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`, `specpilot/cli-output/repo-text-printed-without-control-char-filter`). |
+
+### Untrusted repository content read by `specpilot serve` (security audit run-1) [SEC-002.13]
+
+Same audit and status as SEC-002.12. The principal is the author of a repository the user opens or clones in `specpilot serve`.
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Validator outside the read guard**: `specpilot_validate_specs`, listed with `--read-only` too, runs `SpecValidator`, which picks the spec folder and reads every file with `existsSync` and `readFileSync`, not through `resolveAllowedPath()`: a `project.yaml` linked to a file outside the project that is not YAML returns up to six lines of it, inside js-yaml's error message, to the agent; a link to `/dev/zero` or `/dev/tty` blocks the server. SEC-002.9 (f) holds for `specpilot_read_spec` only. (b) **Task writes through a linked folder**: the move, new, review, fields and archive routes and the MCP task tools `lstat` only `tasks.md` and `tasks-archive.md`, not `.specs` or `.specs/planning`, so a linked folder sends the read, the temp file and the `rename` outside the served root; the caller needs the token and the outside file's sha256, which the server never publishes for that layout. SEC-002.5 (h) covers a linked `tasks.md` only. (c) **Code walk on hostile content**: SEC-002.5's residual accepts that the Code Analyzer follows linked folders and that names from outside land in the architecture tree; a hostile repository can also make `findTodos()` and `findTestFiles()` walk without end (two links to `.`) or read a device (`x.ts` linked to `/dev/zero`) until memory runs out, under the write lock, stopping every project; `ProjectDetector` reads `package.json` and the other manifests through links with no size cap (SEC-004.24 kept `package.json` "read as today"), from `specpilot_setup_questions`, outside the lock. (d) **YAML merge keys**: `project.yaml` is parsed with js-yaml's default schema and no byte cap on every `GET /api/specs` (for every served root), on open and clone, by the MCP list tools and at startup; `<<` merges cost M×N. (e) **Markdown renderer**: the link pattern and the table-separator test in `ui/md.js` backtrack superlinearly, so one crafted `tasks.md` row freezes the tab whenever that project is shown (client only; the server's separator test is linear). |
+| **Impact**        | Medium for (a): lines of an outside file reach the agent, and the server stops for a device link. Medium for (b): a row written into another project's `tasks.md`. Medium for (c) and (d): the shared server is lost until restarted, and for (d) again at each startup until the registry entry goes. Low for (e). |
+| **Likelihood**    | Low: needs the user to serve a hostile repository and, for (a) to (c), an agent call or setup on it. |
+| **Entry point**   | Files and links of a served root; `tools/call` of `specpilot_validate_specs`, the task tools, `specpilot_setup_questions` and `specpilot_setup_project`; the task routes; `GET /api/specs`. |
+| **Mitigation**    | Partial: `resolveAllowedPath()` guards the page's and `specpilot_read_spec`'s reads; `MAX_SCAN_FILES` caps the file count, not bytes. To decide (SEC-005): the validator's reads through the read guard and YAML errors reported without the snippet; an `lstat` walk of every folder in the task writer; an `lstat` walk, a visited set, depth and count caps and `readSmall()` in the analyzer and the detector (reopening the accepted residual of SEC-002.5 (j)); a merge-free schema and a byte cap for `project.yaml`; linear patterns in `md.js`. |
+| **Residual risk** | Needs validation (audit items 4, 5, 9, 10, 11, 15; fingerprints `specpilot/specValidator/reads-follow-symlinks-outside-served-root`, `specpilot/taskMover/task-write-follows-symlinked-specs-folder`, `specpilot/codeAnalyzer/tree-follows-symlinks-outside-root`, `specpilot/codeAnalyzer/unbounded-symlink-following-sync-walk`, `specpilot/specServer/untrusted-project-yaml-merge-key-amplification`, `specpilot/ui-md/superlinear-link-and-separator-regex`). |
+
+### Other OS users and earlier occupants of the loopback port (security audit run-1) [SEC-002.14]
+
+Same audit and status as SEC-002.12. SEC-002.5's residual, SEC-002.9, SEC-004.20, SEC-004.23, SEC-004.27 and SEC-004.28 rest on "any local process can already read the token from `GET /`", which holds when every local process is the owner. The audit found three cases where it does not.
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Another OS user on a shared host**: the loopback port is reachable by every user of the machine, and `GET /` hands the page token (and, without `SPECPILOT_MCP_TOKEN`, the MCP token) to any of them; with it they can open the owner's folders (except home and a root), read their allowlisted files, clone with the owner's git credentials, set up projects and stop the server. (b) **Port squatting, the MCP client's side**: the config line points the IDE at `http://127.0.0.1:4321/mcp` with `X-SpecPilot-Token`; with `SPECPILOT_MCP_TOKEN` set the token is long-lived and never served by `GET /`, yet the IDE sends it to whatever process holds the port, and `serve` on `EADDRINUSE` only suggests another port; a squatter gets a token the real server accepts on any port and every start, and answers the agent's tool list, descriptions, `instructions` and results. SEC-002.9 (c) covers a committed config line only. (c) **Earlier occupant of the origin**: `http://127.0.0.1:4321` and `localhost:4321` are fixed origins that browsers treat as secure (4321 is also a common dev-server default); a service worker or a long-cached `/assets/*.js` left by an earlier program there could run inside the page that holds the token. SEC-002.8 (c) accepts only the reverse direction. |
+| **Impact**        | High for (a) and (b) where the other user is less trusted: writes and clones as the owner, reads of folders that user cannot read, a steered agent. High for (c): the page token's authority. None on a single-user machine with no other server forwarded to the port. |
+| **Likelihood**    | Low: needs a multi-user host, or for (c) a dev server on the same port earlier (for example forwarded from a container or VM) and browser behaviour the audit could not observe. |
+| **Entry point**   | `GET /` and every token-gated route from another OS user; `127.0.0.1:<port>` while the owner's server is down; the browser's state for the two origins. |
+| **Mitigation**    | None for these principals. Scope first (SEC-005). If in scope: the token delivered out of band (an owner-only file, not `GET /`), a warning when another process holds the configured port, and `Clear-Site-Data`, versioned asset paths and a service-worker check on the page. If out of scope: say so in Out of Scope [SEC-004]. |
+| **Residual risk** | Needs validation (audit items 6, 7, 8; fingerprints `specpilot/specServer/page-token-served-to-any-local-peer`, `specpilot/serve/mcp-client-trusts-fixed-loopback-port`, `specpilot/specServer/fixed-origin-inherits-prior-occupant-worker-and-cache`). |
+
+### Cross-origin pages: framing and event slots (security audit run-1) [SEC-002.15]
+
+Same audit and status as SEC-002.12. The principal is a web page the user visits while `serve` runs (SEC-002.5).
+
+| Field             | Detail |
+| ----------------- | ------ |
+| **Description**   | (a) **Framing**: `SECURITY_HEADERS` sends no `frame-ancestors` and no `X-Frame-Options` (`default-src` does not cover framing), so another site can frame the UI, which holds its own token, and trick one-click actions: Regenerate All, Approve on a Review row, Remove on a Home row. Quit asks with `confirm()`. (b) **Event slots**: `GET /api/events` checks only the Host; the cap of 8 (SEC-004.9) has no share per origin and no deadline, so a page that keeps slots open (framed navigations to the stream URL) gives the real page a 503, and the page does not reopen its stream. SEC-004.9 sized the cap against pinning the process, not against the page. |
+| **Impact**        | Medium for (a): unwanted writes within what the page's routes allow, visible in git. Low for (b): live updates, clone and setup progress lost until reload. |
+| **Likelihood**    | Low: needs a hostile page while `serve` runs; current browsers may block or prompt on loopback frames (Local Network Access), which the audit could not observe. |
+| **Entry point**   | `GET /` and `GET /api/events` from a cross-origin frame or navigation. |
+| **Mitigation**    | None today. To decide (SEC-005): `frame-ancestors 'none'` and `X-Frame-Options: DENY` (with `Cross-Origin-Resource-Policy` and `Cross-Origin-Opener-Policy` `same-origin`); refuse `/api/events` (and the other `/api` reads) when `Sec-Fetch-Site` is cross-site or `Origin` is foreign. |
+| **Residual risk** | Needs validation (audit items 12, 13; fingerprints `specpilot/specServer/ui-frameable-no-frame-ancestors`, `specpilot/specServer/event-stream-slots-unauthenticated`). |
+
 ## Attack Surface Summary [SEC-003]
 
 | Entry Point                          | Data Type            | Validated?                     | Used In                                  |
@@ -168,7 +220,7 @@ An AI IDE with the token can set up a folder (REQ-002.H.42).
 | `--author` / interactive prompt      | String               | ⚠️ As typed in markdown; `dq`/`yaml` in YAML (BL-PM-004b) | Handlebars templates (double-brace)      |
 | Language / framework selection       | Enum (fixed choices) | ✅ Inquirer choice list        | Template selection, file content         |
 | IDE / agent selection                | Enum (fixed choices) | ✅ Inquirer choice list        | Config generation                        |
-| Existing project files (add-specs)   | Disk read            | N/A — read-only scan           | Code analysis output                     |
+| Existing project files (CLI commands; guided setup and `validate_specs` in `serve`) | Disk read and write, links followed | ⚠️ No link or size check on these paths (SEC-002.12, SEC-002.13) | Code analysis output, spec and IDE files, terminal output, MCP results |
 | Plugin git history / build generator | Code + templates     | ⚠️ Repo hardening + review     | Committed `plugin/` bundle (SEC-002.4)   |
 | `specpilot serve` HTTP requests      | Host, method, path, `p` | ✅ Host allowlist, 405/404, path allowlist + realpath | Read-only file responses (SEC-002.5) |
 | `specpilot serve [folders...]`       | Folder paths (local user) | ✅ `realpath`, a directory, duplicates collapsed; without `.specs/` it is a setup candidate (BL-055) | Initial list of served roots, appended to only by `POST /api/projects` (SEC-002.5 i, j, k) |
@@ -212,4 +264,4 @@ An AI IDE with the token can set up a folder (REQ-002.H.42).
 
 ---
 
-_Last updated: 2026-10-12_
+_Last updated: 2026-10-28_

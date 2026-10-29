@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-25 (v2.19.0 shipped)
-version: 2.198
+lastUpdated: 2026-10-29 (BL-126 logged)
+version: 2.200
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,12 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-29: BL-126 approved on the card, then `commit`: feature commit `629a0bd` on `docs/security-audit-run-1`, completion commit (row 244, CD-girishr-153), then the `--no-ff` merge into `main` (it also carries the unmerged audit commit `375f588`) and `npm test` and `npm run test:browser` on `main`; push waits for the developer's word.
+- 2026-10-29: `give the Backlog, Current Sprint and Review tables ID, Type, Priority and Description columns ... keeping every task's ID and text` (BL-126): the three tables in this repo's tasks.md rewritten to `| ID | Type | Priority | Description |` with empty Type and Priority cells, 49 rows; checked byte for byte against HEAD with the two cells taken out, and parsed by `readSpecs()` (no malformed rows); then `Yes, move it`: BL-126 from Backlog to Review. On `docs/security-audit-run-1`, uncommitted; `specpilot validate` was run read-only on the real `.specs/` (should have been a scratch copy).
+- 2026-10-28: `move all the BL to CS. at the top`: the 18 audit rows (BL-077, BL-130 to BL-146) moved from Backlog to the top of Current Sprint in that order, IDs kept; other rows untouched. Branch `docs/security-audit-run-1`, nothing committed
+- 2026-10-28: `add these rows to tasks.md under ## Backlog`: BL-130 to BL-146 added to Backlog (plain `| ID | Description |` shape, type and priority in the text), each attributed to SEC-002.12 to SEC-002.15 and the audit item; BL-077 gained its audit attribution and P1. Branch `docs/security-audit-run-1`, nothing committed
+- 2026-10-28: `did you check the threat-model and security-decisions files ... If not log in there ... How can we verify these findings ... convert the finding to tasks ... with attribution`: compared the 15 needs-validation leads of the security audit (run-1, `~/security-audit-skill/SpecPilot/run-1/`) with both files: 2 already accepted in part (SEC-002.5 residual (j)), 13 new or contradicting a stated premise; logged as SEC-002.12 to SEC-002.15 in threat-model.md, the Attack Surface row for existing project files corrected, six open questions in SEC-005; task list proposed in chat, not yet added to tasks.md. Branch `docs/security-audit-run-1`, nothing committed
+- 2026-10-28: `security audit this codebase /security-audit`: deep, source-only audit (no target code run: no OS memory limit on this Mac), output outside the repo in `~/security-audit-skill/SpecPilot/run-1/` on the developer's choice; 32 coverage units, 16 candidates, 15 needs-validation, 1 rejected, 0 confirmed; repo untouched
 - 2026-10-27: `Take a look at ...handoff-specpilot-cli-design-step.md and report back before starting ... read SpecPilot.Init only, don't change it. repot back the changes needed, new tasks and specpfile changes.` (2026-10-25): read the handoff, the chat core, the request checks, the render path, the setup tools and Init's `cs-092-design-assets` (read only); reported the changes, BL-129 and the spec files, with the gate-as-text recommendation. `yes proceed`: `feat/bl-129-design-step` from `main`; found that BL-103 removed the page's chat, so the step reaches the user through the two setup tools and `ui/` does not change; BL-129 filed in Backlog; REQ-002.I.8 (and the I.4 table row, the H.42 count), the planned tests in tests.md, six defaults in context.md; Spec Report. spec-reviewer FIX (the gate's max and refusal order, `designNotes` one line against Init's multi-line, ARCH-004.57's count) applied; FIX (a string over 3 characters is refused by length first) applied; PASS. Waiting for `yes, proceed` (the handoff's gate).
 - 2026-10-27: `yes proceed`: BL-129 to Current Sprint; built (chat core, template, request check, setup tools, tests); Jest 1766 → 1785, lint 0 errors, build clean; the trailing skip note found dropped and recorded in REQ-002.I.8; CHANGELOG `[Unreleased]` Added.
 - 2026-10-27: `commit` (no Approved marker yet: asked), then BL-129 approved on the card and `commit`: the feature commit `6a407b3`, BL-129 to Completed as row 243 (`CD-girishr-152`), then the `--no-ff` merge, tests on main, the branch deleted. No push.

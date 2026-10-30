@@ -29,6 +29,12 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-30: the developer: `Start BL-134`. Branch `fix/bl-134-validator-read-guard` from `main` (`fc3fb09`); Spec Report written (REQ-002.A, context.md), to spec-reviewer before code
+- 2026-10-30: BL-134 spec-reviewer FIX on the report (the CLI change for a linked `.specs`, the folder-case text, read sites by line, the YAML fallback, threat-model rows, more tests, prompts.md order): applied; the 2026-10-29 push line moved below the 2026-10-30 BL-077 line it preceded (out of date order since the BL-077 merge); the line limit put to the developer
+- 2026-10-30: BL-134 spec-reviewer ESCALATE on the prompts.md line-limit warning (over on `main` before the branch); architect DECIDE: archive at merge, as for BL-PM-014 and BL-077, recorded in context.md
+- 2026-10-30: BL-134 spec-reviewer PASS after the architect; built: 9 tests first, Jest 1857/1857, scratch-repo check clean. Nothing committed
+- 2026-10-30: BL-134 spec-reviewer FIX on the build (a mitigated fingerprint still listed as open), fixed, PASS; BL-134 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-134: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, `prompts.md` archived on `main` as its own commit (architect decision), tests on `main`, branch deleted. Not pushed
 - 2026-10-30: the developer: `Start BL-133`. Branch `fix/bl-133-terminal-control-chars` from `main` (`2b61296`); Spec Report written (REQ-002.A.11, context.md), to spec-reviewer before code
 - 2026-10-30: BL-133 spec-reviewer FIX on the report (two missed sinks, the `displayWithLogo` rule, exact outputs, more tests, the residual): applied
 - 2026-10-30: BL-133 spec-reviewer PASS on the fixed report; built: 9 tests first, Jest 1846/1846, scratch-repo `validate` check clean. Nothing committed
@@ -50,8 +56,8 @@ For full project context, read .specs/project/project.yaml.
 - 2026-10-30: BL-130 spec-reviewer FIX on the build (the SEC-002.12 residual line), fixed, re-run PASS; BL-130 moved to Review by hand (MCP not connected). Branch left checked out, nothing committed
 - 2026-10-30: the developer: `Approve, then commit` for BL-130: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
 - 2026-10-30: on the developer's typed `push`: `main` pushed (`d2fe0bd..feefb74`, four commits: BL-077 feature, completion and merge, the prompts.md archive); `origin/main` = local `main` checked. This line is uncommitted on the tree.
-- 2026-10-29: on the developer's typed `push`: `main` pushed (`e422b24..d2fe0bd`, one commit: Type and Priority on every Backlog and Current Sprint row); `origin/main` = local `main` checked. This line is uncommitted on the tree.
 - 2026-10-30: BL-077 approved on the card, then `commit`: feature commit `153f182`, completion commit `94affc9` (row 245, CD-girishr-154), `--no-ff` merge `4788e8b` into `main`; `specpilot archive` moved 30 lines of `prompts.md` to `prompts-archive.md` (the developer's `Archive at merge`); on `main` build clean, Jest 1793/1793, browser 90/90. Not pushed
+- 2026-10-29: on the developer's typed `push`: `main` pushed (`e422b24..d2fe0bd`, one commit: Type and Priority on every Backlog and Current Sprint row); `origin/main` = local `main` checked. This line is uncommitted on the tree.
 - 2026-10-29: `Archive at merge`: the developer's call on the `prompts.md` line-limit warning: `specpilot archive` for `prompts.md` runs as part of the BL-077 merge, after approval on the card and the typed `commit`
 - 2026-10-29: BL-077 built on `fix/bl-077-ide-folder-links`: `folderError()` shared by `generateSpecs()` and guided setup; 8 tests written first (7 failed before the change); build and eslint clean, Jest 1793/1793; spec-reviewer PASS; BL-077 moved to Review. Nothing committed
 - 2026-10-29: `ok lets do 077.`, then `try now. But work on a new branch`: BL-077 Spec Report on `fix/bl-077-ide-folder-links` from `main` (`d2fe0bd`): REQ-002.E.17 added and E.15's BL-077 sentence pointed at it, ARCH-004.41, SEC-002.12 mitigation, the SEC-005 open question, CHANGELOG `Fixed`, context.md decision; classed Feature. A first branch made earlier this session was deleted unused when `main` turned out to hold another session's uncommitted edits

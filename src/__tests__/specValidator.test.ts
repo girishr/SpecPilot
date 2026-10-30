@@ -2,6 +2,7 @@ import { SpecValidator, tasksChecks } from '../utils/specValidator';
 import { SpecGenerator } from '../utils/specGenerator';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, symlinkSync } from 'fs';
+import { execFileSync } from 'child_process';
 import * as os from 'os';
 
 const CURRENT_YEAR = new Date().getFullYear().toString();
@@ -749,5 +750,104 @@ describe('SpecValidator', () => {
     symlinkSync(join(shared, '.specs'), join(project, '.specs'));
     expect(await validator.autoFix(project, ['create-security/threat-model.md'])).toEqual([]);
     expect(existsSync(join(shared, '.specs', 'security', 'threat-model.md'))).toBe(false);
+  });
+});
+
+// BL-134 (REQ-002.A.3; audit run-1 item 4, SEC-002.13 (a)): every spec file is read through the server's read guard.
+(process.platform === 'win32' ? describe.skip : describe)('validate reads only regular files in the project (BL-134)', () => {
+  const NOT_READ = (file: string) => `${file} is a symbolic link, sits under a linked folder or is not a regular file, so it was not read.`;
+  let base: string;
+  let project: string;
+  let outside: string;
+  const validator = new SpecValidator();
+  const all = (r: { errors: string[]; warnings: string[]; fixPrompts: { issue: string; prompt: string }[] }) =>
+    JSON.stringify([r.errors, r.warnings, r.fixPrompts]);
+  beforeEach(() => {
+    base = join(os.tmpdir(), `specpilot-validator-read-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    project = join(base, 'project');
+    outside = join(base, 'outside');
+    mkdirSync(project, { recursive: true });
+    mkdirSync(outside);
+    createValidSpecsDir(project);
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+  const link = (rel: string, target: string) => {
+    rmSync(join(project, '.specs', rel), { force: true });
+    symlinkSync(target, join(project, '.specs', rel));
+  };
+
+  test('a project.yaml linked outside is not read: the error, not valid, no create- fix, no outside text', async () => {
+    writeFileSync(join(outside, 'secret.txt'), 'SECRET-LINE: [\n');
+    link('project/project.yaml', join(outside, 'secret.txt'));
+    const r = await validator.validate(project, { fix: false, verbose: false });
+    expect(r.errors).toContain(NOT_READ('project/project.yaml'));
+    expect(r.isValid).toBe(false);
+    expect(r.fixable).not.toContain('create-project/project.yaml');
+    expect(all(r)).not.toContain('SECRET-LINE');
+  });
+
+  test('a link to /dev/zero and a FIFO as project.yaml return at once with the error', async () => {
+    link('project/project.yaml', '/dev/zero');
+    const started = Date.now();
+    expect((await validator.validate(project, { fix: false, verbose: false })).errors).toContain(NOT_READ('project/project.yaml'));
+    rmSync(join(project, '.specs', 'project', 'project.yaml'));
+    execFileSync('mkfifo', [join(project, '.specs', 'project', 'project.yaml')]);
+    expect((await validator.validate(project, { fix: false, verbose: false })).errors).toContain(NOT_READ('project/project.yaml'));
+    expect(Date.now() - started).toBeLessThan(2000);
+  }, 5000);
+
+  test('a linked tasks.md: no outside heading or cell in any warning', async () => {
+    writeFileSync(join(outside, 'tasks.md'), '# Tasks\n\n## OUTSIDE-HEADING\n\n| ID | Description |\n|---|---|\n| OUTSIDE-ID | x |\n');
+    link('planning/tasks.md', join(outside, 'tasks.md'));
+    const r = await validator.validate(project, { fix: false, verbose: false });
+    expect(r.errors).toContain(NOT_READ('planning/tasks.md'));
+    expect(all(r)).not.toMatch(/OUTSIDE-(HEADING|ID)/);
+  });
+
+  test('a linked roadmap.md (not required) is skipped silently', async () => {
+    writeFileSync(join(outside, 'roadmap.md'), '---\nlastUpdated: 2000-01-01\n---\nOUTSIDE-ROADMAP\n');
+    link('planning/roadmap.md', join(outside, 'roadmap.md'));
+    const r = await validator.validate(project, { fix: false, verbose: false });
+    expect(all(r)).not.toContain('roadmap.md');
+    expect(all(r)).not.toContain('OUTSIDE-ROADMAP');
+  });
+
+  test('a link to another file inside the project is refused too', async () => {
+    writeFileSync(join(project, 'notes.md'), '# notes\n');
+    link('planning/tasks.md', join(project, 'notes.md'));
+    expect((await validator.validate(project, { fix: false, verbose: false })).errors).toContain(NOT_READ('planning/tasks.md'));
+  });
+
+  test('a linked .specs folder: every required file not read', async () => {
+    const shared = join(base, 'shared');
+    mkdirSync(shared);
+    createValidSpecsDir(shared);
+    rmSync(join(project, '.specs'), { recursive: true });
+    symlinkSync(join(shared, '.specs'), join(project, '.specs'));
+    const r = await validator.validate(project, { fix: false, verbose: false });
+    expect(r.errors).toEqual(expect.arrayContaining(['project/project.yaml', 'planning/tasks.md', 'development/prompts.md'].map(NOT_READ)));
+    expect(r.isValid).toBe(false);
+  });
+
+  test('a YAML syntax error is its reason and position, without the file\'s lines', async () => {
+    writeFileSync(join(project, '.specs', 'project', 'project.yaml'), 'name: a\nSECRET-LINE: [unclosed\n');
+    const r = await validator.validate(project, { fix: false, verbose: false });
+    const parse = r.errors.filter(e => e.startsWith('Failed to parse project.yaml'));
+    expect(parse).toHaveLength(1);
+    expect(parse[0]).toMatch(/^Failed to parse project\.yaml: [^\n]+ \(line \d+, column \d+\)$/);
+    expect(all(r)).not.toContain('SECRET-LINE');
+  });
+
+  test('a YAML error without a position gives the reason; any other error the fixed text', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const yaml = require('js-yaml') as typeof import('js-yaml');
+    const load = jest.spyOn(yaml, 'load').mockImplementationOnce(() => { throw new yaml.YAMLException('bad thing'); });
+    let r = await validator.validate(project, { fix: false, verbose: false });
+    expect(r.errors).toContain('Failed to parse project.yaml: bad thing');
+    load.mockImplementationOnce(() => { throw new Error('SECRET-LINE'); });
+    r = await validator.validate(project, { fix: false, verbose: false });
+    expect(r.errors).toContain('Failed to parse project.yaml.');
+    expect(all(r)).not.toContain('SECRET-LINE');
+    load.mockRestore();
   });
 });

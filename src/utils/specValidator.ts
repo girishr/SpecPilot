@@ -1,9 +1,26 @@
 import { existsSync, readFileSync } from 'fs';
-import { join, relative, sep } from 'path';
+import { basename, dirname, join, relative, sep } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
-import { writeError, writeInside } from './specPaths';
+import { resolveAllowedPath, writeError, writeInside } from './specPaths';
 import { readSpecs, REQUIRED_TASK_HEADINGS, SHAPED_HEADINGS, TASK_COLUMNS, TASK_PRIORITIES, TASK_TYPES, TaskHeadings, taskHeadings } from './specReader';
+
+/**
+ * `rel` (below the specs folder) as the server's read guard resolves it (BL-134): null for a link, a file under a
+ * linked folder, or anything but a regular file, so the validator never reads outside the project or from a device.
+ */
+function specPath(specsDir: string, rel: string): string | null {
+  const path = `${basename(specsDir)}/${rel}`;
+  return resolveAllowedPath(dirname(specsDir), path, [path]);
+}
+
+/** A spec file's text through `specPath()`, or null. */
+function readSpec(specsDir: string, rel: string): string | null {
+  const real = specPath(specsDir, rel);
+  return real ? readFileSync(real, 'utf-8') : null;
+}
+
+const notRead = (file: string) => `${file} is a symbolic link, sits under a linked folder or is not a regular file, so it was not read.`;
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
 // run exactly what `specpilot validate` runs, on content that is not on disk yet.
@@ -219,6 +236,9 @@ export class SpecValidator {
               '   Base answers on the actual implementation in src/. Preserve structure and front-matter exactly."'
           });
         }
+      } else if (!specPath(specsDir, file)) {
+        result.errors.push(notRead(file));
+        result.isValid = false;
       } else {
         result.filesChecked++;
       }
@@ -318,7 +338,8 @@ export class SpecValidator {
     }
 
     try {
-      const content = readFileSync(projectYamlPath, 'utf-8');
+      const content = readSpec(specsDir, 'project/project.yaml');
+      if (content === null) return; // reported by the required-file check (BL-134)
       const projectData = yaml.load(content) as any;
 
       if (!projectData) {
@@ -362,7 +383,13 @@ export class SpecValidator {
       }
 
     } catch (error) {
-      result.errors.push(`Failed to parse project.yaml: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // js-yaml's reason and position only: its message quotes lines of the file (BL-134).
+      const e = error as { reason?: unknown; mark?: { line: number; column: number } };
+      result.errors.push(
+        error instanceof yaml.YAMLException && typeof e.reason === 'string'
+          ? `Failed to parse project.yaml: ${e.reason}${e.mark ? ` (line ${e.mark.line + 1}, column ${e.mark.column + 1})` : ''}`
+          : 'Failed to parse project.yaml.',
+      );
       result.isValid = false;
     }
   }
@@ -396,7 +423,8 @@ export class SpecValidator {
     }
 
     try {
-      const content = readFileSync(promptsPath, 'utf-8');
+      const content = readSpec(specsDir, 'development/prompts.md');
+      if (content === null) return;
       
       if (content.trim().length < 100) {
         result.warnings.push('prompts.md appears to have minimal content - ensure AI interactions are being tracked');
@@ -435,7 +463,8 @@ export class SpecValidator {
     if (!existsSync(archPath)) return;
 
     try {
-      const content = readFileSync(archPath, 'utf-8');
+      const content = readSpec(specsDir, 'architecture/architecture.md');
+      if (content === null) return;
       
       const requiredSections = ['Overview', 'Architecture', 'Components', 'Decisions'];
       const missingSections = requiredSections.filter(section => 
@@ -459,7 +488,8 @@ export class SpecValidator {
     if (!existsSync(reqPath)) return;
 
     try {
-      const content = readFileSync(reqPath, 'utf-8');
+      const content = readSpec(specsDir, 'project/requirements.md');
+      if (content === null) return;
       
       if (content.includes('[Placeholder') || content.includes('[To be')) {
         result.warnings.push('requirements.md contains placeholder text that should be updated');
@@ -482,7 +512,8 @@ export class SpecValidator {
     if (!existsSync(tasksPath)) return;
 
     try {
-      const content = readFileSync(tasksPath, 'utf-8');
+      const content = readSpec(specsDir, 'planning/tasks.md');
+      if (content === null) return;
       
       // Check if tasks are being tracked
       if (!tasksStatusTracked(content)) {
@@ -550,7 +581,8 @@ export class SpecValidator {
     for (const { file, crossRefs } of checks) {
       const p = join(specsDir, file);
       if (!existsSync(p)) continue;
-      const content = readFileSync(p, 'utf-8');
+      const content = readSpec(specsDir, file);
+      if (content === null) continue;
       if (file.endsWith('.md')) {
         if (!hasFrontMatter(content)) {
           result.errors.push(`${file} is missing YAML front-matter metadata.`);
@@ -808,7 +840,8 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
       const filePath = join(specsDir, file);
       if (!existsSync(filePath)) continue;
       try {
-        const content = readFileSync(filePath, 'utf-8');
+        const content = readSpec(specsDir, file);
+        if (content === null) continue;
         const fmMatch = content.match(/^---\n([\s\S]*?)\n---/m);
         if (!fmMatch) continue;
 
@@ -835,7 +868,8 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
     if (existsSync(promptsPath)) {
       // Same planning function as `specpilot archive` (BL-061): warn to run it only when it would
       // move something, and give its reason when it would refuse.
-      const plan = planPromptsArchive(readFileSync(promptsPath, 'utf-8').split('\n'));
+      const text = readSpec(specsDir, 'development/prompts.md');
+      const plan = text === null ? null : planPromptsArchive(text.split('\n'));
       if (plan && 'refuse' in plan) {
         result.warnings.push(
           `development/prompts.md exceeds line limit: ${PROMPTS_LINE_LIMIT}, but \`specpilot archive\` will not move anything: ${plan.refuse}`
@@ -851,7 +885,8 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
     if (existsSync(tasksPath)) {
       // Warn exactly when `specpilot archive` (and its --dry-run) would move something:
       // same planning function, so the warning and the archiver cannot disagree.
-      if (planCompletedArchive(readFileSync(tasksPath, 'utf-8').split('\n'))) {
+      const text = readSpec(specsDir, 'planning/tasks.md');
+      if (text !== null && planCompletedArchive(text.split('\n'))) {
         result.warnings.push(tasksCompletedLimitWarning());
       }
     }

@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-28 (security audit run-1: SEC-002.12 to SEC-002.15)
-version: 1.37
+lastUpdated: 2026-10-29 (BL-077: SEC-002.12 (b) mitigated for generateSpecs)
+version: 1.38
 contributors: [girishr]
 relatedFiles:
   [
@@ -169,7 +169,7 @@ Found by the source-only security audit of 2026-10-28 (run-1, `main @ 9b73b53`; 
 | **Impact**        | High for (a): the repository's bytes appended to a file of the user's choosing by the attacker, such as a shell start-up file, which runs them. High for (b) with (c): persistent instructions in a global agent skill. High for (d), Windows only: code runs as the user. Low for (e): the person reading the terminal is misled; the exit code is unchanged. |
 | **Likelihood**    | Low to Medium: needs the user to run the command inside a hostile repository; (a) and (b) need the target's path (the home folder's name, or the clone's depth for a relative link) and git creating the link on checkout (`core.symlinks`, on by default on macOS and Linux); (d) needs Windows. |
 | **Entry point**   | The repository's `.specs/**`, `CLAUDE.md` and the other instruction files, `.claude/`, `.github/`, `.cursor/`, `.vscode/` (and the other IDE folders), `package.json`, `project.yaml`, `.gitattributes`, and executables at its root (Windows). |
-| **Mitigation**    | None on these paths today. The server's writers refuse links on every level (SEC-004.12, SEC-004.19) and the folder dialog and git probe pin the working directory (SEC-004.22); the CLI reuses neither. To decide (SEC-005): one shared no-follow writer for the CLI (`lstat` each level, `wx` or temp file and `rename`, links refused), `skillValue()` on the project name, absolute program paths or the home root as working directory, a control-character filter in `Logger`. |
+| **Mitigation**    | (b): since BL-077, `generateSpecs()` refuses before any write when a folder on the way is a link or not a folder, with guided setup's own check (REQ-002.E.17); `backfill`'s folders remain (BL-130). Otherwise none on these paths today. The server's writers refuse links on every level (SEC-004.12, SEC-004.19) and the folder dialog and git probe pin the working directory (SEC-004.22); the CLI reuses neither. To decide (SEC-005): one shared no-follow writer for the CLI (`lstat` each level, `wx` or temp file and `rename`, links refused), `skillValue()` on the project name, absolute program paths or the home root as working directory, a control-character filter in `Logger`. |
 | **Residual risk** | Needs validation (audit items 1, 2, 3, 14; fingerprints `specpilot/cli-writers/specs-rewrite-follows-symlink`, `specpilot/specGenerator/ide-file-parent-symlink-escape`, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`, `specpilot/cli-output/repo-text-printed-without-control-char-filter`). |
 
 ### Untrusted repository content read by `specpilot serve` (security audit run-1) [SEC-002.13]

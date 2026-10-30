@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
@@ -137,5 +137,20 @@ describe('specpilot init: the generateSpecs() call (BL-075)', () => {
       ide: 'vscode', mode: 'new', projectType: 'greenfield', apiParadigm: undefined,
       projectContext: { whatItDoes: NOT_SPECIFIED, targetUsers: NOT_SPECIFIED, expectedScale: NOT_SPECIFIED, constraints: NOT_SPECIFIED },
     }]]);
+  });
+});
+
+describe('specpilot init into a folder with a linked IDE folder (BL-077, REQ-002.E.17)', () => {
+  it('writes nothing, shows the refusal in the Initialization Failed box and exits 1', async () => {
+    const outside = join(dir, 'outside');
+    mkdirSync(outside);
+    mkdirSync(join(dir, 'demo'));
+    symlinkSync(outside, join(dir, 'demo', '.vscode'));
+    const out = await run('demo', options({ prompts: false }));
+    expect(out).toContain('Initialization Failed');
+    expect(out).toContain('.vscode is a symbolic link, so nothing was written.');
+    expect(out).toContain('[exit 1]');
+    expect(readdirSync(outside)).toEqual([]);
+    expect(existsSync(join(dir, 'demo', '.specs'))).toBe(false);
   });
 });

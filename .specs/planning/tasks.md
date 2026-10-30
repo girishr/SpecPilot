@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-29 (Type and Priority set on every Backlog and Current Sprint row)
-version: 7.52
+lastUpdated: 2026-10-29 (BL-077 to Review)
+version: 7.53
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -54,7 +54,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-077 | bug | P1 | `init`, `add-specs` and `refine --update` create IDE files inside existing folders with `mkdirSync({ recursive: true })`, so a `.vscode/`, `.github/`, `.claude/commands/` (etc.) that is a symbolic link to a folder outside the project gets new files written outside it. Guided setup refuses this (REQ-002.H.16 step 5, 409, nothing written). Apply the same check in the CLI: refuse before writing anything when a folder on the way is a symbolic link or not a folder. Found by spec-reviewer during BL-073; not part of it (BL-073 guards only the file's own path). Bug, P1 since the security audit (run-1, 2026-10-28): a cloned repo's `.claude` linked to `~/.claude` plants a global skill and commands (SEC-002.12 (b); audit item 2, `specpilot/specGenerator/ide-file-parent-symlink-escape`); take with BL-130 and BL-131. |
 | BL-130 | bug | P1 | Bug, P1. One shared no-follow writer for the CLI (`lstat` every level, `wx` or temp file and `rename`, symbolic links refused, as `placeGenerated()` and `checkFolders()` do), used by `archive` (`tasks-archive.md`, `prompts-archive.md`), `refine` and `refine --update` (the `.specs/` branch of `generateSpecs()`), `validate --fix` (`createMissingFile()`, the heading rename), `backfill` (instruction files, `project.yaml`, `tasks.md`) and the `.gitattributes` merge: today a cloned repo's linked `tasks-archive.md` makes `specpilot archive` append the repo's Completed lines to e.g. `~/.zshrc`. Regression test first from the audit's bounded check (fails on `main`, passes after). Attribution: SEC-002.12 (a); security audit run-1 item 1, `specpilot/cli-writers/specs-rewrite-follows-symlink`. Feature: Spec Report first. |
 | BL-131 | bug | P1 | Bug, P1. `claudeCodeSkill()` writes `Project: ${projectName}` and `{{projectName}}` without `skillValue()`'s control-character filter, so a `package.json` name with line breaks adds lines to `SKILL.md` (global with BL-077's case); apply the filter, and make the `fm` helper quote a value holding a control character, `: `, ` #` or a leading YAML indicator. Attribution: SEC-002.12 (c), SEC-004.25; audit item 2. |
 | BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. |
@@ -85,6 +84,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-077 | bug | P1 | `init`, `add-specs` and `refine --update` create IDE files inside existing folders with `mkdirSync({ recursive: true })`, so a `.vscode/`, `.github/`, `.claude/commands/` (etc.) that is a symbolic link to a folder outside the project gets new files written outside it. Guided setup refuses this (REQ-002.H.16 step 5, 409, nothing written). Apply the same check in the CLI: refuse before writing anything when a folder on the way is a symbolic link or not a folder. Found by spec-reviewer during BL-073; not part of it (BL-073 guards only the file's own path). Bug, P1 since the security audit (run-1, 2026-10-28): a cloned repo's `.claude` linked to `~/.claude` plants a global skill and commands (SEC-002.12 (b); audit item 2, `specpilot/specGenerator/ide-file-parent-symlink-escape`); take with BL-130 and BL-131. Approved 2026-10-30 |
 
 ## Won't do
 

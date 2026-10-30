@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A Design & UI step in the setup questions** (BL-129): `specpilot_setup_questions` asks, after Security & NFR, whether the project has design assets (`Yes` or `No`), then the Figma link, design system and design notes when it has, and the UI style either way; a project without a graphical UI skips them. `specpilot_setup_project` takes the five answers and writes a `## Design & UI` section into `architecture/architecture.md`, the same lines init.specpilot.dev writes. Without the answers every file is as before.
 
+### Fixed
+
+- **`init`, `add-specs` and `refine --update` no longer write through a linked folder** (BL-077, security audit run-1): when a folder on the way to a file they would write, such as a cloned repository's `.claude` linked to `~/.claude`, is a symbolic link or not a folder, they write nothing and stop with `<folder> is a symbolic link, so nothing was written.`, as guided setup already did.
+
 ## [2.19.0] - 2026-10-25
 
 ### Added

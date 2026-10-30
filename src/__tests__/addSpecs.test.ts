@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
@@ -100,5 +100,22 @@ describe('the add-specs options as src/cli.ts defines them (BL-074)', () => {
     expect(options).toBeUndefined();
     expect(error).toContain("unknown option '--deep-analysis'");
     expect(error).toContain('[exit 1]');
+  });
+});
+
+describe('a linked IDE folder (BL-077, REQ-002.E.17)', () => {
+  it('writes nothing, prints the refusal after its prefix and exits 1', async () => {
+    const outside = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-outside-')));
+    symlinkSync(outside, join(dir, '.vscode'));
+    const errors: string[] = [];
+    jest.spyOn(console, 'error').mockImplementation((...args) => void errors.push(stripVTControlCharacters(args.join(' '))));
+    try {
+      await expect(run({ analysis: false })).rejects.toThrow('exit 1');
+      expect(errors).toContain('❌ Failed to add specs: .vscode is a symbolic link, so nothing was written.');
+      expect(readdirSync(outside)).toEqual([]);
+      expect(existsSync(join(dir, '.specs'))).toBe(false);
+    } finally {
+      rmSync(outside, { recursive: true, force: true });
+    }
   });
 });

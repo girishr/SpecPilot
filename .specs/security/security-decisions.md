@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-28 (security audit run-1: open questions)
-version: 1.32
+lastUpdated: 2026-10-29 (BL-077: open question narrowed)
+version: 1.33
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -395,7 +395,7 @@ This file records security-related architectural and implementation decisions ma
 - Should the `description` and `author` fields be validated with a stricter allowlist, or is Handlebars auto-escaping sufficient for interactive prompts from a local user? (Since BL-PM-004b there is no HTML escaping; the handle is quoted for YAML by `dq` and `yaml`, SEC-004.3.) (Over HTTP the handle has an allowlist since BL-055, SEC-004.12; the terminal prompts are unchanged. Since BL-PM-003 the project-context answers sent over HTTP are limited to one line of 1000 characters without control characters, SEC-004.14.)
 - Should the `build:plugin` generator's own dependency chain be pinned/audited separately, given it now sits in the plugin's trusted computing base (SEC-002.4)?
 - (2026-10-28, security audit run-1) Are other OS users on a shared host, and programs that held the `serve` port earlier (for example a dev server forwarded from a container), in scope (SEC-002.14)? SEC-004.20, SEC-004.23, SEC-004.27 and SEC-004.28 rest on "any local process can read the token from `GET /`", which holds only when every local process is the owner, and for `SPECPILOT_MCP_TOKEN` it does not hold (that token is never served). If in scope: an out-of-band token, a warning on a foreign listener, origin-state clearing; if not: a line in Out of Scope [SEC-004] of the threat model.
-- (2026-10-28, audit run-1) Should the CLI's writers take the server's no-follow rules (SEC-004.12, SEC-004.19) through one shared writer (SEC-002.12 a, b)? BL-077 already covers the folder half for IDE files.
+- (2026-10-28, audit run-1) Should the CLI's writers take the server's no-follow rules (SEC-004.12, SEC-004.19) through one shared writer (SEC-002.12 a, b)? BL-077 now refuses the folder half in `generateSpecs()` (REQ-002.E.17); `backfill`'s folders and the linked-file half remain.
 - (2026-10-28, audit run-1) SEC-004.24 kept `package.json` "read as today" and SEC-004.25 filters control characters from skill values but not the project name (SEC-002.12 c, SEC-002.13 c): extend `readSmall()` and `skillValue()` to both?
 - (2026-10-28, audit run-1) Reopen the accepted residual of SEC-002.5 (j) on the Code Analyzer, now that a hostile repository can make the walk unbounded or read a device under the write lock (SEC-002.13 c)?
 - (2026-10-28, audit run-1) Should every path that reads a served root (the validator included, SEC-002.13 a) go through `resolveAllowedPath()`, and should `project.yaml` be parsed with a merge-free schema and a byte cap (SEC-002.13 d)?

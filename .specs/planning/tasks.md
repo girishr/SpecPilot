@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-132 to Review, approved)
-version: 7.61
+lastUpdated: 2026-10-30 (BL-132 to Completed)
+version: 7.62
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -83,7 +83,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. Approved 2026-10-30 |
 
 ## Won't do
 
@@ -138,3 +137,4 @@ Notes
 | 245 | [CD-girishr-154] [BL-077] | `init`, `add-specs` and `refine --update` refuse a linked or non-folder level on the way before any write (security audit run-1, SEC-002.12 (b)): guided setup's folder walk moved out of `placeGenerated()` into `folderError()` in `specGenerator.ts`; `generateSpecs()` runs it over every file first and throws `<folder> is a symbolic link, so nothing was written.` (or `is not a folder`), exit 1; guided setup calls it for its unchanged 409. REQ-002.E.17. Jest 1785 → 1793, no `ui/` change. Approved 2026-10-30. Feature commit `153f182`. |
 | 246 | [CD-girishr-155] [BL-130] | One no-follow writer for every CLI write in the project (security audit run-1, SEC-002.12 (a)): `writeInside()` in `specPaths.ts` refuses a link at any level or at the file (also one inside the project), creates with `wx`, replaces by temp file and `rename`; `archive`, `refine`, `refine --update`, `init`, `add-specs`, `validate --fix`, `backfill` and the `.gitattributes` merge go through it; `migrate` is BL-147. REQ-002.E.18. Jest 1793 → 1824, no `ui/` change. Approved 2026-10-30. Feature commit `47cbc1b`. |
 | 247 | [CD-girishr-156] [BL-131] | A project name with control characters stays one value (security audit run-1, SEC-002.12 (c)): the skill's name and language one line each (each control run one space); `fmValue()` (the `fm` helper and `onboarding.md`'s `project:`) quotes a control character, `: `, ` #`, a leading indicator or space, a trailing `:` or space; `yamlScalar()` and `dq` escape C0/DEL; `api.yaml`'s meta comment and `prompts.md`'s description no longer raw. REQ-002.H.40, REQ-002.I.5. Jest 1824 → 1828, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `a90d481`. |
+| 248 | [CD-girishr-157] [BL-132] | On Windows no program starts by bare name from the project folder (security audit run-1, SEC-002.12 (d)): `serve --open` starts `%SystemRoot%\System32\cmd.exe` by full path from the home drive's root (`browserCommand()`); `archive` reads the branch from `.git/HEAD` via `readBranch()` (`currentBranch()`), no `git`; `readBranch()` refuses control characters and `refs/heads/.invalid`; the clone's cwd is BL-148. REQ-002.A.8, REQ-002.H.1. Jest 1828 → 1837, no `ui/` change, Windows not run (BL-145). Approved 2026-10-30. Feature commit `172e3d9`. |

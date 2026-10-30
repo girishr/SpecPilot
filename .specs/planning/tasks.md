@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-136 to Review, approved)
-version: 7.73
+lastUpdated: 2026-10-30 (BL-136 to Completed)
+version: 7.74
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -80,7 +80,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-136 | bug | P2 | Bug, P2. `CodeAnalyzer` (`findTodos`, `findTestFiles`, `buildDirectoryTree`) and `ProjectDetector` follow links with no bound: a hostile repo can list outside file names into `architecture.md`, walk without end or read `/dev/zero` under the write lock. `lstat` walk skipping links, a visited set, depth and count caps, and `readSmall()` for every manifest. Reopens the accepted residual of SEC-002.5 (j) and SEC-004.24's `package.json` read. Attribution: SEC-002.13 (c); audit items 9, 10. Feature: Spec Report first. Approved 2026-10-30 |
 
 ## Won't do
 
@@ -139,3 +138,4 @@ Notes
 | 249 | [CD-girishr-158] [BL-133] | Repository text reaches the terminal without control characters (security audit run-1, SEC-002.12 (e)): `terminalText()` in `logger.ts` (on `mcpLocal.ts`' `UNSHOWN`, tab and line feed kept) runs before SpecPilot's colour in every `Logger` level, the display functions' values and the direct sinks of `validate`, `refine`, `add-specs` and `migrate`. REQ-002.A.11. Jest 1837 → 1848, no `ui/` change. Approved 2026-10-30. Feature commit `d593833`. |
 | 250 | [CD-girishr-159] [BL-134] | Every spec file the validator reads goes through the read guard (security audit run-1, SEC-002.13 (a)): `specPath()`/`readSpec()` in `specValidator.ts` on `resolveAllowedPath()`, so `validate`, `specpilot_validate_specs` and the post-setup validation report a link, a file under a linked folder or a non-file as not read; YAML errors give reason and position only; a linked `.specs` is no longer followed. REQ-002.A.3. Jest 1848 → 1857, no `ui/` change. Approved 2026-10-30. Feature commit `c5ef06c`. |
 | 251 | [CD-girishr-160] [BL-135] | Task writes walk every folder on the way (security audit run-1, SEC-002.13 (b)): `loadTasks()` and `readArchive()` in `taskMover.ts` run `folderError()` first, so a linked or non-folder `.specs` or `.specs/planning` is refused (422, or a tool refusal for MCP) for moves, new tasks, review actions, field edits and the archive, and the ID hint is absent; a non-regular `tasks.md` is refused before it is read. REQ-002.H.10. Jest 1857 → 1862, no `ui/` change. Approved 2026-10-30. Feature commit `5bc17b8`. |
+| 252 | [CD-girishr-161] [BL-136] | The code analysis and project detection follow no link and are bounded (security audit run-1, SEC-002.13 (c)): `CodeAnalyzer`'s walks use `lstat`, visit at most 2000 entries and 20 levels, read files of at most 1 MB and 8 MB per run; every manifest goes through `readSmall()` (64 KB); BL-149 filed for nested test files never counted. REQ-002.D.6. Jest 1862 → 1873, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `5dda804`. |

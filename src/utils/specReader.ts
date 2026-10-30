@@ -1,4 +1,20 @@
+import * as yaml from 'js-yaml';
 import { findSectionBounds, SectionBounds } from './markdownSections';
+
+/** Largest repository YAML parsed, in UTF-8 bytes (BL-137). */
+export const MAX_YAML_BYTES = 262144;
+/** The message of the `RangeError` `loadRepoYaml()` throws above MAX_YAML_BYTES, so callers can tell it from a parse failure. */
+export const YAML_TOO_LARGE = 'larger than 256 KB, so it was not parsed';
+
+/**
+ * A repository's YAML (`project.yaml`, front matter): `CORE_SCHEMA`, so a `<<` merge key is an ordinary key and costs
+ * no copying, and at most MAX_YAML_BYTES (BL-137, SEC-002.13 (d)).
+ */
+export function loadRepoYaml(text: string): unknown {
+  // A string has no more UTF-16 units than UTF-8 bytes, so a long one is refused before it is encoded.
+  if (text.length > MAX_YAML_BYTES || new TextEncoder().encode(text).length > MAX_YAML_BYTES) throw new RangeError(YAML_TOO_LARGE);
+  return yaml.load(text, { schema: yaml.CORE_SCHEMA });
+}
 
 // Pure and fs-free by design: takes file contents, never paths, and must not import
 // `fs` or `path`, so it can move into @specpilot/spec-core (BL-032) unchanged.

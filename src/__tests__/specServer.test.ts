@@ -68,6 +68,18 @@ function makeProject(): { root: string; outside: string; cleanup: () => void } {
   return { root, outside, cleanup: () => rmSync(base, { recursive: true, force: true }) };
 }
 
+describe('an oversized project.yaml gives no name (BL-137)', () => {
+  test('buildSpecsPayload reads no name from a project.yaml over 256 KB', () => {
+    const p = makeProject();
+    try {
+      write(p.root, '.specs/project/project.yaml', `name: "${'x'.repeat(262144)}"\n`);
+      expect(buildSpecsPayload(p.root, '0.0.0-test').project.name).toBeNull();
+    } finally {
+      p.cleanup();
+    }
+  });
+});
+
 describe('resolveAllowedPath', () => {
   let p: ReturnType<typeof makeProject>;
   beforeEach(() => (p = makeProject()));

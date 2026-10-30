@@ -1,4 +1,5 @@
-import { endsWithApproved, readSpecs, REQUIRED_TASK_HEADINGS, reviewMarks, TASK_COLUMNS, TASK_HEADINGS, taskHeadings, taskRowLines } from '../utils/specReader';
+import * as yaml from 'js-yaml';
+import { endsWithApproved, loadRepoYaml, readSpecs, REQUIRED_TASK_HEADINGS, reviewMarks, TASK_COLUMNS, TASK_HEADINGS, taskHeadings, taskRowLines, YAML_TOO_LARGE } from '../utils/specReader';
 import { render } from '../core/render';
 
 // Shaped like the real .specs/planning/tasks.md: 2-column Backlog / Current Sprint,
@@ -346,5 +347,42 @@ describe('readSpecs', () => {
 
   it('only parses tasks for planning/tasks.md', () => {
     expect(readSpecs({ 'quality/tests.md': TASKS_MD }).tasks).toBeUndefined();
+  });
+});
+
+// BL-137 (REQ-002.A.3; audit run-1 item 11, SEC-002.13 (d)): repository YAML through one capped, merge-free loader.
+describe('loadRepoYaml() (BL-137)', () => {
+  const CAP = 262144;
+  test('a `<<` merge key is an ordinary key', () => {
+    expect(loadRepoYaml('a: &a {x: 1}\nb:\n  <<: *a\n')).toEqual({ a: { x: 1 }, b: { '<<': { x: 1 } } });
+  });
+  test('nested merges under the cap parse at once', () => {
+    const lines = ['l0: &l0 {' + Array.from({ length: 50 }, (_, i) => `k${i}: ${i}`).join(', ') + '}'];
+    for (let n = 1; n < 12; n++) lines.push(`l${n}: &l${n}\n  <<: [${Array.from({ length: 50 }, () => `*l${n - 1}`).join(', ')}]`);
+    const started = Date.now();
+    loadRepoYaml(lines.join('\n') + '\n');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+  test('the cap is 262,144 UTF-8 bytes: a multibyte text at the cap parses, one byte more is refused', () => {
+    const at = (bytes: number) => `name: "é${'x'.repeat(bytes - Buffer.byteLength('name: "é"\n'))}"\n`;
+    expect(Buffer.byteLength(at(CAP))).toBe(CAP);
+    expect(loadRepoYaml(at(CAP))).toMatchObject({ name: expect.stringMatching(/^é/) });
+    expect(() => loadRepoYaml(at(CAP + 1))).toThrow(new RangeError(YAML_TOO_LARGE));
+  });
+  test('a date is text; a name still reads', () => {
+    expect(loadRepoYaml('name: kit\nlastUpdated: 2026-10-06\n')).toEqual({ name: 'kit', lastUpdated: '2026-10-06' });
+  });
+  test('the YAML the templates generate reads the same under the default schema, a date as its text', () => {
+    // REQ-002.A.3: the one difference is a date, which CORE_SCHEMA reads as text
+    const dated = (v: unknown): unknown => v instanceof Date ? v.toISOString().slice(0, 10) : Array.isArray(v) ? v.map(dated) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, dated(x)])) : v;
+    const options = { projectName: 'parcel-track', language: 'typescript', framework: 'express', specsName: '.specs', author: 'girishr', description: 'Tracks parcels' };
+    for (const apiParadigm of ['rest', 'cli'] as const) {
+      for (const f of render({ ...options, apiParadigm, date: '2026-10-06' }).files) {
+        if (!f.path.startsWith('.specs/')) continue; // what SpecPilot parses; command files hold text between --- lines
+        const text = /\.ya?ml$/.test(f.path) ? f.content : f.content.startsWith('---\n') && !f.path.endsWith('onboarding.md') ? f.content.split('---\n')[1] : null;
+        if (text === null) continue;
+        expect([f.path, loadRepoYaml(text)]).toEqual([f.path, dated(yaml.load(text))]);
+      }
+    }
   });
 });

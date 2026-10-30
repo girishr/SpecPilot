@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFileSync } from 'fs';
 import os from 'os';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import * as yaml from 'js-yaml';
 import { getFrameworksForLanguage } from '../utils/frameworks';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
@@ -12,6 +11,7 @@ import {
   API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
 } from '../utils/addSpecsQuestions';
 import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, projectNameError } from '../utils/initQuestions';
+import { loadRepoYaml } from '../utils/specReader';
 
 export interface InitOptions {
   lang: string;
@@ -212,7 +212,7 @@ export async function initCommand(name: string, options: InitOptions) {
       
       if (existsSync(projectYamlPath)) {
         try {
-          const projectData = yaml.load(readFileSync(projectYamlPath, 'utf8')) as any;
+          const projectData = loadRepoYaml(readFileSync(projectYamlPath, 'utf8')) as any;
           projectInfo += `\n\n📋 Existing Project Details:`;
           projectInfo += `\n  Name: ${projectData.name || 'Unknown'}`;
           projectInfo += `\n  Version: ${projectData.version || 'Unknown'}`;

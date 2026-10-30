@@ -550,3 +550,16 @@ describe('the specpilot-validate script (BL-108, REQ-002.E.12)', () => {
     expect(missing()).toBe('MISSING: .specs/planning/tasks.md');
   });
 });
+
+describe('the skill context from an oversized project.yaml (BL-137)', () => {
+  test('a project.yaml over 256 KB is not read', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'specpilot-skill-yaml-'));
+    try {
+      mkdirSync(join(dir, '.specs', 'project'), { recursive: true });
+      writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), `name: kit\nlanguage: typescript\ndescription: "${'x'.repeat(262144)}"\n`);
+      expect(readSkillContext(dir, '.specs')).toBe('project.yaml could not be read');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

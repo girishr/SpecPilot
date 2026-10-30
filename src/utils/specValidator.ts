@@ -3,7 +3,7 @@ import { basename, dirname, join, relative, sep } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
 import { resolveAllowedPath, writeError, writeInside } from './specPaths';
-import { readSpecs, REQUIRED_TASK_HEADINGS, SHAPED_HEADINGS, TASK_COLUMNS, TASK_PRIORITIES, TASK_TYPES, TaskHeadings, taskHeadings } from './specReader';
+import { loadRepoYaml, readSpecs, REQUIRED_TASK_HEADINGS, SHAPED_HEADINGS, TASK_COLUMNS, TASK_PRIORITIES, TASK_TYPES, TaskHeadings, taskHeadings, YAML_TOO_LARGE } from './specReader';
 
 /**
  * `rel` (below the specs folder) as the server's read guard resolves it (BL-134): null for a link, a file under a
@@ -340,7 +340,7 @@ export class SpecValidator {
     try {
       const content = readSpec(specsDir, 'project/project.yaml');
       if (content === null) return; // reported by the required-file check (BL-134)
-      const projectData = yaml.load(content) as any;
+      const projectData = loadRepoYaml(content) as any;
 
       if (!projectData) {
         result.errors.push('project.yaml is empty or invalid');
@@ -386,7 +386,9 @@ export class SpecValidator {
       // js-yaml's reason and position only: its message quotes lines of the file (BL-134).
       const e = error as { reason?: unknown; mark?: { line: number; column: number } };
       result.errors.push(
-        error instanceof yaml.YAMLException && typeof e.reason === 'string'
+        error instanceof RangeError && error.message === YAML_TOO_LARGE
+          ? `project.yaml is ${YAML_TOO_LARGE}.`
+          : error instanceof yaml.YAMLException && typeof e.reason === 'string'
           ? `Failed to parse project.yaml: ${e.reason}${e.mark ? ` (line ${e.mark.line + 1}, column ${e.mark.column + 1})` : ''}`
           : 'Failed to parse project.yaml.',
       );
@@ -398,8 +400,8 @@ export class SpecValidator {
     if (!rules) return [];
     if (Array.isArray(rules)) return rules as string[];
     if (typeof rules === 'object') {
-      return Object.values(rules as Record<string, unknown>)
-        .flatMap(v => Array.isArray(v) ? v as string[] : []);
+      // Each distinct array once: keys that alias one array cannot multiply the check (BL-137).
+      return [...new Set(Object.values(rules as Record<string, unknown>).filter(Array.isArray))].flat() as string[];
     }
     return [];
   }
@@ -845,7 +847,7 @@ relatedFiles: [security/threat-model.md, architecture/architecture.md]
         const fmMatch = content.match(/^---\n([\s\S]*?)\n---/m);
         if (!fmMatch) continue;
 
-        const fm = yaml.load(fmMatch[1]) as Record<string, unknown>;
+        const fm = loadRepoYaml(fmMatch[1]) as Record<string, unknown>;
         if (!fm || !fm['lastUpdated']) continue;
 
         const updated = new Date(String(fm['lastUpdated']));

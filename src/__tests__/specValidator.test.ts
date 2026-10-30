@@ -851,3 +851,43 @@ describe('SpecValidator', () => {
     load.mockRestore();
   });
 });
+
+// BL-137 (REQ-002.A.3; audit run-1 item 11, SEC-002.13 (d)): project.yaml through loadRepoYaml().
+describe('validate and a hostile project.yaml (BL-137)', () => {
+  let base: string;
+  const validator = new SpecValidator();
+  beforeEach(() => {
+    base = join(os.tmpdir(), `specpilot-validator-yaml-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(base, { recursive: true });
+    createValidSpecsDir(base);
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+  const yamlFile = (text: string) => writeFileSync(join(base, '.specs', 'project', 'project.yaml'), text);
+  const parseErrors = async () => (await validator.validate(base, { fix: false, verbose: false })).errors.filter(e => /project\.yaml/.test(e));
+
+  test('over 256 KB: the size error', async () => {
+    yamlFile(`name: "${'x'.repeat(262144)}"\n`);
+    expect(await parseErrors()).toContain('project.yaml is larger than 256 KB, so it was not parsed.');
+  });
+
+  test('deep nesting under the cap is a parse error, not the size text', async () => {
+    yamlFile(`name: ${'['.repeat(20000)}\n`);
+    const errors = await parseErrors();
+    expect(errors.some(e => e.startsWith('Failed to parse project.yaml'))).toBe(true);
+    expect(errors).not.toContain('project.yaml is larger than 256 KB, so it was not parsed.');
+  });
+
+  test('many keys aliasing one large array under rules validate at once', async () => {
+    const big = `[${Array.from({ length: 30000 }, () => 'x').join(', ')}]`;
+    const keys = Array.from({ length: 12000 }, (_, i) => `  k${i}: *a`).join('\n');
+    yamlFile(`name: my-app\nversion: "1.0.0"\nlanguage: typescript\nrules:\n  base: &a ${big}\n${keys}\n`);
+    const started = Date.now();
+    await validator.validate(base, { fix: false, verbose: false });
+    expect(Date.now() - started).toBeLessThan(1000);
+  }, 10000);
+
+  test('an explicit !!set tag is an unknown-tag parse error', async () => {
+    yamlFile('name: my-app\ntags: !!set {a, b}\n');
+    expect((await parseErrors()).some(e => /^Failed to parse project\.yaml: unknown tag/.test(e))).toBe(true);
+  });
+});

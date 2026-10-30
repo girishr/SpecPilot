@@ -452,6 +452,14 @@ rules:
       expect(result.projectYaml).toMatchObject({ action: 'skipped', reason: 'could not parse project.yaml, left unchanged' });
       expect(readFileSync(yamlFile(), 'utf-8')).toBe(text);
     });
+
+    it('leaves a project.yaml over 256 KB unchanged, as one that does not parse (BL-137)', async () => {
+      const text = `name: x\nteam:\n  devPrefix: "girishr"\nrules:\n  critical: []\ndescription: "${'x'.repeat(262144)}"\n`;
+      scaffoldSpecs(testDir, { projectYaml: text, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.projectYaml).toMatchObject({ action: 'skipped', reason: 'could not parse project.yaml, left unchanged' });
+      expect(readFileSync(yamlFile(), 'utf-8')).toBe(text);
+    });
   });
 
   describe('copilot-instructions.md in the wording it already uses (BL-066)', () => {

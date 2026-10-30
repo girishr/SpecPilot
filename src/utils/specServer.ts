@@ -55,8 +55,10 @@ export function readBranch(root: string): string | null {
       gitDir = resolve(root, m[1].trim());
     }
     const head = readFileSync(join(gitDir, 'HEAD'), 'utf-8').trim();
-    const ref = /^ref: refs\/heads\/(\S+)$/.exec(head);
-    if (ref) return ref[1];
+    // No control character (git's ref rules refuse them), and not a reftable repository's placeholder (BL-132).
+    // eslint-disable-next-line no-control-regex
+    const ref = /^ref: refs\/heads\/([^\s\x00-\x1f\x7f]+)$/.exec(head);
+    if (ref) return ref[1] === '.invalid' ? null : ref[1];
     return /^[0-9a-f]{40}([0-9a-f]{24})?$/.test(head) ? head : null;
   } catch {
     return null;

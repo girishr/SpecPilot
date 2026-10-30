@@ -29,6 +29,11 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-30: the developer: `Start BL-132`. Branch `fix/bl-132-windows-program-paths` from `main` (`4a15328`); Spec Report written (REQ-002.A.8, REQ-002.H.1, context.md), to spec-reviewer before code
+- 2026-10-30: BL-132 spec-reviewer FIX on the report (clone cwd, `browserCommand` signature, reftable, control characters in the branch, test seam, threat-model line): applied; the clone's cwd filed as BL-148 (Backlog) rather than widening the row
+- 2026-10-30: BL-132 spec-reviewer PASS on the fixed report; built: 9 tests first, Jest 1837/1837, lint 0 errors. Nothing committed
+- 2026-10-30: BL-132 spec-reviewer PASS on the build (one optional threat-model rewording taken); BL-132 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-132: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
 - 2026-10-30: the developer: `Start BL-131`. Branch `fix/bl-131-skill-project-name` from `main` (`a30381e`); Spec Report written (REQ-002.H.40, REQ-002.I.5, context.md), to spec-reviewer before code
 - 2026-10-30: BL-131 spec-reviewer FIX on the report (periods, `fm` trailing `:`/space, security-decisions, more tests), fixed, PASS; `dq` added after the PASS and re-checked, PASS. Built: 4 tests first (all failed on `main`), Jest 1828/1828, golden unchanged. Nothing committed
 - 2026-10-30: BL-131 spec-reviewer FIX on the build (`onboarding.md` front matter raw, the test's skip, a doc-comment order), fixed, PASS; BL-131 moved to Review by hand. Branch left checked out, nothing committed

@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import { existsSync, realpathSync, statSync } from 'fs';
 import { request } from 'http';
 import { connect } from 'net';
-import { join, resolve } from 'path';
+import { join, resolve, win32 } from 'path';
 import { buildSpecsPayload, displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
 import { removeStaleStaging, specsMissing } from '../utils/specSetup';
 import { checkOpenPath, homeDir, MAX_PROJECTS, readRegistry, registryPath, sortEntries, upsertEntry, writeRegistry } from '../utils/projectRegistry';
@@ -35,13 +35,20 @@ export function mcpConfigLine(host: string, token: string): string {
   return JSON.stringify({ mcpServers: { 'specpilot-local': { type: 'http', url: `http://${host}/mcp`, headers: { 'X-SpecPilot-Token': token } } } });
 }
 
+/**
+ * The program that opens `url`. On Windows `cmd.exe` by its full path, from the home drive's root, so a `cmd.exe` in the
+ * served folder cannot run (BL-132; the folder dialog's rule, SEC-002.5 residual (n)). Exported for the tests.
+ */
+export function browserCommand(url: string, platform: NodeJS.Platform, env: NodeJS.ProcessEnv, home: string): { file: string; args: string[]; cwd?: string } {
+  if (platform === 'darwin') return { file: 'open', args: [url], cwd: undefined };
+  if (platform === 'win32') return { file: win32.join(env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe'), args: ['/c', 'start', '', url], cwd: win32.parse(home).root };
+  return { file: 'xdg-open', args: [url], cwd: undefined };
+}
+
 /** Open `url` in the default browser. The URL is built here, never taken from input. */
 function openBrowser(url: string, logger: Logger): void {
-  const [cmd, args] =
-    process.platform === 'darwin' ? ['open', [url]]
-    : process.platform === 'win32' ? ['cmd', ['/c', 'start', '', url]]
-    : ['xdg-open', [url]];
-  const child = spawn(cmd, args as string[], { stdio: 'ignore', detached: true });
+  const { file, args, cwd } = browserCommand(url, process.platform, process.env, homeDir());
+  const child = spawn(file, args, { stdio: 'ignore', detached: true, cwd });
   child.on('error', () => logger.warn(`Could not open a browser. Open ${url} yourself.`));
   child.unref();
 }

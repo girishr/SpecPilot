@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-131 to Completed)
-version: 7.59
+lastUpdated: 2026-10-30 (BL-132 to Review, approved)
+version: 7.61
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -50,12 +50,12 @@ Notes
 | BL-124 | feat | P3 | **Low priority (the developer, 2026-10-24: not a problem while there is one developer).** Owner in Backlog and Current Sprint IDs, as Completed IDs already carry it (`CD-girishr-139`): `BL-###-<handle>` and `CS-###-<handle>`, so two developers adding tasks on separate branches do not mint the same ID. Today `nextTaskId()` in `src/utils/taskMover.ts` matches only `^\[?BL-(\d+)\]?$`, so in a file with only suffixed IDs every new task would come out as `BL-001`; `newTask` writes no handle; the ID conventions in the tasks.md template, the Tasks mandate line and the generated docs name `BL-###` and `CS-###` only. Decide in the Spec Report: the number stays unique across handles (highest number of any handle plus one) or per handle; where the handle comes from (project.yaml author, as for CD IDs); mixed files with old and new IDs; the same change in `SpecPilot.Init`'s generator. |
 | BL-CL-03 | feat | P3 | `specpilot -v` prints the version (today only `-V` and `--version` work; `-v` is an unknown option). Support all three: `-v`, `-V`, `--version`, same output, exit 0. `-v` is the npm/Node habit (`node -v`, `npm -v`); `-V` is Commander's default and stays so nobody breaks. No command uses `-v` today (`validate` and `list` use `--verbose` long form only), so `-v` is free at the top level. In `src/cli.ts`: keep `.version(packageJson.version, '-V, --version')`, and before `program.parse()` treat a lone top-level `-v` as `-V` (or register `-v` as a hidden alias); help shows `-v, -V, --version`. Tests: Jest that `-v`, `-V` and `--version` print the same version and exit 0, and that `specpilot validate --verbose` is unaffected. Found 2026-10-22. |
 | BL-147 | bug | P2 | Bug, P2. `specpilot migrate` (`src/utils/projectMigrator.ts`: `copyFileSync` and `writeFileSync`) writes through linked files and folders in a cloned repo: route it through `writeInside()` in `specPaths.ts` (BL-130). Attribution: found on the BL-130 Spec Report (architect, 2026-10-30), SEC-002.12 (a). |
+| BL-148 | bug | P2 | Bug, P2, Windows only. `cloneRepository()` (`src/utils/gitClone.ts`) spawns the bare name `git` with `cwd: dirname(target)`, so a clone into a folder inside an earlier hostile clone may run that clone's `git.exe`: give it `cwd: parse(homedir()).root` as `probeGit` has (the target is absolute). Attribution: found on the BL-132 Spec Report (spec-reviewer, 2026-10-30), SEC-002.12 (d), audit item 3. |
 
 ## Current Sprint
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. |
 | BL-133 | bug | P3 | Bug, P3. Repo text reaches the terminal with escape sequences intact (`validate`, `archive`, `refine`, `add-specs`, `migrate`): one control-character filter in `Logger` and the direct `console.log` sinks (reuse `mcpLocal.ts`'s `UNSHOWN`). Attribution: SEC-002.12 (e); audit item 14, `specpilot/cli-output/repo-text-printed-without-control-char-filter`. |
 | BL-134 | bug | P1 | Bug, P1. `specpilot_validate_specs` (listed with `--read-only` too) and the post-setup validation read through `SpecValidator`'s `existsSync`/`readFileSync`, not `resolveAllowedPath()`: a linked `project.yaml` returns lines of an outside file in js-yaml's error text, and a link to `/dev/zero` blocks the server. Read through the path guard and report YAML errors by `reason`, line and column only. Attribution: SEC-002.13 (a), SEC-002.9 (f); audit item 4, `specpilot/specValidator/reads-follow-symlinks-outside-served-root`. |
 | BL-135 | bug | P2 | Bug, P2. Task writes (`loadTasks`, `readArchive`, `archiveCompleted`; page routes and MCP task tools) `lstat` only the final file, so a linked `.specs` or `.specs/planning` sends the write outside the served root: `lstat` every folder level (or the `resolveAllowedPath()` realpath comparison) and `isFile()` before reading. Attribution: SEC-002.13 (b), SEC-002.5 (h); audit item 5, `specpilot/taskMover/task-write-follows-symlinked-specs-folder`. |
@@ -83,6 +83,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. Approved 2026-10-30 |
 
 ## Won't do
 

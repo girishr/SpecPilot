@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-133 to Review, approved)
-version: 7.64
+lastUpdated: 2026-10-30 (BL-133 to Completed)
+version: 7.65
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -82,7 +82,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-133 | bug | P3 | Bug, P3. Repo text reaches the terminal with escape sequences intact (`validate`, `archive`, `refine`, `add-specs`, `migrate`): one control-character filter in `Logger` and the direct `console.log` sinks (reuse `mcpLocal.ts`'s `UNSHOWN`). Attribution: SEC-002.12 (e); audit item 14, `specpilot/cli-output/repo-text-printed-without-control-char-filter`. Approved 2026-10-30 |
 
 ## Won't do
 
@@ -138,3 +137,4 @@ Notes
 | 246 | [CD-girishr-155] [BL-130] | One no-follow writer for every CLI write in the project (security audit run-1, SEC-002.12 (a)): `writeInside()` in `specPaths.ts` refuses a link at any level or at the file (also one inside the project), creates with `wx`, replaces by temp file and `rename`; `archive`, `refine`, `refine --update`, `init`, `add-specs`, `validate --fix`, `backfill` and the `.gitattributes` merge go through it; `migrate` is BL-147. REQ-002.E.18. Jest 1793 → 1824, no `ui/` change. Approved 2026-10-30. Feature commit `47cbc1b`. |
 | 247 | [CD-girishr-156] [BL-131] | A project name with control characters stays one value (security audit run-1, SEC-002.12 (c)): the skill's name and language one line each (each control run one space); `fmValue()` (the `fm` helper and `onboarding.md`'s `project:`) quotes a control character, `: `, ` #`, a leading indicator or space, a trailing `:` or space; `yamlScalar()` and `dq` escape C0/DEL; `api.yaml`'s meta comment and `prompts.md`'s description no longer raw. REQ-002.H.40, REQ-002.I.5. Jest 1824 → 1828, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `a90d481`. |
 | 248 | [CD-girishr-157] [BL-132] | On Windows no program starts by bare name from the project folder (security audit run-1, SEC-002.12 (d)): `serve --open` starts `%SystemRoot%\System32\cmd.exe` by full path from the home drive's root (`browserCommand()`); `archive` reads the branch from `.git/HEAD` via `readBranch()` (`currentBranch()`), no `git`; `readBranch()` refuses control characters and `refs/heads/.invalid`; the clone's cwd is BL-148. REQ-002.A.8, REQ-002.H.1. Jest 1828 → 1837, no `ui/` change, Windows not run (BL-145). Approved 2026-10-30. Feature commit `172e3d9`. |
+| 249 | [CD-girishr-158] [BL-133] | Repository text reaches the terminal without control characters (security audit run-1, SEC-002.12 (e)): `terminalText()` in `logger.ts` (on `mcpLocal.ts`' `UNSHOWN`, tab and line feed kept) runs before SpecPilot's colour in every `Logger` level, the display functions' values and the direct sinks of `validate`, `refine`, `add-specs` and `migrate`. REQ-002.A.11. Jest 1837 → 1848, no `ui/` change. Approved 2026-10-30. Feature commit `d593833`. |

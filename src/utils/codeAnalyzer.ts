@@ -1,5 +1,17 @@
-import { readdirSync, statSync, readFileSync } from 'fs';
+import { lstatSync, readdirSync } from 'fs';
 import { join, extname } from 'path';
+import { readSmall } from './projectDetector';
+import { MAX_SCAN_FILES } from './specPaths';
+
+// The analysis's bounds (BL-136, REQ-002.D.6): entries looked at with `lstat`, so no link is followed.
+const MAX_DEPTH = 20;
+const MAX_FILE_BYTES = 1024 * 1024;
+const MAX_RUN_BYTES = 8 * MAX_FILE_BYTES;
+
+/** What one walk may still visit. */
+interface Budget {
+  entries: number;
+}
 
 export interface TodoItem {
   file: string;
@@ -33,7 +45,13 @@ export class CodeAnalyzer {
   private excludeDirs = ['node_modules', 'dist', 'build', '.git', '__pycache__', 'venv', '.venv', 'env'];
   private codeExtensions = ['.ts', '.tsx', '.js', '.jsx', '.py', '.java', '.go', '.rs'];
 
+  /** Bytes one `analyzeCodebase()` run may still read, and what it already read (each file counted once). */
+  private bytesLeft = MAX_RUN_BYTES;
+  private reads = new Map<string, string | null>();
+
   async analyzeCodebase(projectDir: string = process.cwd()): Promise<AnalysisResult> {
+    this.bytesLeft = MAX_RUN_BYTES;
+    this.reads = new Map();
     return {
       todos: this.findTodos(projectDir),
       tests: this.analyzeTests(projectDir),
@@ -41,22 +59,33 @@ export class CodeAnalyzer {
     };
   }
 
-  private findTodos(dir: string, todos: TodoItem[] = []): TodoItem[] {
+  /** A code file's text: a regular file of at most 1 MB while the run's byte budget lasts, else null. */
+  private read(path: string): string | null {
+    if (this.reads.has(path)) return this.reads.get(path)!;
+    const text = this.bytesLeft > 0 ? readSmall(path, Math.min(MAX_FILE_BYTES, this.bytesLeft)) : null;
+    if (text !== null) this.bytesLeft -= Buffer.byteLength(text, 'utf-8');
+    this.reads.set(path, text);
+    return text;
+  }
+
+  private findTodos(dir: string, todos: TodoItem[] = [], depth = 0, budget: Budget = { entries: MAX_SCAN_FILES }): TodoItem[] {
     try {
       const items = readdirSync(dir);
       
       for (const item of items) {
+        if (budget.entries-- <= 0) break;
         const fullPath = join(dir, item);
         
         try {
-          const stat = statSync(fullPath);
+          const stat = lstatSync(fullPath);
           
           if (stat.isDirectory()) {
-            if (!this.excludeDirs.includes(item)) {
-              this.findTodos(fullPath, todos);
+            if (!this.excludeDirs.includes(item) && depth < MAX_DEPTH) {
+              this.findTodos(fullPath, todos, depth + 1, budget);
             }
-          } else if (this.codeExtensions.includes(extname(item))) {
-            const content = readFileSync(fullPath, 'utf-8');
+          } else if (stat.isFile() && this.codeExtensions.includes(extname(item))) {
+            const content = this.read(fullPath);
+            if (content === null) continue;
             const lines = content.split('\n');
             
             lines.forEach((line, index) => {
@@ -103,7 +132,8 @@ export class CodeAnalyzer {
     // Count tests and categorize
     testFiles.forEach(file => {
       try {
-        const content = readFileSync(join(dir, file), 'utf-8');
+        const content = this.read(join(dir, file));
+        if (content === null) return;
         
         // Count test cases
         const testMatches = content.match(/\b(test|it|describe)\s*\(/g);
@@ -134,21 +164,22 @@ export class CodeAnalyzer {
     };
   }
 
-  private findTestFiles(dir: string, testFiles: string[]): void {
+  private findTestFiles(dir: string, testFiles: string[], depth = 0, budget: Budget = { entries: MAX_SCAN_FILES }): void {
     try {
       const items = readdirSync(dir);
       
       for (const item of items) {
+        if (budget.entries-- <= 0) break;
         const fullPath = join(dir, item);
         
         try {
-          const stat = statSync(fullPath);
+          const stat = lstatSync(fullPath);
           
           if (stat.isDirectory()) {
-            if (!this.excludeDirs.includes(item)) {
-              this.findTestFiles(fullPath, testFiles);
+            if (!this.excludeDirs.includes(item) && depth < MAX_DEPTH) {
+              this.findTestFiles(fullPath, testFiles, depth + 1, budget);
             }
-          } else if (this.isTestFile(item)) {
+          } else if (stat.isFile() && this.isTestFile(item)) {
             testFiles.push(fullPath.replace(dir + '/', ''));
           }
         } catch {
@@ -169,9 +200,9 @@ export class CodeAnalyzer {
 
   private detectTestFramework(dir: string): string | undefined {
     try {
-      const packageJsonPath = join(dir, 'package.json');
-      if (statSync(packageJsonPath).isFile()) {
-        const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const text = readSmall(join(dir, 'package.json'));
+      if (text !== null) {
+        const pkg = JSON.parse(text);
         const deps = { ...pkg.dependencies, ...pkg.devDependencies };
         
         if (deps.jest) return 'jest';
@@ -187,9 +218,8 @@ export class CodeAnalyzer {
     
     // Check for Python test frameworks
     try {
-      const requirementsPath = join(dir, 'requirements.txt');
-      if (statSync(requirementsPath).isFile()) {
-        const content = readFileSync(requirementsPath, 'utf-8');
+      const content = readSmall(join(dir, 'requirements.txt'));
+      if (content !== null) {
         if (content.includes('pytest')) return 'pytest';
         if (content.includes('unittest')) return 'unittest';
       }
@@ -217,7 +247,8 @@ export class CodeAnalyzer {
     components: string[],
     fileTypes: Record<string, number>,
     depth: number = 0,
-    prefix: string = ''
+    prefix: string = '',
+    budget: Budget = { entries: MAX_SCAN_FILES }
   ): string {
     let result = '';
     
@@ -227,17 +258,18 @@ export class CodeAnalyzer {
       const items = readdirSync(dir);
       
       for (const item of items) {
+        if (budget.entries-- <= 0) break;
         const fullPath = join(dir, item);
         
         try {
-          const stat = statSync(fullPath);
+          const stat = lstatSync(fullPath);
           
           if (stat.isDirectory()) {
             if (!this.excludeDirs.includes(item)) {
               result += `${prefix}${item}/\n`;
-              result += this.buildDirectoryTree(fullPath, components, fileTypes, depth + 1, prefix + '  ');
+              result += this.buildDirectoryTree(fullPath, components, fileTypes, depth + 1, prefix + '  ', budget);
             }
-          } else {
+          } else if (stat.isFile()) {
             const ext = extname(item);
             if (this.codeExtensions.includes(ext)) {
               fileTypes[ext] = (fileTypes[ext] || 0) + 1;

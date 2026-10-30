@@ -541,3 +541,44 @@ let package = Package(name: "bare-swift")
     });
   });
 });
+
+// BL-136 (REQ-002.D.6; audit run-1 item 10, SEC-002.13 (c)): every manifest through readSmall().
+(process.platform === 'win32' ? describe.skip : describe)('manifests read through readSmall() (BL-136)', () => {
+  let base: string;
+  let dir: string;
+  const detect = () => new ProjectDetector().detectProject(dir);
+  beforeEach(() => {
+    base = join(os.tmpdir(), `specpilot-detect-read-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    dir = join(base, 'repo');
+    mkdirSync(dir, { recursive: true });
+    mkdirSync(join(base, 'outside'));
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+  const empty = { name: 'unknown-project', language: 'javascript', dependencies: [] };
+
+  test('package.json linked outside reads as empty, still Node', async () => {
+    writeFileSync(join(base, 'outside', 'package.json'), JSON.stringify({ name: 'OUTSIDE', devDependencies: { typescript: '5' } }));
+    symlinkSync(join(base, 'outside', 'package.json'), join(dir, 'package.json'));
+    const info = await detect();
+    expect(info).toMatchObject(empty);
+    expect(JSON.stringify(info)).not.toContain('OUTSIDE');
+  });
+
+  test('package.json over 64 KB reads as empty; just under keeps its name', async () => {
+    const pkg = (size: number) => { const s = JSON.stringify({ name: 'kit', description: '' }); return s.replace('""', `"${'x'.repeat(size - s.length)}"`); };
+    writeFileSync(join(dir, 'package.json'), pkg(64 * 1024 + 1));
+    expect(await detect()).toMatchObject(empty);
+    writeFileSync(join(dir, 'package.json'), pkg(64 * 1024 - 1));
+    expect((await detect())?.name).toBe('kit');
+  });
+
+  test('package.json and requirements.txt linked to /dev/zero return at once', async () => {
+    symlinkSync('/dev/zero', join(dir, 'package.json'));
+    const started = Date.now();
+    expect(await detect()).toMatchObject(empty);
+    rmSync(join(dir, 'package.json'));
+    symlinkSync('/dev/zero', join(dir, 'requirements.txt'));
+    await detect();
+    expect(Date.now() - started).toBeLessThan(2000);
+  }, 5000);
+});

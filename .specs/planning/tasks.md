@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-135 to Completed)
-version: 7.71
+lastUpdated: 2026-10-30 (BL-136 to Review, approved)
+version: 7.73
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -51,12 +51,12 @@ Notes
 | BL-CL-03 | feat | P3 | `specpilot -v` prints the version (today only `-V` and `--version` work; `-v` is an unknown option). Support all three: `-v`, `-V`, `--version`, same output, exit 0. `-v` is the npm/Node habit (`node -v`, `npm -v`); `-V` is Commander's default and stays so nobody breaks. No command uses `-v` today (`validate` and `list` use `--verbose` long form only), so `-v` is free at the top level. In `src/cli.ts`: keep `.version(packageJson.version, '-V, --version')`, and before `program.parse()` treat a lone top-level `-v` as `-V` (or register `-v` as a hidden alias); help shows `-v, -V, --version`. Tests: Jest that `-v`, `-V` and `--version` print the same version and exit 0, and that `specpilot validate --verbose` is unaffected. Found 2026-10-22. |
 | BL-147 | bug | P2 | Bug, P2. `specpilot migrate` (`src/utils/projectMigrator.ts`: `copyFileSync` and `writeFileSync`) writes through linked files and folders in a cloned repo: route it through `writeInside()` in `specPaths.ts` (BL-130). Attribution: found on the BL-130 Spec Report (architect, 2026-10-30), SEC-002.12 (a). |
 | BL-148 | bug | P2 | Bug, P2, Windows only. `cloneRepository()` (`src/utils/gitClone.ts`) spawns the bare name `git` with `cwd: dirname(target)`, so a clone into a folder inside an earlier hostile clone may run that clone's `git.exe`: give it `cwd: parse(homedir()).root` as `probeGit` has (the target is absolute). Attribution: found on the BL-132 Spec Report (spec-reviewer, 2026-10-30), SEC-002.12 (d), audit item 3. |
+| BL-149 | bug | P3 | Bug, P3. `CodeAnalyzer.findTestFiles()` stores a test file found in a subfolder relative to that subfolder (`fullPath.replace(dir + '/', '')` with `dir` the current folder, as `findTodos()` does for TODO file names), so `analyzeTests()` reads `join(root, name)`, misses it and counts none of its tests; `add-specs` reports 0 tests for a project whose tests are all under `src/` or `tests/`. Store paths relative to the walk's root. Found on the BL-136 build (2026-10-30). |
 
 ## Current Sprint
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-136 | bug | P2 | Bug, P2. `CodeAnalyzer` (`findTodos`, `findTestFiles`, `buildDirectoryTree`) and `ProjectDetector` follow links with no bound: a hostile repo can list outside file names into `architecture.md`, walk without end or read `/dev/zero` under the write lock. `lstat` walk skipping links, a visited set, depth and count caps, and `readSmall()` for every manifest. Reopens the accepted residual of SEC-002.5 (j) and SEC-004.24's `package.json` read. Attribution: SEC-002.13 (c); audit items 9, 10. Feature: Spec Report first. |
 | BL-137 | bug | P3 | Bug, P3. `project.yaml` is parsed with js-yaml's default schema (merge keys) and no byte cap on every `GET /api/specs`, open, clone, MCP list call and startup: load with `CORE_SCHEMA` (or `JSON_SCHEMA`) and a byte cap in `specServer.ts`, `slashCommandGenerator.ts` and the validator. Attribution: SEC-002.13 (d); audit item 11, `specpilot/specServer/untrusted-project-yaml-merge-key-amplification`. |
 | BL-138 | bug | P3 | Bug, P3. `ui/md.js`'s link pattern and table-separator test backtrack superlinearly, so one crafted `tasks.md` row freezes the tab: unambiguous link pattern, separator test as `specReader.ts` has it; a browser test with a long input. Attribution: SEC-002.13 (e); audit item 15, `specpilot/ui-md/superlinear-link-and-separator-regex`. |
 | BL-139 | chore | P1 | Chore, P1, decision. Are other OS users on a shared host, and servers that held the `serve` port earlier (e.g. forwarded from a container), in scope? SEC-004.20, .23, .27 and .28 assume every local process is the owner, which is false for those and for `SPECPILOT_MCP_TOKEN`. Record the answer in the security files (in scope: BL-140 to BL-142; out: a line in Out of Scope [SEC-004]). Attribution: SEC-002.14, SEC-005; audit items 6 to 8. |
@@ -80,6 +80,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-136 | bug | P2 | Bug, P2. `CodeAnalyzer` (`findTodos`, `findTestFiles`, `buildDirectoryTree`) and `ProjectDetector` follow links with no bound: a hostile repo can list outside file names into `architecture.md`, walk without end or read `/dev/zero` under the write lock. `lstat` walk skipping links, a visited set, depth and count caps, and `readSmall()` for every manifest. Reopens the accepted residual of SEC-002.5 (j) and SEC-004.24's `package.json` read. Attribution: SEC-002.13 (c); audit items 9, 10. Feature: Spec Report first. Approved 2026-10-30 |
 
 ## Won't do
 

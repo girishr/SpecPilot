@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-135 to Review, approved)
-version: 7.70
+lastUpdated: 2026-10-30 (BL-135 to Completed)
+version: 7.71
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -80,7 +80,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-135 | bug | P2 | Bug, P2. Task writes (`loadTasks`, `readArchive`, `archiveCompleted`; page routes and MCP task tools) `lstat` only the final file, so a linked `.specs` or `.specs/planning` sends the write outside the served root: `lstat` every folder level (or the `resolveAllowedPath()` realpath comparison) and `isFile()` before reading. Attribution: SEC-002.13 (b), SEC-002.5 (h); audit item 5, `specpilot/taskMover/task-write-follows-symlinked-specs-folder`. Approved 2026-10-30 |
 
 ## Won't do
 
@@ -138,3 +137,4 @@ Notes
 | 248 | [CD-girishr-157] [BL-132] | On Windows no program starts by bare name from the project folder (security audit run-1, SEC-002.12 (d)): `serve --open` starts `%SystemRoot%\System32\cmd.exe` by full path from the home drive's root (`browserCommand()`); `archive` reads the branch from `.git/HEAD` via `readBranch()` (`currentBranch()`), no `git`; `readBranch()` refuses control characters and `refs/heads/.invalid`; the clone's cwd is BL-148. REQ-002.A.8, REQ-002.H.1. Jest 1828 → 1837, no `ui/` change, Windows not run (BL-145). Approved 2026-10-30. Feature commit `172e3d9`. |
 | 249 | [CD-girishr-158] [BL-133] | Repository text reaches the terminal without control characters (security audit run-1, SEC-002.12 (e)): `terminalText()` in `logger.ts` (on `mcpLocal.ts`' `UNSHOWN`, tab and line feed kept) runs before SpecPilot's colour in every `Logger` level, the display functions' values and the direct sinks of `validate`, `refine`, `add-specs` and `migrate`. REQ-002.A.11. Jest 1837 → 1848, no `ui/` change. Approved 2026-10-30. Feature commit `d593833`. |
 | 250 | [CD-girishr-159] [BL-134] | Every spec file the validator reads goes through the read guard (security audit run-1, SEC-002.13 (a)): `specPath()`/`readSpec()` in `specValidator.ts` on `resolveAllowedPath()`, so `validate`, `specpilot_validate_specs` and the post-setup validation report a link, a file under a linked folder or a non-file as not read; YAML errors give reason and position only; a linked `.specs` is no longer followed. REQ-002.A.3. Jest 1848 → 1857, no `ui/` change. Approved 2026-10-30. Feature commit `c5ef06c`. |
+| 251 | [CD-girishr-160] [BL-135] | Task writes walk every folder on the way (security audit run-1, SEC-002.13 (b)): `loadTasks()` and `readArchive()` in `taskMover.ts` run `folderError()` first, so a linked or non-folder `.specs` or `.specs/planning` is refused (422, or a tool refusal for MCP) for moves, new tasks, review actions, field edits and the archive, and the ID hint is absent; a non-regular `tasks.md` is refused before it is read. REQ-002.H.10. Jest 1857 → 1862, no `ui/` change. Approved 2026-10-30. Feature commit `5bc17b8`. |

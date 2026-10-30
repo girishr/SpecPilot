@@ -3,9 +3,8 @@ import { AddressInfo } from 'net';
 import { existsSync, readFileSync, realpathSync, statSync } from 'fs';
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'path';
 import { homedir } from 'os';
-import * as yaml from 'js-yaml';
 import { randomBytes, timingSafeEqual } from 'crypto';
-import { readSpecs } from './specReader';
+import { loadRepoYaml, readSpecs } from './specReader';
 import { archiveCompleted, completedArchiveStatus, FIELDS_STALE_ERROR, FieldsRequest, fieldsShapeError, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, REVIEW_STALE_ERROR, ReviewRequest, reviewShapeError, reviewTask, setTaskFields, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
 import { createPoller } from './specPoller';
@@ -97,7 +96,7 @@ function navFiles(root: string, scanned: string[], dir: string, keep: (p: string
 function projectName(yamlText: string | undefined): string | null {
   if (yamlText === undefined) return null;
   try {
-    const doc = yaml.load(yamlText) as { name?: unknown } | null;
+    const doc = loadRepoYaml(yamlText) as { name?: unknown } | null;
     return doc && typeof doc.name === 'string' ? doc.name : null;
   } catch {
     return null;

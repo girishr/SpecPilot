@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
@@ -112,6 +112,15 @@ describe('specpilot init: terminal output (BL-075)', () => {
     mkdirSync(join(dir, 'demo', '.specs'), { recursive: true });
     answer(ANSWERS);
     expect(await run('demo', options())).toMatchSnapshot();
+  });
+
+  it('does not parse an existing project.yaml over 256 KB (BL-137)', async () => {
+    mkdirSync(join(dir, 'demo', '.specs', 'project'), { recursive: true });
+    writeFileSync(join(dir, 'demo', '.specs', 'project', 'project.yaml'), `name: kit\ndescription: "${'x'.repeat(262144)}"\n`);
+    answer(ANSWERS);
+    const out = await run('demo', options());
+    expect(out).toContain('Could not read project.yaml');
+    expect(out).not.toContain('Name: kit');
   });
 });
 

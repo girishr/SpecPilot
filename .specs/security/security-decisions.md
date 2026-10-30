@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-30 (BL-136: every manifest through readSmall)
-version: 1.37
+lastUpdated: 2026-10-30 (BL-137: repository YAML loader)
+version: 1.38
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -398,7 +398,7 @@ This file records security-related architectural and implementation decisions ma
 - (2026-10-28, audit run-1) Should the CLI's writers take the server's no-follow rules (SEC-004.12, SEC-004.19) through one shared writer (SEC-002.12 a, b)? BL-077 now refuses the folder half in `generateSpecs()` (REQ-002.E.17); `backfill`'s folders and the linked-file half remain. **Answered 2026-10-30 (BL-130, architect decision): yes. One writer, `writeInside()` in `src/utils/specPaths.ts`, for every CLI write inside the project; every link refused, also one pointing inside the project (REQ-002.E.18); `migrate` is BL-147.**
 - (2026-10-28, audit run-1) SEC-004.24 kept `package.json` "read as today" and SEC-004.25 filters control characters from skill values but not the project name (SEC-002.12 c, SEC-002.13 c): extend `readSmall()` and `skillValue()` to both? **`skillValue()` half answered 2026-10-30 (BL-131): the name and language go one line each into the skill, and `fm`, `dq` and `yamlScalar()` quote or escape control characters (REQ-002.H.40, REQ-002.I.5). The `readSmall()` half answered by BL-136 (2026-10-30): every manifest and the analyzer's files go through `readSmall()` (REQ-002.D.6).**
 - (2026-10-28, audit run-1) Reopen the accepted residual of SEC-002.5 (j) on the Code Analyzer, now that a hostile repository can make the walk unbounded or read a device under the write lock (SEC-002.13 c)?
-- (2026-10-28, audit run-1) Should every path that reads a served root (the validator included, SEC-002.13 a) go through `resolveAllowedPath()`, and should `project.yaml` be parsed with a merge-free schema and a byte cap (SEC-002.13 d)?
+- (2026-10-28, audit run-1) Should every path that reads a served root (the validator included, SEC-002.13 a) go through `resolveAllowedPath()`, and should `project.yaml` be parsed with a merge-free schema and a byte cap (SEC-002.13 d)? **Answered 2026-10-30: the validator's reads by BL-134; the merge-free schema and the byte cap by BL-137 (`loadRepoYaml()`, `CORE_SCHEMA`, 262,144 UTF-8 bytes, REQ-002.A.3).**
 - (2026-10-28, audit run-1) Add `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a cross-site refusal on `/api/events` and the other `/api` reads (SEC-002.15)?
 
 ---

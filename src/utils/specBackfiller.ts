@@ -1,6 +1,5 @@
 import { basename, dirname, join } from 'path';
 import { existsSync, readFileSync } from 'fs';
-import * as yaml from 'js-yaml';
 import * as os from 'os';
 import * as readline from 'readline';
 import { IdeConfigGenerator } from './ideConfigGenerator';
@@ -9,6 +8,7 @@ import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashComm
 import { hasRulesKey } from './specValidator';
 import { buildProcessMandatesMarkdown } from '../core/ideConfig';
 import { writeError, writeInside } from './specPaths';
+import { loadRepoYaml } from './specReader';
 
 /** `rel` below the specs folder as `writeInside()` takes it: the project folder and the `/`-joined path from it (BL-130). */
 const inProject = (specsDir: string, rel: string): [string, string] => [dirname(specsDir), `${basename(specsDir)}/${rel}`];
@@ -349,7 +349,7 @@ export class SpecBackfiller {
     // Same test as `specpilot validate`: no `rules:` is the post-2.0 design, not missing mandates (BL-066).
     let doc: unknown;
     try {
-      doc = yaml.load(content);
+      doc = loadRepoYaml(content);
     } catch {
       return { action: 'skipped', found: 0, total: 0, added: [], reason: 'could not parse project.yaml, left unchanged' };
     }

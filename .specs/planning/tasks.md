@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-136 to Completed)
-version: 7.74
+lastUpdated: 2026-10-30 (BL-137 to Review, approved)
+version: 7.76
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -57,7 +57,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-137 | bug | P3 | Bug, P3. `project.yaml` is parsed with js-yaml's default schema (merge keys) and no byte cap on every `GET /api/specs`, open, clone, MCP list call and startup: load with `CORE_SCHEMA` (or `JSON_SCHEMA`) and a byte cap in `specServer.ts`, `slashCommandGenerator.ts` and the validator. Attribution: SEC-002.13 (d); audit item 11, `specpilot/specServer/untrusted-project-yaml-merge-key-amplification`. |
 | BL-138 | bug | P3 | Bug, P3. `ui/md.js`'s link pattern and table-separator test backtrack superlinearly, so one crafted `tasks.md` row freezes the tab: unambiguous link pattern, separator test as `specReader.ts` has it; a browser test with a long input. Attribution: SEC-002.13 (e); audit item 15, `specpilot/ui-md/superlinear-link-and-separator-regex`. |
 | BL-139 | chore | P1 | Chore, P1, decision. Are other OS users on a shared host, and servers that held the `serve` port earlier (e.g. forwarded from a container), in scope? SEC-004.20, .23, .27 and .28 assume every local process is the owner, which is false for those and for `SPECPILOT_MCP_TOKEN`. Record the answer in the security files (in scope: BL-140 to BL-142; out: a line in Out of Scope [SEC-004]). Attribution: SEC-002.14, SEC-005; audit items 6 to 8. |
 | BL-140 | feat | P2 | Feature, P2, only if BL-139 says in scope. Deliver the page and MCP token out of band (an owner-only file), not in `GET /`, and adapt `serve --stop`. Attribution: SEC-002.14 (a); audit item 6, `specpilot/specServer/page-token-served-to-any-local-peer`. Architectural: Spec Report first. |
@@ -80,6 +79,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-137 | bug | P3 | Bug, P3. `project.yaml` is parsed with js-yaml's default schema (merge keys) and no byte cap on every `GET /api/specs`, open, clone, MCP list call and startup: load with `CORE_SCHEMA` (or `JSON_SCHEMA`) and a byte cap in `specServer.ts`, `slashCommandGenerator.ts` and the validator. Attribution: SEC-002.13 (d); audit item 11, `specpilot/specServer/untrusted-project-yaml-merge-key-amplification`. Approved 2026-10-30 |
 
 ## Won't do
 

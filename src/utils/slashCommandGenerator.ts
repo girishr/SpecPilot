@@ -3,10 +3,10 @@ import { basename, dirname, join } from 'path';
 import { chmodSync, closeSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'fs';
 import { writeNew } from './ideConfigGenerator';
 import { SlashCommand, SLASH_COMMANDS, resolveTarget } from '../core/slashCommands';
-import * as yaml from 'js-yaml';
 import { agentFile, agentTargets, fillReleasedSkill, KNOWN_SKILL_TEMPLATES, skillValue } from '../core/agentConfig';
 import { TemplateContext, TemplateEngine } from '../core/templateEngine';
 import { checkFolders, resolveAllowedPath } from './specPaths';
+import { loadRepoYaml } from './specReader';
 
 export { SLASH_COMMANDS };
 export type { SlashCommand };
@@ -42,7 +42,7 @@ export function readSkillContext(projectDir: string, specsName: string): Templat
   const file = resolveAllowedPath(projectDir, rel, [rel]); // exactly this path: a link resolves elsewhere and is refused
   let doc: unknown;
   try {
-    doc = file && yaml.load(readFileSync(file, 'utf-8'));
+    doc = file && loadRepoYaml(readFileSync(file, 'utf-8'));
   } catch {
     doc = null;
   }

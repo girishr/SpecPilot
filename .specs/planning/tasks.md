@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-130 to Review, approved)
-version: 7.55
+lastUpdated: 2026-10-30 (BL-130 to Completed)
+version: 7.56
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -84,7 +84,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-130 | bug | P1 | Bug, P1. One shared no-follow writer for the CLI (`lstat` every level, `wx` or temp file and `rename`, symbolic links refused, as `placeGenerated()` and `checkFolders()` do), used by `archive` (`tasks-archive.md`, `prompts-archive.md`), `refine` and `refine --update` (the `.specs/` branch of `generateSpecs()`), `validate --fix` (`createMissingFile()`, the heading rename), `backfill` (instruction files, `project.yaml`, `tasks.md`) and the `.gitattributes` merge: today a cloned repo's linked `tasks-archive.md` makes `specpilot archive` append the repo's Completed lines to e.g. `~/.zshrc`. Regression test first from the audit's bounded check (fails on `main`, passes after). Attribution: SEC-002.12 (a); security audit run-1 item 1, `specpilot/cli-writers/specs-rewrite-follows-symlink`. Feature: Spec Report first. Approved 2026-10-30 |
 
 ## Won't do
 
@@ -137,3 +136,4 @@ Notes
 | 243 | [CD-girishr-152] [BL-129] | Design & UI step from `SpecPilot.Init` (its CS-092, REQ-084): the chat core's ninth step after Security & NFR, five optional fields (`hasDesignAssets` `Yes` or `No`, `figmaUrl`, `designSystem`, `designNotes`, `uiStyle`), listed by `specpilot_setup_questions` (the three asset fields with `when`) and taken by `specpilot_setup_project`; `architecture/architecture.md` gets Init's `## Design & UI` lines when the gate is sent. REQ-002.I.8. Jest 1766 → 1785, no `ui/` change. Approved 2026-10-27. Feature commit `6a407b3`. |
 | 244 | [CD-girishr-153] [BL-126] | This repo's tasks.md Backlog, Current Sprint and Review tables in the typed shape (columns ID, Type, Priority, Description, BL-125) with empty Type and Priority cells; every ID and Description unchanged, checked byte for byte against the old file and parsed by `readSpecs()` with no malformed rows. Approved 2026-10-29. Feature commit `629a0bd`. |
 | 245 | [CD-girishr-154] [BL-077] | `init`, `add-specs` and `refine --update` refuse a linked or non-folder level on the way before any write (security audit run-1, SEC-002.12 (b)): guided setup's folder walk moved out of `placeGenerated()` into `folderError()` in `specGenerator.ts`; `generateSpecs()` runs it over every file first and throws `<folder> is a symbolic link, so nothing was written.` (or `is not a folder`), exit 1; guided setup calls it for its unchanged 409. REQ-002.E.17. Jest 1785 → 1793, no `ui/` change. Approved 2026-10-30. Feature commit `153f182`. |
+| 246 | [CD-girishr-155] [BL-130] | One no-follow writer for every CLI write in the project (security audit run-1, SEC-002.12 (a)): `writeInside()` in `specPaths.ts` refuses a link at any level or at the file (also one inside the project), creates with `wx`, replaces by temp file and `rename`; `archive`, `refine`, `refine --update`, `init`, `add-specs`, `validate --fix`, `backfill` and the `.gitattributes` merge go through it; `migrate` is BL-147. REQ-002.E.18. Jest 1793 → 1824, no `ui/` change. Approved 2026-10-30. Feature commit `47cbc1b`. |

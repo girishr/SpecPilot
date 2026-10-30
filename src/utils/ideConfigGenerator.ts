@@ -1,12 +1,10 @@
-import { dirname, join } from 'path';
-import { mkdirSync, writeFileSync, existsSync, appendFileSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { writeFileSync, existsSync, readFileSync } from 'fs';
 import { TemplateContext } from '../core/templateEngine';
 import { buildCopilotInstructions, COPILOT_INSTRUCTIONS_FILE, GITATTRIBUTES_FILE, GITATTRIBUTES_LINES } from '../core/ideConfig';
+import { writeError, writeInside } from './specPaths';
 
 export { GITATTRIBUTES_FILE };
-
-/** Project-relative path of a project file, joined for this platform. */
-const at = (projectDir: string, rel: string) => join(projectDir, ...rel.split('/'));
 
 /**
  * Create `path` with `content` only if nothing is there (BL-073): an existing file, or a link at the
@@ -32,21 +30,22 @@ export class IdeConfigGenerator {
    * missing). Read automatically by GitHub Copilot, Cursor, and other AI tools on every request.
    */
   generateCopilotInstructions(projectDir: string, context: TemplateContext): void {
-    const filePath = at(projectDir, COPILOT_INSTRUCTIONS_FILE);
-    mkdirSync(dirname(filePath), { recursive: true });
-    writeNew(filePath, buildCopilotInstructions(context));
+    writeInside(projectDir, COPILOT_INSTRUCTIONS_FILE, buildCopilotInstructions(context), { create: true });
   }
 
   /**
    * Generates (or updates) .gitattributes at project root with merge=union rules
    * for append-heavy spec files, preventing git merge conflicts on shared branches.
    * If the file already exists, only missing lines are appended. Returns how many were appended.
+   * Never through a link (BL-130): a linked or non-regular `.gitattributes` throws before it is read.
    */
   generateGitAttributes(projectDir: string): number {
+    const error = writeError(projectDir, GITATTRIBUTES_FILE);
+    if (error) throw new Error(error);
     const filePath = join(projectDir, GITATTRIBUTES_FILE);
 
     if (!existsSync(filePath)) {
-      writeFileSync(filePath, GITATTRIBUTES_LINES.join('\n') + '\n');
+      writeInside(projectDir, GITATTRIBUTES_FILE, GITATTRIBUTES_LINES.join('\n') + '\n');
       return 0;
     }
 
@@ -54,7 +53,7 @@ export class IdeConfigGenerator {
     const missing = GITATTRIBUTES_LINES.filter(line => !existing.includes(line));
     if (missing.length > 0) {
       const suffix = existing.endsWith('\n') ? '' : '\n';
-      appendFileSync(filePath, suffix + missing.join('\n') + '\n');
+      writeInside(projectDir, GITATTRIBUTES_FILE, existing + suffix + missing.join('\n') + '\n');
     }
     return missing.length;
   }

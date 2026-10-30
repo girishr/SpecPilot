@@ -1,10 +1,11 @@
-import { chmodSync, closeSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from 'fs';
-import { createHash, randomBytes } from 'crypto';
-import { basename, dirname, join } from 'path';
+import { lstatSync, readFileSync } from 'fs';
+import { createHash } from 'crypto';
+import { join } from 'path';
 import { endsWithApproved, LaneShape, TASK_PRIORITIES, TASK_TYPES, taskRowLines, TaskSection } from './specReader';
 import { tasksChecks } from './specValidator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, completedArchiveBlock, planCompletedArchive } from './specArchiver';
 import { findSectionBounds } from './markdownSections';
+import { replaceFile } from './specPaths';
 
 // The one writer behind `specpilot serve` (BL-053, ARCH-003.18, ARCH-004.36). A move removes one
 // line of tasks.md and inserts the identical line elsewhere; a new task (BL-PM-005) inserts one line;
@@ -162,37 +163,6 @@ const newChecks = (before: string, after: string): string[] => {
   const was = new Set(tasksChecks(before));
   return tasksChecks(after).filter(m => !was.has(m));
 };
-
-/**
- * Replace `file` with `content`: a temp file in the same folder, fsync, the given mode, an optional last
- * look, rename. Returns false when the last look said no (the temp file removed), true when renamed.
- */
-function replaceFile(file: string, mode: number, content: string, lastLook?: () => boolean): boolean {
-  const tmp = join(dirname(file), `.${basename(file)}.${randomBytes(6).toString('hex')}.tmp`);
-  try {
-    const fd = openSync(tmp, 'wx', mode & 0o777);
-    try {
-      writeSync(fd, content);
-      fsyncSync(fd);
-    } finally {
-      closeSync(fd);
-    }
-    chmodSync(tmp, mode & 0o7777);
-    if (lastLook && !lastLook()) {
-      unlinkSync(tmp);
-      return false;
-    }
-    renameSync(tmp, file);
-  } catch (err) {
-    try {
-      unlinkSync(tmp);
-    } catch {
-      /* never created, or already renamed */
-    }
-    throw err;
-  }
-  return true;
-}
 
 /** Replace tasks.md with `content`, keeping its mode, with a last look at the hash: an editor may have saved while we were writing. Returns the new hash, or null when the file changed meanwhile. */
 function writeTasks({ file, mode }: Loaded, ifMatch: string, content: string): string | null {

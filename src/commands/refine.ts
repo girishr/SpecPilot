@@ -1,8 +1,9 @@
 import { join } from 'path';
-import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
+import { writeError, writeInside } from '../utils/specPaths';
 import { Logger } from '../utils/logger';
 
 export interface RefineOptions {
@@ -14,7 +15,8 @@ export interface RefineOptions {
 
 /** Holds before/after content for a single file change. */
 interface PendingChange {
-  filePath: string;
+  /** Project-relative, `/`-joined, starting with the specs folder's name (BL-130). */
+  rel: string;
   label: string;
   before: string;
   after: string;
@@ -73,7 +75,7 @@ export async function refineCommand(description: string | undefined, options: Re
       const before = readFileSync(requirementsPath, 'utf-8');
       const after = updateRequirementsWithDescription(before, projectDescription, options.update);
       if (after !== before) {
-        pendingChanges.push({ filePath: requirementsPath, label: 'requirements.md', before, after });
+        pendingChanges.push({ rel: `${options.specsName}/project/requirements.md`, label: 'requirements.md', before, after });
       }
     }
 
@@ -82,7 +84,7 @@ export async function refineCommand(description: string | undefined, options: Re
       const before = readFileSync(contextPath, 'utf-8');
       const after = updateContextWithSpecification(before, projectDescription);
       if (after !== before) {
-        pendingChanges.push({ filePath: contextPath, label: 'context.md', before, after });
+        pendingChanges.push({ rel: `${options.specsName}/development/context.md`, label: 'context.md', before, after });
       }
     }
 
@@ -91,13 +93,19 @@ export async function refineCommand(description: string | undefined, options: Re
       const before = readFileSync(promptsPath, 'utf-8');
       const after = updatePromptsLog(before, projectDescription);
       if (after !== before) {
-        pendingChanges.push({ filePath: promptsPath, label: 'prompts.md', before, after });
+        pendingChanges.push({ rel: `${options.specsName}/development/prompts.md`, label: 'prompts.md', before, after });
       }
     }
 
     if (pendingChanges.length === 0) {
       logger.info('ℹ️  No changes detected — spec files are already up to date.');
       return;
+    }
+
+    // No edit is written through a link (BL-130): all of them are checked before the preview, so a refusal writes nothing.
+    for (const change of pendingChanges) {
+      const error = writeError(options.dir, change.rel);
+      if (error) throw new Error(error);
     }
 
     // ── Show diff preview ────────────────────────────────────────
@@ -127,7 +135,7 @@ export async function refineCommand(description: string | undefined, options: Re
 
     // ── Apply changes ────────────────────────────────────────────
     for (const change of pendingChanges) {
-      writeFileSync(change.filePath, change.after);
+      writeInside(options.dir, change.rel, change.after);
       logger.success(`✅ Updated ${change.label}`);
     }
 

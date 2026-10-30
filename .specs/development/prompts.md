@@ -29,6 +29,13 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-30: the developer: fix the security audit's bugs in the required order, starting now. BL-130 first (top of Current Sprint): branch `fix/bl-130-no-follow-writer` from `main`; Spec Report written (REQ-002.E.18, the architecture note, context.md), to spec-reviewer before code
+- 2026-10-30: BL-130 spec-reviewer ESCALATE (class, in-project links, `migrate`); architect DECIDE: Feature with the helpers in `specPaths.ts`, every link refused, `migrate` filed as BL-147; applied to the specs
+- 2026-10-30: BL-130 built on `fix/bl-130-no-follow-writer`: the no-follow writer in `specPaths.ts`, every caller the row names routed through it; 31 tests written first (22 failed on `main`); build and lint clean, Jest 1824/1824; scratch-repo manual check refused the linked archive file. Nothing committed
+- 2026-10-30: BL-130 spec-reviewer FIX on the build (the SEC-002.12 residual line), fixed, re-run PASS; BL-130 moved to Review by hand (MCP not connected). Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-130: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-30: on the developer's typed `push`: `main` pushed (`d2fe0bd..feefb74`, four commits: BL-077 feature, completion and merge, the prompts.md archive); `origin/main` = local `main` checked. This line is uncommitted on the tree.
+- 2026-10-29: on the developer's typed `push`: `main` pushed (`e422b24..d2fe0bd`, one commit: Type and Priority on every Backlog and Current Sprint row); `origin/main` = local `main` checked. This line is uncommitted on the tree.
 - 2026-10-30: BL-077 approved on the card, then `commit`: feature commit `153f182`, completion commit `94affc9` (row 245, CD-girishr-154), `--no-ff` merge `4788e8b` into `main`; `specpilot archive` moved 30 lines of `prompts.md` to `prompts-archive.md` (the developer's `Archive at merge`); on `main` build clean, Jest 1793/1793, browser 90/90. Not pushed
 - 2026-10-29: `Archive at merge`: the developer's call on the `prompts.md` line-limit warning: `specpilot archive` for `prompts.md` runs as part of the BL-077 merge, after approval on the card and the typed `commit`
 - 2026-10-29: BL-077 built on `fix/bl-077-ide-folder-links`: `folderError()` shared by `generateSpecs()` and guided setup; 8 tests written first (7 failed before the change); build and eslint clean, Jest 1793/1793; spec-reviewer PASS; BL-077 moved to Review. Nothing committed

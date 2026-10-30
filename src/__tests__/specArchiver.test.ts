@@ -4,7 +4,7 @@ import { SLASH_COMMANDS } from '../utils/slashCommandGenerator';
 import { execFileSync } from 'child_process';
 import { findSectionBounds } from '../utils/markdownSections';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
 
 function createSpecsDir(baseDir: string): string {
@@ -829,5 +829,92 @@ describe('SpecArchiver — prompts.md entry order (BL-061)', () => {
     expect(existsSync(archivePath) ? stamp(readFileSync(archivePath, 'utf-8')) : null).toBe(cliArchive);
     if (cli.refused.length) expect(out).toContain(`Not archived: ${cli.refused[0].reason}`);
     else expect(out).toContain('Moved');
+  });
+});
+
+// BL-130 (REQ-002.E.18; audit run-1 item 1's bounded check): archive never writes through a link.
+(process.platform === 'win32' ? describe.skip : describe)('archive and links in the project (BL-130)', () => {
+  let base: string;
+  let project: string;
+  let home: string;
+  const tasks = `# Tasks\n\n## Completed\n${makeCompletedEntries(1)}\n${Array.from({ length: 45 }, () => 'echo PWNED-LINE').join('\n')}\n`;
+  beforeEach(() => {
+    base = join(os.tmpdir(), `specpilot-archiver-links-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    project = join(base, 'repo');
+    home = join(base, 'home');
+    createSpecsDir(project);
+    mkdirSync(home);
+    writeFileSync(join(home, 'rc.txt'), 'ORIGINAL\n');
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+
+  test.each([false, true])('a linked tasks-archive.md → refused, rc.txt and tasks.md unchanged (dry run %s)', async dryRun => {
+    writeFileSync(join(project, '.specs', 'planning', 'tasks.md'), tasks);
+    symlinkSync(join(home, 'rc.txt'), join(project, '.specs', 'planning', 'tasks-archive.md'));
+    const result = await new SpecArchiver().archive(project, { dryRun });
+    expect(readFileSync(join(home, 'rc.txt'), 'utf-8')).toBe('ORIGINAL\n');
+    expect(readFileSync(join(project, '.specs', 'planning', 'tasks.md'), 'utf-8')).toBe(tasks);
+    expect(result.entries).toEqual([]);
+    expect(result.refused).toEqual([{ file: 'planning/tasks.md', reason: '.specs/planning/tasks-archive.md is a symbolic link, so nothing was written.' }]);
+  });
+
+  test('a dangling tasks-archive.md → refused, its target not created', async () => {
+    writeFileSync(join(project, '.specs', 'planning', 'tasks.md'), tasks);
+    symlinkSync(join(home, 'new.txt'), join(project, '.specs', 'planning', 'tasks-archive.md'));
+    const result = await new SpecArchiver().archive(project, { dryRun: false });
+    expect(existsSync(join(home, 'new.txt'))).toBe(false);
+    expect(result.refused.map(r => r.reason)).toEqual(['.specs/planning/tasks-archive.md is a symbolic link, so nothing was written.']);
+  });
+
+  test('a linked tasks.md (the section side) → refused, no archive file made', async () => {
+    writeFileSync(join(home, 'tasks.md'), tasks);
+    symlinkSync(join(home, 'tasks.md'), join(project, '.specs', 'planning', 'tasks.md'));
+    const result = await new SpecArchiver().archive(project, { dryRun: false });
+    expect(readFileSync(join(home, 'tasks.md'), 'utf-8')).toBe(tasks);
+    expect(existsSync(join(project, '.specs', 'planning', 'tasks-archive.md'))).toBe(false);
+    expect(result.refused.map(r => r.reason)).toEqual(['.specs/planning/tasks.md is a symbolic link, so nothing was written.']);
+  });
+
+  test('a linked prompts-archive.md → refused, prompts.md unchanged', async () => {
+    const log = makeLog(150);
+    writeFileSync(join(project, '.specs', 'development', 'prompts.md'), log);
+    symlinkSync(join(home, 'rc.txt'), join(project, '.specs', 'development', 'prompts-archive.md'));
+    const result = await new SpecArchiver().archive(project, { dryRun: false });
+    expect(readFileSync(join(home, 'rc.txt'), 'utf-8')).toBe('ORIGINAL\n');
+    expect(readFileSync(join(project, '.specs', 'development', 'prompts.md'), 'utf-8')).toBe(log);
+    expect(result.refused).toEqual([{ file: 'development/prompts.md', reason: '.specs/development/prompts-archive.md is a symbolic link, so nothing was written.' }]);
+  });
+
+  test('a linked prompts.md (the section side) → refused, the outside file unchanged', async () => {
+    const log = makeLog(150);
+    writeFileSync(join(home, 'prompts.md'), log);
+    symlinkSync(join(home, 'prompts.md'), join(project, '.specs', 'development', 'prompts.md'));
+    const result = await new SpecArchiver().archive(project, { dryRun: false });
+    expect(readFileSync(join(home, 'prompts.md'), 'utf-8')).toBe(log);
+    expect(existsSync(join(project, '.specs', 'development', 'prompts-archive.md'))).toBe(false);
+    expect(result.refused.map(r => r.reason)).toEqual(['.specs/development/prompts.md is a symbolic link, so nothing was written.']);
+  });
+
+  test('a linked .specs/planning folder → refused, nothing written there', async () => {
+    const shared = join(base, 'shared');
+    mkdirSync(shared);
+    writeFileSync(join(shared, 'tasks.md'), tasks);
+    rmSync(join(project, '.specs', 'planning'), { recursive: true });
+    symlinkSync(shared, join(project, '.specs', 'planning'));
+    const result = await new SpecArchiver().archive(project, { dryRun: false });
+    expect(readdirSync(shared)).toEqual(['tasks.md']);
+    expect(readFileSync(join(shared, 'tasks.md'), 'utf-8')).toBe(tasks);
+    expect(result.refused.map(r => r.reason)).toEqual(['.specs/planning is a symbolic link, so nothing was written.']);
+  });
+
+  test('a linked .specs folder → refused, the target unchanged', async () => {
+    const shared = join(base, 'shared');
+    mkdirSync(join(shared, 'planning'), { recursive: true });
+    writeFileSync(join(shared, 'planning', 'tasks.md'), tasks);
+    rmSync(join(project, '.specs'), { recursive: true });
+    symlinkSync(shared, join(project, '.specs'));
+    const result = await new SpecArchiver().archive(project, { dryRun: false });
+    expect(readdirSync(join(shared, 'planning'))).toEqual(['tasks.md']);
+    expect(result.refused.map(r => r.reason)).toEqual(['.specs is a symbolic link, so nothing was written.']);
   });
 });

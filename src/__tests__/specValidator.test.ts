@@ -1,7 +1,7 @@
 import { SpecValidator, tasksChecks } from '../utils/specValidator';
 import { SpecGenerator } from '../utils/specGenerator';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
 
 const CURRENT_YEAR = new Date().getFullYear().toString();
@@ -697,5 +697,57 @@ describe('SpecValidator', () => {
     const result = await validator.validate(testDir, { fix: false, verbose: false });
     const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 40'));
     expect(warn).toBeUndefined();
+  });
+});
+
+// BL-130 (REQ-002.E.18): validate --fix never writes through a link; a refused fix is not listed as fixed.
+(process.platform === 'win32' ? describe.skip : describe)('validate --fix and links in the project (BL-130)', () => {
+  let base: string;
+  let project: string;
+  let outside: string;
+  const validator = new SpecValidator();
+  const tasks = '# Tasks\n\n## backlog\n\n## Current Sprint\n\n## Review\n\n## Completed\n';
+  beforeEach(() => {
+    base = join(os.tmpdir(), `specpilot-validator-links-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    project = join(base, 'project');
+    outside = join(base, 'outside');
+    mkdirSync(project, { recursive: true });
+    mkdirSync(outside);
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+
+  test('a dangling link at a missing starter file → not created through, not fixed', async () => {
+    createValidSpecsDir(project);
+    const file = join(project, '.specs', 'security', 'threat-model.md');
+    rmSync(file, { force: true });
+    symlinkSync(join(outside, 'new.md'), file);
+    expect(await validator.autoFix(project, ['create-security/threat-model.md'])).toEqual([]);
+    expect(existsSync(join(outside, 'new.md'))).toBe(false);
+  });
+
+  test('a linked tasks.md → the heading rename is not made, the target unchanged', async () => {
+    createValidSpecsDir(project);
+    writeFileSync(join(outside, 'tasks.md'), tasks);
+    const file = join(project, '.specs', 'planning', 'tasks.md');
+    rmSync(file, { force: true });
+    symlinkSync(join(outside, 'tasks.md'), file);
+    expect(await validator.autoFix(project, ['rename-heading:## backlog:## Backlog'])).toEqual([]);
+    expect(readFileSync(join(outside, 'tasks.md'), 'utf-8')).toBe(tasks);
+  });
+
+  test('the same rename on a regular tasks.md is made (control)', async () => {
+    createValidSpecsDir(project);
+    writeFileSync(join(project, '.specs', 'planning', 'tasks.md'), tasks);
+    expect(await validator.autoFix(project, ['rename-heading:## backlog:## Backlog'])).toEqual(['rename-heading:## backlog:## Backlog']);
+  });
+
+  test('a linked .specs folder → no starter file created in the target', async () => {
+    const shared = join(base, 'shared');
+    mkdirSync(shared);
+    createValidSpecsDir(shared);
+    rmSync(join(shared, '.specs', 'security', 'threat-model.md'), { force: true });
+    symlinkSync(join(shared, '.specs'), join(project, '.specs'));
+    expect(await validator.autoFix(project, ['create-security/threat-model.md'])).toEqual([]);
+    expect(existsSync(join(shared, '.specs', 'security', 'threat-model.md'))).toBe(false);
   });
 });

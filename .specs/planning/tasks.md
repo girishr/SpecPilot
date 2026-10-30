@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-077 to Completed)
-version: 7.54
+lastUpdated: 2026-10-30 (BL-130 to Review, approved)
+version: 7.55
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -49,12 +49,12 @@ Notes
 | BL-PM-017 | feat | P3 | MCP tool `specpilot_archive_completed`: the Completed step of `specpilot archive` for one project (`archiveCompleted()` in `taskMover.ts`, as `POST /api/tasks/archive` runs it, BL-TB-06), with the task tools' `sha256`; the first non-page caller of that writer, so decide then whether `archiveCompleted()` refuses off `main`/`master` without an explicit `force` (BL-TB-06 kept the branch guard in the page, architect decision Q2 (a), 2026-10-18). Filed by the architect on the BL-TB-06 Spec Report. Feature: Spec Report first. |
 | BL-124 | feat | P3 | **Low priority (the developer, 2026-10-24: not a problem while there is one developer).** Owner in Backlog and Current Sprint IDs, as Completed IDs already carry it (`CD-girishr-139`): `BL-###-<handle>` and `CS-###-<handle>`, so two developers adding tasks on separate branches do not mint the same ID. Today `nextTaskId()` in `src/utils/taskMover.ts` matches only `^\[?BL-(\d+)\]?$`, so in a file with only suffixed IDs every new task would come out as `BL-001`; `newTask` writes no handle; the ID conventions in the tasks.md template, the Tasks mandate line and the generated docs name `BL-###` and `CS-###` only. Decide in the Spec Report: the number stays unique across handles (highest number of any handle plus one) or per handle; where the handle comes from (project.yaml author, as for CD IDs); mixed files with old and new IDs; the same change in `SpecPilot.Init`'s generator. |
 | BL-CL-03 | feat | P3 | `specpilot -v` prints the version (today only `-V` and `--version` work; `-v` is an unknown option). Support all three: `-v`, `-V`, `--version`, same output, exit 0. `-v` is the npm/Node habit (`node -v`, `npm -v`); `-V` is Commander's default and stays so nobody breaks. No command uses `-v` today (`validate` and `list` use `--verbose` long form only), so `-v` is free at the top level. In `src/cli.ts`: keep `.version(packageJson.version, '-V, --version')`, and before `program.parse()` treat a lone top-level `-v` as `-V` (or register `-v` as a hidden alias); help shows `-v, -V, --version`. Tests: Jest that `-v`, `-V` and `--version` print the same version and exit 0, and that `specpilot validate --verbose` is unaffected. Found 2026-10-22. |
+| BL-147 | bug | P2 | Bug, P2. `specpilot migrate` (`src/utils/projectMigrator.ts`: `copyFileSync` and `writeFileSync`) writes through linked files and folders in a cloned repo: route it through `writeInside()` in `specPaths.ts` (BL-130). Attribution: found on the BL-130 Spec Report (architect, 2026-10-30), SEC-002.12 (a). |
 
 ## Current Sprint
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-130 | bug | P1 | Bug, P1. One shared no-follow writer for the CLI (`lstat` every level, `wx` or temp file and `rename`, symbolic links refused, as `placeGenerated()` and `checkFolders()` do), used by `archive` (`tasks-archive.md`, `prompts-archive.md`), `refine` and `refine --update` (the `.specs/` branch of `generateSpecs()`), `validate --fix` (`createMissingFile()`, the heading rename), `backfill` (instruction files, `project.yaml`, `tasks.md`) and the `.gitattributes` merge: today a cloned repo's linked `tasks-archive.md` makes `specpilot archive` append the repo's Completed lines to e.g. `~/.zshrc`. Regression test first from the audit's bounded check (fails on `main`, passes after). Attribution: SEC-002.12 (a); security audit run-1 item 1, `specpilot/cli-writers/specs-rewrite-follows-symlink`. Feature: Spec Report first. |
 | BL-131 | bug | P1 | Bug, P1. `claudeCodeSkill()` writes `Project: ${projectName}` and `{{projectName}}` without `skillValue()`'s control-character filter, so a `package.json` name with line breaks adds lines to `SKILL.md` (global with BL-077's case); apply the filter, and make the `fm` helper quote a value holding a control character, `: `, ` #` or a leading YAML indicator. Attribution: SEC-002.12 (c), SEC-004.25; audit item 2. |
 | BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. |
 | BL-133 | bug | P3 | Bug, P3. Repo text reaches the terminal with escape sequences intact (`validate`, `archive`, `refine`, `add-specs`, `migrate`): one control-character filter in `Logger` and the direct `console.log` sinks (reuse `mcpLocal.ts`'s `UNSHOWN`). Attribution: SEC-002.12 (e); audit item 14, `specpilot/cli-output/repo-text-printed-without-control-char-filter`. |
@@ -84,6 +84,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-130 | bug | P1 | Bug, P1. One shared no-follow writer for the CLI (`lstat` every level, `wx` or temp file and `rename`, symbolic links refused, as `placeGenerated()` and `checkFolders()` do), used by `archive` (`tasks-archive.md`, `prompts-archive.md`), `refine` and `refine --update` (the `.specs/` branch of `generateSpecs()`), `validate --fix` (`createMissingFile()`, the heading rename), `backfill` (instruction files, `project.yaml`, `tasks.md`) and the `.gitattributes` merge: today a cloned repo's linked `tasks-archive.md` makes `specpilot archive` append the repo's Completed lines to e.g. `~/.zshrc`. Regression test first from the audit's bounded check (fails on `main`, passes after). Attribution: SEC-002.12 (a); security audit run-1 item 1, `specpilot/cli-writers/specs-rewrite-follows-symlink`. Feature: Spec Report first. Approved 2026-10-30 |
 
 ## Won't do
 

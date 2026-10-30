@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { join, relative, sep } from 'path';
 import { findSectionBounds } from './markdownSections';
+import { writeError, writeInside } from './specPaths';
 
 export interface ArchiveEntry {
   file: string;
@@ -214,10 +215,12 @@ export class SpecArchiver {
 
     const result: ArchiveResult = { entries: [], refused: [], dryRun: options.dryRun };
 
-    const promptsEntry = this.archivePrompts(specsDir, options.dryRun, result.refused);
+    // Every write goes through `writeInside()` from the project folder, so a linked specs folder is refused too (BL-130).
+    const specs = relative(projectDir, specsDir).split(sep).join('/');
+    const promptsEntry = this.archivePrompts(projectDir, specs, options.dryRun, result.refused);
     if (promptsEntry) result.entries.push(promptsEntry);
 
-    const tasksEntry = this.archiveTasks(specsDir, options.dryRun);
+    const tasksEntry = this.archiveTasks(projectDir, specs, options.dryRun, result.refused);
     if (tasksEntry) result.entries.push(tasksEntry);
 
     return result;
@@ -227,8 +230,16 @@ export class SpecArchiver {
     return `## Archived on ${archivedOn()}\n\n${content}\n\n---\n\n`;
   }
 
-  private archivePrompts(specsDir: string, dryRun: boolean, refused: ArchiveResult['refused']): ArchiveEntry | null {
-    const filePath = join(specsDir, 'development', 'prompts.md');
+  /**
+   * The `refused` reason when the section's file or its archive file may not be written (BL-130): a link or a
+   * non-regular file at either, or on the way; that pair is then left as it was.
+   */
+  private linkRefusal(root: string, file: string, archive: string): string | null {
+    return writeError(root, file) ?? writeError(root, archive);
+  }
+
+  private archivePrompts(root: string, specs: string, dryRun: boolean, refused: ArchiveResult['refused']): ArchiveEntry | null {
+    const filePath = join(root, specs, 'development', 'prompts.md');
     if (!existsSync(filePath)) return null;
 
     const allLines = readFileSync(filePath, 'utf-8').split('\n');
@@ -239,15 +250,21 @@ export class SpecArchiver {
       return null;
     }
 
+    const linked = this.linkRefusal(root, `${specs}/development/prompts.md`, `${specs}/development/prompts-archive.md`);
+    if (linked) {
+      refused.push({ file: 'development/prompts.md', reason: linked });
+      return null;
+    }
+
     const moved = allLines.slice(plan.start, plan.end);
-    const archivePath = join(specsDir, 'development', 'prompts-archive.md');
+    const archivePath = join(root, specs, 'development', 'prompts-archive.md');
     // Entries move byte for byte; a table block repeats its header and separator.
     const block = this.buildTimestampedBlock([...plan.tableHeader, ...moved].join('\n'));
 
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';
-      writeFileSync(archivePath, existing + block);
-      writeFileSync(filePath, [...allLines.slice(0, plan.start), ...allLines.slice(plan.end)].join('\n'));
+      writeInside(root, `${specs}/development/prompts-archive.md`, existing + block);
+      writeInside(root, `${specs}/development/prompts.md`, [...allLines.slice(0, plan.start), ...allLines.slice(plan.end)].join('\n'));
     }
 
     return {
@@ -257,23 +274,29 @@ export class SpecArchiver {
     };
   }
 
-  private archiveTasks(specsDir: string, dryRun: boolean): ArchiveEntry | null {
-    const filePath = join(specsDir, 'planning', 'tasks.md');
+  private archiveTasks(root: string, specs: string, dryRun: boolean, refused: ArchiveResult['refused']): ArchiveEntry | null {
+    const filePath = join(root, specs, 'planning', 'tasks.md');
     if (!existsSync(filePath)) return null;
 
     const allLines = readFileSync(filePath, 'utf-8').split('\n');
     const plan = planCompletedArchive(allLines);
     if (!plan) return null;
 
+    const linked = this.linkRefusal(root, `${specs}/planning/tasks.md`, `${specs}/planning/tasks-archive.md`);
+    if (linked) {
+      refused.push({ file: 'planning/tasks.md', reason: linked });
+      return null;
+    }
+
     const linesMoved = plan.end - plan.start;
 
-    const archivePath = join(specsDir, 'planning', 'tasks-archive.md');
+    const archivePath = join(root, specs, 'planning', 'tasks-archive.md');
     const block = completedArchiveBlock(allLines, plan);
 
     if (!dryRun) {
       const existing = existsSync(archivePath) ? readFileSync(archivePath, 'utf-8') : '';
-      writeFileSync(archivePath, existing + block);
-      writeFileSync(filePath, [...allLines.slice(0, plan.start), ...allLines.slice(plan.end)].join('\n'));
+      writeInside(root, `${specs}/planning/tasks-archive.md`, existing + block);
+      writeInside(root, `${specs}/planning/tasks.md`, [...allLines.slice(0, plan.start), ...allLines.slice(plan.end)].join('\n'));
     }
 
     return {

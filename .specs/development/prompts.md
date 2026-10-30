@@ -29,6 +29,12 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-30: the developer: `Start BL-133`. Branch `fix/bl-133-terminal-control-chars` from `main` (`2b61296`); Spec Report written (REQ-002.A.11, context.md), to spec-reviewer before code
+- 2026-10-30: BL-133 spec-reviewer FIX on the report (two missed sinks, the `displayWithLogo` rule, exact outputs, more tests, the residual): applied
+- 2026-10-30: BL-133 spec-reviewer PASS on the fixed report; built: 9 tests first, Jest 1846/1846, scratch-repo `validate` check clean. Nothing committed
+- 2026-10-30: BL-133 spec-reviewer FIX on the build (two `validate` sinks untested): 2 tests added, both fail with the filter removed; Jest 1848/1848
+- 2026-10-30: BL-133 spec-reviewer PASS on the build; BL-133 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-133: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
 - 2026-10-30: the developer: `Start BL-132`. Branch `fix/bl-132-windows-program-paths` from `main` (`4a15328`); Spec Report written (REQ-002.A.8, REQ-002.H.1, context.md), to spec-reviewer before code
 - 2026-10-30: BL-132 spec-reviewer FIX on the report (clone cwd, `browserCommand` signature, reftable, control characters in the branch, test seam, threat-model line): applied; the clone's cwd filed as BL-148 (Backlog) rather than widening the row
 - 2026-10-30: BL-132 spec-reviewer PASS on the fixed report; built: 9 tests first, Jest 1837/1837, lint 0 errors. Nothing committed

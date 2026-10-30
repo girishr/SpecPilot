@@ -7,7 +7,7 @@ import { ProjectDetector } from '../utils/projectDetector';
 import { getFrameworksForLanguage } from '../utils/frameworks';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
-import { Logger } from '../utils/logger';
+import { Logger, terminalText } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 import {
   addSpecsOptions, API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, detectedLine, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE,
@@ -134,19 +134,19 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
       
       // Show analysis summary
       if (projectInfo) {
-        logger.info(chalk.green(detectedLine(projectInfo)));
+        logger.info(detectedLine(projectInfo));
       }
       
       if (analysis.todos.length > 0) {
-        logger.info(chalk.yellow(`📝 Found ${analysis.todos.length} TODOs/FIXMEs`));
+        logger.info(`📝 Found ${analysis.todos.length} TODOs/FIXMEs`);
       }
       
       if (analysis.tests.testCount > 0) {
-        logger.info(chalk.cyan(`🧪 Detected ${analysis.tests.framework || 'unknown'} testing framework with ${analysis.tests.testCount} tests`));
+        logger.info(`🧪 Detected ${analysis.tests.framework || 'unknown'} testing framework with ${analysis.tests.testCount} tests`);
       }
       
       if (analysis.architecture.components.length > 0) {
-        logger.info(chalk.blue(`🏗️  Extracted ${analysis.architecture.components.length} components`));
+        logger.info(`🏗️  Extracted ${analysis.architecture.components.length} components`);
       }
     }
     
@@ -175,7 +175,7 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));
     console.log(chalk.white('Paste this prompt into your AI agent:'));
     console.log('');
-    console.log(chalk.gray(onboardingPrompt));
+    console.log(chalk.gray(terminalText(onboardingPrompt)));
     console.log('');
     console.log(chalk.cyan('💡 Also saved to .specs/development/onboarding.md — delete it after first use.'));
     console.log(chalk.bold.cyan('──────────────────────────────────────────────────'));

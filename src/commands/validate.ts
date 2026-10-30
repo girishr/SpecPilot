@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { RENAME_HEADING_PREFIX, SpecValidator, ValidationResult } from '../utils/specValidator';
-import { Logger } from '../utils/logger';
+import { Logger, terminalText } from '../utils/logger';
 
 export interface ValidateOptions {
   dir: string;
@@ -13,8 +13,8 @@ function displayFixPrompts(results: ValidationResult): void {
   console.log(chalk.cyan('\n📋 AI Fix Prompts — copy these to your AI assistant:'));
   console.log(chalk.dim('─'.repeat(60)));
   for (const { issue, prompt } of results.fixPrompts) {
-    console.log(chalk.white(`\n▸ ${issue}`));
-    const indented = prompt.split('\n').map(l => `  ${l}`).join('\n');
+    console.log(chalk.white(`\n▸ ${terminalText(issue)}`));
+    const indented = terminalText(prompt).split('\n').map(l => `  ${l}`).join('\n');
     console.log(chalk.gray(indented));
   }
   console.log(chalk.dim('─'.repeat(60)));
@@ -56,7 +56,7 @@ export async function validateCommand(options: ValidateOptions) {
       const fixed = await validator.autoFix(options.dir, results.fixable);
       console.log(chalk.green(`✅ Fixed ${fixed.length} issue(s):`));
       for (const fix of fixed) {
-        console.log(chalk.green(`   • ${fixLabel(fix)}`));
+        console.log(chalk.green(`   • ${terminalText(fixLabel(fix))}`));
       }
 
       // Re-validate after fixing

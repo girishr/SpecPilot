@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { ProjectMigrator } from '../utils/projectMigrator';
-import { Logger } from '../utils/logger';
+import { Logger, terminalText } from '../utils/logger';
 
 export interface MigrateOptions {
   dir: string;
@@ -78,7 +78,7 @@ export async function migrateCommand(options: MigrateOptions) {
       summaryContent.push('');
       summaryContent.push(chalk.yellow('⚠️  Warnings:'));
       results.warnings.forEach((warning: string) => {
-        summaryContent.push(chalk.yellow(`  • ${warning}`));
+        summaryContent.push(chalk.yellow(`  • ${terminalText(warning)}`));
       });
     }
 

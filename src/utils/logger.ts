@@ -1,8 +1,15 @@
 import chalk from 'chalk';
 import { basename } from 'path';
 import { getSpecTreeLines } from './specTreePrinter';
+import { UNSHOWN } from './mcpLocal';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require('../../package.json');
+
+/**
+ * `text` for the terminal (BL-133): `UNSHOWN` removed but tab and line feed, so no escape sequence from a repository acts.
+ * Run it on the text before colouring it; `displayWithLogo()` gets coloured lines, so its callers filter first.
+ */
+export const terminalText = (text: string): string => text.replace(UNSHOWN, c => (c === '\n' || c === '\t' ? c : ''));
 
 export class Logger {
   private readonly logo = [
@@ -17,24 +24,24 @@ export class Logger {
 
 
   info(message: string): void {
-    console.log(chalk.blue(message));
+    console.log(chalk.blue(terminalText(message)));
   }
   
   success(message: string): void {
-    console.log(chalk.green(message));
+    console.log(chalk.green(terminalText(message)));
   }
   
   warn(message: string): void {
-    console.log(chalk.yellow(message));
+    console.log(chalk.yellow(terminalText(message)));
   }
   
   error(message: string): void {
-    console.error(chalk.red(message));
+    console.error(chalk.red(terminalText(message)));
   }
   
   debug(message: string): void {
     if (process.env.DEBUG) {
-      console.log(chalk.gray(message));
+      console.log(chalk.gray(terminalText(message)));
     }
   }
 
@@ -91,7 +98,7 @@ export class Logger {
     if (warnings.length > 0) {
       content.push(chalk.yellow('⚠️  Warnings:'));
       warnings.forEach(warning => {
-        content.push(chalk.yellow(`  • ${warning}`));
+        content.push(chalk.yellow(`  • ${terminalText(warning)}`));
       });
       content.push('');
     }
@@ -99,7 +106,7 @@ export class Logger {
     if (errors.length > 0) {
       content.push(chalk.red('🚫 Errors:'));
       errors.forEach(error => {
-        content.push(chalk.red(`  • ${error}`));
+        content.push(chalk.red(`  • ${terminalText(error)}`));
       });
       content.push('');
     }
@@ -160,7 +167,7 @@ export class Logger {
       '',
       chalk.blue.bold('Project Initialized Successfully!'),
       '',
-      chalk.green(`✅ Project "${projectName}" created`),
+      chalk.green(`✅ Project "${terminalText(projectName)}" created`),
       chalk.white(`📁 Location: ${targetDir}`),
       chalk.white(`📋 Specs: ${specsPath}`),
       '',
@@ -197,7 +204,7 @@ export class Logger {
     
     content.push(chalk.red.bold(title));
     content.push('');
-    content.push(chalk.red(message));
+    content.push(chalk.red(terminalText(message)));
 
     this.displayWithLogo(content);
   }
@@ -207,7 +214,7 @@ export class Logger {
     const content = [
       chalk.blue.bold(title),
       '',
-      chalk.white(message)
+      chalk.white(terminalText(message))
     ];
 
     this.displayWithLogo(content);

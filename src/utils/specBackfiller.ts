@@ -1,5 +1,5 @@
-import { join } from 'path';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { basename, dirname, join } from 'path';
+import { existsSync, readFileSync } from 'fs';
 import * as yaml from 'js-yaml';
 import * as os from 'os';
 import * as readline from 'readline';
@@ -8,6 +8,10 @@ import { TemplateContext } from '../core/templateEngine';
 import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
 import { buildProcessMandatesMarkdown } from '../core/ideConfig';
+import { writeError, writeInside } from './specPaths';
+
+/** `rel` below the specs folder as `writeInside()` takes it: the project folder and the `/`-joined path from it (BL-130). */
+const inProject = (specsDir: string, rel: string): [string, string] => [dirname(specsDir), `${basename(specsDir)}/${rel}`];
 
 /**
  * Fingerprint + YAML line for each critical mandate.
@@ -327,6 +331,9 @@ export class SpecBackfiller {
 
   private backfillProjectYaml(specsDir: string, dryRun: boolean): BackfillFileResult {
     const filePath = join(specsDir, 'project', 'project.yaml');
+    const [root, rel] = inProject(specsDir, 'project/project.yaml');
+    const refused = writeError(root, rel);
+    if (refused) return { action: 'skipped', found: 0, total: 0, added: [], reason: refused };
 
     if (!existsSync(filePath)) {
       return {
@@ -369,7 +376,7 @@ export class SpecBackfiller {
         missingCritical.map((m) => m.yamlText),
         missingProcess.map((m) => m.yamlText),
       );
-      writeFileSync(filePath, newContent, 'utf-8');
+      writeInside(root, rel, newContent);
     }
 
     return {
@@ -448,6 +455,8 @@ export class SpecBackfiller {
     dryRun: boolean,
   ): Promise<BackfillFileResult> {
     const filePath = join(projectDir, '.github', 'copilot-instructions.md');
+    const refused = writeError(projectDir, '.github/copilot-instructions.md');
+    if (refused) return { action: 'skipped', found: 0, total: 0, added: [], reason: refused };
 
     if (!existsSync(filePath)) {
       if (!dryRun) {
@@ -455,7 +464,6 @@ export class SpecBackfiller {
         const language = this.readProjectField(specsDir, 'language') ?? 'typescript';
         const framework = this.readProjectField(specsDir, 'framework');
         const context: TemplateContext = { projectName, language, framework };
-        mkdirSync(join(projectDir, '.github'), { recursive: true });
         const ideGen = new IdeConfigGenerator();
         ideGen.generateCopilotInstructions(projectDir, context);
       }
@@ -491,7 +499,7 @@ export class SpecBackfiller {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
       }
       const base = withTasks ?? content;
-      writeFileSync(filePath, toAppend ? base.trimEnd() + toAppend + '\n' : base, 'utf-8');
+      writeInside(projectDir, '.github/copilot-instructions.md', toAppend ? base.trimEnd() + toAppend + '\n' : base);
     }
 
     return {
@@ -554,6 +562,8 @@ export class SpecBackfiller {
     dryRun: boolean,
   ): IdeFileBackfillResult | undefined {
     const filePath = join(projectDir, relativePath);
+    const refused = writeError(projectDir, relativePath);
+    if (refused) return { path: relativePath, ...{ action: 'skipped', found: 0, total: 0, added: [], reason: refused } };
     if (!existsSync(filePath)) {
       return undefined;
     }
@@ -584,7 +594,7 @@ export class SpecBackfiller {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
       }
       const base = withTasks ?? content;
-      writeFileSync(filePath, toAppend ? base.trimEnd() + toAppend + '\n' : base, 'utf-8');
+      writeInside(projectDir, relativePath, toAppend ? base.trimEnd() + toAppend + '\n' : base);
     }
 
     return {
@@ -629,6 +639,7 @@ export class SpecBackfiller {
    * Text-based insertion — does not parse YAML to preserve formatting.
    */
   private writeDevPrefix(specsDir: string, handle: string): void {
+    const [root, rel] = inProject(specsDir, 'project/project.yaml');
     const yamlPath = join(specsDir, 'project', 'project.yaml');
     let content = readFileSync(yamlPath, 'utf-8');
 
@@ -651,7 +662,7 @@ export class SpecBackfiller {
       }
     }
 
-    writeFileSync(yamlPath, content, 'utf-8');
+    writeInside(root, rel, content);
   }
 
   /**
@@ -662,6 +673,7 @@ export class SpecBackfiller {
    */
   private async ensureDevPrefix(specsDir: string, dryRun: boolean, noPrompts: boolean): Promise<void> {
     if (this.readDevPrefix(specsDir) !== undefined) return; // already set
+    if (writeError(...inProject(specsDir, 'project/project.yaml'))) return; // backfillProjectYaml() reports it (BL-130)
 
     const suggestion = this.readContributorsFirst(specsDir);
 
@@ -761,6 +773,9 @@ export class SpecBackfiller {
 
   private backfillTasksMd(specsDir: string, dryRun: boolean): BackfillFileResult {
     const filePath = join(specsDir, 'planning', 'tasks.md');
+    const [root, rel] = inProject(specsDir, 'planning/tasks.md');
+    const refused = writeError(root, rel);
+    if (refused) return { action: 'skipped', found: 0, total: 0, added: [], reason: refused };
 
     if (!existsSync(filePath)) {
       return {
@@ -815,7 +830,7 @@ export class SpecBackfiller {
     }
 
     if (!dryRun) {
-      writeFileSync(filePath, newContent, 'utf-8');
+      writeInside(root, rel, newContent);
     }
 
     return { action: 'updated', found: 0, total: 1, added: [`CD-${devPrefix}-### convention line`] };

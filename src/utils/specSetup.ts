@@ -4,7 +4,8 @@ import { dirname, join, sep } from 'path';
 import os from 'os';
 import { ProjectDetector, ProjectInfo } from './projectDetector';
 import { CodeAnalyzer } from './codeAnalyzer';
-import { folderError, SpecGenerator, SpecGeneratorOptions } from './specGenerator';
+import { SpecGenerator, SpecGeneratorOptions } from './specGenerator';
+import { folderError } from './specPaths';
 import { getFrameworksForLanguage } from './frameworks';
 import { CODEX_PROMPTS_NOTICE } from './slashCommandGenerator';
 import {

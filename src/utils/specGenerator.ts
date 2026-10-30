@@ -1,8 +1,9 @@
 import { dirname, join } from 'path';
-import { lstatSync, mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync } from 'fs';
 import { render, RenderOptions, targetsInSpecs, targetsOutsideSpecs } from '../core/render';
 import { GITATTRIBUTES_FILE } from '../core/ideConfig';
 import { IdeConfigGenerator, writeNew } from './ideConfigGenerator';
+import { folderError, writeError, writeInside } from './specPaths';
 
 export interface SpecGeneratorOptions extends RenderOptions {
   targetDir: string;
@@ -24,10 +25,14 @@ export class SpecGenerator {
    */
   async generateSpecs(options: SpecGeneratorOptions): Promise<{ onboardingPrompt: string; kept: string[]; appended: number }> {
     const { files, onboardingPrompt } = render(options);
+    // `.specs/` files and `.gitattributes` are replaced or merged, so a link at the file is refused too (BL-130).
+    const inSpecs = (path: string) => path.startsWith(`${options.specsName}/`);
     for (const file of files) {
-      const error = folderError(options.targetDir, file.path);
+      const error = inSpecs(file.path) || file.path === GITATTRIBUTES_FILE ? writeError(options.targetDir, file.path) : folderError(options.targetDir, file.path);
       if (error) throw new Error(error);
     }
+    // The target folder is the trusted root: `init` names a new one, so it is made here, not walked.
+    mkdirSync(options.targetDir, { recursive: true });
     const kept: string[] = [];
     let appended = 0;
     for (const file of files) {
@@ -36,9 +41,12 @@ export class SpecGenerator {
         appended = this.ideConfigGenerator.generateGitAttributes(options.targetDir);
         continue;
       }
+      if (inSpecs(file.path)) {
+        writeInside(options.targetDir, file.path, file.content);
+        continue;
+      }
       mkdirSync(dirname(target), { recursive: true });
-      if (file.path.startsWith(`${options.specsName}/`)) writeFileSync(target, file.content);
-      else if (!writeNew(target, file.content)) kept.push(file.path);
+      if (!writeNew(target, file.content)) kept.push(file.path);
     }
     return { onboardingPrompt, kept, appended };
   }
@@ -59,26 +67,6 @@ export class SpecGenerator {
   targetsOutsideSpecs(ide = 'vscode'): string[] {
     return targetsOutsideSpecs(ide);
   }
-}
-
-/**
- * Why `rel` may not be written under `root`: the first existing folder on the way that is a symbolic link or
- * not a folder, so no write can follow a link out of the project (guided setup's rule, shared since BL-077).
- * A missing folder ends the walk, since it and every deeper one will be created. Null when nothing is in the way.
- */
-export function folderError(root: string, rel: string): string | null {
-  const parts = rel.split('/');
-  for (let i = 1; i < parts.length; i++) {
-    let st;
-    try {
-      st = lstatSync(join(root, ...parts.slice(0, i)));
-    } catch {
-      return null;
-    }
-    if (st.isSymbolicLink()) return `${parts.slice(0, i).join('/')} is a symbolic link, so nothing was written.`;
-    if (!st.isDirectory()) return `${parts.slice(0, i).join('/')} is not a folder, so nothing was written.`;
-  }
-  return null;
 }
 
 /** What `init`, `add-specs` and `refine --update` print about existing files outside `.specs/` (BL-073). */

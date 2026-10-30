@@ -569,4 +569,75 @@ describe('SpecGenerator', () => {
     expect(readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8')).toBe(original);
     expect(kept).toEqual(['CLAUDE.md']);
   });
+
+  // BL-130 (REQ-002.E.18; audit run-1 item 1): the .specs/ files and .gitattributes are not written through a link.
+  (process.platform === 'win32' ? describe.skip : describe)('a linked file the generator would write (BL-130)', () => {
+    let project: string;
+    let outside: string;
+    beforeEach(() => {
+      project = join(testDir, 'project');
+      outside = join(testDir, 'outside');
+      mkdirSync(project, { recursive: true });
+      mkdirSync(outside);
+      writeFileSync(join(outside, 'rc.txt'), '# T\nORIGINAL\n');
+    });
+    const exitOne = () => {
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+      jest.spyOn(process, 'exit').mockImplementation(code => {
+        throw new Error(`exit ${code}`);
+      });
+      return () => error.mock.calls.map(c => stripVTControlCharacters(String(c[0])));
+    };
+
+    test('a linked .specs/project/requirements.md → refused before any write, the target unchanged', async () => {
+      mkdirSync(join(project, '.specs', 'project'), { recursive: true });
+      symlinkSync(join(outside, 'rc.txt'), join(project, '.specs', 'project', 'requirements.md'));
+      await expect(specGenerator.generateSpecs({ ...baseOptions, targetDir: project }))
+        .rejects.toThrow('.specs/project/requirements.md is a symbolic link, so nothing was written.');
+      expect(readFileSync(join(outside, 'rc.txt'), 'utf-8')).toBe('# T\nORIGINAL\n');
+      expect(readdirSync(project)).toEqual(['.specs']);
+      expect(readdirSync(join(project, '.specs', 'project'))).toEqual(['requirements.md']);
+    });
+
+    test('a linked .gitattributes → refused before any write, the target unchanged', async () => {
+      symlinkSync(join(outside, 'rc.txt'), join(project, '.gitattributes'));
+      await expect(specGenerator.generateSpecs({ ...baseOptions, targetDir: project }))
+        .rejects.toThrow('.gitattributes is a symbolic link, so nothing was written.');
+      expect(readFileSync(join(outside, 'rc.txt'), 'utf-8')).toBe('# T\nORIGINAL\n');
+      expect(readdirSync(project)).toEqual(['.gitattributes']);
+    });
+
+    test('refine --update, the audit\'s bounded check: a linked requirements.md → exit 1, nothing written, the target unchanged', async () => {
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: project });
+      const yaml = join(project, '.specs', 'project', 'project.yaml');
+      writeFileSync(yaml, readFileSync(yaml, 'utf-8').replace(/^name:.*$/m, `name: $(touch ${join(outside, 'x')})`));
+      const requirements = join(project, '.specs', 'project', 'requirements.md');
+      rmSync(requirements);
+      symlinkSync(join(outside, 'rc.txt'), requirements);
+      const context = readFileSync(join(project, '.specs', 'development', 'context.md'), 'utf-8');
+      const errors = exitOne();
+
+      await expect(refineCommand('d', { dir: project, specsName: '.specs', prompts: false, update: true })).rejects.toThrow('exit 1');
+
+      expect(readFileSync(join(outside, 'rc.txt'), 'utf-8')).toBe('# T\nORIGINAL\n');
+      expect(readdirSync(outside)).toEqual(['rc.txt']);
+      expect(readFileSync(join(project, '.specs', 'development', 'context.md'), 'utf-8')).toBe(context);
+      expect(errors()).toContain('❌ Failed to refine specifications: .specs/project/requirements.md is a symbolic link, so nothing was written.');
+    });
+
+    test('refine with a linked .specs folder → exit 1, nothing written in the target', async () => {
+      const shared = join(testDir, 'shared');
+      mkdirSync(shared);
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: shared });
+      symlinkSync(join(shared, '.specs'), join(project, '.specs'));
+      const before = readFileSync(join(shared, '.specs', 'project', 'requirements.md'), 'utf-8');
+      const errors = exitOne();
+
+      await expect(refineCommand('d', { dir: project, specsName: '.specs', prompts: false, update: false })).rejects.toThrow('exit 1');
+
+      expect(readFileSync(join(shared, '.specs', 'project', 'requirements.md'), 'utf-8')).toBe(before);
+      expect(errors()).toContain('❌ Failed to refine specifications: .specs is a symbolic link, so nothing was written.');
+    });
+  });
 });

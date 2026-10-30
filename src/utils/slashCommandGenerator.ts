@@ -6,7 +6,7 @@ import { SlashCommand, SLASH_COMMANDS, resolveTarget } from '../core/slashComman
 import * as yaml from 'js-yaml';
 import { agentFile, agentTargets, fillReleasedSkill, KNOWN_SKILL_TEMPLATES, skillValue } from '../core/agentConfig';
 import { TemplateContext, TemplateEngine } from '../core/templateEngine';
-import { resolveAllowedPath } from './specPaths';
+import { checkFolders, resolveAllowedPath } from './specPaths';
 
 export { SLASH_COMMANDS };
 export type { SlashCommand };
@@ -465,29 +465,6 @@ export class SlashCommandGenerator {
 
 function sha256(bytes: Buffer): string {
   return createHash('sha256').update(bytes).digest('hex');
-}
-
-/**
- * Walks the folders from `projectDir` down to `dir` (project-relative, `/`-joined) with `lstat`, one level
- * at a time: 'bad' at a symbolic link or a non-folder, 'missing' at the first absent level, else 'ok'.
- * With `create`, an absent level is made with a non-recursive `mkdir` and checked again (BL-PM-006).
- */
-function checkFolders(projectDir: string, dir: string, create: boolean): 'ok' | 'missing' | 'bad' {
-  let at = projectDir;
-  for (const segment of dir.split('/')) {
-    at = join(at, segment);
-    let st;
-    try {
-      st = lstatSync(at);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-      if (!create) return 'missing';
-      mkdirSync(at);
-      st = lstatSync(at);
-    }
-    if (st.isSymbolicLink() || !st.isDirectory()) return 'bad';
-  }
-  return 'ok';
 }
 
 /**

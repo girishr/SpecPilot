@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { join, relative, sep } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
+import { writeError, writeInside } from './specPaths';
 import { readSpecs, REQUIRED_TASK_HEADINGS, SHAPED_HEADINGS, TASK_COLUMNS, TASK_PRIORITIES, TASK_TYPES, TaskHeadings, taskHeadings } from './specReader';
 
 // ---- tasks.md checks as pure functions over content, so a writer (the BL-053 task mover) can
@@ -251,6 +252,9 @@ export class SpecValidator {
     if (!specsDir) {
       return fixed;
     }
+    // Written through `writeInside()` from the project folder, so a link on the way or at the file is refused and
+    // that fix is left out of `fixed` (BL-130).
+    const specs = relative(projectDir, specsDir).split(sep).join('/');
 
     for (const fix of fixable) {
       try {
@@ -259,10 +263,10 @@ export class SpecValidator {
           // Only ever create files this validator actually requires — otherwise an
           // arbitrary `create-*` token would write a junk file into .specs/.
           if (!this.requiredFiles.includes(fileName)) continue;
-          await this.createMissingFile(specsDir, fileName);
+          await this.createMissingFile(projectDir, specs, fileName);
           fixed.push(fix);
         } else if (fix.startsWith(RENAME_HEADING_PREFIX)) {
-          if (this.renameTasksHeading(specsDir, fix)) fixed.push(fix);
+          if (this.renameTasksHeading(projectDir, specs, fix)) fixed.push(fix);
         }
       } catch {
         // Skip fixes that fail
@@ -277,18 +281,19 @@ export class SpecValidator {
    * BL-111: rename one tasks.md heading, as its token says, only if the file as it is now still
    * offers exactly that rename; the line keeps its indentation, trailing whitespace and `\r`.
    */
-  private renameTasksHeading(specsDir: string, token: string): boolean {
+  private renameTasksHeading(root: string, specs: string, token: string): boolean {
     const parts = token.slice(RENAME_HEADING_PREFIX.length).split(':');
     if (parts.length !== 2) return false;
     const [found, expected] = parts;
-    const file = join(specsDir, 'planning', 'tasks.md');
-    if (!existsSync(file)) return false;
+    const rel = `${specs}/planning/tasks.md`;
+    const file = join(root, ...rel.split('/'));
+    if (writeError(root, rel) || !existsSync(file)) return false;
     const content = readFileSync(file, 'utf-8');
     if (!tasksHeadingChecks(content).renames.some(r => r.found === found && r.expected === expected)) return false;
     const lines = content.split('\n');
     const i = lines.findIndex(l => l.trim() === found);
     lines[i] = lines[i].replace(found, expected);
-    writeFileSync(file, lines.join('\n'));
+    writeInside(root, rel, lines.join('\n'));
     return true;
   }
 
@@ -498,15 +503,8 @@ export class SpecValidator {
     }
   }
 
-  private async createMissingFile(specsDir: string, fileName: string): Promise<void> {
-    const filePath = join(specsDir, fileName);
+  private async createMissingFile(root: string, specs: string, fileName: string): Promise<void> {
     let content: string;
-
-    // Ensure directory exists
-    const dir = dirname(filePath);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
-    }
 
     switch (fileName) {
       case 'project/project.yaml':
@@ -535,7 +533,8 @@ export class SpecValidator {
         content = `# ${fileName.split('/').pop()?.replace('.md', '').replace('.yaml', '')} File\n\n[Content to be added]`;
     }
 
-    writeFileSync(filePath, content);
+    // Created, never replaced; a link at the file or on the way throws (BL-130).
+    if (!writeInside(root, `${specs}/${fileName}`, content, { create: true })) throw new Error(`${fileName} already exists`);
   }
 
   private async validateMetadataAndCrossRefs(specsDir: string, result: ValidationResult): Promise<void> {

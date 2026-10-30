@@ -1325,3 +1325,78 @@ describe('the MCP Tasks line (BL-088)', () => {
     });
   });
 });
+
+// BL-130 (REQ-002.E.18): backfill never writes through a link; the file is Skipped with the reason and the others go on.
+(process.platform === 'win32' ? describe.skip : describe)('backfill and links in the project (BL-130)', () => {
+  let testDir: string;
+  let outside: string;
+  const YAML_NO_TEAM = 'name: "TestProject"\nlicense: MIT\nlanguage: typescript\ncontributors: ["girishr"]\nrules:\n  critical:\n    - "x"\n';
+  const TASKS_NO_CD = '# Tasks\n\n- CS-###: Current sprint items\n\nNotes\n';
+  beforeEach(() => {
+    testDir = makeTmpDir();
+    outside = makeTmpDir();
+  });
+  afterEach(() => {
+    rmSync(testDir, { recursive: true, force: true });
+    rmSync(outside, { recursive: true, force: true });
+  });
+  const backfill = (dryRun = false) => new SpecBackfiller().backfill(testDir, '.specs', dryRun, true);
+
+  test.each([false, true])('CLAUDE.md linked to an in-repo AGENTS.md → Skipped, AGENTS.md unchanged, copilot-instructions.md still created (dry run %s)', async dryRun => {
+    scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+    writeFileSync(join(testDir, 'AGENTS.md'), '# Agents\n');
+    symlinkSync('AGENTS.md', join(testDir, 'CLAUDE.md'));
+    const result = await backfill(dryRun);
+    expect(readFileSync(join(testDir, 'AGENTS.md'), 'utf-8')).toBe('# Agents\n');
+    expect(result.ideFiles.find(f => f.path === 'CLAUDE.md')).toMatchObject({ action: 'skipped', reason: 'CLAUDE.md is a symbolic link, so nothing was written.' });
+    expect(result.copilotInstructions.action).toBe('created');
+    expect(existsSync(join(testDir, '.github', 'copilot-instructions.md'))).toBe(!dryRun);
+  });
+
+  test('a linked tasks.md → Skipped with the reason, the target unchanged', async () => {
+    scaffoldSpecs(testDir, { projectYaml: FULL_YAML });
+    writeFileSync(join(outside, 'tasks.md'), TASKS_NO_CD);
+    symlinkSync(join(outside, 'tasks.md'), join(testDir, '.specs', 'planning', 'tasks.md'));
+    const result = await backfill();
+    expect(readFileSync(join(outside, 'tasks.md'), 'utf-8')).toBe(TASKS_NO_CD);
+    expect(result.tasksMd).toMatchObject({ action: 'skipped', reason: '.specs/planning/tasks.md is a symbolic link, so nothing was written.' });
+  });
+
+  test('a linked project.yaml → Skipped with the reason, no team.devPrefix written, the target unchanged', async () => {
+    scaffoldSpecs(testDir, { tasksMd: makeFullTasksMd('girishr') });
+    writeFileSync(join(outside, 'project.yaml'), YAML_NO_TEAM);
+    symlinkSync(join(outside, 'project.yaml'), join(testDir, '.specs', 'project', 'project.yaml'));
+    const result = await backfill();
+    expect(readFileSync(join(outside, 'project.yaml'), 'utf-8')).toBe(YAML_NO_TEAM);
+    expect(result.projectYaml).toMatchObject({ action: 'skipped', reason: '.specs/project/project.yaml is a symbolic link, so nothing was written.' });
+  });
+
+  test('a dangling copilot-instructions.md → Skipped, its target not created', async () => {
+    scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+    symlinkSync(join(outside, 'new.md'), join(testDir, '.github', 'copilot-instructions.md'));
+    const result = await backfill();
+    expect(existsSync(join(outside, 'new.md'))).toBe(false);
+    expect(result.copilotInstructions).toMatchObject({ action: 'skipped', reason: '.github/copilot-instructions.md is a symbolic link, so nothing was written.' });
+  });
+
+  test('a linked .github folder → copilot-instructions.md not created in the target', async () => {
+    scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+    rmSync(join(testDir, '.github'), { recursive: true });
+    symlinkSync(outside, join(testDir, '.github'));
+    const result = await backfill();
+    expect(readdirSync(outside)).toEqual([]);
+    expect(result.copilotInstructions).toMatchObject({ action: 'skipped', reason: '.github is a symbolic link, so nothing was written.' });
+  });
+
+  test('a linked .specs folder → nothing written in the target', async () => {
+    const shared = join(outside, 'shared');
+    mkdirSync(shared);
+    scaffoldSpecs(shared, { projectYaml: YAML_NO_TEAM, tasksMd: TASKS_NO_CD });
+    symlinkSync(join(shared, '.specs'), join(testDir, '.specs'));
+    const result = await backfill();
+    expect(readFileSync(join(shared, '.specs', 'project', 'project.yaml'), 'utf-8')).toBe(YAML_NO_TEAM);
+    expect(readFileSync(join(shared, '.specs', 'planning', 'tasks.md'), 'utf-8')).toBe(TASKS_NO_CD);
+    expect(result.projectYaml.reason).toBe('.specs is a symbolic link, so nothing was written.');
+    expect(result.tasksMd.reason).toBe('.specs is a symbolic link, so nothing was written.');
+  });
+});

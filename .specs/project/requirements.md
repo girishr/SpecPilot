@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-10-30 (BL-135 Spec Report)
+lastUpdated: 2026-10-30 (BL-136 Spec Report)
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.97
+version: 1.98
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -54,6 +54,7 @@ relatedFiles:
 - Extract architecture information (components, directories) [REQ-002.D.3]
 - Display folder structure as nested tree with proper indentation (max depth 3) [REQ-002.D.4]
 - Support the `--no-analysis` flag: with it, `add-specs` skips the codebase analysis (prints no analysis lines and passes no analysis to the generator); without it, the analysis runs as before (BL-074). `--deep-analysis` is removed: no deeper analysis ever existed behind it, and a real one belongs to BL-009 [REQ-002.D.5]
+- The analysis and the detection never follow a link and are bounded (BL-136; security audit run-1, SEC-002.13 (c)): `CodeAnalyzer`'s three walks (`findTodos`, `findTestFiles`, `buildDirectoryTree`) look at each entry with `lstat`, so a symbolic link (to a file or a folder, inside the project or out) is neither entered, listed in the tree, counted nor read, which changes what an in-repository link does today; each walk visits at most `MAX_SCAN_FILES` (2000) entries and goes at most 20 folders deep (`buildDirectoryTree` keeps its 4 levels); a code or test file is read only when it is a regular file of at most 1 MB, and one `analyzeCodebase()` run reads at most 8 MB of such files in all (each file counted once), after which no more files are read. `ProjectDetector` and the analyzer's test-framework check read every manifest (`package.json`, `pyproject.toml`, `setup.py`, `requirements.txt`, the Gradle files, `Package.swift`) through `readSmall()`: a regular file of at most 64 KB, else as if empty; for `package.json` that means name `unknown-project`, language javascript, no dependencies, framework, platform, test framework or package license, and still a Node project. A link at a manifest's own path therefore reads as empty. Because no link is entered, the walks cannot loop through one, and the depth and count caps bound any other cycle (a bind mount). The detector's two root-only `readdirSync` calls (the `.xcodeproj`/`.xcworkspace` name test) stay: they read names only. Not covered: a file or folder swapped for a link between the `lstat` and the read; a single folder with very many entries is listed in full by `readdirSync` before the budget counts [REQ-002.D.6]
 
 ### IDE & Agent Configuration [REQ-002.E]
 

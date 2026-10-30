@@ -28,11 +28,14 @@ const NODE_TESTS: [string, string][] = [['vitest', 'vitest'], ['jest', 'jest'], 
 const LICENSE_FILES = ['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'LICENCE'];
 const LICENSE_LINES: [RegExp, string][] = [[/^MIT License$/i, 'MIT'], [/^Apache License$/i, 'Apache-2.0'], [/^GNU GENERAL PUBLIC LICENSE$/i, 'GPL'], [/^ISC License$/i, 'ISC'], [/^BSD .*License$/i, 'BSD']];
 
-/** A file's text when `lstat` shows a regular file of at most MAX_DETECT_BYTES, else null: no link is followed. */
-function readSmall(path: string): string | null {
+/**
+ * A file's text when `lstat` shows a regular file of at most `max` bytes, else null: no link is followed. Every
+ * manifest is read through it since BL-136, and the code analyzer reads through it with its own limit.
+ */
+export function readSmall(path: string, max = MAX_DETECT_BYTES): string | null {
   try {
     const st = lstatSync(path);
-    return st.isFile() && st.size <= MAX_DETECT_BYTES ? readFileSync(path, 'utf-8') : null;
+    return st.isFile() && st.size <= max ? readFileSync(path, 'utf-8') : null;
   } catch {
     return null;
   }
@@ -81,7 +84,7 @@ export class ProjectDetector {
   private detectMore(dir: string, info: ProjectInfo): Pick<ProjectInfo, 'packageManager' | 'testFramework' | 'repository' | 'license'> {
     const pkgPath = join(dir, 'package.json');
     const node = existsSync(pkgPath); // a package.json makes it a Node project (detectBase)
-    const pkg = node ? JSON.parse(readFileSync(pkgPath, 'utf-8')) : {};
+    const pkg = node ? JSON.parse(readSmall(pkgPath) ?? '{}') : {};
     const locks = node ? NODE_LOCKS : info.language === 'python' ? PYTHON_LOCKS : [];
     const packageManager = locks.find(([file]) => existsSync(join(dir, file)))?.[1];
     let testFramework: string | undefined;
@@ -89,10 +92,10 @@ export class ProjectDetector {
       const deps = { ...pkg.dependencies, ...pkg.devDependencies };
       testFramework = NODE_TESTS.find(([name]) => deps[name])?.[1];
     } else if (info.language === 'python') {
-      const text = ['pyproject.toml', 'setup.py', 'requirements.txt'].map(f => join(dir, f)).filter(f => existsSync(f)).map(f => readFileSync(f, 'utf-8'))[0] ?? '';
+      const text = ['pyproject.toml', 'setup.py', 'requirements.txt'].map(f => join(dir, f)).filter(f => existsSync(f)).map(f => readSmall(f) ?? '')[0] ?? '';
       if (/(^|[^A-Za-z0-9_.-])pytest(?![A-Za-z0-9_-])/m.test(text)) testFramework = 'pytest';
     } else if (info.language === 'kotlin') {
-      const gradle = ['build.gradle.kts', 'build.gradle'].map(f => join(dir, f)).filter(f => existsSync(f)).map(f => readFileSync(f, 'utf-8')).join('\n');
+      const gradle = ['build.gradle.kts', 'build.gradle'].map(f => join(dir, f)).filter(f => existsSync(f)).map(f => readSmall(f) ?? '').join('\n');
       if (/junit/i.test(gradle)) testFramework = 'junit';
     }
     const repository = originUrl(dir);
@@ -143,7 +146,7 @@ export class ProjectDetector {
   }
 
   private detectNodeProject(packageJsonPath: string): ProjectInfo {
-    const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+    const pkg = JSON.parse(readSmall(packageJsonPath) ?? '{}');
     
     return {
       name: pkg.name || 'unknown-project',
@@ -168,7 +171,7 @@ export class ProjectDetector {
   }
 
   private detectPythonProject(filePath: string, fileType: string): ProjectInfo {
-    const content = readFileSync(filePath, 'utf-8');
+    const content = readSmall(filePath) ?? '';
     
     if (fileType === 'pyproject.toml') {
       // Basic TOML parsing for name and version
@@ -279,19 +282,19 @@ export class ProjectDetector {
 
     // Read settings file first for project name
     if (existsSync(settingsGradleKtsPath)) {
-      const settingsContent = readFileSync(settingsGradleKtsPath, 'utf-8');
+      const settingsContent = readSmall(settingsGradleKtsPath) ?? '';
       const nameMatch = settingsContent.match(/rootProject\.name\s*=\s*["']([^"']+)["']/);
       if (nameMatch) projectName = nameMatch[1];
       content += settingsContent;
     }
 
     if (existsSync(gradleKtsPath)) {
-      const buildContent = readFileSync(gradleKtsPath, 'utf-8');
+      const buildContent = readSmall(gradleKtsPath) ?? '';
       const versionMatch = buildContent.match(/version\s*=\s*["']([^"']+)["']/);
       if (versionMatch) version = versionMatch[1];
       content += buildContent;
     } else if (existsSync(gradlePath)) {
-      const buildContent = readFileSync(gradlePath, 'utf-8');
+      const buildContent = readSmall(gradlePath) ?? '';
       const nameMatch = buildContent.match(/rootProject\.name\s*=\s*["']([^"']+)["']/);
       if (nameMatch && projectName === 'unknown-project') projectName = nameMatch[1];
       const versionMatch = buildContent.match(/version\s*=\s*["']([^"']+)["']/);
@@ -325,7 +328,7 @@ export class ProjectDetector {
 
     const xcEntry = readdirSync(projectDir).find(e => e.endsWith('.xcodeproj') || e.endsWith('.xcworkspace'));
     if (packageSwiftPath && existsSync(packageSwiftPath)) {
-      content = readFileSync(packageSwiftPath, 'utf-8');
+      content = readSmall(packageSwiftPath) ?? '';
       const nameMatch = content.match(/name:\s*["']([^"']+)["']/);
       if (nameMatch) projectName = nameMatch[1];
     } else {

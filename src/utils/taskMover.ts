@@ -5,7 +5,7 @@ import { endsWithApproved, LaneShape, TASK_PRIORITIES, TASK_TYPES, taskRowLines,
 import { tasksChecks } from './specValidator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, completedArchiveBlock, planCompletedArchive } from './specArchiver';
 import { findSectionBounds } from './markdownSections';
-import { replaceFile } from './specPaths';
+import { folderError, replaceFile } from './specPaths';
 
 // The one writer behind `specpilot serve` (BL-053, ARCH-003.18, ARCH-004.36). A move removes one
 // line of tasks.md and inserts the identical line elsewhere; a new task (BL-PM-005) inserts one line;
@@ -138,8 +138,13 @@ interface Loaded {
   content: string;
 }
 
-/** Read tasks.md for a write: refuses a missing or symlinked file, a stale hash and bytes that are not UTF-8. */
+/**
+ * Read tasks.md for a write: refuses a linked or non-folder level on the way (BL-135), a missing, symlinked or
+ * non-regular file, a stale hash and bytes that are not UTF-8.
+ */
 function loadTasks(root: string, ifMatch: string, stale: string, doing: string): Loaded | Refusal {
+  const folder = folderError(root, WRITABLE_TASKS_FILE);
+  if (folder) return { status: 422, error: folder };
   const file = join(root, WRITABLE_TASKS_FILE);
   let st;
   try {
@@ -148,6 +153,7 @@ function loadTasks(root: string, ifMatch: string, stale: string, doing: string):
     return { status: 422, error: 'planning/tasks.md does not exist.' };
   }
   if (st.isSymbolicLink()) return { status: 422, error: 'planning/tasks.md is a symbolic link, and SpecPilot will not replace it with a regular file.' };
+  if (!st.isFile()) return { status: 422, error: 'planning/tasks.md is not a regular file, and SpecPilot will not replace it with one.' };
   const before = readFileSync(file);
   if (sha256(before) !== ifMatch) return { status: 409, error: stale };
   const content = before.toString('utf-8');
@@ -298,6 +304,8 @@ export const NEW_STALE_ERROR =
 
 /** The archive's text; missing is fine, anything SpecPilot cannot read as plain UTF-8 is refused, `why` ending the reason. */
 function readArchive(root: string, why = 'so SpecPilot cannot tell which IDs are in use'): string | Refusal {
+  const folder = folderError(root, TASKS_ARCHIVE_FILE); // no read through a linked folder (BL-135)
+  if (folder) return { status: 422, error: folder };
   const file = join(root, TASKS_ARCHIVE_FILE);
   let st;
   try {

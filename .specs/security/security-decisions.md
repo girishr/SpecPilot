@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-30 (BL-131: skill name one line)
-version: 1.35
+lastUpdated: 2026-10-30 (BL-135: task writes walk the folders)
+version: 1.36
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -115,7 +115,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.10] Task moves: CSRF token + Origin + JSON-only, one write-allowlisted file, atomic replace
 
 - **Date**: 2026-09-29
-- **Decision**: `POST /api/tasks/move` is the only write route (until BL-055; see SEC-004.12). It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3.
+- **Decision**: `POST /api/tasks/move` is the only write route (until BL-055; see SEC-004.12). It requires a per-start random 32-byte token (meta tag in `index.html`, header `X-SpecPilot-Token`, `crypto.timingSafeEqual`), an `Origin` equal to the page's own origin, `Content-Type: application/json`, a body ≤ 16 KB and the usual Host check; it writes only `.specs/planning/tasks.md` (a write allowlist separate from the read allowlist), only by relocating one existing line, only when `If-Match` matches the file's sha256, under an in-process lock, through a temp file, `fsync` and `rename`. `--read-only` removes the route, the handles and the token. This closes the CSRF item SEC-004.8 deferred to Phase 3. Since BL-135 (SEC-002.13 (b)), every task write first walks `.specs` and `.specs/planning` with `folderError()` (`lstat`, one level at a time) and refuses a linked or non-folder level, and refuses a `tasks.md` that is not a regular file before reading it; the archive's read does the same.
 - **Rationale**: Each layer covers a different forgery: the token stops any page that cannot read ours (the CSP-bound page is the only reader); `Origin` stops cross-site `fetch` and rebound origins even if a token leaked; JSON-only stops HTML form posts, which cannot set that content type without a preflight; the size cap bounds parsing. Relocating a line (never writing request text) means a forged request could at worst reorder tasks, which `If-Match` and git make recoverable. (Since BL-PM-005, `POST /api/tasks/new` writes request text into `tasks.md`, one row; see SEC-004.18. Since BL-TB-06, `POST /api/tasks/archive` also appends to `tasks-archive.md`; see SEC-004.30. Since BL-113, `POST /api/tasks/review` appends a dated marker to one `## Review` row's cell or removes the last one by naming it; see SEC-004.31.)
 - **Alternatives considered**:
   - SameSite cookies — rejected: localhost cookies are shared across ports and the page has no login; a header token is simpler and not sent automatically.

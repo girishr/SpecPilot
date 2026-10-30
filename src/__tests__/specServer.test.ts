@@ -4031,6 +4031,22 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(snapshot(a.root)).toEqual(before);
   });
 
+  it('refuses a task write through a linked .specs/planning, page and MCP alike (BL-135)', async () => {
+    const text = readFileSync(fileOf(a.root), 'utf-8');
+    write(a.outside, 'planning/tasks.md', text);
+    rmSync(join(a.root, '.specs/planning'), { recursive: true });
+    symlinkSync(join(a.outside, 'planning'), join(a.root, '.specs/planning'));
+    await start();
+    const refusal = '.specs/planning is a symbolic link, so nothing was written.';
+    const page = await pageWrite('/api/tasks/move', { id: 'BL-001', toSection: 'currentSprint', toIndex: 0 }, a.root, 0);
+    expect([page.status, page.json.error]).toEqual([422, refusal]);
+    const r = await tool('specpilot_move_task', { id: 'BL-001', toSection: 'currentSprint', toIndex: 0, sha256: hashOf(a.root) });
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toContain(refusal);
+    expect(readFileSync(join(a.outside, 'planning/tasks.md'), 'utf-8')).toBe(text);
+    expect(readdirSync(join(a.outside, 'planning'))).toEqual(['tasks.md']);
+  });
+
   it('validates without following a linked project.yaml out of the root (BL-134)', async () => {
     write(a.outside, 'yaml.txt', 'SECRET-LINE: [\n');
     rmSync(join(a.root, '.specs/project/project.yaml'));

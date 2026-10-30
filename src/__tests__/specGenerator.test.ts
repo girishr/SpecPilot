@@ -3,7 +3,7 @@ import { writeNew } from '../utils/ideConfigGenerator';
 import { refineCommand } from '../commands/refine';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
-import { existsSync, lstatSync, readFileSync, rmSync, mkdirSync, symlinkSync, writeFileSync } from 'fs';
+import { existsSync, lstatSync, readdirSync, readFileSync, rmSync, mkdirSync, symlinkSync, writeFileSync } from 'fs';
 import inquirer from 'inquirer';
 
 describe('SpecGenerator', () => {
@@ -261,6 +261,76 @@ describe('SpecGenerator', () => {
     expect(existsSync(target)).toBe(false);
     expect(lstatSync(join(testDir, '.vscode', 'settings.json')).isSymbolicLink()).toBe(true);
     expect(kept).toEqual(['.vscode/settings.json']);
+  });
+
+  // BL-077: a folder on the way that is a symbolic link or not a folder is refused before any write
+
+  describe('a linked or non-folder level on the way (BL-077, REQ-002.E.17)', () => {
+    let project: string;
+    let outside: string;
+    beforeEach(() => {
+      project = join(testDir, 'project');
+      outside = join(testDir, 'outside');
+      mkdirSync(project, { recursive: true });
+      mkdirSync(outside);
+    });
+
+    test('.claude linked outside → refused, nothing written there, no .specs/', async () => {
+      symlinkSync(outside, join(project, '.claude'));
+      await expect(specGenerator.generateSpecs({ ...baseOptions, targetDir: project, ide: 'claude-code' }))
+        .rejects.toThrow('.claude is a symbolic link, so nothing was written.');
+      expect(readdirSync(outside)).toEqual([]);
+      expect(existsSync(join(project, '.specs'))).toBe(false);
+    });
+
+    test('.vscode a regular file → refused as not a folder, nothing written', async () => {
+      writeFileSync(join(project, '.vscode'), 'x');
+      await expect(specGenerator.generateSpecs({ ...baseOptions, targetDir: project }))
+        .rejects.toThrow('.vscode is not a folder, so nothing was written.');
+      expect(readdirSync(project)).toEqual(['.vscode']);
+    });
+
+    test('a linked .specs → refused with the .specs prefix', async () => {
+      symlinkSync(outside, join(project, '.specs'));
+      await expect(specGenerator.generateSpecs({ ...baseOptions, targetDir: project }))
+        .rejects.toThrow('.specs is a symbolic link, so nothing was written.');
+      expect(readdirSync(outside)).toEqual([]);
+    });
+
+    test('.claude real, .claude/commands linked → refused with the full prefix', async () => {
+      mkdirSync(join(project, '.claude'));
+      symlinkSync(outside, join(project, '.claude', 'commands'));
+      await expect(specGenerator.generateSpecs({ ...baseOptions, targetDir: project, ide: 'claude-code' }))
+        .rejects.toThrow('.claude/commands is a symbolic link, so nothing was written.');
+      expect(readdirSync(outside)).toEqual([]);
+      expect(existsSync(join(project, '.specs'))).toBe(false);
+    });
+
+    test('a missing .claude → created and written as before', async () => {
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: project, ide: 'claude-code' });
+      expect(existsSync(join(project, '.claude', 'commands', 'specpilot-status.md'))).toBe(true);
+    });
+
+    test('refine --update with a linked .vscode → description edit kept, no regeneration, exit 1', async () => {
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: project });
+      const onboarding = join(project, '.specs', 'development', 'onboarding.md');
+      writeFileSync(onboarding, 'mine\n');
+      rmSync(join(project, '.vscode'), { recursive: true });
+      symlinkSync(outside, join(project, '.vscode'));
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+      jest.spyOn(process, 'exit').mockImplementation(code => {
+        throw new Error(`exit ${code}`);
+      });
+
+      await expect(refineCommand('A brand new description', { dir: project, specsName: '.specs', prompts: false, update: true }))
+        .rejects.toThrow('exit 1');
+
+      expect(readFileSync(join(project, '.specs', 'project', 'requirements.md'), 'utf-8')).toContain('A brand new description');
+      expect(readFileSync(onboarding, 'utf-8')).toBe('mine\n');
+      expect(readdirSync(outside)).toEqual([]);
+      expect(error.mock.calls.map(c => stripVTControlCharacters(String(c[0])))).toContain('❌ Failed to refine specifications: .vscode is a symbolic link, so nothing was written.');
+    });
   });
 
   test('existing .gitattributes → missing merge=union lines appended and counted, not kept', async () => {

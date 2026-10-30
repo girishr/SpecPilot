@@ -4,7 +4,7 @@ import { dirname, join, sep } from 'path';
 import os from 'os';
 import { ProjectDetector, ProjectInfo } from './projectDetector';
 import { CodeAnalyzer } from './codeAnalyzer';
-import { SpecGenerator, SpecGeneratorOptions } from './specGenerator';
+import { folderError, SpecGenerator, SpecGeneratorOptions } from './specGenerator';
 import { getFrameworksForLanguage } from './frameworks';
 import { CODEX_PROMPTS_NOTICE } from './slashCommandGenerator';
 import {
@@ -329,18 +329,8 @@ async function placeGenerated(root: string, options: SpecGeneratorOptions): Prom
 
     // Every existing folder on the way must be a real folder: no write may follow a link out of the project.
     for (const rel of files) {
-      const parts = rel.split('/');
-      for (let i = 1; i < parts.length; i++) {
-        const dir = join(root, ...parts.slice(0, i));
-        let st;
-        try {
-          st = lstatSync(dir);
-        } catch {
-          break; // this and every deeper folder will be created
-        }
-        if (st.isSymbolicLink()) return { status: 409, error: `${parts.slice(0, i).join('/')} is a symbolic link, so nothing was written.`, specsExists: false };
-        if (!st.isDirectory()) return { status: 409, error: `${parts.slice(0, i).join('/')} is not a folder, so nothing was written.`, specsExists: false };
-      }
+      const error = folderError(root, rel);
+      if (error) return { status: 409, error, specsExists: false };
     }
 
     const kept: string[] = [];

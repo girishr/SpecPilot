@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'fs';
 import { execFileSync } from 'child_process';
 import { join } from 'path';
+import { createHash } from 'crypto';
 import * as os from 'os';
 import {
   ARCHIVE_SPLIT_ERROR,
@@ -1168,4 +1169,63 @@ describe('setTaskFields: the write on disk (BL-125)', () => {
     expect(out).toMatchObject({ status: 200, id: 'BL-010' });
     expect(line(readFileSync(file, 'utf-8'), 'BL-010')).toBe('| BL-010 |  | P2 | Disk |');
   });
+});
+
+// BL-135 (REQ-002.H.10; audit run-1 item 5, SEC-002.13 (b)): no task write goes through a linked folder.
+(process.platform === 'win32' ? describe.skip : describe)('task writes and the folders on the way (BL-135)', () => {
+  const TASKS = '# Tasks\n\n## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | One |\n| BL-002 | Two |\n\n## Current Sprint\n\n| ID | Description |\n|---|---|\n| CS-001 | Sprint |\n\n## Review\n\n| ID | Description |\n|---|---|\n| CS-002 | Done |\n\n## Completed\n\n| # | ID | Description |\n|---|---|---|\n';
+  const ARCHIVE = '# Archive\n';
+  const hash = (text: string) => createHash('sha256').update(text).digest('hex');
+  let base: string;
+  let root: string;
+  let outside: string;
+  beforeEach(() => {
+    base = mkdtempSync(join(os.tmpdir(), 'specpilot-task-folders-'));
+    root = join(base, 'root');
+    outside = join(base, 'outside');
+    mkdirSync(join(outside, 'planning'), { recursive: true });
+    writeFileSync(join(outside, 'planning', 'tasks.md'), TASKS);
+    writeFileSync(join(outside, 'planning', 'tasks-archive.md'), ARCHIVE);
+    mkdirSync(root);
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+  const writes = () => [
+    moveTask(root, { id: 'BL-002', toSection: 'backlog', toIndex: 0 }, hash(TASKS)),
+    newTask(root, { description: 'New', section: 'backlog' }, hash(TASKS)),
+    reviewTask(root, { id: 'CS-002', action: 'approve' } as ReviewRequest, hash(TASKS)),
+    setTaskFields(root, { id: 'BL-001', type: 'bug' }, hash(TASKS)),
+    archiveCompleted(root, hash(TASKS), true),
+  ];
+  const untouched = () => {
+    expect(readFileSync(join(outside, 'planning', 'tasks.md'), 'utf-8')).toBe(TASKS);
+    expect(readFileSync(join(outside, 'planning', 'tasks-archive.md'), 'utf-8')).toBe(ARCHIVE);
+    expect(readdirSync(join(outside, 'planning')).sort()).toEqual(['tasks-archive.md', 'tasks.md']);
+  };
+
+  test.each([
+    ['.specs', () => symlinkSync(outside, join(root, '.specs'))],
+    ['.specs/planning', () => { mkdirSync(join(root, '.specs')); symlinkSync(join(outside, 'planning'), join(root, '.specs', 'planning')); }],
+  ])('a linked %s: every write is refused and nothing outside changes', (level, make) => {
+    make();
+    for (const out of writes()) expect(out).toEqual({ status: 422, error: `${level} is a symbolic link, so nothing was written.` });
+    expect(suggestedIds(root, TASKS)).toBeNull();
+    untouched();
+  });
+
+  test('.specs/planning as a regular file is refused as not a folder', () => {
+    mkdirSync(join(root, '.specs'));
+    writeFileSync(join(root, '.specs', 'planning'), 'x');
+    expect(writes()[0]).toEqual({ status: 422, error: '.specs/planning is not a folder, so nothing was written.' });
+  });
+
+  test('tasks.md as a folder or a FIFO is refused before it is read', () => {
+    mkdirSync(join(root, '.specs', 'planning', 'tasks.md'), { recursive: true });
+    const notFile = { status: 422, error: 'planning/tasks.md is not a regular file, and SpecPilot will not replace it with one.' };
+    expect(writes()[0]).toEqual(notFile);
+    rmSync(join(root, '.specs', 'planning', 'tasks.md'), { recursive: true });
+    execFileSync('mkfifo', [join(root, '.specs', 'planning', 'tasks.md')]);
+    const started = Date.now();
+    expect(writes()[0]).toEqual(notFile);
+    expect(Date.now() - started).toBeLessThan(2000);
+  }, 5000);
 });

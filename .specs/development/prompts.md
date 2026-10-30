@@ -29,6 +29,11 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-30: the developer: `Start BL-135`. Branch `fix/bl-135-task-write-folders` from `main` (`cf4488c`); Spec Report written (REQ-002.H task moves, context.md), to spec-reviewer before code
+- 2026-10-30: BL-135 spec-reviewer FIX on the report (architecture.md and SEC-004.10 on the build list, two more tests, the MCP case's wording): applied
+- 2026-10-30: BL-135 spec-reviewer PASS on the fixed report; built: 5 tests first, Jest 1862/1862, validate with no warning. Nothing committed
+- 2026-10-30: BL-135 spec-reviewer PASS on the build; BL-135 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-135: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
 - 2026-10-30: the developer: `Start BL-134`. Branch `fix/bl-134-validator-read-guard` from `main` (`fc3fb09`); Spec Report written (REQ-002.A, context.md), to spec-reviewer before code
 - 2026-10-30: BL-134 spec-reviewer FIX on the report (the CLI change for a linked `.specs`, the folder-case text, read sites by line, the YAML fallback, threat-model rows, more tests, prompts.md order): applied; the 2026-10-29 push line moved below the 2026-10-30 BL-077 line it preceded (out of date order since the BL-077 merge); the line limit put to the developer
 - 2026-10-30: BL-134 spec-reviewer ESCALATE on the prompts.md line-limit warning (over on `main` before the branch); architect DECIDE: archive at merge, as for BL-PM-014 and BL-077, recorded in context.md

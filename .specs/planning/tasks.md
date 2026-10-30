@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-130 to Completed)
-version: 7.56
+lastUpdated: 2026-10-30 (BL-131 to Review, approved)
+version: 7.58
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -55,7 +55,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-131 | bug | P1 | Bug, P1. `claudeCodeSkill()` writes `Project: ${projectName}` and `{{projectName}}` without `skillValue()`'s control-character filter, so a `package.json` name with line breaks adds lines to `SKILL.md` (global with BL-077's case); apply the filter, and make the `fm` helper quote a value holding a control character, `: `, ` #` or a leading YAML indicator. Attribution: SEC-002.12 (c), SEC-004.25; audit item 2. |
 | BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. |
 | BL-133 | bug | P3 | Bug, P3. Repo text reaches the terminal with escape sequences intact (`validate`, `archive`, `refine`, `add-specs`, `migrate`): one control-character filter in `Logger` and the direct `console.log` sinks (reuse `mcpLocal.ts`'s `UNSHOWN`). Attribution: SEC-002.12 (e); audit item 14, `specpilot/cli-output/repo-text-printed-without-control-char-filter`. |
 | BL-134 | bug | P1 | Bug, P1. `specpilot_validate_specs` (listed with `--read-only` too) and the post-setup validation read through `SpecValidator`'s `existsSync`/`readFileSync`, not `resolveAllowedPath()`: a linked `project.yaml` returns lines of an outside file in js-yaml's error text, and a link to `/dev/zero` blocks the server. Read through the path guard and report YAML errors by `reason`, line and column only. Attribution: SEC-002.13 (a), SEC-002.9 (f); audit item 4, `specpilot/specValidator/reads-follow-symlinks-outside-served-root`. |
@@ -84,6 +83,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-131 | bug | P1 | Bug, P1. `claudeCodeSkill()` writes `Project: ${projectName}` and `{{projectName}}` without `skillValue()`'s control-character filter, so a `package.json` name with line breaks adds lines to `SKILL.md` (global with BL-077's case); apply the filter, and make the `fm` helper quote a value holding a control character, `: `, ` #` or a leading YAML indicator. Attribution: SEC-002.12 (c), SEC-004.25; audit item 2. Approved 2026-10-30 |
 
 ## Won't do
 

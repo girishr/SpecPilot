@@ -3,10 +3,10 @@ title: Requirements
 project: SpecPilot SDD CLI
 language: typescript
 framework: node
-lastUpdated: 2026-10-30 (BL-133 Spec Report)
+lastUpdated: 2026-10-30 (BL-134 Spec Report)
 sourceOfTruth: project/project.yaml
 fileID: REQ-001
-version: 1.95
+version: 1.96
 contributors: [girishr]
 relatedFiles:
   [architecture/architecture.md, architecture/api.yaml, planning/tasks.md]
@@ -20,7 +20,7 @@ relatedFiles:
 
 - `specpilot init <name>` — initialize new project with `.specs/` structure [REQ-002.A.1]
 - `specpilot add-specs` — add `.specs/` to an existing project with codebase analysis [REQ-002.A.2]
-- `specpilot validate [--fix] [--verbose]` — validate spec files, cross-references, and front-matter; auto-fix common issues. A `project.yaml` with no top-level `rules:` key (what `init` and `add-specs` write since 2.0.0, which points to the AI agent file instead) gets neither the "should have a rules section" warning nor the prompt-tracking mandate error, so on that check a fresh project passes; with a `rules:` key both checks apply as before. "Has a `rules:` key" means one rule in both commands: `project.yaml` parsed with js-yaml has a `rules` key on its root mapping, whatever its value (`rules:` with a null or empty value counts as present); a commented `# rules:` or a nested `rules:` does not; a `project.yaml` that does not parse keeps its existing parse error (BL-066) [REQ-002.A.3]
+- `specpilot validate [--fix] [--verbose]` — validate spec files, cross-references, and front-matter; auto-fix common issues. A `project.yaml` with no top-level `rules:` key (what `init` and `add-specs` write since 2.0.0, which points to the AI agent file instead) gets neither the "should have a rules section" warning nor the prompt-tracking mandate error, so on that check a fresh project passes; with a `rules:` key both checks apply as before. "Has a `rules:` key" means one rule in both commands: `project.yaml` parsed with js-yaml has a `rules` key on its root mapping, whatever its value (`rules:` with a null or empty value counts as present); a commented `# rules:` or a nested `rules:` does not; a `project.yaml` that does not parse keeps its existing parse error (BL-066); every spec file it reads goes through the server's read guard, `resolveAllowedPath(projectRoot, '<specs>/<file>', [that path])`, so a file that is a symbolic link, sits under a linked folder or is not a regular file (a FIFO, a device) is not read: each such required file is an error `<file> is a symbolic link, sits under a linked folder or is not a regular file, so it was not read.`, the result is not valid, no `create-<file>` fix is offered, and every check that would read it skips it (a non-required file such as `planning/roadmap.md` is skipped silently); a `.specs` (or any folder above a spec file) that is a symbolic link is therefore no longer followed: `specpilot validate` reports each required file as not read and fails, as `--fix` already refused to write there (BL-130); in `specpilot validate`, `specpilot_validate_specs` and the validation after guided setup alike (BL-134; security audit run-1, SEC-002.13 (a)); a YAML syntax error in `project.yaml` is reported as `Failed to parse project.yaml: <reason> (line <n>, column <n>)`, js-yaml's reason and position without the quoted lines of the file (`Failed to parse project.yaml: <reason>` when js-yaml gives no position, `Failed to parse project.yaml.` for any other error, never its message); the reason can name one tag or alias from the file (`unknown tag !<x>`) [REQ-002.A.3]
 - `specpilot list [--verbose]` — list available built-in templates [REQ-002.A.4]
 - `specpilot migrate` — legacy structure-conversion command for old `.project-spec` or deprecated layouts; not a general existing-project update mechanism [REQ-002.A.5]
 - `specpilot refine <description>` — refine spec files with new requirements; show line-level diff and prompt for confirmation before writing [REQ-002.A.6]

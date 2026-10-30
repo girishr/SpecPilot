@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-133 to Completed)
-version: 7.65
+lastUpdated: 2026-10-30 (BL-134 to Review, approved)
+version: 7.67
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -56,7 +56,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-134 | bug | P1 | Bug, P1. `specpilot_validate_specs` (listed with `--read-only` too) and the post-setup validation read through `SpecValidator`'s `existsSync`/`readFileSync`, not `resolveAllowedPath()`: a linked `project.yaml` returns lines of an outside file in js-yaml's error text, and a link to `/dev/zero` blocks the server. Read through the path guard and report YAML errors by `reason`, line and column only. Attribution: SEC-002.13 (a), SEC-002.9 (f); audit item 4, `specpilot/specValidator/reads-follow-symlinks-outside-served-root`. |
 | BL-135 | bug | P2 | Bug, P2. Task writes (`loadTasks`, `readArchive`, `archiveCompleted`; page routes and MCP task tools) `lstat` only the final file, so a linked `.specs` or `.specs/planning` sends the write outside the served root: `lstat` every folder level (or the `resolveAllowedPath()` realpath comparison) and `isFile()` before reading. Attribution: SEC-002.13 (b), SEC-002.5 (h); audit item 5, `specpilot/taskMover/task-write-follows-symlinked-specs-folder`. |
 | BL-136 | bug | P2 | Bug, P2. `CodeAnalyzer` (`findTodos`, `findTestFiles`, `buildDirectoryTree`) and `ProjectDetector` follow links with no bound: a hostile repo can list outside file names into `architecture.md`, walk without end or read `/dev/zero` under the write lock. `lstat` walk skipping links, a visited set, depth and count caps, and `readSmall()` for every manifest. Reopens the accepted residual of SEC-002.5 (j) and SEC-004.24's `package.json` read. Attribution: SEC-002.13 (c); audit items 9, 10. Feature: Spec Report first. |
 | BL-137 | bug | P3 | Bug, P3. `project.yaml` is parsed with js-yaml's default schema (merge keys) and no byte cap on every `GET /api/specs`, open, clone, MCP list call and startup: load with `CORE_SCHEMA` (or `JSON_SCHEMA`) and a byte cap in `specServer.ts`, `slashCommandGenerator.ts` and the validator. Attribution: SEC-002.13 (d); audit item 11, `specpilot/specServer/untrusted-project-yaml-merge-key-amplification`. |
@@ -82,6 +81,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-134 | bug | P1 | Bug, P1. `specpilot_validate_specs` (listed with `--read-only` too) and the post-setup validation read through `SpecValidator`'s `existsSync`/`readFileSync`, not `resolveAllowedPath()`: a linked `project.yaml` returns lines of an outside file in js-yaml's error text, and a link to `/dev/zero` blocks the server. Read through the path guard and report YAML errors by `reason`, line and column only. Attribution: SEC-002.13 (a), SEC-002.9 (f); audit item 4, `specpilot/specValidator/reads-follow-symlinks-outside-served-root`. Approved 2026-10-30 |
 
 ## Won't do
 

@@ -4031,6 +4031,16 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(snapshot(a.root)).toEqual(before);
   });
 
+  it('validates without following a linked project.yaml out of the root (BL-134)', async () => {
+    write(a.outside, 'yaml.txt', 'SECRET-LINE: [\n');
+    rmSync(join(a.root, '.specs/project/project.yaml'));
+    symlinkSync(join(a.outside, 'yaml.txt'), join(a.root, '.specs/project/project.yaml'));
+    await start();
+    const r = (await tool('specpilot_validate_specs')).structuredContent;
+    expect(r.errors).toContain('project/project.yaml is a symbolic link, sits under a linked folder or is not a regular file, so it was not read.');
+    expect(JSON.stringify(r)).not.toContain('SECRET-LINE');
+  });
+
   it('regenerates commands as the page route does', async () => {
     await start();
     const r = (await tool('specpilot_regenerate_commands', { project: 0 })).structuredContent;

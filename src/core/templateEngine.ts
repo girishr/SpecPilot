@@ -89,19 +89,34 @@ const YAML_WORDS = /^(true|false|null|~|yes|no|on|off)$/i;
 const YAML_NUMBER = /^([-+]?(\.[0-9]+|[0-9][0-9_]*(\.[0-9_]*)?)([eE][-+]?[0-9]+)?|[-+]?0[box][0-9a-fA-F_]+|[-+]?\.(inf|Inf|INF)|\.(nan|NaN|NAN))$/;
 const YAML_TIMESTAMP = /^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt]|[ \t]+)?([0-9]{1,2}:[0-9]{2}:[0-9]{2}(\.[0-9]*)?([ \t]*(Z|[-+][0-9]{1,2}(:[0-9]{2})?))?)?$/;
 
+/** `\` and `"` left alone; tab and line breaks as `\t`, `\r`, `\n`; every other C0 or DEL as `\xNN` (BL-131): a double-quoted YAML escape. */
+const escapeControls = (s: string) =>
+  // eslint-disable-next-line no-control-regex
+  s.replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/[\x00-\x1f\x7f]/g, c => '\\x' + c.charCodeAt(0).toString(16).padStart(2, '0'));
+
 /** `value` as a YAML scalar: plain when YAML reads it back unchanged, else double-quoted and escaped. */
 export function yamlScalar(value: string): string {
   const plain =
     value !== '' &&
     !/^[\s\-?:,[\]{}#&*!|>'"%@`]/.test(value) &&
-    !/[\n\r\t]/.test(value) &&
+    // eslint-disable-next-line no-control-regex
+    !/[\x00-\x1f\x7f]/.test(value) &&
     !/: | #/.test(value) &&
     !/[:\s]$/.test(value) &&
     !YAML_WORDS.test(value) &&
     !YAML_NUMBER.test(value) &&
     !YAML_TIMESTAMP.test(value);
   if (plain) return value;
-  return '"' + value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n') + '"';
+  return '"' + escapeControls(value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')) + '"';
+}
+
+/**
+ * A front-matter value (the `fm` helper, and `onboarding.md`'s `project:`): as given unless it holds one of the seven
+ * characters HTML escaping covered or would not read back as typed (BL-131), then through `yamlScalar()`.
+ */
+export function fmValue(s: string): string {
+  // eslint-disable-next-line no-control-regex
+  return /[&<>"'`=\x00-\x1f\x7f]|: | #|[:\s]$|^[\s\-?:,[\]{}#&*!|>'"%@`]/.test(s) ? yamlScalar(s) : s;
 }
 
 export class TemplateEngine {
@@ -126,6 +141,8 @@ export class TemplateEngine {
     // BL-032 phase 2: `any` for a section that several optional fields share; `yaml`/`yamlList` for YAML values (REQ-002.I.5).
     Handlebars.registerHelper('any', (...args: unknown[]) => args.slice(0, -1).some(present));
     Handlebars.registerHelper('eq', (a: unknown, b: unknown) => a === b);
+    // A YAML value built from text and a free value, so `yaml` can quote the whole of it (BL-131).
+    Handlebars.registerHelper('concat', (...args: unknown[]) => args.slice(0, -1).map(a => String(a ?? '')).join(''));
     Handlebars.registerHelper('yaml', (value: unknown) => new Handlebars.SafeString(yamlScalar(String(value ?? ''))));
     Handlebars.registerHelper('yamlList', (items: unknown) =>
       new Handlebars.SafeString(Array.isArray(items) ? items.map(item => `  - ${yamlScalar(String(item))}`).join('\n') : '  []')
@@ -133,12 +150,11 @@ export class TemplateEngine {
     // Without HTML escaping (BL-PM-004b) a free value reaches YAML as typed: a handle typed at the terminal, a
     // project name detected from package.json, --lang or --framework. `dq` keeps one inside the template's double
     // quotes (`\\` and `"` escaped); `fm` quotes a front-matter value through `yamlScalar` only when it holds one of
-    // the seven characters HTML escaping used to cover, so every value it never touched keeps its bytes.
-    Handlebars.registerHelper('dq', (value: unknown) => String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"'));
-    Handlebars.registerHelper('fm', (value: unknown) => {
-      const s = String(value ?? '');
-      return /[&<>"'`=]/.test(s) ? yamlScalar(s) : s;
-    });
+    // the seven characters HTML escaping used to cover, so every value it never touched keeps its bytes; since BL-131 also
+    // one that would not read back as typed (a control character, `: `, ` #`, a leading indicator or space, a trailing `:`
+    // or space), and `dq` escapes control characters, so a detected name with a line break stays one value.
+    Handlebars.registerHelper('dq', (value: unknown) => escapeControls(String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')));
+    Handlebars.registerHelper('fm', (value: unknown) => fmValue(String(value ?? '')));
   }
   
   renderFromString(templateString: string, context: TemplateContext): string {

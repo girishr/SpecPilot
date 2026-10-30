@@ -1,4 +1,4 @@
-import { TemplateEngine, TemplateContext } from './templateEngine';
+import { fmValue, TemplateEngine, TemplateContext } from './templateEngine';
 
 // The `.specs/` files: their names, write order and content (BL-032, phase 1: moved from
 // src/utils/specFileGenerator.ts as functions that return content; the writer is SpecGenerator).
@@ -199,7 +199,7 @@ function apiYaml(engine: TemplateEngine, context: TemplateContext): string {
     if (paradigm === 'none') return '';
 
     const header = `# .specs/architecture/api.yaml
-# meta: project={{projectName}} language={{language}} framework={{framework}} updated={{currentDate}}
+# meta: project={{dq projectName}} language={{dq language}} framework={{dq framework}} updated={{currentDate}}
 
 project: "{{dq projectName}}"
 version: "1.0.0"
@@ -379,7 +379,7 @@ sourceOfTruth: project/project.yaml
 function promptsMd(engine: TemplateEngine, context: TemplateContext): string {
     const content = `---
 title: Prompts Log
-description: AI interaction log for {{projectName}}
+description: {{yaml (concat 'AI interaction log for ' projectName)}}
 project: {{fm projectName}}
 language: {{fm language}}
 framework: {{fm framework}}
@@ -553,7 +553,7 @@ Begin your analysis now.`;
     const content = `---
 title: Onboarding Prompt (${label})
 description: One-time AI prompt to bootstrap .specs/ files — delete after use
-project: ${context.projectName}
+project: ${fmValue(context.projectName)}
 lastUpdated: ${context.lastUpdated}
 ---
 

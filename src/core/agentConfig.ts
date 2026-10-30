@@ -134,11 +134,16 @@ export function skillValue(value: unknown): string | undefined {
   return value;
 }
 
+/** The name and language on one line each (BL-131): every run of control characters becomes one space. */
+// eslint-disable-next-line no-control-regex
+const oneLine = (value: string) => value.replace(/[\x00-\x1f\x7f]+/g, ' ');
+
 const PROJECT_BLOCK = 'Project: {{projectName}}\nLanguage: {{language}}\n{{#if framework}}\nFramework: {{framework}}\n{{/if}}\n';
 
 /** The skill from the project context (BL-PM-012): one line per present value, written as typed, no `.replace` patterns. */
 function claudeCodeSkill(context: TemplateContext): string {
-  const lines = [`Project: ${context.projectName}`, `Language: ${context.language}`];
+  const projectName = oneLine(context.projectName);
+  const lines = [`Project: ${projectName}`, `Language: ${oneLine(context.language)}`];
   const add = (label: string, value: unknown) => {
     const v = skillValue(value);
     if (v) lines.push(`${label}: ${v}`);
@@ -153,7 +158,7 @@ function claudeCodeSkill(context: TemplateContext): string {
   if (!SKILL_V2.includes(PROJECT_BLOCK)) throw new Error('the skill template lost its project block');
   // The template's own placeholders are filled around the value lines, so a value is never rewritten.
   const [head, tail] = SKILL_V2.split(PROJECT_BLOCK);
-  const fill = (text: string) => text.split('{{projectName}}').join(context.projectName);
+  const fill = (text: string) => text.split('{{projectName}}').join(projectName);
   return fill(head) + lines.join('\n') + '\n' + fill(tail);
 }
 

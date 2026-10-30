@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-130 to Completed)
-version: 7.56
+lastUpdated: 2026-10-30 (BL-131 to Completed)
+version: 7.59
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -55,7 +55,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-131 | bug | P1 | Bug, P1. `claudeCodeSkill()` writes `Project: ${projectName}` and `{{projectName}}` without `skillValue()`'s control-character filter, so a `package.json` name with line breaks adds lines to `SKILL.md` (global with BL-077's case); apply the filter, and make the `fm` helper quote a value holding a control character, `: `, ` #` or a leading YAML indicator. Attribution: SEC-002.12 (c), SEC-004.25; audit item 2. |
 | BL-132 | bug | P2 | Bug, P2, Windows only. `serve --open` spawns the bare name `cmd` with no working directory and `archive` runs `git rev-parse` through `cmd.exe` in the project folder, so a repo's `cmd.exe` or `git.bat` may run: spawn `%SystemRoot%\System32\cmd.exe` (or set the home root as working directory, as `folderPicker.ts` does) and read the branch from `.git/HEAD` as `readBranch()` does. Attribution: SEC-002.12 (d), SEC-002.5 residual (n); audit item 3, `specpilot/commands/win-bare-exe-resolved-from-untrusted-cwd`. |
 | BL-133 | bug | P3 | Bug, P3. Repo text reaches the terminal with escape sequences intact (`validate`, `archive`, `refine`, `add-specs`, `migrate`): one control-character filter in `Logger` and the direct `console.log` sinks (reuse `mcpLocal.ts`'s `UNSHOWN`). Attribution: SEC-002.12 (e); audit item 14, `specpilot/cli-output/repo-text-printed-without-control-char-filter`. |
 | BL-134 | bug | P1 | Bug, P1. `specpilot_validate_specs` (listed with `--read-only` too) and the post-setup validation read through `SpecValidator`'s `existsSync`/`readFileSync`, not `resolveAllowedPath()`: a linked `project.yaml` returns lines of an outside file in js-yaml's error text, and a link to `/dev/zero` blocks the server. Read through the path guard and report YAML errors by `reason`, line and column only. Attribution: SEC-002.13 (a), SEC-002.9 (f); audit item 4, `specpilot/specValidator/reads-follow-symlinks-outside-served-root`. |
@@ -137,3 +136,4 @@ Notes
 | 244 | [CD-girishr-153] [BL-126] | This repo's tasks.md Backlog, Current Sprint and Review tables in the typed shape (columns ID, Type, Priority, Description, BL-125) with empty Type and Priority cells; every ID and Description unchanged, checked byte for byte against the old file and parsed by `readSpecs()` with no malformed rows. Approved 2026-10-29. Feature commit `629a0bd`. |
 | 245 | [CD-girishr-154] [BL-077] | `init`, `add-specs` and `refine --update` refuse a linked or non-folder level on the way before any write (security audit run-1, SEC-002.12 (b)): guided setup's folder walk moved out of `placeGenerated()` into `folderError()` in `specGenerator.ts`; `generateSpecs()` runs it over every file first and throws `<folder> is a symbolic link, so nothing was written.` (or `is not a folder`), exit 1; guided setup calls it for its unchanged 409. REQ-002.E.17. Jest 1785 → 1793, no `ui/` change. Approved 2026-10-30. Feature commit `153f182`. |
 | 246 | [CD-girishr-155] [BL-130] | One no-follow writer for every CLI write in the project (security audit run-1, SEC-002.12 (a)): `writeInside()` in `specPaths.ts` refuses a link at any level or at the file (also one inside the project), creates with `wx`, replaces by temp file and `rename`; `archive`, `refine`, `refine --update`, `init`, `add-specs`, `validate --fix`, `backfill` and the `.gitattributes` merge go through it; `migrate` is BL-147. REQ-002.E.18. Jest 1793 → 1824, no `ui/` change. Approved 2026-10-30. Feature commit `47cbc1b`. |
+| 247 | [CD-girishr-156] [BL-131] | A project name with control characters stays one value (security audit run-1, SEC-002.12 (c)): the skill's name and language one line each (each control run one space); `fmValue()` (the `fm` helper and `onboarding.md`'s `project:`) quotes a control character, `: `, ` #`, a leading indicator or space, a trailing `:` or space; `yamlScalar()` and `dq` escape C0/DEL; `api.yaml`'s meta comment and `prompts.md`'s description no longer raw. REQ-002.H.40, REQ-002.I.5. Jest 1824 → 1828, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `a90d481`. |

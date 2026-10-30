@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-30: the developer: `Start BL-131`. Branch `fix/bl-131-skill-project-name` from `main` (`a30381e`); Spec Report written (REQ-002.H.40, REQ-002.I.5, context.md), to spec-reviewer before code
+- 2026-10-30: BL-131 spec-reviewer FIX on the report (periods, `fm` trailing `:`/space, security-decisions, more tests), fixed, PASS; `dq` added after the PASS and re-checked, PASS. Built: 4 tests first (all failed on `main`), Jest 1828/1828, golden unchanged. Nothing committed
+- 2026-10-30: BL-131 spec-reviewer FIX on the build (`onboarding.md` front matter raw, the test's skip, a doc-comment order), fixed, PASS; BL-131 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-131: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
 - 2026-10-30: the developer: fix the security audit's bugs in the required order, starting now. BL-130 first (top of Current Sprint): branch `fix/bl-130-no-follow-writer` from `main`; Spec Report written (REQ-002.E.18, the architecture note, context.md), to spec-reviewer before code
 - 2026-10-30: BL-130 spec-reviewer ESCALATE (class, in-project links, `migrate`); architect DECIDE: Feature with the helpers in `specPaths.ts`, every link refused, `migrate` filed as BL-147; applied to the specs
 - 2026-10-30: BL-130 built on `fix/bl-130-no-follow-writer`: the no-follow writer in `specPaths.ts`, every caller the row names routed through it; 31 tests written first (22 failed on `main`); build and lint clean, Jest 1824/1824; scratch-repo manual check refused the linked archive file. Nothing committed

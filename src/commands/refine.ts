@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { writeError, writeInside } from '../utils/specPaths';
-import { Logger } from '../utils/logger';
+import { Logger, terminalText } from '../utils/logger';
 
 export interface RefineOptions {
   dir: string;
@@ -110,7 +110,7 @@ export async function refineCommand(description: string | undefined, options: Re
 
     // ── Show diff preview ────────────────────────────────────────
     console.log('');
-    logger.info(chalk.blue.bold('📋 Proposed changes:'));
+    logger.info('📋 Proposed changes:');
     console.log('');
 
     for (const change of pendingChanges) {
@@ -336,13 +336,13 @@ function printSimpleDiff(before: string, after: string): void {
 
     if (ol === nl) {
       // Context line — unchanged
-      console.log(chalk.gray(`  ${ol ?? ''}`));
+      console.log(chalk.gray(`  ${terminalText(ol ?? '')}`));
     } else {
       if (ol !== undefined) {
-        console.log(chalk.red(`- ${ol}`));
+        console.log(chalk.red(`- ${terminalText(ol)}`));
       }
       if (nl !== undefined) {
-        console.log(chalk.green(`+ ${nl}`));
+        console.log(chalk.green(`+ ${terminalText(nl)}`));
       }
     }
   }

@@ -46,9 +46,9 @@ function headerMismatch(header: string, sent: string[], body: unknown, decode = 
   return undefined;
 }
 
-/** Controls, line and paragraph separators and bidi format characters: never shown from a client's name (SEC-004.26). */
+/** Controls, line and paragraph separators and bidi format characters: never shown from a client's name (SEC-004.26), nor from a repository's text in the terminal (BL-133, `terminalText()`). */
 // eslint-disable-next-line no-control-regex
-const UNSHOWN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+export const UNSHOWN = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 
 /**
  * The client a message names, for the Setup view's Connected status (BL-103): `clientInfo.name` of an

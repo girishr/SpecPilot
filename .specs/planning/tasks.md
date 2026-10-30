@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-137 to Review, approved)
-version: 7.76
+lastUpdated: 2026-10-30 (BL-137 to Completed)
+version: 7.77
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -79,7 +79,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-137 | bug | P3 | Bug, P3. `project.yaml` is parsed with js-yaml's default schema (merge keys) and no byte cap on every `GET /api/specs`, open, clone, MCP list call and startup: load with `CORE_SCHEMA` (or `JSON_SCHEMA`) and a byte cap in `specServer.ts`, `slashCommandGenerator.ts` and the validator. Attribution: SEC-002.13 (d); audit item 11, `specpilot/specServer/untrusted-project-yaml-merge-key-amplification`. Approved 2026-10-30 |
 
 ## Won't do
 
@@ -139,3 +138,4 @@ Notes
 | 250 | [CD-girishr-159] [BL-134] | Every spec file the validator reads goes through the read guard (security audit run-1, SEC-002.13 (a)): `specPath()`/`readSpec()` in `specValidator.ts` on `resolveAllowedPath()`, so `validate`, `specpilot_validate_specs` and the post-setup validation report a link, a file under a linked folder or a non-file as not read; YAML errors give reason and position only; a linked `.specs` is no longer followed. REQ-002.A.3. Jest 1848 → 1857, no `ui/` change. Approved 2026-10-30. Feature commit `c5ef06c`. |
 | 251 | [CD-girishr-160] [BL-135] | Task writes walk every folder on the way (security audit run-1, SEC-002.13 (b)): `loadTasks()` and `readArchive()` in `taskMover.ts` run `folderError()` first, so a linked or non-folder `.specs` or `.specs/planning` is refused (422, or a tool refusal for MCP) for moves, new tasks, review actions, field edits and the archive, and the ID hint is absent; a non-regular `tasks.md` is refused before it is read. REQ-002.H.10. Jest 1857 → 1862, no `ui/` change. Approved 2026-10-30. Feature commit `5bc17b8`. |
 | 252 | [CD-girishr-161] [BL-136] | The code analysis and project detection follow no link and are bounded (security audit run-1, SEC-002.13 (c)): `CodeAnalyzer`'s walks use `lstat`, visit at most 2000 entries and 20 levels, read files of at most 1 MB and 8 MB per run; every manifest goes through `readSmall()` (64 KB); BL-149 filed for nested test files never counted. REQ-002.D.6. Jest 1862 → 1873, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `5dda804`. |
+| 253 | [CD-girishr-162] [BL-137] | One capped, merge-free loader for repository YAML (security audit run-1, SEC-002.13 (d)): `loadRepoYaml()` in `specReader.ts` (`CORE_SCHEMA`, at most 262,144 UTF-8 bytes) serves the validator, backfill, `init`, `serve`'s project names and the skill context; `validate` counts an aliased `rules` array once. REQ-002.A.3. Jest 1873 → 1886, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `1ad4d4b`. |

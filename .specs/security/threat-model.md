@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-31 (BL-139: SEC-002.14 scope decided)
-version: 1.48
+lastUpdated: 2026-10-31 (BL-142: SEC-002.14 (c) mitigations, status open)
+version: 1.49
 contributors: [girishr]
 relatedFiles:
   [
@@ -195,8 +195,8 @@ Same audit and status as SEC-002.12. SEC-002.5's residual, SEC-002.9, SEC-004.20
 | **Impact**        | High for (a) and (b) where the other user is less trusted: writes and clones as the owner, reads of folders that user cannot read, a steered agent. High for (c): the page token's authority. None on a single-user machine with no other server forwarded to the port. |
 | **Likelihood**    | Low: needs a multi-user host, or for (c) a dev server on the same port earlier (for example forwarded from a container or VM) and browser behaviour the audit could not observe. |
 | **Entry point**   | `GET /` and every token-gated route from another OS user; `127.0.0.1:<port>` while the owner's server is down; the browser's state for the two origins. |
-| **Mitigation**    | (a) and (b): none; out of scope (BL-139, architect decision 2026-10-31): `serve` treats every user and process that can reach its loopback port as the owner, see Out of Scope [SEC-004]; the README's Limits say not to run `serve` on a machine shared with other accounts, and to set a new `SPECPILOT_MCP_TOKEN` if another program has held the port. (c): in scope, none yet; BL-142 (its Spec Report weighs `Clear-Site-Data`, versioned asset paths and a service-worker check, given that a worker already controlling the page sees `GET /` first). |
-| **Residual risk** | (a) and (b) accepted as out of scope (BL-139; audit items 6 and 7, `specpilot/specServer/page-token-served-to-any-local-peer`, `specpilot/serve/mcp-client-trusts-fixed-loopback-port`). (c) open, BL-142 (audit item 8, `specpilot/specServer/fixed-origin-inherits-prior-occupant-worker-and-cache`), needs validation in a browser (BL-145). |
+| **Mitigation**    | (a) and (b): none; out of scope (BL-139, architect decision 2026-10-31): `serve` treats every user and process that can reach its loopback port as the owner, see Out of Scope [SEC-004]; the README's Limits say not to run `serve` on a machine shared with other accounts, and to set a new `SPECPILOT_MCP_TOKEN` if another program has held the port. (c): since BL-142 (REQ-002.H.61, SEC-004.33): `GET /` puts the token only into a top-level load (`Sec-Fetch-Dest` absent or `document`, no `Service-Worker-Navigation-Preload`) and answers anything else with the page without it and `Clear-Site-Data: "storage"`; any request with `Service-Worker: script` gets 404 and the same header, after the Host check and before every other rule; the stylesheet and scripts carry a per-start `?v=` and an `integrity` of the bytes on disk; the page uses no token while a worker controls it, unregisters every registration and reloads once. |
+| **Residual risk** | (a) and (b) accepted as out of scope (BL-139; audit items 6 and 7, `specpilot/specServer/page-token-served-to-any-local-peer`, `specpilot/serve/mcp-client-trusts-fixed-loopback-port`). (c) open until BL-145 (audit item 8, `specpilot/specServer/fixed-origin-inherits-prior-occupant-worker-and-cache`, regression tests in `specServer.test.ts` and `origin.browser.test.ts`): measured in headless Chromium only, Firefox and Safari unverified; a browser without `Sec-Fetch-Dest` (Safari before 16.4) or one that forwards `document` on a worker's pass-through lacks the first rule; a long-cached `/` document left by another program, or a worker that serves its own page and opens SpecPilot's in a same-origin window, can read the token on the visit that removes the worker; a page framed by another tool is read-only and loses its `localStorage` on every load. |
 
 ### Cross-origin pages: framing and event slots (security audit run-1) [SEC-002.15]
 

@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-31 (BL-139: other local principals out of scope)
-version: 1.39
+lastUpdated: 2026-10-31 (BL-142: SEC-004.33)
+version: 1.40
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -387,6 +387,19 @@ This file records security-related architectural and implementation decisions ma
   - A general cell edit route — rejected, as in SEC-004.31.
   - Free-text values (any word) — rejected: the board's chips and the agent rule need a known set, and free text would bring back the cell rules of SEC-004.18 for nothing.
 - **Reference**: SEC-004.10, SEC-004.18, SEC-004.20, SEC-004.31, REQ-002.H.58, ARCH-004.73
+
+### [SEC-004.33] An earlier program's browser state on the origin: the token only into a top-level load, its worker removed
+
+- **Date**: 2026-10-31 (BL-142 Spec Report, Architectural; architect decisions (a) and (b))
+- **Decision**: (1) `GET /` puts the page token and the MCP marker into the page only when `Sec-Fetch-Dest` is absent or `document` and no `Service-Worker-Navigation-Preload` is sent; otherwise the page comes without them and with `Clear-Site-Data: "storage"`. (2) A request carrying `Service-Worker: script` gets 404 and `Clear-Site-Data: "storage"`, checked after the Host check and before every route, method rule, token check and `/mcp`. (3) The stylesheet and the three scripts are referenced with a per-start `?v=` and an `integrity` of the SHA-384 of the bytes on disk, computed on each `GET /`; the icon takes `?v=` only. (4) The page uses no token while `navigator.serviceWorker.controller` is set, unregisters every registration, and reloads once when it was served a token and a `sessionStorage` flag is unset. Token lifetime and source unchanged (D3); routes unchanged.
+- **Rationale**: an earlier occupant of `127.0.0.1:4321` or `localhost:4321` is web content, the class SEC-002.5 and SEC-002.8 guard against (BL-139 (c)). Measured in headless Chromium: a worker's pass-through arrives as `Sec-Fetch-Dest: empty`, a preload as `document` with `Service-Worker-Navigation-Preload`, an update fetch with `Service-Worker: script`; `Clear-Site-Data: "storage"` on any of them removed the worker. A year-cached `/assets/app.js` was used by the page until the query changed its URL. (1) can only withhold the token, so a browser that does not send the header is no worse off than before.
+- **Alternatives considered**:
+  - Versioned asset paths (`/assets/<id>/app.js`) — rejected: new routes for what a query does.
+  - `Clear-Site-Data: "cache"` on every `GET /` — rejected: it did not clear a script the tab held in memory.
+  - `Clear-Site-Data: "storage"` on every load — rejected: the theme and dismissed notes would never survive.
+  - Another default port — rejected (architect): it breaks every IDE config line for a P3 risk.
+  - Deferring (1) until Firefox and Safari are checked (BL-145) — rejected (architect (a)): it leaves Chromium users exposed meanwhile.
+- **Reference**: SEC-002.14 (c), SEC-002.5, SEC-002.8, SEC-004.20, REQ-002.H.61, BL-139 (c)
 
 ## Open Questions [SEC-005]
 

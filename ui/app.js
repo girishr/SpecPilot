@@ -11,9 +11,16 @@ const toast=(m,action)=>{
   const x=document.createElement('button');x.type='button';x.className='tx';x.setAttribute('aria-label','Dismiss');x.innerHTML='<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>';x.onclick=()=>{toastEl.classList.remove('show');clearTimeout(toastT);};toastEl.appendChild(x);
   toastEl.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('show'),8000);}; // every toast stays 8 s (D13; 2.6 s for a plain one until 2026-10-21), the × ends it early (BL-UI-03)
 /* Task moves (BL-053) are on only when the server put a token in the page (not with --read-only). */
-const TOKEN=(document.querySelector('meta[name="specpilot-token"]')||{}).content||null;
+/* A service worker in control is an earlier program's on this origin (BL-142): the token is not used, every
+   registration goes, and a page that was served a token reloads once, uncontrolled; a flag stops a second try. */
+const SW=navigator.serviceWorker,CONTROLLED=!!(SW&&SW.controller);
+const SERVED=(document.querySelector('meta[name="specpilot-token"]')||{}).content||null;
+let swReload=false;
+try{if(!CONTROLLED)sessionStorage.removeItem('sp-sw-reload');else if(SERVED&&!sessionStorage.getItem('sp-sw-reload')){sessionStorage.setItem('sp-sw-reload','1');swReload=true;}}catch(e){}
+if(CONTROLLED)SW.getRegistrations().then(rs=>Promise.all(rs.map(r=>r.unregister()))).then(()=>{if(swReload)location.reload();},()=>{});
+const TOKEN=CONTROLLED?null:SERVED;
 /* /mcp is on (BL-PM-007), and whose token it takes: `page` or `env` (SPECPILOT_MCP_TOKEN). */
-const MCP=(document.querySelector('meta[name="specpilot-mcp"]')||{}).content||null;
+const MCP=TOKEN&&(document.querySelector('meta[name="specpilot-mcp"]')||{}).content||null;
 const ADDABLE={backlog:true,currentSprint:true}; // the sections POST /api/tasks/new writes to (REQ-002.H.29); which lanes move comes from the payload's table (BL-TB-11)
 const chev='<svg class="ico chev" aria-hidden="true" focusable="false"><use href="#i-chev"/></svg>';
 

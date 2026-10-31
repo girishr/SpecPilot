@@ -381,10 +381,10 @@ describe('UI markdown renderer', () => {
 });
 
 /** GET/POST against a running server with an explicit Host header. */
-function hit(port: number, path: string, opts: { method?: string; host?: string } = {}) {
+function hit(port: number, path: string, opts: { method?: string; host?: string; headers?: Record<string, string> } = {}) {
   return new Promise<{ status: number; headers: Record<string, unknown>; body: string }>((resolve, reject) => {
     const req = request(
-      { host: '127.0.0.1', port, path, method: opts.method ?? 'GET', headers: { Host: opts.host ?? `127.0.0.1:${port}` } },
+      { host: '127.0.0.1', port, path, method: opts.method ?? 'GET', headers: { Host: opts.host ?? `127.0.0.1:${port}`, ...opts.headers } },
       res => {
         let body = '';
         res.setEncoding('utf8');
@@ -477,7 +477,7 @@ describe('spec server over HTTP (port 0)', () => {
     expect(icon.body).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]* fill="none">/);
     expect(icon.body).toContain('url(#paint0_linear_18_9)');
     expect(icon.body).not.toMatch(/<script|\son[a-z]+=/i);
-    expect((await hit(port, '/')).body).toContain('<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">');
+    expect((await hit(port, '/')).body).toMatch(/<link rel="icon" href="\/assets\/favicon\.svg\?v=[0-9a-f]{16}" type="image\/svg\+xml">/);
   });
 
   it('serves a page with no inline script, no inline style and no external resources', async () => {
@@ -1288,7 +1288,7 @@ describe('UI routing (ui/route.js)', () => {
       const port = (s.server.address() as AddressInfo).port;
       const js = await hit(port, '/assets/route.js');
       expect([js.status, js.headers['content-type']]).toEqual([200, 'text/javascript; charset=utf-8']);
-      expect((await hit(port, '/')).body).toContain('<script src="/assets/route.js" defer></script>');
+      expect((await hit(port, '/')).body).toMatch(/<script src="\/assets\/route\.js\?v=[0-9a-f]{16}" integrity="sha384-[A-Za-z0-9+/=]+" defer><\/script>/);
     } finally {
       await s.close();
       p.cleanup();
@@ -4416,5 +4416,119 @@ describe('specpilot serve --stop (BL-098)', () => {
   it('exits 1 for an invalid --port', async () => {
     await expect(serveCommand([], { stop: true, port: '0' })).rejects.toThrow('exit 1');
     expect(errors).toEqual(['Invalid --port "0". Use a whole number from 1 to 65535.']);
+  });
+});
+
+// BL-142 (REQ-002.H.61; audit run-1 item 8, SEC-002.14 (c)): an earlier program's worker or cache on the origin gets no token.
+describe('leftover browser state on the origin (BL-142)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  const TOKEN_META = /<meta name="specpilot-token" content="[0-9a-f]{64}">/;
+  const MCP_META = '<meta name="specpilot-mcp"';
+  const page = (headers: Record<string, string>, host?: string) => hit(port, '/', { headers, host });
+  beforeAll(async () => {
+    p = makeProject();
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { mcp: true });
+    port = (spec.server.address() as AddressInfo).port;
+  });
+  afterAll(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  test.each([
+    ['a top-level load', { 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate' }],
+    ['no Sec-Fetch-Dest (a non-browser client, an older browser)', {}],
+  ])('%s gets the token and no Clear-Site-Data, on either Host', async (_what, headers) => {
+    for (const host of [undefined, `localhost:${port}`]) {
+      const res = await page(headers, host);
+      expect(res.body).toMatch(TOKEN_META);
+      expect(res.body).toContain(MCP_META);
+      expect(res.headers['clear-site-data']).toBeUndefined();
+    }
+  });
+
+  test.each([
+    ['a worker passing the page through', { 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'navigate' }],
+    ['a frame', { 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Mode': 'navigate' }],
+    ['a navigation preload', { 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Service-Worker-Navigation-Preload': 'true' }],
+  ])('%s gets the page without token or MCP marker, and Clear-Site-Data "storage", on either Host', async (_what, headers) => {
+    for (const host of [undefined, `localhost:${port}`]) {
+      const res = await page(headers, host);
+      expect(res.status).toBe(200);
+      expect(res.body).toContain('<title>SpecPilot Local</title>');
+      expect(res.body).not.toContain('specpilot-token');
+      expect(res.body).not.toContain(MCP_META);
+      expect(res.headers['clear-site-data']).toBe('"storage"');
+      expect(res.headers['cache-control']).toBe('no-store');
+    }
+  });
+
+  test('Service-Worker: script gets 404 and Clear-Site-Data "storage" on every route, ahead of the method and token rules', async () => {
+    const sw = { 'Service-Worker': 'script' };
+    for (const host of [undefined, `localhost:${port}`]) {
+      for (const path of ['/', '/sw.js', '/api/specs', '/assets/app.js']) {
+        const res = await hit(port, path, { headers: sw, host });
+        expect([path, res.status, res.headers['clear-site-data']]).toEqual([path, 404, '"storage"']);
+      }
+    }
+    for (const path of ['/mcp', '/api/tasks/move', '/api/quit']) {
+      const res = await post(port, '{}', { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', ...sw }, path);
+      expect([path, res.status, res.headers['clear-site-data']]).toEqual([path, 404, '"storage"']);
+    }
+  });
+
+  test('a bad Host with Service-Worker: script stays 403, with no Clear-Site-Data', async () => {
+    const res = await hit(port, '/sw.js', { host: 'evil.example:80', headers: { 'Service-Worker': 'script' } });
+    expect(res.status).toBe(403);
+    expect(res.headers['clear-site-data']).toBeUndefined();
+  });
+
+  test('the stylesheet and scripts carry ?v= and the integrity of the bytes served; the icon ?v= only', async () => {
+    const body = (await page({ 'Sec-Fetch-Dest': 'document' })).body;
+    const v = body.match(/\/assets\/app\.js\?v=([0-9a-f]+)"/)?.[1];
+    expect(v).toBeTruthy();
+    for (const f of ['app.css', 'md.js', 'route.js', 'app.js']) {
+      const served = await new Promise<Buffer>((resolve, reject) => {
+        request({ host: '127.0.0.1', port, path: `/assets/${f}?v=${v}`, headers: { Host: `127.0.0.1:${port}` } }, res => {
+          const parts: Buffer[] = [];
+          res.on('data', c => parts.push(c));
+          res.on('end', () => resolve(Buffer.concat(parts)));
+        }).on('error', reject).end();
+      });
+      const sri = 'sha384-' + createHash('sha384').update(served).digest('base64');
+      expect(body).toContain(`"/assets/${f}?v=${v}" integrity="${sri}"`);
+    }
+    expect(body).toContain(`"/assets/favicon.svg?v=${v}" type="image/svg+xml"`);
+    expect(body).not.toMatch(/"\/assets\/[^"?]+"/);
+    // per start: a second load has the same value
+    expect((await page({ 'Sec-Fetch-Dest': 'document' })).body).toContain(`/assets/app.js?v=${v}"`);
+  });
+
+  test('--read-only: a frame still gets Clear-Site-Data, a top-level load none', async () => {
+    const ro = await startSpecServer([p.root], 0, '0.0.0-test', { readOnly: true });
+    try {
+      const rp = (ro.server.address() as AddressInfo).port;
+      expect((await hit(rp, '/', { headers: { 'Sec-Fetch-Dest': 'iframe' } })).headers['clear-site-data']).toBe('"storage"');
+      expect((await hit(rp, '/', { headers: { 'Sec-Fetch-Dest': 'document' } })).headers['clear-site-data']).toBeUndefined();
+    } finally {
+      await ro.close();
+    }
+  });
+
+  test('zero projects: the token-less page; Open, Clone and Browse without the token get the existing 403', async () => {
+    const none = await startSpecServer([], 0, '0.0.0-test', { registry: regFile() });
+    try {
+      const np = (none.server.address() as AddressInfo).port;
+      const res = await hit(np, '/', { headers: { 'Sec-Fetch-Dest': 'empty' } });
+      expect(res.body).not.toContain('specpilot-token');
+      for (const path of ['/api/projects', '/api/projects/clone', '/api/projects/browse']) {
+        const r = await post(np, '{}', { Host: `127.0.0.1:${np}`, Origin: `http://127.0.0.1:${np}`, 'Content-Type': 'application/json' }, path);
+        expect([path, r.status, r.json.error]).toEqual([path, 403, 'This request did not carry the page token, so it was refused. Reload the page and try again.']);
+      }
+    } finally {
+      await none.close();
+    }
   });
 });

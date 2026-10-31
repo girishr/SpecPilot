@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-31 (BL-138 to Review, approved)
-version: 7.79
+lastUpdated: 2026-10-31 (BL-138 to Completed)
+version: 7.80
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -78,7 +78,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-138 | bug | P3 | Bug, P3. `ui/md.js`'s link pattern and table-separator test backtrack superlinearly, so one crafted `tasks.md` row freezes the tab: unambiguous link pattern, separator test as `specReader.ts` has it; a browser test with a long input. Attribution: SEC-002.13 (e); audit item 15, `specpilot/ui-md/superlinear-link-and-separator-regex`. Approved 2026-10-31 |
 
 ## Won't do
 
@@ -126,3 +125,4 @@ Notes
 | 251 | [CD-girishr-160] [BL-135] | Task writes walk every folder on the way (security audit run-1, SEC-002.13 (b)): `loadTasks()` and `readArchive()` in `taskMover.ts` run `folderError()` first, so a linked or non-folder `.specs` or `.specs/planning` is refused (422, or a tool refusal for MCP) for moves, new tasks, review actions, field edits and the archive, and the ID hint is absent; a non-regular `tasks.md` is refused before it is read. REQ-002.H.10. Jest 1857 → 1862, no `ui/` change. Approved 2026-10-30. Feature commit `5bc17b8`. |
 | 252 | [CD-girishr-161] [BL-136] | The code analysis and project detection follow no link and are bounded (security audit run-1, SEC-002.13 (c)): `CodeAnalyzer`'s walks use `lstat`, visit at most 2000 entries and 20 levels, read files of at most 1 MB and 8 MB per run; every manifest goes through `readSmall()` (64 KB); BL-149 filed for nested test files never counted. REQ-002.D.6. Jest 1862 → 1873, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `5dda804`. |
 | 253 | [CD-girishr-162] [BL-137] | One capped, merge-free loader for repository YAML (security audit run-1, SEC-002.13 (d)): `loadRepoYaml()` in `specReader.ts` (`CORE_SCHEMA`, at most 262,144 UTF-8 bytes) serves the validator, backfill, `init`, `serve`'s project names and the skill context; `validate` counts an aliased `rules` array once. REQ-002.A.3. Jest 1873 → 1886, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `1ad4d4b`. |
+| 254 | [CD-girishr-163] [BL-138] | The serve page's markdown renderer runs in linear time (security audit run-1, SEC-002.13 (e)): `ui/md.js`'s link target excludes `[`, the table-separator test matches `specReader.ts`, and the heading, list, numbered and checkbox patterns capture `(\S.*)?`, so a crafted line no longer freezes the tab. REQ-002.H.60. Jest 1886 → 1891, browser 90 → 91. Approved 2026-10-31. Feature commit `44d16ce`. |

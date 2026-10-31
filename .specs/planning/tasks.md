@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-30 (BL-137 to Completed)
-version: 7.77
+lastUpdated: 2026-10-31 (BL-138 to Review, approved)
+version: 7.79
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -57,7 +57,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-138 | bug | P3 | Bug, P3. `ui/md.js`'s link pattern and table-separator test backtrack superlinearly, so one crafted `tasks.md` row freezes the tab: unambiguous link pattern, separator test as `specReader.ts` has it; a browser test with a long input. Attribution: SEC-002.13 (e); audit item 15, `specpilot/ui-md/superlinear-link-and-separator-regex`. |
 | BL-139 | chore | P1 | Chore, P1, decision. Are other OS users on a shared host, and servers that held the `serve` port earlier (e.g. forwarded from a container), in scope? SEC-004.20, .23, .27 and .28 assume every local process is the owner, which is false for those and for `SPECPILOT_MCP_TOKEN`. Record the answer in the security files (in scope: BL-140 to BL-142; out: a line in Out of Scope [SEC-004]). Attribution: SEC-002.14, SEC-005; audit items 6 to 8. |
 | BL-140 | feat | P2 | Feature, P2, only if BL-139 says in scope. Deliver the page and MCP token out of band (an owner-only file), not in `GET /`, and adapt `serve --stop`. Attribution: SEC-002.14 (a); audit item 6, `specpilot/specServer/page-token-served-to-any-local-peer`. Architectural: Spec Report first. |
 | BL-141 | feat | P2 | Feature, P2, only if BL-139 says in scope. On `EADDRINUSE`, warn that an IDE configured for that port now talks to another process and say to rotate `SPECPILOT_MCP_TOKEN`; consider a way for the client to tell the real server. Attribution: SEC-002.14 (b), SEC-002.9 (c); audit item 7, `specpilot/serve/mcp-client-trusts-fixed-loopback-port`. |
@@ -79,6 +78,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-138 | bug | P3 | Bug, P3. `ui/md.js`'s link pattern and table-separator test backtrack superlinearly, so one crafted `tasks.md` row freezes the tab: unambiguous link pattern, separator test as `specReader.ts` has it; a browser test with a long input. Attribution: SEC-002.13 (e); audit item 15, `specpilot/ui-md/superlinear-link-and-separator-regex`. Approved 2026-10-31 |
 
 ## Won't do
 

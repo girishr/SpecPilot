@@ -271,3 +271,23 @@ browserTest('Open in VS Code on the file view and the Instructions, Commands and
     expect(await page.locator(`#v-${view} a[href^="vscode:"]`).count()).toBe(0);
   }
 });
+
+// ---------------- crafted Markdown renders at once (BL-138, REQ-002.H.60) ----------------
+browserTest('a crafted tasks.md row and roadmap line render at once, on the board and the roadmap, at 1280 and 420 px', b, async open => {
+  const tasks = join(env.project, '.specs', 'planning', 'tasks.md');
+  const fixtureRow = '| BL-001 | feat | P1 | Fixture backlog row one |';
+  writeFileSync(tasks, readFileSync(tasks, 'utf-8').replace(fixtureRow, `${fixtureRow}\n| BL-090 | bug | P3 | ${'[a]('.repeat(60000)} |\n| BL-091 | bug | P3 | - ${' '.repeat(60000)}a\u2028b |`));
+  const roadmap = join(env.project, '.specs', 'planning', 'roadmap.md');
+  writeFileSync(roadmap, readFileSync(roadmap, 'utf-8') + `\n| x |\n|${' '.repeat(60000)}x\n`);
+  for (const width of [1280, 420]) {
+    const started = Date.now();
+    const { page } = await open(srv, '#board', { width });
+    await waitView(page, 'v-board');
+    await page.locator('#v-board .card', { hasText: 'BL-090' }).waitFor();
+    await page.goto(`${srv.url}/#file/planning/roadmap.md`);
+    await waitView(page, 'v-file');
+    await page.locator('#fileBody', { hasText: 'x' }).waitFor();
+    expect(Date.now() - started).toBeLessThan(5000);
+    if (width === 420) expect(await noSideScroll(page)).toBe(true);
+  }
+});

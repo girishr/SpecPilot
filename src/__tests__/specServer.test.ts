@@ -4565,6 +4565,7 @@ describe('framing (BL-143)', () => {
     for (const path of ['/', '/assets/app.js', '/api/specs', '/api/file?p=CLAUDE.md', '/nope']) add(`GET ${path}`, (await hit(port, path)).headers);
     add('405', (await hit(port, '/api/specs', { method: 'POST' })).headers);
     add('Service-Worker: script', (await hit(port, '/sw.js', { headers: { 'Service-Worker': 'script' } })).headers);
+    add('read refusal (BL-144)', (await hit(port, '/api/specs', { headers: { 'Sec-Fetch-Site': 'cross-site' } })).headers);
     add('bad Host', (await hit(port, '/', { host: 'evil.example:80' })).headers);
     add('token refusal', (await post(port, '{}', json())).headers);
     add('413', (await post(port, 'x'.repeat(17 * 1024), json({ 'X-SpecPilot-Token': token }))).headers);
@@ -4598,5 +4599,89 @@ describe('framing (BL-143)', () => {
     const res = await hit(port, '/', { headers: { 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate' } });
     expect(res.body).toMatch(/specpilot-token" content="[0-9a-f]{64}"/);
     expect(res.headers['clear-site-data']).toBeUndefined();
+  });
+});
+
+// BL-144 (REQ-002.H.63; audit run-1 item 13, SEC-002.15 (b)): another page can neither hold the event slots nor read the data.
+describe('reads from another page (BL-144)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  const REFUSED = 'This request did not come from the SpecPilot page, so it was refused.';
+  const READS = ['/api/events', '/api/specs', '/api/file?p=CLAUDE.md', '/api/projects'];
+  /** Status, headers and (unless an open stream) body; an open stream is ended at once. */
+  const read = (at: number, path: string, headers: Record<string, string> = {}, host = `127.0.0.1:${at}`) =>
+    new Promise<{ status: number; headers: Record<string, unknown>; body: string }>((resolve, reject) => {
+      const req = request({ host: '127.0.0.1', port: at, path, headers: { Host: host, ...headers } }, res => {
+        if (res.statusCode === 200 && String(res.headers['content-type']).startsWith('text/event-stream')) {
+          resolve({ status: 200, headers: res.headers, body: '' });
+          return req.destroy();
+        }
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', c => (body += c));
+        res.on('end', () => resolve({ status: res.statusCode!, headers: res.headers, body }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+  beforeAll(async () => {
+    p = makeProject();
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { registry: regFile(), mcp: true });
+    port = (spec.server.address() as AddressInfo).port;
+  });
+  afterAll(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+
+  test.each([
+    ['another port of the same host', { 'Sec-Fetch-Site': 'same-site' }],
+    ['another site', { 'Sec-Fetch-Site': 'cross-site' }],
+    ['an unknown Sec-Fetch-Site value', { 'Sec-Fetch-Site': 'elsewhere' }],
+    ['a foreign Origin', { Origin: 'http://evil.example' }],
+    ['Origin: null (a sandboxed frame)', { Origin: 'null' }],
+    ['the other Host as Origin', { Origin: 'http://localhost:1' }],
+  ])('%s: every read is refused with 403 and the write routes\' text', async (_what, headers) => {
+    for (const path of READS) {
+      const res = await read(port, path, headers);
+      expect([path, res.status, JSON.parse(res.body).error]).toEqual([path, 403, REFUSED]);
+      expect(res.headers['x-frame-options']).toBe('DENY');
+    }
+  });
+
+  test('this origin, an address typed in, a non-browser client, and Origin equal to http:// + Host (both Hosts) read as before', async () => {
+    for (const [headers, host] of [
+      [{ 'Sec-Fetch-Site': 'same-origin' }, undefined],
+      [{ 'Sec-Fetch-Site': 'none' }, undefined],
+      [{}, undefined],
+      [{ Origin: `http://127.0.0.1:${port}` }, undefined],
+      [{ Origin: `http://localhost:${port}`, 'Sec-Fetch-Site': 'same-origin' }, `localhost:${port}`],
+    ] as [Record<string, string>, string | undefined][]) {
+      for (const path of READS) expect([path, (await read(port, path, headers, host)).status]).toEqual([path, 200]);
+    }
+  });
+
+  test('refused stream requests take no slot: after eight of them the page still gets one', async () => {
+    for (let i = 0; i < MAX_EVENT_STREAMS; i++) expect((await read(port, '/api/events', { 'Sec-Fetch-Site': 'cross-site' })).status).toBe(403);
+    expect(spec.streams()).toBe(0);
+    expect((await read(port, '/api/events', { 'Sec-Fetch-Site': 'same-origin' })).status).toBe(200);
+  });
+
+  test('the page itself still opens from a link on another site', async () => {
+    expect((await read(port, '/', { 'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'document' })).status).toBe(200);
+  });
+
+  test('zero projects: the server-level stream and /api/specs are guarded too', async () => {
+    const none = await startSpecServer([], 0, '0.0.0-test', { registry: regFile() });
+    try {
+      const np = (none.server.address() as AddressInfo).port;
+      for (const path of ['/api/events', '/api/specs']) {
+        expect([path, (await read(np, path, { 'Sec-Fetch-Site': 'same-site' })).status]).toEqual([path, 403]);
+        expect([path, (await read(np, path)).status]).toEqual([path, 200]);
+      }
+    } finally {
+      await none.close();
+    }
   });
 });

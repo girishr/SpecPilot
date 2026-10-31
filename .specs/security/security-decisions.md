@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-31 (BL-143: SEC-004.34)
-version: 1.41
+lastUpdated: 2026-10-31 (BL-144: SEC-004.35)
+version: 1.42
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -411,6 +411,18 @@ This file records security-related architectural and implementation decisions ma
   - Dropping `Clear-Site-Data` from every non-top-level load — rejected: it is what removes a leftover worker on its pass-through (SEC-004.33).
 - **Reference**: SEC-002.15 (a), SEC-004.33, REQ-002.H.62, REQ-002.H.61
 
+### [SEC-004.35] The reads and the event slots are the page's own
+
+- **Date**: 2026-10-31 (BL-144 Spec Report)
+- **Decision**: a GET of `/api/events`, `/api/specs`, `/api/file` or `/api/projects` is refused with 403 (JSON, the write routes' text) unless `Sec-Fetch-Site` is absent, `none` or `same-origin` (one test, shared with SEC-004.34), or when an `Origin` other than `http://` + Host is sent (`null` included); it runs after the Host check and the `Service-Worker: script` rule, before `/mcp`, the registry routes and the zero-project answers, so a refused stream takes no slot. The page reopens its `EventSource` 5 s after the browser closes it, unless it was replaced, and catches up when it opens. The cap of 8 and its 503 stay (SEC-004.9).
+- **Rationale**: measured in headless Chromium: another page's `EventSource`, frame and image to `/api/events` arrive as `same-site` (another port) or `cross-site` and held slots on `main` (3 of 8 in the test); the page's own stream is `same-origin` with no `Origin`; a 503 closes an `EventSource` for good. Refusing `same-site` as well as the row's `cross-site`: another port is another origin. An allowlist, so an unknown value is refused.
+- **Alternatives considered**:
+  - A share of the 8 slots per origin — rejected: the server cannot tell origins apart for a frame or image, which send no `Origin`.
+  - Refusing `cross-site` only, as the row said — rejected: the measured attack from another port is `same-site`.
+  - Guarding `/` and `/assets/*` too — rejected: a link from elsewhere must open the page, and CORP covers the assets (SEC-004.34).
+- **Limit**: with 8 real tabs open a ninth retries every 5 s without end; cheap and accepted.
+- **Reference**: SEC-002.15 (b), SEC-004.9, SEC-004.34, REQ-002.H.63
+
 ## Open Questions [SEC-005]
 
 
@@ -422,7 +434,7 @@ This file records security-related architectural and implementation decisions ma
 - (2026-10-28, audit run-1) SEC-004.24 kept `package.json` "read as today" and SEC-004.25 filters control characters from skill values but not the project name (SEC-002.12 c, SEC-002.13 c): extend `readSmall()` and `skillValue()` to both? **`skillValue()` half answered 2026-10-30 (BL-131): the name and language go one line each into the skill, and `fm`, `dq` and `yamlScalar()` quote or escape control characters (REQ-002.H.40, REQ-002.I.5). The `readSmall()` half answered by BL-136 (2026-10-30): every manifest and the analyzer's files go through `readSmall()` (REQ-002.D.6).**
 - (2026-10-28, audit run-1) Reopen the accepted residual of SEC-002.5 (j) on the Code Analyzer, now that a hostile repository can make the walk unbounded or read a device under the write lock (SEC-002.13 c)?
 - (2026-10-28, audit run-1) Should every path that reads a served root (the validator included, SEC-002.13 a) go through `resolveAllowedPath()`, and should `project.yaml` be parsed with a merge-free schema and a byte cap (SEC-002.13 d)? **Answered 2026-10-30: the validator's reads by BL-134; the merge-free schema and the byte cap by BL-137 (`loadRepoYaml()`, `CORE_SCHEMA`, 262,144 UTF-8 bytes, REQ-002.A.3).**
-- (2026-10-28, audit run-1) Add `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a cross-site refusal on `/api/events` and the other `/api` reads (SEC-002.15)? **Framing half answered 2026-10-31 (BL-143): yes, SEC-004.34. The `/api/events` half is BL-144.**
+- (2026-10-28, audit run-1) Add `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a cross-site refusal on `/api/events` and the other `/api` reads (SEC-002.15)? **Framing half answered 2026-10-31 (BL-143): yes, SEC-004.34. The `/api/events` half answered 2026-10-31 (BL-144): yes, for every read, SEC-004.35.**
 
 ---
 

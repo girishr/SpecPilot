@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-31 (BL-142 to Completed)
-version: 7.87
+lastUpdated: 2026-10-31 (BL-143 to Review, approved)
+version: 7.90
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -57,9 +57,8 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-143 | bug | P2 | Bug, P2. The UI can be framed by any site (no `frame-ancestors`, no `X-Frame-Options`), so Regenerate All, Approve and Remove can be clickjacked: add `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Cross-Origin-Resource-Policy: same-origin` and `Cross-Origin-Opener-Policy: same-origin` to `SECURITY_HEADERS`. Attribution: SEC-002.15 (a); audit item 12, `specpilot/specServer/ui-frameable-no-frame-ancestors`. |
 | BL-144 | bug | P3 | Bug, P3. `GET /api/events` checks only the Host, so a cross-origin page may hold all 8 slots and cut the real page off live updates: refuse it (and the other `/api` reads) when `Sec-Fetch-Site` is cross-site or `Origin` is foreign; the page reopens its stream after an error. Attribution: SEC-002.15 (b), SEC-004.9; audit item 13, `specpilot/specServer/event-stream-slots-unauthenticated`. |
-| BL-145 | chore | P2 | Chore, P2. Verify the security audit's 15 leads where a fix branch's failing-first test does not: a Linux sandbox with memory and disk limits (installing one needs the developer's word), a Windows VM (item 3), Chrome, Firefox and Safari by hand (items 8, 12, 13); record each result against the audit records in `~/security-audit-skill/SpecPilot/run-1/`. Attribution: SEC-002.12 to SEC-002.15. |
+| BL-145 | chore | P2 | Chore, P2. Verify the security audit's 15 leads where a fix branch's failing-first test does not: a Linux sandbox with memory and disk limits (installing one needs the developer's word), a Windows VM (item 3), Chrome, Firefox and Safari by hand (items 8, 12, 13); record each result against the audit records in `~/security-audit-skill/SpecPilot/run-1/`. Attribution: SEC-002.12 to SEC-002.15. Also `Sec-Fetch-Site` on frames and on a worker's pass-through in Firefox and Safari, unmeasured (BL-142, BL-143). |
 | BL-146 | chore | P3 | Chore, P3. Hardening from the audit, no finding: `GIT_LFS_SKIP_SMUDGE=1` in `gitEnv()`; `writeAllowed()` fails closed on a null token; `SPECPILOT_*` removed from child-process environments; `esc()` in `ui/md.js` and `ui/route.js` escapes `'`; `newTaskShapeError()` refuses a description ending in an `Approved <date>` or `Sent back <date>` marker; the setup re-check under the lock compares the target, not only its kind. Attribution: audit run-1 REPORT §6, SEC-002.5 residual (m), SEC-004.31. |
 | BL-123 | feat | P2 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
@@ -74,6 +73,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-143 | bug | P2 | Bug, P2. The UI can be framed by any site (no `frame-ancestors`, no `X-Frame-Options`), so Regenerate All, Approve and Remove can be clickjacked: add `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Cross-Origin-Resource-Policy: same-origin` and `Cross-Origin-Opener-Policy: same-origin` to `SECURITY_HEADERS`. Attribution: SEC-002.15 (a); audit item 12, `specpilot/specServer/ui-frameable-no-frame-ancestors`. Also narrows BL-142's `Clear-Site-Data` on a non-top-level `GET /` to `Sec-Fetch-Site` absent, `none` or `same-origin` (a frame from another port or site wiped `localStorage`). Approved 2026-10-31 |
 
 ## Won't do
 

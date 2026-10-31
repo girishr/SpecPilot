@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-10-31 (BL-142: SEC-004.33)
-version: 1.40
+lastUpdated: 2026-10-31 (BL-143: SEC-004.34)
+version: 1.41
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -391,7 +391,7 @@ This file records security-related architectural and implementation decisions ma
 ### [SEC-004.33] An earlier program's browser state on the origin: the token only into a top-level load, its worker removed
 
 - **Date**: 2026-10-31 (BL-142 Spec Report, Architectural; architect decisions (a) and (b))
-- **Decision**: (1) `GET /` puts the page token and the MCP marker into the page only when `Sec-Fetch-Dest` is absent or `document` and no `Service-Worker-Navigation-Preload` is sent; otherwise the page comes without them and with `Clear-Site-Data: "storage"`. (2) A request carrying `Service-Worker: script` gets 404 and `Clear-Site-Data: "storage"`, checked after the Host check and before every route, method rule, token check and `/mcp`. (3) The stylesheet and the three scripts are referenced with a per-start `?v=` and an `integrity` of the SHA-384 of the bytes on disk, computed on each `GET /`; the icon takes `?v=` only. (4) The page uses no token while `navigator.serviceWorker.controller` is set, unregisters every registration, and reloads once when it was served a token and a `sessionStorage` flag is unset. Token lifetime and source unchanged (D3); routes unchanged.
+- **Decision**: (1) `GET /` puts the page token and the MCP marker into the page only when `Sec-Fetch-Dest` is absent or `document` and no `Service-Worker-Navigation-Preload` is sent; otherwise the page comes without them, and with `Clear-Site-Data: "storage"` when `Sec-Fetch-Site` is absent, `none` or `same-origin` (narrowed by BL-143, SEC-004.34). (2) A request carrying `Service-Worker: script` gets 404 and `Clear-Site-Data: "storage"`, checked after the Host check and before every route, method rule, token check and `/mcp`. (3) The stylesheet and the three scripts are referenced with a per-start `?v=` and an `integrity` of the SHA-384 of the bytes on disk, computed on each `GET /`; the icon takes `?v=` only. (4) The page uses no token while `navigator.serviceWorker.controller` is set, unregisters every registration, and reloads once when it was served a token and a `sessionStorage` flag is unset. Token lifetime and source unchanged (D3); routes unchanged.
 - **Rationale**: an earlier occupant of `127.0.0.1:4321` or `localhost:4321` is web content, the class SEC-002.5 and SEC-002.8 guard against (BL-139 (c)). Measured in headless Chromium: a worker's pass-through arrives as `Sec-Fetch-Dest: empty`, a preload as `document` with `Service-Worker-Navigation-Preload`, an update fetch with `Service-Worker: script`; `Clear-Site-Data: "storage"` on any of them removed the worker. A year-cached `/assets/app.js` was used by the page until the query changed its URL. (1) can only withhold the token, so a browser that does not send the header is no worse off than before.
 - **Alternatives considered**:
   - Versioned asset paths (`/assets/<id>/app.js`) — rejected: new routes for what a query does.
@@ -400,6 +400,16 @@ This file records security-related architectural and implementation decisions ma
   - Another default port — rejected (architect): it breaks every IDE config line for a P3 risk.
   - Deferring (1) until Firefox and Safari are checked (BL-145) — rejected (architect (a)): it leaves Chromium users exposed meanwhile.
 - **Reference**: SEC-002.14 (c), SEC-002.5, SEC-002.8, SEC-004.20, REQ-002.H.61, BL-139 (c)
+
+### [SEC-004.34] No frame of the UI, and no storage clearing from a frame elsewhere
+
+- **Date**: 2026-10-31 (BL-143 Spec Report)
+- **Decision**: `SECURITY_HEADERS`, on every response, carries `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'`, `X-Frame-Options: DENY`, `Cross-Origin-Resource-Policy: same-origin` and `Cross-Origin-Opener-Policy: same-origin` beside `nosniff` and `no-store`. A `GET /` that is not a top-level load gets `Clear-Site-Data: "storage"` only when `Sec-Fetch-Site` is absent, `none` or `same-origin`.
+- **Rationale**: Regenerate All, Approve and Remove are one click each, so a frame on another site could trick them (SEC-002.15 (a)); BL-142 already withholds the token from a framed load where `Sec-Fetch-Dest` is sent, and these headers stop the frame drawing at all. Measured in headless Chromium: a page on another port of `127.0.0.1` (`same-site`) or on `localhost` (`cross-site`) that framed the server wiped `localStorage` through BL-142's header, `frame-ancestors` notwithstanding; a leftover worker's requests are `same-origin` or `none`. The page opens no window and reads no `opener`; the MCP client is not a browser.
+- **Alternatives considered**:
+  - `frame-ancestors 'self'` — rejected: nothing of SpecPilot's frames the page, and a same-origin frame is how a worker-served document would read the token (BL-142 (b)).
+  - Dropping `Clear-Site-Data` from every non-top-level load — rejected: it is what removes a leftover worker on its pass-through (SEC-004.33).
+- **Reference**: SEC-002.15 (a), SEC-004.33, REQ-002.H.62, REQ-002.H.61
 
 ## Open Questions [SEC-005]
 
@@ -412,7 +422,7 @@ This file records security-related architectural and implementation decisions ma
 - (2026-10-28, audit run-1) SEC-004.24 kept `package.json` "read as today" and SEC-004.25 filters control characters from skill values but not the project name (SEC-002.12 c, SEC-002.13 c): extend `readSmall()` and `skillValue()` to both? **`skillValue()` half answered 2026-10-30 (BL-131): the name and language go one line each into the skill, and `fm`, `dq` and `yamlScalar()` quote or escape control characters (REQ-002.H.40, REQ-002.I.5). The `readSmall()` half answered by BL-136 (2026-10-30): every manifest and the analyzer's files go through `readSmall()` (REQ-002.D.6).**
 - (2026-10-28, audit run-1) Reopen the accepted residual of SEC-002.5 (j) on the Code Analyzer, now that a hostile repository can make the walk unbounded or read a device under the write lock (SEC-002.13 c)?
 - (2026-10-28, audit run-1) Should every path that reads a served root (the validator included, SEC-002.13 a) go through `resolveAllowedPath()`, and should `project.yaml` be parsed with a merge-free schema and a byte cap (SEC-002.13 d)? **Answered 2026-10-30: the validator's reads by BL-134; the merge-free schema and the byte cap by BL-137 (`loadRepoYaml()`, `CORE_SCHEMA`, 262,144 UTF-8 bytes, REQ-002.A.3).**
-- (2026-10-28, audit run-1) Add `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a cross-site refusal on `/api/events` and the other `/api` reads (SEC-002.15)?
+- (2026-10-28, audit run-1) Add `frame-ancestors 'none'`, `X-Frame-Options: DENY` and a cross-site refusal on `/api/events` and the other `/api` reads (SEC-002.15)? **Framing half answered 2026-10-31 (BL-143): yes, SEC-004.34. The `/api/events` half is BL-144.**
 
 ---
 

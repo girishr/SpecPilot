@@ -11,7 +11,8 @@ function inline(t){
   h=h.replace(/`([^`]+)`/g,(m,c)=>'<code translate="no">'+c+'</code>');
   h=h.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
   h=h.replace(/(^|[^*\w])\*([^*\n]+)\*(?=[^*\w]|$)/g,'$1<em>$2</em>');
-  h=h.replace(/\[([^\]\[]+)\]\((https?:[^)\s]+|[^)\s]+\.md[^)\s]*)\)/g,'<span class="lk">$1</span>');
+  /* One unambiguous match, the target stopping at the next `[`, then the old target rule (BL-138): linear in the line. */
+  h=h.replace(/\[([^\][]+)\]\(([^)\s[]+)\)/g,(m,t,u)=>/^https?:./.test(u)||u.indexOf('.md',1)>=0?'<span class="lk">'+t+'</span>':m);
   h=h.replace(ANCHOR,m=>'<span class="ref" translate="no">'+m+'</span>');
   return h;
 }
@@ -34,32 +35,33 @@ function md(src){
     let l=L[i];
     if(/^\s*$/.test(l)){close();i++;continue;}
     let m;
-    if(m=l.match(/^(#{1,6})\s+(.*)$/)){close();const n=Math.min(6,m[1].length+1);o.push('<h'+n+'>'+inline(m[2])+'</h'+n+'>');i++;continue;}
+    /* `\s+(\S.*)?$`, not `\s+(.*)$`: the same lines and text, without backtracking on U+2028 (BL-138). */
+    if(m=l.match(/^(#{1,6})\s+(\S.*)?$/)){close();const n=Math.min(6,m[1].length+1);o.push('<h'+n+'>'+inline(m[2]||'')+'</h'+n+'>');i++;continue;}
     if(/^\s*(---|\*\*\*|___)\s*$/.test(l)){close();o.push('<hr>');i++;continue;}
     if(/^```/.test(l)){close();i++;const b=[];while(i<L.length&&!/^```/.test(L[i])){b.push(L[i]);i++;}i++;o.push('<pre translate="no">'+esc(b.join('\n'))+'</pre>');continue;}
     if(/^>\s?/.test(l)){close();const b=[];while(i<L.length&&/^>\s?/.test(L[i])){b.push(L[i].replace(/^>\s?/,''));i++;}o.push('<blockquote>'+md(b.join('\n'))+'</blockquote>');continue;}
-    if(/^\s*\|/.test(l)&&i+1<L.length&&/^\s*\|[\s:|-]+\|?\s*$/.test(L[i+1])){
+    if(/^\s*\|/.test(l)&&i+1<L.length&&/^\|[\s:|-]+$/.test(L[i+1].trim())){
       close();const head=cells(l);i+=2;const rows=[];
       while(i<L.length&&/^\s*\|/.test(L[i])){rows.push(cells(L[i],head.length));i++;}
       o.push('<div class="tw"><table><thead><tr>'+head.map(c=>'<th>'+inline(c)+'</th>').join('')+'</tr></thead><tbody>'+
         rows.map(r=>'<tr>'+r.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>');
       continue;}
-    if(m=l.match(/^(\s*)([-*+])\s+(.*)$/)){
+    if(m=l.match(/^(\s*)([-*+])\s+(\S.*)?$/)){
       close();const items=[];
       while(i<L.length){
-        const mm=L[i].match(/^(\s*)([-*+])\s+(.*)$/);
+        const mm=L[i].match(/^(\s*)([-*+])\s+(\S.*)?$/);
         if(!mm)  {if(/^\s+\S/.test(L[i])&&items.length){items[items.length-1]+=' '+L[i].trim();i++;continue;} break;}
-        items.push(mm[3]);i++;
+        items.push(mm[3]||'');i++;
       }
       o.push('<ul>'+items.map(t=>{
-        const cb=t.match(/^\[([ xX])\]\s*(.*)$/);
-        if(cb)return '<li class="cb '+(cb[1]===' '?'off':'on')+'">'+inline(cb[2])+'</li>';
+        const cb=t.match(/^\[([ xX])\]\s*(\S.*)?$/);
+        if(cb)return '<li class="cb '+(cb[1]===' '?'off':'on')+'">'+inline(cb[2]||'')+'</li>';
         return '<li>'+inline(t)+'</li>';}).join('')+'</ul>');
       continue;}
-    if(m=l.match(/^(\s*)(\d+)\.\s+(.*)$/)){
+    if(m=l.match(/^(\s*)(\d+)\.\s+(\S.*)?$/)){
       close();const items=[];const start=m[2];
       /* Each item keeps the number written in the file (value=), so gaps and repeats show as written. */
-      while(i<L.length){const mm=L[i].match(/^(\s*)(\d+)\.\s+(.*)$/);if(!mm)break;items.push([mm[2],mm[3]]);i++;}
+      while(i<L.length){const mm=L[i].match(/^(\s*)(\d+)\.\s+(\S.*)?$/);if(!mm)break;items.push([mm[2],mm[3]||'']);i++;}
       o.push('<ol start="'+start+'">'+items.map(([n,t])=>'<li value="'+n+'">'+inline(t)+'</li>').join('')+'</ol>');
       continue;}
     {const b=[];while(i<L.length&&!/^\s*$/.test(L[i])&&!/^(#{1,6}\s|\s*\||>\s?|```|\s*[-*+]\s|\s*\d+\.\s)/.test(L[i])){b.push(L[i]);i++;}

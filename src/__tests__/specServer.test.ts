@@ -290,6 +290,47 @@ describe('buildSpecsPayload against this repo', () => {
   });
 });
 
+// BL-138 (REQ-002.H.60; audit run-1 item 15, SEC-002.13 (e)): md() runs in linear time and renders as before.
+describe('UI markdown renderer: linear patterns (BL-138)', () => {
+  const N = 100000;
+  const fast = (src: string) => {
+    const started = Date.now();
+    md(src);
+    return Date.now() - started;
+  };
+  it('each crafted input renders within 500 ms', () => {
+    const inputs: [string, string][] = [
+      ['unclosed links', '[a]('.repeat(N / 4)],
+      ['a link target of .md runs', '[a](' + '.md'.repeat(N / 3)],
+      ['a separator line of spaces', '| x |\n|' + ' '.repeat(N) + 'x'],
+      ['a heading with U+2028', '# ' + ' '.repeat(N) + 'a\u2028b'],
+      ['a list item with U+2028', '- ' + ' '.repeat(N) + 'a\u2028b'],
+      ['a numbered item with U+2028', '1. ' + ' '.repeat(N) + 'a\u2028b'],
+      ['a checkbox with U+2028', '- [x]' + ' '.repeat(N) + 'a\u2028b'],
+    ];
+    for (const [what, src] of inputs) expect([what, fast(src) < 500]).toEqual([what, true]);
+  });
+  it('links: the same targets are links as before', () => {
+    for (const t of ['https://x.y', 'http://x', 'a.md', 'docs/a.md#b']) expect(md(`[t](${t})`)).toBe('<p><span class="lk">t</span></p>');
+    for (const t of ['foo', '.md', 'http:', 'https:', 'HTTP://x', 'a.MD']) expect(md(`[t](${t})`)).toBe(`<p>[t](${t})</p>`);
+  });
+  it('a target holding [ is not a link, and the bracket may begin one of its own', () => {
+    expect(md('[a](x[b](y.md)')).toBe('<p>[a](x<span class="lk">b</span></p>');
+  });
+  it('separators: spaces and colons around still make a table; a lone | and whitespace does not', () => {
+    expect(md('| a | b |\n | :--- | ---: | \n| 1 | 2 |')).toContain('<table');
+    expect(md('| x |\n| ')).not.toContain('<table');
+  });
+  it('headings and items capture what they did', () => {
+    expect(md('#   ')).toBe('<h2></h2>');
+    expect(md('# a\u2028')).not.toContain('<h');
+    expect(md('- a')).toContain('<li>a</li>');
+    expect(md('1.  b')).toContain('b</li>');
+    expect(md('- [x]')).not.toContain('undefined');
+    expect(md('- [x] done')).toContain('done');
+  });
+});
+
 describe('UI markdown renderer', () => {
   it('escapes raw HTML in spec files everywhere it can appear', () => {
     const html = md(

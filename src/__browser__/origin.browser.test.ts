@@ -261,3 +261,34 @@ describe('a leftover worker or cache on the origin takes no token (BL-142)', () 
     noLeak();
   });
 });
+
+// BL-143 (REQ-002.H.62, SEC-002.15 (a)): a page elsewhere frames the board; the frame does not draw it and the theme survives.
+describe('no other page can frame the UI or wipe its storage (BL-143)', () => {
+  for (const parentHost of ['127.0.0.1', 'localhost']) {
+    test(`a page on ${parentHost}:<other port> frames the board`, async () => {
+      const spec = await serveOn(0);
+      const port = (spec.server.address() as AddressInfo).port;
+      const parent = await listen((_req, res) => res.writeHead(200, { 'Content-Type': 'text/html' }).end(`<!doctype html><iframe src="http://127.0.0.1:${port}/#board"></iframe>`));
+      open.push(() => shut(parent));
+      const ctx = await browser.newContext();
+      open.unshift(() => ctx.close());
+      const own = await ctx.newPage();
+      await own.goto(`http://127.0.0.1:${port}/`);
+      await loaded(own);
+      await own.evaluate(() => localStorage.setItem('sp-theme', 'light'));
+      const framing = await ctx.newPage();
+      const requested = framing.waitForRequest(r => r.url().startsWith(`http://127.0.0.1:${port}/`));
+      await framing.goto(`http://${parentHost}:${(parent.address() as AddressInfo).port}/`);
+      await requested;
+      await new Promise(r => setTimeout(r, 1000));
+      expect(framing.frames().length).toBeGreaterThan(1);
+      for (const f of framing.frames().slice(1)) {
+        const drawn = await f.evaluate(() => !!document.querySelector('#projList')).catch(() => false);
+        expect(drawn).toBe(false);
+      }
+      await own.reload();
+      await loaded(own);
+      expect(await own.evaluate(() => localStorage.getItem('sp-theme'))).toBe('light');
+    });
+  }
+});

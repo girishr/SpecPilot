@@ -206,7 +206,11 @@ function projectIndex(url: URL, count: number): number | null {
 }
 
 const SECURITY_HEADERS = {
-  'Content-Security-Policy': "default-src 'self'",
+  // No other page may frame the UI (BL-143): its writes are one click each.
+  'Content-Security-Policy': "default-src 'self'; frame-ancestors 'none'",
+  'X-Frame-Options': 'DENY',
+  'Cross-Origin-Resource-Policy': 'same-origin',
+  'Cross-Origin-Opener-Policy': 'same-origin',
   'X-Content-Type-Options': 'nosniff',
   'Cache-Control': 'no-store',
 };
@@ -1128,7 +1132,10 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
             : `"/assets/${file}?v=${assetVersion}" integrity="sha384-${createHash('sha384').update(readFileSync(join(UI_DIR, file))).digest('base64')}"`,
         );
         const mcpMeta = pageToken && mcpToken ? `<meta name="specpilot-mcp" content="${opts.mcpToken ? 'env' : 'page'}">` : '';
-        res.writeHead(200, { 'Content-Type': UI_ROUTES['/'][1], ...SECURITY_HEADERS, ...(topLevel ? {} : CLEAR_STORAGE) });
+        // Only this origin's own requests clear storage: a frame from another port or site must not wipe it (BL-143).
+        const site = req.headers['sec-fetch-site'];
+        const ours = site === undefined || site === 'none' || site === 'same-origin';
+        res.writeHead(200, { 'Content-Type': UI_ROUTES['/'][1], ...SECURITY_HEADERS, ...(topLevel || !ours ? {} : CLEAR_STORAGE) });
         return res.end(page.replace(TOKEN_SLOT, pageToken ? `<meta name="specpilot-token" content="${pageToken}">` : '').replace(MCP_SLOT, mcpMeta));
       }
       const ui = UI_ROUTES[url.pathname];

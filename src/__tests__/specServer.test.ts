@@ -435,7 +435,7 @@ describe('spec server over HTTP (port 0)', () => {
     const res = await hit(port, path);
     expect(res.status).toBe(status);
     expect(res.headers['content-type']).toBe(type);
-    expect(res.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(res.headers['content-security-policy']).toBe("default-src 'self'; frame-ancestors 'none'");
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['cache-control']).toBe('no-store');
     expect(Object.keys(res.headers).some(h => h.startsWith('access-control-'))).toBe(false);
@@ -459,7 +459,7 @@ describe('spec server over HTTP (port 0)', () => {
     const res = await hit(port, '/api/specs', { method });
     expect(res.status).toBe(405);
     expect(res.headers['allow']).toBe('GET');
-    expect(res.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(res.headers['content-security-policy']).toBe("default-src 'self'; frame-ancestors 'none'");
   });
 
   it.each([['evil.com'], ['evil.com:PORT'], ['127.0.0.1:1']])('Host %s → 403 before anything else', async host => {
@@ -473,7 +473,7 @@ describe('spec server over HTTP (port 0)', () => {
     const icon = await hit(port, '/assets/favicon.svg');
     expect(icon.status).toBe(200);
     expect(icon.headers['content-type']).toBe('image/svg+xml');
-    expect(icon.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(icon.headers['content-security-policy']).toBe("default-src 'self'; frame-ancestors 'none'");
     expect(icon.body).toMatch(/^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]* fill="none">/);
     expect(icon.body).toContain('url(#paint0_linear_18_9)');
     expect(icon.body).not.toMatch(/<script|\son[a-z]+=/i);
@@ -788,7 +788,7 @@ describe('live reload over /api/events', () => {
     const s = await openEvents(port);
     expect(s.status).toBe(200);
     expect(s.headers['content-type']).toBe('text/event-stream; charset=utf-8');
-    expect(s.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(s.headers['content-security-policy']).toBe("default-src 'self'; frame-ancestors 'none'");
     expect(s.headers['x-content-type-options']).toBe('nosniff');
     expect(s.headers['cache-control']).toBe('no-store');
     expect(Object.keys(s.headers).some(h => h.startsWith('access-control-'))).toBe(false);
@@ -808,7 +808,7 @@ describe('live reload over /api/events', () => {
     await until(() => spec.streams() === MAX_EVENT_STREAMS);
     const extra = await openEvents(port);
     expect(extra.status).toBe(503);
-    expect(extra.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(extra.headers['content-security-policy']).toBe("default-src 'self'; frame-ancestors 'none'");
     open.forEach(s => s.close());
   });
 
@@ -1404,7 +1404,7 @@ describe('task moves over HTTP', () => {
     const res = await post(port, body, headers);
     expect(res.status).toBe(status);
     expect(readFileSync(file, 'utf-8')).toBe(MOVE_TASKS);
-    expect(res.headers['content-security-policy']).toBe("default-src 'self'");
+    expect(res.headers['content-security-policy']).toBe("default-src 'self'; frame-ancestors 'none'");
   });
 
   it('rejects a body over 16 KB with 413 and leaves tasks.md untouched', async () => {
@@ -4530,5 +4530,73 @@ describe('leftover browser state on the origin (BL-142)', () => {
     } finally {
       await none.close();
     }
+  });
+});
+
+// BL-143 (REQ-002.H.62; audit run-1 item 12, SEC-002.15 (a)): no other page can frame the UI or wipe its storage.
+describe('framing (BL-143)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const FOUR = {
+    'content-security-policy': "default-src 'self'; frame-ancestors 'none'",
+    'x-frame-options': 'DENY',
+    'cross-origin-resource-policy': 'same-origin',
+    'cross-origin-opener-policy': 'same-origin',
+  };
+  const four = (h: Record<string, unknown>) => Object.fromEntries(Object.keys(FOUR).map(k => [k, h[k]]));
+  beforeAll(async () => {
+    p = makeProject();
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { mcp: true });
+    port = (spec.server.address() as AddressInfo).port;
+    token = (await hit(port, '/')).body.match(/specpilot-token" content="([0-9a-f]+)"/)![1];
+  });
+  afterAll(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+  const host = () => `127.0.0.1:${port}`;
+  const json = (more: Record<string, string> = {}) => ({ Host: host(), Origin: `http://${host()}`, 'Content-Type': 'application/json', ...more });
+
+  test('every kind of response carries the four headers', async () => {
+    const seen: [string, unknown][] = [];
+    const add = (what: string, h: Record<string, unknown>) => seen.push([what, four(h)]);
+    for (const path of ['/', '/assets/app.js', '/api/specs', '/api/file?p=CLAUDE.md', '/nope']) add(`GET ${path}`, (await hit(port, path)).headers);
+    add('405', (await hit(port, '/api/specs', { method: 'POST' })).headers);
+    add('Service-Worker: script', (await hit(port, '/sw.js', { headers: { 'Service-Worker': 'script' } })).headers);
+    add('bad Host', (await hit(port, '/', { host: 'evil.example:80' })).headers);
+    add('token refusal', (await post(port, '{}', json())).headers);
+    add('413', (await post(port, 'x'.repeat(17 * 1024), json({ 'X-SpecPilot-Token': token }))).headers);
+    add('POST /mcp', (await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' }), json({ 'X-SpecPilot-Token': spec.mcpToken!, Accept: 'application/json, text/event-stream' }), '/mcp')).headers);
+    add('/api/events', await new Promise<Record<string, unknown>>((resolve, reject) => {
+      const req = request({ host: '127.0.0.1', port, path: '/api/events', headers: { Host: host() } }, res => {
+        resolve(res.headers);
+        req.destroy();
+      });
+      req.on('error', reject);
+      req.end();
+    }));
+    for (const [what, h] of seen) expect([what, h]).toEqual([what, FOUR]);
+  });
+
+  test.each([
+    ['a frame from another port (same-site)', { 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Site': 'same-site' }, false],
+    ['a frame from another site', { 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Site': 'cross-site' }, false],
+    ['a frame with an unknown Sec-Fetch-Site', { 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Site': 'elsewhere' }, false],
+    ['a frame from this origin', { 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Site': 'same-origin' }, true],
+    ['a frame with no Sec-Fetch-Site', { 'Sec-Fetch-Dest': 'iframe' }, true],
+    ["a worker's pass-through", { 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Site': 'same-origin' }, true],
+    ['a navigation preload', { 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'none', 'Service-Worker-Navigation-Preload': 'true' }, true],
+  ])('%s: no token, and Clear-Site-Data only for this origin', async (_what, headers, clears) => {
+    const res = await hit(port, '/', { headers });
+    expect(res.body).not.toContain('specpilot-token');
+    expect(res.headers['clear-site-data']).toBe(clears ? '"storage"' : undefined);
+  });
+
+  test('a top-level load from a link on another site gets the token and no Clear-Site-Data', async () => {
+    const res = await hit(port, '/', { headers: { 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate' } });
+    expect(res.body).toMatch(/specpilot-token" content="[0-9a-f]{64}"/);
+    expect(res.headers['clear-site-data']).toBeUndefined();
   });
 });

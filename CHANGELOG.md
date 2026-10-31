@@ -13,12 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **A `specpilot serve` page shown inside another tool's frame is read-only** (BL-142): for example an editor's built-in browser; it also forgets its theme and dismissed notes on every load. Not checked in any editor.
+- **A `specpilot serve` page shown inside another tool's frame no longer displays** (BL-142, BL-143): for example an editor's built-in browser; open the page in a browser tab. Not checked in any editor.
 
 - **SpecPilot's commands no longer write through any symbolic link in the project, also one that points inside it** (BL-130): a `CLAUDE.md` linked to `AGENTS.md` is reported `Skipped` by `backfill`, and a `.specs` folder linked to a shared folder is refused by every command that writes. Replace the link with the file to have it updated.
 
 ### Fixed
 
+- **No other page can frame the `specpilot serve` page or clear its saved settings** (BL-143, security audit run-1): another site could show the page in a frame and trick a click on Regenerate All, Approve or Remove; every response now refuses framing. A frame from another page also cleared the theme and dismissed notes since BL-142; it no longer does.
 - **A service worker or cached script left on the `specpilot serve` port by another program can no longer take the page's token** (BL-142, security audit run-1): the page now gets its token only on a real page load, a leftover worker is removed (with this origin's saved theme and dismissed notes), and the page's scripts and stylesheet load with a per-start version and an integrity check. Checked in Chromium; Firefox and Safari are not yet checked.
 - **A crafted line in a spec file can no longer freeze the `specpilot serve` page** (BL-138, security audit run-1): several patterns in the page's Markdown renderer slowed down badly on long crafted input (unclosed links, a long table separator, a heading or list item with a U+2028 line separator), so one `tasks.md` row could hang the tab whenever the project was shown. Every pattern now runs in linear time and renders as before, except that a link target containing `[` is no longer a link and a lone `|` followed by spaces no longer starts a table.
 - **A crafted `project.yaml` can no longer make SpecPilot do a lot of work to read it** (BL-137, security audit run-1): YAML merge keys (`<<`) let a small file expand to a very large one on every page load, MCP list call and startup of `specpilot serve`, and in `validate`. Repository YAML is now read without merge keys and only up to 256 KB; `validate` reports a larger `project.yaml` as not parsed. A `project.yaml` that relied on `<<: *anchor` to supply its fields, or on a `!!set`, `!!omap`, `!!pairs`, `!!binary` or `!!timestamp` tag, now reads without them or fails to parse.

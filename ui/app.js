@@ -1080,15 +1080,16 @@ async function apply(d,paths){
   refocus(key);
 }
 let es=null;
-function listen(){
+function listen(missed){
   if(stopped||!window.EventSource)return;
   if(es)es.close(); // one stream, for the shown project
-  es=new EventSource(DATA&&!DATA.project?'/api/events':'/api/events?'+pq());let dropped=false; // no project served: the server-level stream (BL-080)
+  es=new EventSource(DATA&&!DATA.project?'/api/events':'/api/events?'+pq());let dropped=!!missed; // no project served: the server-level stream (BL-080)
   es.addEventListener('clone',e=>onCloneEvent(e.data));
   es.addEventListener('setup',e=>onSetupEvent(e.data));
   es.addEventListener('mcp',e=>{let d=null;try{d=JSON.parse(e.data);}catch(_){}if(d&&DATA){DATA.mcp=d;if(curView==='setup'||curView==='new')suStatus();}});
   es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
-  es.onerror=()=>{dropped=true;};          // EventSource retries by itself
+  const mine=es; // a refusal or a 503 closes it for good: reopen it in 5 s unless it was replaced meanwhile (BL-144)
+  es.onerror=()=>{dropped=true;if(mine.readyState===2)setTimeout(()=>{if(es===mine)listen(true);},5000);}; // otherwise EventSource retries by itself
   es.onopen=()=>{if(dropped){dropped=false;refresh(null);}}; // catch up on anything missed
 }
 

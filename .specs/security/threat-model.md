@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-31 (BL-143: SEC-002.15 (a) mitigated)
-version: 1.50
+lastUpdated: 2026-10-31 (BL-144: SEC-002.15 (b) mitigated)
+version: 1.51
 contributors: [girishr]
 relatedFiles:
   [
@@ -208,8 +208,8 @@ Same audit and status as SEC-002.12. The principal is a web page the user visits
 | **Impact**        | Medium for (a): unwanted writes within what the page's routes allow, visible in git. Low for (b): live updates, clone and setup progress lost until reload. |
 | **Likelihood**    | Low: needs a hostile page while `serve` runs; current browsers may block or prompt on loopback frames (Local Network Access), which the audit could not observe. |
 | **Entry point**   | `GET /` and `GET /api/events` from a cross-origin frame or navigation. |
-| **Mitigation**    | (a) since BL-143 (REQ-002.H.62, SEC-004.34): every response carries `frame-ancestors 'none'` in its CSP, `X-Frame-Options: DENY`, `Cross-Origin-Resource-Policy: same-origin` and `Cross-Origin-Opener-Policy: same-origin`; and since BL-142 a framed `GET /` gets no token in a browser that sends `Sec-Fetch-Dest`, so its writes are refused even where a frame drew. A frame from another origin gets no `Clear-Site-Data` (BL-143). (b) none yet: BL-144 (refuse `/api/events` and the other `/api` reads when `Sec-Fetch-Site` is cross-site or `Origin` is foreign). |
-| **Residual risk** | (a) mitigated (BL-143; audit item 12, `specpilot/specServer/ui-frameable-no-frame-ancestors`, regression tests in `specServer.test.ts` and `origin.browser.test.ts`): measured in headless Chromium; an editor's built-in browser that frames the page no longer shows it. (b) needs validation (audit item 13, `specpilot/specServer/event-stream-slots-unauthenticated`; BL-144). |
+| **Mitigation**    | (a) since BL-143 (REQ-002.H.62, SEC-004.34): every response carries `frame-ancestors 'none'` in its CSP, `X-Frame-Options: DENY`, `Cross-Origin-Resource-Policy: same-origin` and `Cross-Origin-Opener-Policy: same-origin`; and since BL-142 a framed `GET /` gets no token in a browser that sends `Sec-Fetch-Dest`, so its writes are refused even where a frame drew. A frame from another origin gets no `Clear-Site-Data` (BL-143). (b) since BL-144 (REQ-002.H.63, SEC-004.35): a GET of `/api/events`, `/api/specs`, `/api/file` or `/api/projects` is refused with 403 unless `Sec-Fetch-Site` is absent, `none` or `same-origin`, or when a foreign `Origin` is sent, before any slot is taken; the page reopens its stream 5 s after the browser gives it up. |
+| **Residual risk** | (a) mitigated (BL-143; audit item 12, `specpilot/specServer/ui-frameable-no-frame-ancestors`, regression tests in `specServer.test.ts` and `origin.browser.test.ts`): measured in headless Chromium; an editor's built-in browser that frames the page no longer shows it. (b) mitigated (BL-144; audit item 13, `specpilot/specServer/event-stream-slots-unauthenticated`, regression tests in `specServer.test.ts` and `events.browser.test.ts`): measured in headless Chromium; a browser without `Sec-Fetch-Site` lets another page's frame or image hold a slot (an `EventSource` from elsewhere still sends `Origin`); with 8 real tabs open a ninth retries every 5 s. |
 
 ## Attack Surface Summary [SEC-003]
 

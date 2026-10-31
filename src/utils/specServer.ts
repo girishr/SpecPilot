@@ -235,6 +235,8 @@ const TOKEN_SLOT = '<!-- specpilot-token -->';
 const MCP_SLOT = '<!-- specpilot-mcp -->';
 /** Sent where an earlier program's service worker shows itself: removes it (and this origin's localStorage) (BL-142). */
 const CLEAR_STORAGE = { 'Clear-Site-Data': '"storage"' };
+/** The reads only the page itself may make (BL-144). */
+const READS = new Set(['/api/events', '/api/specs', '/api/file', '/api/projects']);
 
 /** Largest accepted body on /mcp: the setup answers, as the page's setup routes took them (BL-104). */
 export const MAX_MCP_BODY = 64 * 1024;
@@ -1055,6 +1057,14 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         return res.end('Not Found\n');
       }
       const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+      // From this origin, an address typed in, or a client that sends no fetch metadata (BL-143, BL-144).
+      const site = req.headers['sec-fetch-site'];
+      const ours = site === undefined || site === 'none' || site === 'same-origin';
+      // Another page may neither hold an event slot nor read the data (BL-144); the page itself sends no foreign Origin.
+      const foreignOrigin = req.headers.origin !== undefined && req.headers.origin !== `http://${req.headers.host}`;
+      if (req.method === 'GET' && READS.has(url.pathname) && (!ours || foreignOrigin)) {
+        return sendJson(res, 403, { error: 'This request did not come from the SpecPilot page, so it was refused.' });
+      }
       if (mcpToken && url.pathname === '/mcp') return handleMcp(req, res);
       if (url.pathname === '/api/projects') {
         if (registry && req.method === 'GET') return sendJson(res, 200, registryBody());
@@ -1133,8 +1143,6 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         );
         const mcpMeta = pageToken && mcpToken ? `<meta name="specpilot-mcp" content="${opts.mcpToken ? 'env' : 'page'}">` : '';
         // Only this origin's own requests clear storage: a frame from another port or site must not wipe it (BL-143).
-        const site = req.headers['sec-fetch-site'];
-        const ours = site === undefined || site === 'none' || site === 'same-origin';
         res.writeHead(200, { 'Content-Type': UI_ROUTES['/'][1], ...SECURITY_HEADERS, ...(topLevel || !ours ? {} : CLEAR_STORAGE) });
         return res.end(page.replace(TOKEN_SLOT, pageToken ? `<meta name="specpilot-token" content="${pageToken}">` : '').replace(MCP_SLOT, mcpMeta));
       }

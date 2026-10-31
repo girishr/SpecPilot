@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-31 (BL-144 to Review, approved)
-version: 7.94
+lastUpdated: 2026-10-31 (BL-144 to Completed)
+version: 7.95
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -72,7 +72,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-144 | bug | P3 | Bug, P3. `GET /api/events` checks only the Host, so a cross-origin page may hold all 8 slots and cut the real page off live updates: refuse it (and the other `/api` reads) when `Sec-Fetch-Site` is cross-site or `Origin` is foreign; the page reopens its stream after an error. Attribution: SEC-002.15 (b), SEC-004.9; audit item 13, `specpilot/specServer/event-stream-slots-unauthenticated`. Approved 2026-10-31 |
 
 ## Won't do
 
@@ -126,3 +125,4 @@ Notes
 | 255 | [CD-girishr-164] [BL-139] | Other local principals out of scope (security audit run-1, SEC-002.14, architect decision): other OS accounts on a shared host and a program holding `serve`'s port while it is down are in Out of Scope [SEC-004] and the README's Limits; BL-140 and BL-141 to Won't do; an earlier occupant's browser state on the origin stays in scope (BL-142); SEC-005 answered, BL-145 narrowed. Docs only. Approved 2026-10-31. Feature commit `411a54a`. |
 | 256 | [CD-girishr-165] [BL-142] | An earlier program's browser state on the `serve` origin takes no token (security audit run-1, SEC-002.14 (c)): `GET /` fills the token only for a top-level load and otherwise sends `Clear-Site-Data: "storage"`; a `Service-Worker: script` request gets 404 and that header; asset references carry a per-start `?v=` and an `integrity`; the page drops its token under a worker's control and reloads once. Chromium only, status open until BL-145. REQ-002.H.61, SEC-004.33. Jest 1891 → 1901, browser 91 → 102. Approved 2026-10-31. Feature commit `b0541ed`. |
 | 257 | [CD-girishr-166] [BL-143] | No other page can frame the `serve` UI or clear its storage (security audit run-1, SEC-002.15 (a)): every response carries `frame-ancestors 'none'`, `X-Frame-Options: DENY` and same-origin CORP and COOP; BL-142's `Clear-Site-Data` on a non-top-level `GET /` now goes only with `Sec-Fetch-Site` absent, `none` or `same-origin`, so a frame elsewhere no longer wipes the theme. REQ-002.H.62, SEC-004.34. Jest 1901 → 1910, browser 102 → 104 (12 of 13 runs clean, one uncaptured failure). Approved 2026-10-31. Feature commit `6f77391`. |
+| 258 | [CD-girishr-167] [BL-144] | Another page can neither hold the event slots nor read the `serve` page's data (security audit run-1, SEC-002.15 (b)): a GET of `/api/events`, `/api/specs`, `/api/file` or `/api/projects` is refused with 403 unless `Sec-Fetch-Site` is absent, `none` or `same-origin`, or with a foreign `Origin`, before a slot is taken; the page reopens its stream 5 s after the browser gives it up. REQ-002.H.63, SEC-004.35. Jest 1910 → 1920, browser 104 → 109. Approved 2026-10-31. Feature commit `8539b3e`. |

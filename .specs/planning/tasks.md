@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-10-31 (BL-139 to Review, approved)
-version: 7.83
+lastUpdated: 2026-10-31 (BL-139 to Completed)
+version: 7.84
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -75,7 +75,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-139 | chore | P1 | Chore, P1, decision. Are other OS users on a shared host, and servers that held the `serve` port earlier (e.g. forwarded from a container), in scope? SEC-004.20, .23, .27 and .28 assume every local process is the owner, which is false for those and for `SPECPILOT_MCP_TOKEN`. Record the answer in the security files (in scope: BL-140 to BL-142; out: a line in Out of Scope [SEC-004]). Attribution: SEC-002.14, SEC-005; audit items 6 to 8. Approved 2026-10-31 |
 
 ## Won't do
 
@@ -126,3 +125,4 @@ Notes
 | 252 | [CD-girishr-161] [BL-136] | The code analysis and project detection follow no link and are bounded (security audit run-1, SEC-002.13 (c)): `CodeAnalyzer`'s walks use `lstat`, visit at most 2000 entries and 20 levels, read files of at most 1 MB and 8 MB per run; every manifest goes through `readSmall()` (64 KB); BL-149 filed for nested test files never counted. REQ-002.D.6. Jest 1862 → 1873, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `5dda804`. |
 | 253 | [CD-girishr-162] [BL-137] | One capped, merge-free loader for repository YAML (security audit run-1, SEC-002.13 (d)): `loadRepoYaml()` in `specReader.ts` (`CORE_SCHEMA`, at most 262,144 UTF-8 bytes) serves the validator, backfill, `init`, `serve`'s project names and the skill context; `validate` counts an aliased `rules` array once. REQ-002.A.3. Jest 1873 → 1886, golden unchanged, no `ui/` change. Approved 2026-10-30. Feature commit `1ad4d4b`. |
 | 254 | [CD-girishr-163] [BL-138] | The serve page's markdown renderer runs in linear time (security audit run-1, SEC-002.13 (e)): `ui/md.js`'s link target excludes `[`, the table-separator test matches `specReader.ts`, and the heading, list, numbered and checkbox patterns capture `(\S.*)?`, so a crafted line no longer freezes the tab. REQ-002.H.60. Jest 1886 → 1891, browser 90 → 91. Approved 2026-10-31. Feature commit `44d16ce`. |
+| 255 | [CD-girishr-164] [BL-139] | Other local principals out of scope (security audit run-1, SEC-002.14, architect decision): other OS accounts on a shared host and a program holding `serve`'s port while it is down are in Out of Scope [SEC-004] and the README's Limits; BL-140 and BL-141 to Won't do; an earlier occupant's browser state on the origin stays in scope (BL-142); SEC-005 answered, BL-145 narrowed. Docs only. Approved 2026-10-31. Feature commit `411a54a`. |

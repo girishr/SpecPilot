@@ -3,7 +3,7 @@ import { AddressInfo } from 'net';
 import { existsSync, readFileSync, realpathSync, statSync } from 'fs';
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'path';
 import { homedir } from 'os';
-import { randomBytes, timingSafeEqual } from 'crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { loadRepoYaml, readSpecs } from './specReader';
 import { archiveCompleted, completedArchiveStatus, FIELDS_STALE_ERROR, FieldsRequest, fieldsShapeError, MOVES, moveShapeError, moveTask, NEW_STALE_ERROR, newTask, NewTask, newTaskShapeError, REVIEW_STALE_ERROR, ReviewRequest, reviewShapeError, reviewTask, setTaskFields, sha256, STALE_ERROR, suggestedIds, TaskMove } from './taskMover';
 import { ALLOWED_FILES, listAllowedFiles, resolveAllowedPath } from './specPaths';
@@ -229,6 +229,8 @@ export const MAX_MOVE_BODY = 16 * 1024;
 const TOKEN_SLOT = '<!-- specpilot-token -->';
 /** Where index.html learns that /mcp is on, and whose token it takes: `page` or `env` (BL-PM-007). */
 const MCP_SLOT = '<!-- specpilot-mcp -->';
+/** Sent where an earlier program's service worker shows itself: removes it (and this origin's localStorage) (BL-142). */
+const CLEAR_STORAGE = { 'Clear-Site-Data': '"storage"' };
 
 /** Largest accepted body on /mcp: the setup answers, as the page's setup routes took them (BL-104). */
 export const MAX_MCP_BODY = 64 * 1024;
@@ -334,6 +336,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   const token = opts.readOnly ? null : randomBytes(32).toString('hex');
   // /mcp's token (BL-PM-007): its own variable, because a null `token` is what turns the page's writes off.
   const mcpToken = !opts.mcp ? null : (opts.mcpToken ?? token ?? randomBytes(32).toString('hex'));
+  // Per start, on every asset reference: an entry another program cached for /assets/* is never used (BL-142).
+  const assetVersion = randomBytes(8).toString('hex');
   let writeLock: Promise<void> = Promise.resolve(); // writes run strictly one after another, in every project
   // The MCP client whose initialize /mcp last answered (BL-103): null until then; `name` sanitized, '' when none was sent.
   let mcpClient: { name: string } | null = null;
@@ -1041,6 +1045,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     try {
       const { port } = server.address() as AddressInfo;
       if (!isAllowedHost(req.headers.host, port)) return send(res, 403, TEXT, 'Forbidden: unexpected Host header\n');
+      // A worker's install or update fetch: SpecPilot registers none, so this one is an earlier program's (BL-142).
+      if (req.headers['service-worker'] === 'script') {
+        res.writeHead(404, { 'Content-Type': TEXT, ...SECURITY_HEADERS, ...CLEAR_STORAGE });
+        return res.end('Not Found\n');
+      }
       const url = new URL(req.url ?? '/', 'http://127.0.0.1');
       if (mcpToken && url.pathname === '/mcp') return handleMcp(req, res);
       if (url.pathname === '/api/projects') {
@@ -1109,9 +1118,18 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }
       if (url.pathname === '/') {
-        const page = readFileSync(join(UI_DIR, 'index.html'), 'utf-8');
-        const mcpMeta = token && mcpToken ? `<meta name="specpilot-mcp" content="${opts.mcpToken ? 'env' : 'page'}">` : '';
-        return send(res, 200, UI_ROUTES['/'][1], page.replace(TOKEN_SLOT, token ? `<meta name="specpilot-token" content="${token}">` : '').replace(MCP_SLOT, mcpMeta));
+        // The token only into a top-level load: not a worker's pass-through (`empty`), a frame or a navigation preload (BL-142).
+        const dest = req.headers['sec-fetch-dest'];
+        const topLevel = (dest === undefined || dest === 'document') && req.headers['service-worker-navigation-preload'] === undefined;
+        const pageToken = topLevel ? token : null;
+        const page = readFileSync(join(UI_DIR, 'index.html'), 'utf-8').replace(/"\/assets\/([\w.]+)"/g, (_, file: string) =>
+          file === 'favicon.svg'
+            ? `"/assets/${file}?v=${assetVersion}"`
+            : `"/assets/${file}?v=${assetVersion}" integrity="sha384-${createHash('sha384').update(readFileSync(join(UI_DIR, file))).digest('base64')}"`,
+        );
+        const mcpMeta = pageToken && mcpToken ? `<meta name="specpilot-mcp" content="${opts.mcpToken ? 'env' : 'page'}">` : '';
+        res.writeHead(200, { 'Content-Type': UI_ROUTES['/'][1], ...SECURITY_HEADERS, ...(topLevel ? {} : CLEAR_STORAGE) });
+        return res.end(page.replace(TOKEN_SLOT, pageToken ? `<meta name="specpilot-token" content="${pageToken}">` : '').replace(MCP_SLOT, mcpMeta));
       }
       const ui = UI_ROUTES[url.pathname];
       if (ui) return send(res, 200, ui[1], readFileSync(join(UI_DIR, ui[0])));

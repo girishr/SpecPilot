@@ -7,7 +7,7 @@ import { join } from 'path';
 import * as os from 'os';
 
 export const REPO = join(__dirname, '..', '..');
-const VERSION: string = require(join(REPO, 'package.json')).version;
+export const VERSION: string = require(join(REPO, 'package.json')).version;
 const PLAYWRIGHT: string = require('playwright-core/package.json').version;
 
 // The built modules, so the server serves what ships.

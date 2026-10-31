@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-29 (BL-126 logged)
-version: 2.200
+lastUpdated: 2026-10-31 (BL-139 logged)
+version: 2.201
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-10-31: the developer: `Approve, then commit` for BL-138: row marked `Approved 2026-10-31`; feature commit `44d16ce`, completion commit, `--no-ff` merge into `main`, `prompts.md` archived as its own commit, Jest 1891/1891 and browser 91/91 on `main`, branch deleted. Not pushed
+- 2026-10-31: BL-139 started on `chore/bl-139-local-principals-scope` from `main` (`bcf7b0e`); the scope question went to the architect: DECIDE, (a) and (b) out of scope, (c) in scope (context.md). Applied to the security files, the README's Limits and `tasks.md` (BL-140, BL-141 to Won't do; BL-145 narrowed), to spec-review
+- 2026-10-31: BL-139 spec-reviewer ESCALATE with nothing to fix (Architectural; the scope call is the developer's on the card); its wording nit on SEC-004.20 taken; BL-139 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-31: the developer: `Approve, then commit` for BL-139: row marked `Approved 2026-10-31`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
 - 2026-10-31: the developer: `Start BL-138 and continue till 144.` (each item still stops in Review for the card and the typed `commit`; the next starts after its merge). Branch `fix/bl-138-md-linear-patterns` from `main` (`f2706b0`); Spec Report written (REQ-002.H.60, context.md), to spec-reviewer before code
 - 2026-10-31: BL-138 spec-reviewer FIX on the report (the exact link rule, the `[`-in-target and lone-`|` exceptions, four more quadratic line patterns with U+2028, tests): applied; the four patterns taken into BL-138 (same file, same threat), the new shape checked equal in `node`
 - 2026-10-31: BL-138 spec-reviewer PASS on the fixed report; built: 6 tests first (the browser test took 17.7 s on `main`), Jest 1891/1891, browser 91/91 three times. Nothing committed

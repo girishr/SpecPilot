@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-10-31 (BL-138: SEC-002.13 (e) mitigated)
-version: 1.47
+lastUpdated: 2026-10-31 (BL-139: SEC-002.14 scope decided)
+version: 1.48
 contributors: [girishr]
 relatedFiles:
   [
@@ -195,8 +195,8 @@ Same audit and status as SEC-002.12. SEC-002.5's residual, SEC-002.9, SEC-004.20
 | **Impact**        | High for (a) and (b) where the other user is less trusted: writes and clones as the owner, reads of folders that user cannot read, a steered agent. High for (c): the page token's authority. None on a single-user machine with no other server forwarded to the port. |
 | **Likelihood**    | Low: needs a multi-user host, or for (c) a dev server on the same port earlier (for example forwarded from a container or VM) and browser behaviour the audit could not observe. |
 | **Entry point**   | `GET /` and every token-gated route from another OS user; `127.0.0.1:<port>` while the owner's server is down; the browser's state for the two origins. |
-| **Mitigation**    | None for these principals. Scope first (SEC-005). If in scope: the token delivered out of band (an owner-only file, not `GET /`), a warning when another process holds the configured port, and `Clear-Site-Data`, versioned asset paths and a service-worker check on the page. If out of scope: say so in Out of Scope [SEC-004]. |
-| **Residual risk** | Needs validation (audit items 6, 7, 8; fingerprints `specpilot/specServer/page-token-served-to-any-local-peer`, `specpilot/serve/mcp-client-trusts-fixed-loopback-port`, `specpilot/specServer/fixed-origin-inherits-prior-occupant-worker-and-cache`). |
+| **Mitigation**    | (a) and (b): none; out of scope (BL-139, architect decision 2026-10-31): `serve` treats every user and process that can reach its loopback port as the owner, see Out of Scope [SEC-004]; the README's Limits say not to run `serve` on a machine shared with other accounts, and to set a new `SPECPILOT_MCP_TOKEN` if another program has held the port. (c): in scope, none yet; BL-142 (its Spec Report weighs `Clear-Site-Data`, versioned asset paths and a service-worker check, given that a worker already controlling the page sees `GET /` first). |
+| **Residual risk** | (a) and (b) accepted as out of scope (BL-139; audit items 6 and 7, `specpilot/specServer/page-token-served-to-any-local-peer`, `specpilot/serve/mcp-client-trusts-fixed-loopback-port`). (c) open, BL-142 (audit item 8, `specpilot/specServer/fixed-origin-inherits-prior-occupant-worker-and-cache`), needs validation in a browser (BL-145). |
 
 ### Cross-origin pages: framing and event slots (security audit run-1) [SEC-002.15]
 
@@ -261,7 +261,8 @@ Same audit and status as SEC-002.12. The principal is a web page the user visits
 - **Generated file security**: The `.specs/` files SpecPilot writes are plain text (Markdown/YAML). It is the user's responsibility to keep them safe (e.g., not committing secrets).
 - **CI/CD pipeline security**: Downstream use of spec files in build pipelines is out of scope.
 - **Compliance frameworks**: SOC2, GDPR, HIPAA, etc. are tracked in the backlog (BL-010) but not yet addressed.
+- **Other local principals** (BL-139, 2026-10-31, architect decision): `serve` treats every user and process that can reach its loopback port as the owner. Other OS accounts on a shared host, and a program holding the port while `serve` is down (it receives the IDE's `X-SpecPilot-Token`, long-lived with `SPECPILOT_MCP_TOKEN`), are out of scope; the README's Limits say so (SEC-002.14 (a), (b)). A previous occupant's browser state on the origin stays in scope (SEC-002.14 (c), BL-142).
 
 ---
 
-_Last updated: 2026-10-28_
+_Last updated: 2026-10-31_

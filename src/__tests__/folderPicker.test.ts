@@ -23,6 +23,7 @@ function installStub(name: string): void {
     `#!/bin/sh
 for a; do printf '%s\\n' "$a"; done > "$STUB_LOG.args"
 pwd > "$STUB_LOG.cwd"
+/usr/bin/env > "$STUB_LOG.env"
 echo $$ > "$STUB_LOG.pid"
 if read line; then echo open > "$STUB_LOG.stdin"; else echo closed > "$STUB_LOG.stdin"; fi
 case "$STUB_MODE" in
@@ -154,6 +155,19 @@ describe('dialogPrograms()', () => {
     rmSync(join(bin, 'zenity'));
     installStub('kdialog');
     expect(await pickFolder('/home/me', { platform: 'linux' })).toEqual({ path: null });
+  });
+
+  it('the dialog runs without any SPECPILOT_* variable (BL-146)', async () => {
+    const stub = process.platform === 'darwin' ? 'osascript' : 'zenity';
+    installStub(stub);
+    process.env.SPECPILOT_MCP_TOKEN = 'x'.repeat(40);
+    try {
+      await pickFolder('/home/me', { platform: process.platform === 'darwin' ? 'darwin' : 'linux' });
+    } finally {
+      delete process.env.SPECPILOT_MCP_TOKEN;
+    }
+    expect(logged('env')).toContain('STUB_LOG=');
+    expect(logged('env')).not.toMatch(/^SPECPILOT_/m);
   });
 
   it('osascript exit 1 without -128 is a failure, not a cancel', async () => {

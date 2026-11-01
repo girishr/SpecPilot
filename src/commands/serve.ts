@@ -7,7 +7,7 @@ import { connect } from 'net';
 import { join, resolve, win32 } from 'path';
 import { buildSpecsPayload, displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
 import { removeStaleStaging, specsMissing } from '../utils/specSetup';
-import { checkOpenPath, homeDir, MAX_PROJECTS, readRegistry, registryPath, sortEntries, upsertEntry, writeRegistry } from '../utils/projectRegistry';
+import { checkOpenPath, childEnv, homeDir, MAX_PROJECTS, readRegistry, registryPath, sortEntries, upsertEntry, writeRegistry } from '../utils/projectRegistry';
 import { Logger } from '../utils/logger';
 
 const packageJson = require('../../package.json');
@@ -45,10 +45,10 @@ export function browserCommand(url: string, platform: NodeJS.Platform, env: Node
   return { file: 'xdg-open', args: [url], cwd: undefined };
 }
 
-/** Open `url` in the default browser. The URL is built here, never taken from input. */
-function openBrowser(url: string, logger: Logger): void {
+/** Open `url` in the default browser. The URL is built here, never taken from input. Exported for the tests. */
+export function openBrowser(url: string, logger: Logger): void {
   const { file, args, cwd } = browserCommand(url, process.platform, process.env, homeDir());
-  const child = spawn(file, args, { stdio: 'ignore', detached: true, cwd });
+  const child = spawn(file, args, { stdio: 'ignore', detached: true, cwd, env: childEnv(process.env) });
   child.on('error', () => logger.warn(`Could not open a browser. Open ${url} yourself.`));
   child.unref();
 }

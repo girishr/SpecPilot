@@ -5,7 +5,7 @@ import { createServer, request, ClientRequest, Server } from 'http';
 import { AddressInfo } from 'net';
 import { join } from 'path';
 import { writeFileSync } from 'fs';
-import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, serve, Served, until, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, serve, Served, server, until, VERSION, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -136,3 +136,24 @@ browserTest(
   },
   REFUSED_STREAM,
 );
+
+// BL-146 (REQ-002.H.64 (6)): stopping the server with a page open always finishes; the page's stream used to
+// reopen on a kept-alive socket while close() waited, so close() never resolved (2 in 12 in a measurement).
+test('close() finishes every time with a page open (20 stops)', async () => {
+  const ctx = await browser.newContext();
+  try {
+    const page = await ctx.newPage();
+    for (let i = 0; i < 20; i++) {
+      const handle = await server.startSpecServer([env.project], 0, VERSION, { pollMs: 250 });
+      const at = (handle.server.address() as AddressInfo).port;
+      await page.goto(`http://127.0.0.1:${at}/`);
+      await waitView(page, 'v-board');
+      await pause(200 + (i % 5) * 500);
+      const closed = await Promise.race([handle.close().then(() => true), pause(4000).then(() => false)]);
+      if (!closed) handle.server.closeAllConnections();
+      expect([i, closed]).toEqual([i, true]);
+    }
+  } finally {
+    await ctx.close();
+  }
+}, 120000);

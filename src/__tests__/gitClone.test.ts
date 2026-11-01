@@ -489,6 +489,20 @@ const until = async (test: () => boolean | Promise<boolean>, ms = 15000) => {
     mkdirSync(target);
   });
 
+  it('runs git with GIT_LFS_SKIP_SMUDGE=1 and without any SPECPILOT_* variable (BL-146)', async () => {
+    process.env.SPECPILOT_MCP_TOKEN = 'x'.repeat(40);
+    process.env.SPECPILOT_OTHER = '1';
+    try {
+      await cloneRepository('https://github.com/owner/repo.git', target);
+    } finally {
+      delete process.env.SPECPILOT_MCP_TOKEN;
+      delete process.env.SPECPILOT_OTHER;
+    }
+    const env = envOf();
+    expect(env.GIT_LFS_SKIP_SMUDGE).toBe('1');
+    expect(Object.keys(env).filter(k => k.startsWith('SPECPILOT_'))).toEqual([]);
+  });
+
   it('passes exactly clone --progress --no-recurse-submodules -- <url> <target>, in the parent folder', async () => {
     expect(await cloneRepository('git@github.com:owner/repo.git', target)).toEqual({ ok: true });
     expect(logged('args').split('\n')).toEqual(['clone', '--progress', '--no-recurse-submodules', '--', 'git@github.com:owner/repo.git', target]);

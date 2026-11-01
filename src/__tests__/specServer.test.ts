@@ -15,6 +15,7 @@ import { watchedFiles } from '../utils/specPoller';
 import { serveCommand, STOP_CLONE_MS } from '../commands/serve';
 import * as gitClone from '../utils/gitClone';
 import * as specServerModule from '../utils/specServer';
+import * as specSetupModule from '../utils/specSetup';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
 import { REVIEW_INSTRUCTIONS, SETUP_INSTRUCTIONS } from '../utils/mcpLocal';
@@ -2685,6 +2686,71 @@ describe('setup tools on /mcp (BL-104)', () => {
     expect(q.questions.find((x: { key: string }) => x.key === 'language')!.choices!.map((c: { value: string }) => c.value)).toContain('typescript');
   });
 
+  it('the re-check under the lock refuses a different folder of the same kind (BL-146)', async () => {
+    const one = makeEmpty();
+    const two = makeEmpty();
+    const link = join(one.base, 'link');
+    try {
+      symlinkSync(one.root, link);
+      await start([e.root, one.root, two.root]);
+      // the first call holds the write lock until released
+      let release!: () => void;
+      const held = new Promise<void>(r => (release = r));
+      const real = specSetupModule.setupProject;
+      const spy = jest.spyOn(specSetupModule, 'setupProject').mockImplementationOnce(async (root, a) => {
+        await held;
+        return real(root, a);
+      });
+      const first = call('specpilot_setup_project', { path: e.root, answers: ANSWERS });
+      await until(() => spy.mock.calls.length === 1);
+      const second = call('specpilot_setup_project', { path: link, answers: ANSWERS });
+      await new Promise(r => setTimeout(r, 100)); // its first check has run against one.root
+      rmSync(link);
+      symlinkSync(two.root, link);
+      release();
+      await first;
+      expect((await second).refused).toBe(`${two.root} changed while it was being set up. Call specpilot_setup_questions again.`);
+      expect(existsSync(join(two.root, '.specs'))).toBe(false);
+    } finally {
+      one.cleanup();
+      two.cleanup();
+    }
+  });
+
+  it('the re-check under the lock refuses a different new target (BL-146)', async () => {
+    const P1 = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-p1-')));
+    const P2 = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-p2-')));
+    const link = join(e.base, 'parent-link');
+    try {
+      symlinkSync(P1, link);
+      await start([e.root]);
+      expect((await page('/api/projects/pending', { parent: link, name: 'x' })).status).toBe(200); // pending: P1/x
+      let release!: () => void;
+      const held = new Promise<void>(r => (release = r));
+      const real = specSetupModule.setupProject;
+      const spy = jest.spyOn(specSetupModule, 'setupProject').mockImplementationOnce(async (root, a) => {
+        await held;
+        return real(root, a);
+      });
+      const holder = call('specpilot_setup_project', { path: e.root, answers: ANSWERS });
+      await until(() => spy.mock.calls.length === 1);
+      const moved = page('/api/projects/pending', { parent: P2, name: 'x' }); // queued on the lock: pending becomes P2/x
+      await new Promise(r => setTimeout(r, 100));
+      const second = call('specpilot_setup_project', { path: join(link, 'x'), answers: NEW });
+      await new Promise(r => setTimeout(r, 100)); // its first check has run against P1/x
+      rmSync(link);
+      symlinkSync(P2, link);
+      release();
+      await holder;
+      expect((await moved).status).toBe(200);
+      expect((await second).refused).toBe(`${join(P2, 'x')} changed while it was being set up. Call specpilot_setup_questions again.`);
+      expect(existsSync(join(P2, 'x'))).toBe(false);
+    } finally {
+      rmSync(P1, { recursive: true, force: true });
+      rmSync(P2, { recursive: true, force: true });
+    }
+  });
+
   it('specpilot_setup_project in a folder: what add-specs writes, validate, and state-only events in order', async () => {
     await start([e.root, p.root]);
     events = await openEvents(port, `127.0.0.1:${port}`, '/api/events?project=1');
@@ -4039,6 +4105,13 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(REVIEW_TASKS);
   });
 
+  it('specpilot_new_task refuses a description holding a review marker (BL-146)', async () => {
+    await start();
+    const r = await tool('specpilot_new_task', { description: 'Ship it Approved 2026-10-31', section: 'backlog', sha256: hashOf(a.root) });
+    expect(r.isError).toBe(true);
+    expect(r.content[0].text).toBe('The description cannot contain a review marker (Approved or Sent back with a date): only Approve and Send back write those.');
+  });
+
   it('refuses a stale sha256 with "since you last read it" and writes nothing', async () => {
     await start();
     const stale = 'f'.repeat(64);
@@ -4685,3 +4758,16 @@ describe('reads from another page (BL-144)', () => {
     }
   });
 });
+
+// BL-146 (REQ-002.H.64 (3)): the page's esc() also escapes the single quote.
+describe("the page's esc() escapes ' (BL-146)", () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const route = require('../../ui/route.js') as { goneHtml: (p: string) => string };
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { esc } = require('../../ui/md.js') as { esc: (s: string) => string };
+  test("md.js and route.js map ' to &#39;", () => {
+    expect(esc(`a'b<"&`)).toBe('a&#39;b&lt;&quot;&amp;');
+    expect(route.goneHtml("it's")).toContain('it&#39;s');
+  });
+});
+

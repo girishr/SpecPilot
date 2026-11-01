@@ -4,7 +4,7 @@
    a spec file is shown as text, never parsed. Loaded as /assets/md.js in the browser and
    required directly by the Jest tests. */
 (function (root) {
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ANCHOR=/\[((?:REQ|ARCH|TASKS|ROADMAP|TESTS|SEC|CTX|PROMPT|API|PROJ|FIX|ADR|BL|CS|CD)-[A-Za-z0-9.\-]+)\]/g;
 function inline(t){
   let h=esc(t);

@@ -1,5 +1,6 @@
 import { execFile } from 'child_process';
 import { parse, posix, win32 } from 'path';
+import { childEnv } from './projectRegistry';
 
 // Browse for a folder in `specpilot serve` (BL-PM-011, ARCH-003.25, SEC-004.22): the second module that
 // starts a process for a request. The system's own folder dialog, started without a shell; its arguments
@@ -76,7 +77,7 @@ function run(program: Program, home: string, opts: PickOptions): Promise<PickRes
     const child = execFile(
       program.file,
       program.args,
-      { cwd: parse(home).root, env: process.env, windowsHide: true, timeout: opts.timeoutMs ?? BROWSE_TIMEOUT_MS, killSignal: 'SIGKILL', maxBuffer: 64 * 1024, signal: opts.signal, encoding: 'utf8' },
+      { cwd: parse(home).root, env: childEnv(process.env), windowsHide: true, timeout: opts.timeoutMs ?? BROWSE_TIMEOUT_MS, killSignal: 'SIGKILL', maxBuffer: 64 * 1024, signal: opts.signal, encoding: 'utf8' },
       (err, stdout, stderr) => {
         if (!err) {
           if (!stdout) return done({ path: null }); // PowerShell's cancel

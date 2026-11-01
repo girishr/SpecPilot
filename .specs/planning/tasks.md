@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-01 (BL-146 to Review, approved)
-version: 7.98
+lastUpdated: 2026-11-01 (BL-146 to Completed)
+version: 7.99
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -71,7 +71,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-146 | chore | P3 | Chore, P3. Hardening from the audit, no finding: `GIT_LFS_SKIP_SMUDGE=1` in `gitEnv()`; `SPECPILOT_*` removed from child-process environments; `esc()` in `ui/md.js` and `ui/route.js` escapes `'`; `newTaskShapeError()` refuses a description holding a review marker the reader would take (`Approved <date>` at the end, `Sent back <date>` anywhere); the setup re-check under the lock compares the target, not only its kind; and (found while building it, the developer's call to fold it in) `close()` drops every connection, so stopping `serve` with a page open no longer hangs. Attribution: audit run-1 REPORT §6, SEC-002.5 residual (m), SEC-004.31. Approved 2026-11-01 |
 
 ## Won't do
 
@@ -126,3 +125,4 @@ Notes
 | 256 | [CD-girishr-165] [BL-142] | An earlier program's browser state on the `serve` origin takes no token (security audit run-1, SEC-002.14 (c)): `GET /` fills the token only for a top-level load and otherwise sends `Clear-Site-Data: "storage"`; a `Service-Worker: script` request gets 404 and that header; asset references carry a per-start `?v=` and an `integrity`; the page drops its token under a worker's control and reloads once. Chromium only, status open until BL-145. REQ-002.H.61, SEC-004.33. Jest 1891 → 1901, browser 91 → 102. Approved 2026-10-31. Feature commit `b0541ed`. |
 | 257 | [CD-girishr-166] [BL-143] | No other page can frame the `serve` UI or clear its storage (security audit run-1, SEC-002.15 (a)): every response carries `frame-ancestors 'none'`, `X-Frame-Options: DENY` and same-origin CORP and COOP; BL-142's `Clear-Site-Data` on a non-top-level `GET /` now goes only with `Sec-Fetch-Site` absent, `none` or `same-origin`, so a frame elsewhere no longer wipes the theme. REQ-002.H.62, SEC-004.34. Jest 1901 → 1910, browser 102 → 104 (12 of 13 runs clean, one uncaptured failure). Approved 2026-10-31. Feature commit `6f77391`. |
 | 258 | [CD-girishr-167] [BL-144] | Another page can neither hold the event slots nor read the `serve` page's data (security audit run-1, SEC-002.15 (b)): a GET of `/api/events`, `/api/specs`, `/api/file` or `/api/projects` is refused with 403 unless `Sec-Fetch-Site` is absent, `none` or `same-origin`, or with a foreign `Origin`, before a slot is taken; the page reopens its stream 5 s after the browser gives it up. REQ-002.H.63, SEC-004.35. Jest 1910 → 1920, browser 104 → 109. Approved 2026-10-31. Feature commit `8539b3e`. |
+| 259 | [CD-girishr-168] [BL-146] | Audit hardening (security audit run-1 REPORT §6): clones skip Git LFS downloads; no child process gets a `SPECPILOT_*` variable; `esc()` escapes `'`; a new task cannot carry a review marker; the setup re-check compares the folder; the null-token `writeAllowed()` note not built (architect). Found while building: `close()` drops every connection, so stopping `serve` with a page open no longer hangs (Node 18.2+). REQ-002.H.64. Jest 1920 → 1936, browser 109 → 110. Approved 2026-11-01. Feature commit `70f7dfd`. |

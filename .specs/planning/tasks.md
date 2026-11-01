@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-01 (BL-145 to Completed)
-version: 7.103
+lastUpdated: 2026-11-01 (BL-151 to Completed, row 261)
+version: 7.105
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -127,3 +127,4 @@ Notes
 | 258 | [CD-girishr-167] [BL-144] | Another page can neither hold the event slots nor read the `serve` page's data (security audit run-1, SEC-002.15 (b)): a GET of `/api/events`, `/api/specs`, `/api/file` or `/api/projects` is refused with 403 unless `Sec-Fetch-Site` is absent, `none` or `same-origin`, or with a foreign `Origin`, before a slot is taken; the page reopens its stream 5 s after the browser gives it up. REQ-002.H.63, SEC-004.35. Jest 1910 → 1920, browser 104 → 109. Approved 2026-10-31. Feature commit `8539b3e`. |
 | 259 | [CD-girishr-168] [BL-146] | Audit hardening (security audit run-1 REPORT §6): clones skip Git LFS downloads; no child process gets a `SPECPILOT_*` variable; `esc()` escapes `'`; a new task cannot carry a review marker; the setup re-check compares the folder; the null-token `writeAllowed()` note not built (architect). Found while building: `close()` drops every connection, so stopping `serve` with a page open no longer hangs (Node 18.2+). REQ-002.H.64. Jest 1920 → 1936, browser 109 → 110. Approved 2026-11-01. Feature commit `70f7dfd`. |
 | 260 | [CD-girishr-169] [BL-145] | Audit leads validated (security audit run-1): items 10 and 11 in a capped Linux container, real on the audited commit and fixed on `main` (killed at 256 MB → 1 ms; 16.3 s → 30 ms); in Playwright's WebKit the request headers BL-142 to BL-144 rely on match Chromium, but `Clear-Site-Data` was not acted on at once; Firefox, Safari itself and the Windows VM filed as BL-150. Docs only. Approved 2026-11-01. Feature commit `abb49d2`. |
+| 261 | [CD-girishr-170] [BL-151] | The slot release race in the BL-144 browser tests: `holdSlots()`'s release waited for 0 streams by a 50 ms poll and missed it when the page's 5 s reopen landed in between; it now allows the page's one stream (`streams() <= 1`), and the later checks prove the slots were freed. A regression test holds the reopen and lets it through at the first 0: it failed 3 of 3 with the old wait. Test only, TESTS-002.4. Jest 1936, browser 110 → 111. Approved 2026-11-01. Feature commit `aacbc82`. |

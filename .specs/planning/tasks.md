@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-01 (BL-145 to Completed)
-version: 7.103
+lastUpdated: 2026-11-01 (BL-151 approved)
+version: 7.104
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -71,6 +71,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-151 | chore | P1 | Flaky browser test, blocking v2.20.0 (the developer, 2026-11-01: fix it before the release): `a project switch during the wait leaves exactly one stream` (`src/__browser__/events.browser.test.ts`) failed in the third of the release's three browser runs, `Timed out after 10000 ms waiting for the slots released`. `holdSlots()`'s release waits for `streams() === 0`, polling every 50 ms; when the page's 5-second reopen (BL-144) lands within that window after the 8 held streams close, the count goes 8, 0, 1 between two polls and never reads 0 again. Test-only fix, TESTS-002.4. Built 2026-11-01: the regression test failed 3 of 3 with the old wait; browser 110 → 111, three runs. Approved 2026-11-01. |
 
 ## Won't do
 

@@ -1,6 +1,6 @@
 // The event slots and reads from another page (BL-144, REQ-002.H.63, SEC-002.15 (b), TESTS-002.4): another page cannot
 // hold the 8 slots, and the page reopens its stream after the browser gives it up. Fixture rows only.
-import { Browser, Page } from 'playwright-core';
+import { Browser, Page, Route } from 'playwright-core';
 import { createServer, request, ClientRequest, Server } from 'http';
 import { AddressInfo } from 'net';
 import { join } from 'path';
@@ -39,7 +39,8 @@ async function holdSlots(): Promise<() => Promise<void>> {
   await until(() => srv.handle.streams() === 8, 'all 8 slots held');
   return async () => {
     held.forEach(r => r.destroy());
-    await until(() => srv.handle.streams() === 0, 'the slots released');
+    // The page may reopen its stream as soon as one closes (BL-151), so allow its one
+    await until(() => srv.handle.streams() <= 1, 'the slots released');
   };
 }
 /** Adds a Current Sprint row to the fixture's tasks.md, outside the page. */
@@ -97,6 +98,27 @@ for (const width of [1280, 420]) {
     REFUSED_STREAM,
   );
 }
+
+// BL-151: the page's reopen can take a slot right as the held ones close, so the count may never read 0.
+browserTest(
+  'the slots release even when the page reopens its stream the moment they close',
+  b,
+  async open => {
+    const release = await holdSlots();
+    const { page } = await open(srv);
+    await waitView(page, 'v-board');
+    // The first, refused stream has finished before the route is added; the route holds the 5 s reopen.
+    await page.waitForFunction(() => performance.getEntriesByType('resource').some(e => e.name.includes('/api/events')));
+    const reopen = new Promise<Route>(resolve => void page.route('**/api/events*', r => resolve(r)));
+    const held = await reopen;
+    const released = release();
+    while (srv.handle.streams() > 0) await pause(5);
+    await held.fallback();
+    await released;
+    await until(() => srv.handle.streams() === 1, 'the page to hold its stream');
+  },
+  REFUSED_STREAM,
+);
 
 browserTest(
   'a project switch during the wait leaves exactly one stream',

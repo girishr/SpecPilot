@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-11-01 (BL-145 logged)
-version: 2.206
+lastUpdated: 2026-11-01 (BL-151 built)
+version: 2.207
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,8 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-01: the developer: `push` (`8a5f333..b8ff4dc`); `relase`: v2.20.0 proposed (engines left at `>=16.0.0` unless the developer says otherwise); `yes proceed`: the release prepared on `main`, checks run; browser run 3 of 3 failed one BL-144 test (`Timed out ... waiting for the slots released`); nothing committed or tagged. The developer: `Fix the flake first`: the release edits parked as a patch outside the repo, `main` restored; BL-151 filed and started on `chore/bl-151-events-test-race`.
+- 2026-11-01: BL-151 Spec Report (TESTS-002.4); spec-reviewer FIX (name the regression test's trigger, where the freed-slot proof lies, Type chore), applied; PASS. Built: the regression test first, 3 of 3 failures with the old `=== 0` wait; then `<= 1`; `events.browser.test.ts` 7/7 three times.
 - 2026-11-01: the developer: `Approve, then commit` for BL-146: done (feature `70f7dfd`, merge, `prompts.md` archived, Jest 1936/1936 and browser 110/110 on `main`, branch deleted). BL-145: Linux checks and WebKit measurements run; Firefox would not start; the developer: `Yes, record and file`: branch `chore/bl-145-audit-validation`, results in the specs, BL-150 filed. To spec-review. Nothing committed
 - 2026-11-01: BL-145 spec-reviewer FIX twice (WebKit's `Clear-Site-Data` behaviour left out, the frame sentence, the growth ratio, the Chromium contrast, the saved WebKit output), applied; PASS; BL-145 moved to Review by hand. Branch left checked out, nothing committed
 - 2026-11-01: the developer: `Approve, then commit` for BL-145: row marked `Approved 2026-11-01`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed

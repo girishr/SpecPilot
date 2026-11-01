@@ -13,12 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A clone from the `specpilot serve` page no longer downloads Git LFS files** (BL-146): they stay as pointer files; run `git lfs pull` in the folder to fetch them. git-lfs does not keep to the transports SpecPilot allows git.
+- **A new task can no longer contain `Approved <date>` or `Sent back <date>`** (BL-146): only Approve and Send back write those markers, on the page and through `specpilot_new_task`.
 - **A `specpilot serve` page shown inside another tool's frame no longer displays** (BL-142, BL-143): for example an editor's built-in browser; open the page in a browser tab. Not checked in any editor.
 
 - **SpecPilot's commands no longer write through any symbolic link in the project, also one that points inside it** (BL-130): a `CLAUDE.md` linked to `AGENTS.md` is reported `Skipped` by `backfill`, and a `.specs` folder linked to a shared folder is refused by every command that writes. Replace the link with the file to have it updated.
 
 ### Fixed
 
+- **Stopping `specpilot serve` with a page open no longer hangs** (BL-146): Ctrl+C, `kill`, Quit or `serve --stop` could wait forever when the page's live-update stream reconnected at that moment; the server now drops every connection when it stops.
+- **Programs SpecPilot starts no longer inherit `SPECPILOT_MCP_TOKEN`** (BL-146, security audit run-1): `git`, the folder dialog and the browser opened by `serve --open` get the environment without any `SPECPILOT_*` variable. Setup over MCP also refuses when the folder it was asked for changed before the write.
 - **Another page can no longer cut the `specpilot serve` page off its live updates or read its data** (BL-144, security audit run-1): a page on another site or port could hold all 8 event streams, so the real page stopped updating; it is now refused before it takes one, as are its reads of the page's data. The page also reconnects by itself when its stream is refused, instead of staying stale until a reload.
 - **No other page can frame the `specpilot serve` page or clear its saved settings** (BL-143, security audit run-1): another site could show the page in a frame and trick a click on Regenerate All, Approve or Remove; every response now refuses framing. A frame from another page also cleared the theme and dismissed notes since BL-142; it no longer does.
 - **A service worker or cached script left on the `specpilot serve` port by another program can no longer take the page's token** (BL-142, security audit run-1): the page now gets its token only on a real page load, a leftover worker is removed (with this origin's saved theme and dismissed notes), and the page's scripts and stylesheet load with a per-start version and an integrity check. Checked in Chromium; Firefox and Safari are not yet checked.

@@ -1,7 +1,7 @@
 import { lstatSync, readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import { join } from 'path';
-import { endsWithApproved, LaneShape, TASK_PRIORITIES, TASK_TYPES, taskRowLines, TaskSection } from './specReader';
+import { endsWithApproved, LaneShape, reviewMarks, TASK_PRIORITIES, TASK_TYPES, taskRowLines, TaskSection } from './specReader';
 import { tasksChecks } from './specValidator';
 import { COMPLETED_KEEP_ENTRIES, COMPLETED_LINE_LIMIT, completedArchiveBlock, planCompletedArchive } from './specArchiver';
 import { findSectionBounds } from './markdownSections';
@@ -229,6 +229,9 @@ export function newTaskShapeError(body: unknown): string | null {
   if (typeof d !== 'string' || !d.trim()) return 'Type a description for the task.';
   if (/[\r\n\u2028\u2029]/.test(d)) return 'The description must be one line: a table row cannot hold a line break.';
   if (d.includes('|')) return 'The description cannot contain |, because it would split the table cell. Write it another way, e.g. "or".';
+  // The reader's own test, so a new row never shows as approved or sent back (BL-146).
+  const marks = reviewMarks(d.trim());
+  if (marks.approved !== null || marks.history.length) return 'The description cannot contain a review marker (Approved or Sent back with a date): only Approve and Send back write those.';
   return cellError(d, 'description', MAX_DESCRIPTION) ?? fieldValuesError(b);
 }
 

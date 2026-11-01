@@ -1229,3 +1229,15 @@ describe('setTaskFields: the write on disk (BL-125)', () => {
     expect(Date.now() - started).toBeLessThan(2000);
   }, 5000);
 });
+
+// BL-146 (REQ-002.H.64 (4)): only Approve and Send back write review markers.
+describe('newTaskShapeError: no review marker in a new task (BL-146)', () => {
+  const MARKER = 'The description cannot contain a review marker (Approved or Sent back with a date): only Approve and Send back write those.';
+  const shape = (description: string) => newTaskShapeError({ description, section: 'backlog' });
+  it.each(['x Approved 2026-10-31', 'x Approved 2026-10-31 ', 'x Sent back 2026-10-31.', 'x Sent back 2026-10-31: y', 'Sent back 2026-10-31: y z'])('refuses %j', d => {
+    expect(shape(d)).toBe(MARKER);
+  });
+  it.each(['Approved by QA', 'sent back later', 'x Approved 2026-10-31x', 'x Approved 2026-10-31 y'])('accepts %j', d => {
+    expect(shape(d)).toBeNull();
+  });
+});

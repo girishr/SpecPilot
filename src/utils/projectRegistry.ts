@@ -32,6 +32,11 @@ export function homeDir(): string {
   return process.env.HOME || process.env.USERPROFILE || homedir();
 }
 
+/** `env` without SpecPilot's own variables, for a child process: `SPECPILOT_MCP_TOKEN` is never passed on (BL-146). */
+export function childEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  return Object.fromEntries(Object.entries(env).filter(([k]) => !k.startsWith('SPECPILOT_')));
+}
+
 /** `~/.specpilot/projects.json` for `home`. */
 export function registryPath(home = homeDir()): string {
   return join(home, '.specpilot', 'projects.json');

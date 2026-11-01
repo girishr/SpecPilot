@@ -899,7 +899,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
 
     const written = await locked(async () => {
       const t = setupTarget(args.path); // again under the lock: the folder may have changed since (SEC-004.27)
-      if (t.kind !== first.kind) throw new ToolRefusal(`${t.kind === 'new' ? t.target : t.root} changed while it was being set up. Call specpilot_setup_questions again.`);
+      const same = t.kind === 'existing' ? first.kind === 'existing' && t.root === first.root : first.kind === 'new' && t.target === first.target;
+      if (!same) throw new ToolRefusal(`${t.kind === 'new' ? t.target : t.root} changed while it was being set up. Call specpilot_setup_questions again.`);
       emitSetup(t, { row: 'questions', state: 'done', ...counts });
       emitSetup(t, { row: 'write', state: 'running' });
       let out;
@@ -1192,7 +1193,9 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         );
         projects.forEach(p => p.poller.stop());
         server.close(() => resolveClose());
-        server.closeIdleConnections?.();
+        // Every socket, not only the idle ones: a page's stream can reopen on a kept-alive socket while close() waits (BL-146).
+        // Node 18.2+; before that there is no sweep at all, as before.
+        server.closeAllConnections?.();
       });
     },
   };

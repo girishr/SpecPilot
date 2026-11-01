@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-10-31 (BL-144 logged)
-version: 2.204
+lastUpdated: 2026-11-01 (BL-146 logged)
+version: 2.205
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,10 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-01: the developer: `can we move to 145 and 146?`; BL-145: Playwright Firefox and WebKit chosen (the download outside the repo waits for a typed `yes, proceed`), the Linux sandbox and Windows VM steps given (the developer installs Colima themself), results in the repo's specs only. BL-146 started on `chore/bl-146-audit-hardening` from `main` (`8a5f333`); Spec Report (REQ-002.H.64); spec-reviewer ESCALATE on item (2), fixes applied; architect DECIDE: (2) dropped (already fails closed, no caller); applied, to spec-review
+- 2026-11-01: BL-146 spec-reviewer PASS on the report; built, 15 tests first. The first browser runs hung: a `close()` bug (a page's stream reopening on a busy socket); the developer chose to fold the fix into BL-146; fixed with `closeAllConnections()`, a 20-stop browser test first. Jest 1935/1935, browser 110/110 three times. Firefox and WebKit downloaded on the developer's typed yes; the developer installed Colima and pulled `node:22` themself. To spec-review. Nothing committed
+- 2026-11-01: BL-146 spec-reviewer FIX on the build twice (Node 18.2 guard, 422, the new-target swap test, architecture), applied; Jest 1936/1936, browser 110/110 three times; PASS; BL-146 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-11-01: the developer: `Approve, then commit` for BL-146: row marked `Approved 2026-11-01`; feature commit, completion commit, `--no-ff` merge into `main`, `prompts.md` archived, tests on `main`, branch deleted. Not pushed
 - 2026-10-31: the developer: `Approve, then commit` for BL-138: row marked `Approved 2026-10-31`; feature commit `44d16ce`, completion commit, `--no-ff` merge into `main`, `prompts.md` archived as its own commit, Jest 1891/1891 and browser 91/91 on `main`, branch deleted. Not pushed
 - 2026-10-31: BL-139 started on `chore/bl-139-local-principals-scope` from `main` (`bcf7b0e`); the scope question went to the architect: DECIDE, (a) and (b) out of scope, (c) in scope (context.md). Applied to the security files, the README's Limits and `tasks.md` (BL-140, BL-141 to Won't do; BL-145 narrowed), to spec-review
 - 2026-10-31: BL-139 spec-reviewer ESCALATE with nothing to fix (Architectural; the scope call is the developer's on the card); its wording nit on SEC-004.20 taken; BL-139 moved to Review by hand. Branch left checked out, nothing committed
@@ -46,6 +50,7 @@ For full project context, read .specs/project/project.yaml.
 - 2026-10-31: BL-144 built: 15 tests first, Jest 1920/1920, browser 109/109 three times, lint 0 errors. To spec-review. Nothing committed
 - 2026-10-31: BL-144 spec-reviewer PASS on the build; BL-144 moved to Review by hand. Branch left checked out, nothing committed
 - 2026-10-31: the developer: `Approve, then commit` for BL-144: row marked `Approved 2026-10-31`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-31: the developer: `push`: `main` pushed to origin (`feefb74..8a5f333`)
 - 2026-10-31: the developer: `Start BL-138 and continue till 144.` (each item still stops in Review for the card and the typed `commit`; the next starts after its merge). Branch `fix/bl-138-md-linear-patterns` from `main` (`f2706b0`); Spec Report written (REQ-002.H.60, context.md), to spec-reviewer before code
 - 2026-10-31: BL-138 spec-reviewer FIX on the report (the exact link rule, the `[`-in-target and lone-`|` exceptions, four more quadratic line patterns with U+2028, tests): applied; the four patterns taken into BL-138 (same file, same threat), the new shape checked equal in `node`
 - 2026-10-31: BL-138 spec-reviewer PASS on the fixed report; built: 6 tests first (the browser test took 17.7 s on `main`), Jest 1891/1891, browser 91/91 three times. Nothing committed

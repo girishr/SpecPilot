@@ -3,7 +3,7 @@
    Loaded as /assets/route.js in the browser. */
 (function (root) {
 const VIEWS=['board','explorer','security','instructions','commands','skills'];
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* "#file/quality/tests.md" → {project:0, view:'file', sub:'quality/tests.md', missing:false}.
    A file the latest /api/specs does not list stays on the file view with missing:true,

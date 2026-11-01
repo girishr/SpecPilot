@@ -2,7 +2,7 @@ import { execFile, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import { dirname, join, parse } from 'path';
 import { projectNameError } from './initQuestions';
-import { pathShapeError } from './projectRegistry';
+import { childEnv, pathShapeError } from './projectRegistry';
 
 // Clone a repository for `specpilot serve` (BL-PM-002, ARCH-003.23, SEC-004.15): the one module that
 // starts a process for a request. git is the user's own, started without a shell; only the URL (after
@@ -76,9 +76,9 @@ export function cloneShapeError(body: unknown): string | null {
   return null;
 }
 
-/** The server's environment plus what keeps git to https and ssh and stops it asking anything. */
+/** The server's environment plus what keeps git to https and ssh and stops it asking anything; git-lfs, which ignores `GIT_ALLOW_PROTOCOL`, fetches nothing (BL-146). */
 function gitEnv(allowProtocols: string): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, GIT_ALLOW_PROTOCOL: allowProtocols, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', SSH_ASKPASS_REQUIRE: 'never', GCM_INTERACTIVE: 'never' };
+  const env: NodeJS.ProcessEnv = { ...childEnv(process.env), GIT_ALLOW_PROTOCOL: allowProtocols, GIT_LFS_SKIP_SMUDGE: '1', GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', SSH_ASKPASS_REQUIRE: 'never', GCM_INTERACTIVE: 'never' };
   // These two would point git at another repository or work tree than the target.
   delete env.GIT_DIR;
   delete env.GIT_WORK_TREE;

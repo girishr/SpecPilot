@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-11-01 (v2.20.0 prepared)
-version: 2.208
+lastUpdated: 2026-11-01 (v2.20.0 shipped)
+version: 2.209
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-01: the developer ran step 4: `git push origin main v2.20.0` (`b8ff4dc..8cbfb8b`, the tag); the first `npm publish` failed with 404 (`npm whoami` 401: not logged in), `npm login` in the browser, the second published `+ specpilot@2.20.0` after the browser 2FA check; `gh release create` live (16:20 UTC). Checked `origin/main` at `8cbfb8b`, the tag on origin, `npm view specpilot dist-tags` latest 2.20.0, `gh release view v2.20.0`; row 262 reworded, row 263 added.
 - 2026-11-01: the developer: `Approve, then commit` for BL-151: feature `aacbc82`, row 261, `--no-ff` merge, Jest 1936/1936 and browser 111/111 on `main`, branch deleted. v2.20.0 prepared again on `main` per `docs/RELEASING.md` (by hand, not from the parked patch; engines left at `>=16.0.0`, the Node 18.2 need noted in the CHANGELOG): version, specs, CHANGELOG promoted, roadmap line, release row 262; checks, commit and annotated tag; not pushed or published (the developer ships by hand).
 - 2026-11-01: the developer: `push` (`8a5f333..b8ff4dc`); `relase`: v2.20.0 proposed (engines left at `>=16.0.0` unless the developer says otherwise); `yes proceed`: the release prepared on `main`, checks run; browser run 3 of 3 failed one BL-144 test (`Timed out ... waiting for the slots released`); nothing committed or tagged. The developer: `Fix the flake first`: the release edits parked as a patch outside the repo, `main` restored; BL-151 filed and started on `chore/bl-151-events-test-race`.
 - 2026-11-01: BL-151 Spec Report (TESTS-002.4); spec-reviewer FIX (name the regression test's trigger, where the freed-slot proof lies, Type chore), applied; PASS. Built: the regression test first, 3 of 3 failures with the old `=== 0` wait; then `<= 1`; `events.browser.test.ts` 7/7 three times.

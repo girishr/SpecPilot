@@ -757,3 +757,30 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
 
 ---
 
+## Archived on 2026-11-01 09:31:22
+
+- 2026-10-30: the developer: `Approve, then commit` for BL-135: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-30: the developer: `Start BL-134`. Branch `fix/bl-134-validator-read-guard` from `main` (`fc3fb09`); Spec Report written (REQ-002.A, context.md), to spec-reviewer before code
+- 2026-10-30: BL-134 spec-reviewer FIX on the report (the CLI change for a linked `.specs`, the folder-case text, read sites by line, the YAML fallback, threat-model rows, more tests, prompts.md order): applied; the 2026-10-29 push line moved below the 2026-10-30 BL-077 line it preceded (out of date order since the BL-077 merge); the line limit put to the developer
+- 2026-10-30: BL-134 spec-reviewer ESCALATE on the prompts.md line-limit warning (over on `main` before the branch); architect DECIDE: archive at merge, as for BL-PM-014 and BL-077, recorded in context.md
+- 2026-10-30: BL-134 spec-reviewer PASS after the architect; built: 9 tests first, Jest 1857/1857, scratch-repo check clean. Nothing committed
+- 2026-10-30: BL-134 spec-reviewer FIX on the build (a mitigated fingerprint still listed as open), fixed, PASS; BL-134 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-134: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, `prompts.md` archived on `main` as its own commit (architect decision), tests on `main`, branch deleted. Not pushed
+- 2026-10-30: the developer: `Start BL-133`. Branch `fix/bl-133-terminal-control-chars` from `main` (`2b61296`); Spec Report written (REQ-002.A.11, context.md), to spec-reviewer before code
+- 2026-10-30: BL-133 spec-reviewer FIX on the report (two missed sinks, the `displayWithLogo` rule, exact outputs, more tests, the residual): applied
+- 2026-10-30: BL-133 spec-reviewer PASS on the fixed report; built: 9 tests first, Jest 1846/1846, scratch-repo `validate` check clean. Nothing committed
+- 2026-10-30: BL-133 spec-reviewer FIX on the build (two `validate` sinks untested): 2 tests added, both fail with the filter removed; Jest 1848/1848
+- 2026-10-30: BL-133 spec-reviewer PASS on the build; BL-133 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-133: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-30: the developer: `Start BL-132`. Branch `fix/bl-132-windows-program-paths` from `main` (`4a15328`); Spec Report written (REQ-002.A.8, REQ-002.H.1, context.md), to spec-reviewer before code
+- 2026-10-30: BL-132 spec-reviewer FIX on the report (clone cwd, `browserCommand` signature, reftable, control characters in the branch, test seam, threat-model line): applied; the clone's cwd filed as BL-148 (Backlog) rather than widening the row
+- 2026-10-30: BL-132 spec-reviewer PASS on the fixed report; built: 9 tests first, Jest 1837/1837, lint 0 errors. Nothing committed
+- 2026-10-30: BL-132 spec-reviewer PASS on the build (one optional threat-model rewording taken); BL-132 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-132: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-30: the developer: `Start BL-131`. Branch `fix/bl-131-skill-project-name` from `main` (`a30381e`); Spec Report written (REQ-002.H.40, REQ-002.I.5, context.md), to spec-reviewer before code
+- 2026-10-30: BL-131 spec-reviewer FIX on the report (periods, `fm` trailing `:`/space, security-decisions, more tests), fixed, PASS; `dq` added after the PASS and re-checked, PASS. Built: 4 tests first (all failed on `main`), Jest 1828/1828, golden unchanged. Nothing committed
+- 2026-10-30: BL-131 spec-reviewer FIX on the build (`onboarding.md` front matter raw, the test's skip, a doc-comment order), fixed, PASS; BL-131 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-131: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+
+---
+

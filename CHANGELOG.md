@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.0] - 2026-11-01
+
 ### Added
 
 - **A Design & UI step in the setup questions** (BL-129): `specpilot_setup_questions` asks, after Security & NFR, whether the project has design assets (`Yes` or `No`), then the Figma link, design system and design notes when it has, and the UI style either way; a project without a graphical UI skips them. `specpilot_setup_project` takes the five answers and writes a `## Design & UI` section into `architecture/architecture.md`, the same lines init.specpilot.dev writes. Without the answers every file is as before.
@@ -21,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Stopping `specpilot serve` with a page open no longer hangs** (BL-146): Ctrl+C, `kill`, Quit or `serve --stop` could wait forever when the page's live-update stream reconnected at that moment; the server now drops every connection when it stops.
+- **Stopping `specpilot serve` with a page open no longer hangs** (BL-146): Ctrl+C, `kill`, Quit or `serve --stop` could wait forever when the page's live-update stream reconnected at that moment; the server now drops every connection when it stops. This needs Node 18.2 or later; on older Node the hang can still happen.
 - **Programs SpecPilot starts no longer inherit `SPECPILOT_MCP_TOKEN`** (BL-146, security audit run-1): `git`, the folder dialog and the browser opened by `serve --open` get the environment without any `SPECPILOT_*` variable. Setup over MCP also refuses when the folder it was asked for changed before the write.
 - **Another page can no longer cut the `specpilot serve` page off its live updates or read its data** (BL-144, security audit run-1): a page on another site or port could hold all 8 event streams, so the real page stopped updating; it is now refused before it takes one, as are its reads of the page's data. The page also reconnects by itself when its stream is refused, instead of staying stale until a reload.
 - **No other page can frame the `specpilot serve` page or clear its saved settings** (BL-143, security audit run-1): another site could show the page in a frame and trick a click on Regenerate All, Approve or Remove; every response now refuses framing. A frame from another page also cleared the theme and dismissed notes since BL-142; it no longer does.

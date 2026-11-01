@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-11-01 (BL-146: SEC-004.27 and SEC-004.31 tightened)
-version: 1.43
+lastUpdated: 2026-11-01 (BL-145: SEC-004.33 validation)
+version: 1.44
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -399,6 +399,7 @@ This file records security-related architectural and implementation decisions ma
   - `Clear-Site-Data: "storage"` on every load — rejected: the theme and dismissed notes would never survive.
   - Another default port — rejected (architect): it breaks every IDE config line for a P3 risk.
   - Deferring (1) until Firefox and Safari are checked (BL-145) — rejected (architect (a)): it leaves Chromium users exposed meanwhile.
+- **Validation**: BL-145 (2026-11-01) measured the same request headers in Playwright's WebKit 26.6, but WebKit did not clear storage at once on `Clear-Site-Data` in the scratch run (a controlled page kept its worker for that load, a preload worker stayed registered); SpecPilot's own page in WebKit, Firefox and Safari itself are BL-150.
 - **Reference**: SEC-002.14 (c), SEC-002.5, SEC-002.8, SEC-004.20, REQ-002.H.61, BL-139 (c)
 
 ### [SEC-004.34] No frame of the UI, and no storage clearing from a frame elsewhere

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-01 (BL-145 to Review, approved)
-version: 7.102
+lastUpdated: 2026-11-01 (BL-145 to Completed)
+version: 7.103
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -71,7 +71,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-145 | chore | P2 | Chore, P2. Verify the security audit's 15 leads where a fix branch's failing-first test does not: a Linux sandbox with memory and disk limits (installing one needs the developer's word), a Windows VM (item 3), Chrome, Firefox and Safari by hand (items 8, 12, 13); record each result against the audit records in `~/security-audit-skill/SpecPilot/run-1/`. Attribution: SEC-002.12 to SEC-002.15. Also `Sec-Fetch-Site` on frames and on a worker's pass-through in Firefox and Safari, unmeasured (BL-142, BL-143), and on another page's `EventSource`, frame and image to `/api/events` (BL-144). Done 2026-11-01 on the developer's call: the Linux sandbox (audit items 10 and 11) and Playwright's WebKit (items 8, 12, 13 and the `Sec-Fetch-*` cases), results in the threat model; Firefox, Safari itself and the Windows VM filed as BL-150; results recorded in the repo's specs, not the audit folder. Approved 2026-11-01 |
 
 ## Won't do
 
@@ -127,3 +126,4 @@ Notes
 | 257 | [CD-girishr-166] [BL-143] | No other page can frame the `serve` UI or clear its storage (security audit run-1, SEC-002.15 (a)): every response carries `frame-ancestors 'none'`, `X-Frame-Options: DENY` and same-origin CORP and COOP; BL-142's `Clear-Site-Data` on a non-top-level `GET /` now goes only with `Sec-Fetch-Site` absent, `none` or `same-origin`, so a frame elsewhere no longer wipes the theme. REQ-002.H.62, SEC-004.34. Jest 1901 → 1910, browser 102 → 104 (12 of 13 runs clean, one uncaptured failure). Approved 2026-10-31. Feature commit `6f77391`. |
 | 258 | [CD-girishr-167] [BL-144] | Another page can neither hold the event slots nor read the `serve` page's data (security audit run-1, SEC-002.15 (b)): a GET of `/api/events`, `/api/specs`, `/api/file` or `/api/projects` is refused with 403 unless `Sec-Fetch-Site` is absent, `none` or `same-origin`, or with a foreign `Origin`, before a slot is taken; the page reopens its stream 5 s after the browser gives it up. REQ-002.H.63, SEC-004.35. Jest 1910 → 1920, browser 104 → 109. Approved 2026-10-31. Feature commit `8539b3e`. |
 | 259 | [CD-girishr-168] [BL-146] | Audit hardening (security audit run-1 REPORT §6): clones skip Git LFS downloads; no child process gets a `SPECPILOT_*` variable; `esc()` escapes `'`; a new task cannot carry a review marker; the setup re-check compares the folder; the null-token `writeAllowed()` note not built (architect). Found while building: `close()` drops every connection, so stopping `serve` with a page open no longer hangs (Node 18.2+). REQ-002.H.64. Jest 1920 → 1936, browser 109 → 110. Approved 2026-11-01. Feature commit `70f7dfd`. |
+| 260 | [CD-girishr-169] [BL-145] | Audit leads validated (security audit run-1): items 10 and 11 in a capped Linux container, real on the audited commit and fixed on `main` (killed at 256 MB → 1 ms; 16.3 s → 30 ms); in Playwright's WebKit the request headers BL-142 to BL-144 rely on match Chromium, but `Clear-Site-Data` was not acted on at once; Firefox, Safari itself and the Windows VM filed as BL-150. Docs only. Approved 2026-11-01. Feature commit `abb49d2`. |

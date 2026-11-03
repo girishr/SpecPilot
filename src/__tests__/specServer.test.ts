@@ -6,7 +6,7 @@ import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
 import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
-import { resolveAllowedPath } from '../utils/specPaths';
+import { listAllowedFiles, resolveAllowedPath } from '../utils/specPaths';
 import { ARCHIVE_STALE_ERROR, COMPLETED_BY_HAND, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError, REVIEW_STALE_ERROR, FIELDS_STALE_ERROR } from '../utils/taskMover';
 import * as validator from '../utils/specValidator';
 import { planCompletedArchive } from '../utils/specArchiver';
@@ -128,7 +128,7 @@ describe('resolveAllowedPath', () => {
   });
 });
 
-describe('project.cursor (BL-PM-010): the Cursor rules file checked through the same guard, never served', () => {
+describe('project.cursor (BL-PM-010): the Cursor rules file checked through the same guard', () => {
   const RULES = '.cursor/rules/specpilot.mdc';
   let p: ReturnType<typeof makeProject>;
   beforeEach(() => (p = makeProject()));
@@ -160,21 +160,96 @@ describe('project.cursor (BL-PM-010): the Cursor rules file checked through the 
     expect(cursor()).toBe(false);
   });
 
-  it('leaves the allowlist as it was: no other path passes with that one path allowed, the file is not served, listed or watched', async () => {
+  it('with that one path allowed no other path passes; since BL-152 the file is also served, listed and watched', async () => {
     write(p.root, RULES, 'x\n');
-    expect(resolveAllowedPath(p.root, RULES)).toBeNull();
+    expect(resolveAllowedPath(p.root, RULES)).toBe(realpathSync(join(p.root, RULES)));
     expect(resolveAllowedPath(p.root, RULES, [RULES])).toBe(realpathSync(join(p.root, RULES)));
     expect(resolveAllowedPath(p.root, 'CLAUDE.md', [RULES])).toBeNull();
     expect(resolveAllowedPath(p.root, '.cursor/rules/../rules/specpilot.mdc', [RULES])).toBeNull();
     expect(resolveAllowedPath(p.root, 'CLAUDE.md')).not.toBeNull();
-    expect(watchedFiles(p.root)).not.toContain(RULES);
+    expect(watchedFiles(p.root)).toContain(RULES);
     const spec = await startSpecServer([p.root], 0, '0.0.0-test');
     try {
       const port = (spec.server.address() as AddressInfo).port;
-      expect((await hit(port, '/api/file?p=' + encodeURIComponent(RULES))).status).toBe(404);
+      expect((await hit(port, '/api/file?p=' + encodeURIComponent(RULES))).body).toBe('x\n');
       const body = JSON.parse((await hit(port, '/api/specs')).body);
       expect(body.project.cursor).toBe(true);
-      expect(body.nav.instructions.map((f: { path: string }) => f.path)).not.toContain(RULES);
+      expect(body.nav.instructions.map((f: { path: string }) => f.path)).toContain(RULES);
+    } finally {
+      await spec.close();
+    }
+  });
+});
+
+describe('every IDE file SpecPilot writes is served and listed (BL-152)', () => {
+  const FILES = ['.cursor/rules/specpilot.mdc', '.windsurfrules', '.antigravity/rules.md', 'CODEX_INSTRUCTIONS.md'];
+  const IN_FOLDERS = ['.cursor/commands/mine.md', '.windsurf/workflows/mine.md', '.agent/workflows/mine.md', '.codex/prompts/mine.md'];
+  const REFUSED = ['.cursor/mcp.json', '.cursor/settings.json', '.cursor/rules/mine.mdc', '.codex/config.toml', '.windsurf/mcp.json', '.antigravity/mcp.json', '.agent/other.md', '.cursor/commands/.draft.md', '.cursor/commands/node_modules/x.md'];
+  let p: ReturnType<typeof makeProject>;
+  beforeEach(() => (p = makeProject()));
+  afterEach(() => p.cleanup());
+
+  it('serves the four instruction files and a file in each command folder, and nothing else of those IDE folders', () => {
+    for (const f of [...FILES, ...IN_FOLDERS, ...REFUSED]) write(p.root, f, 'x\n');
+    for (const f of [...FILES, ...IN_FOLDERS]) expect(resolveAllowedPath(p.root, f)).toBe(realpathSync(join(p.root, f)));
+    for (const f of REFUSED) expect(resolveAllowedPath(p.root, f)).toBeNull();
+    const watched = watchedFiles(p.root);
+    for (const f of [...FILES, ...IN_FOLDERS]) expect(watched).toContain(f);
+    for (const f of REFUSED) expect(watched).not.toContain(f);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('refuses a command folder that is a link', () => {
+    write(p.outside, 'cmds/specpilot-status.md', 'x\n');
+    mkdirSync(join(p.root, '.cursor'));
+    symlinkSync(join(p.outside, 'cmds'), join(p.root, '.cursor', 'commands'));
+    expect(resolveAllowedPath(p.root, '.cursor/commands/specpilot-status.md')).toBeNull();
+    expect(watchedFiles(p.root).some(f => f.startsWith('.cursor/'))).toBe(false);
+  });
+
+  it('lists the seven instruction files in order, and a Cursor-only project\'s commands under From SpecPilot', () => {
+    rmSync(join(p.root, 'CLAUDE.md'));
+    write(p.root, '.cursor/rules/specpilot.mdc', 'rules\n');
+    new specSlash.SlashCommandGenerator().refreshCommands(p.root, 'cursor', false);
+    write(p.root, '.cursor/commands/mine.md', '---\ndescription: mine\n---\n');
+    const edited = '.cursor/commands/specpilot-sync.md';
+    writeFileSync(join(p.root, edited), readFileSync(join(p.root, edited), 'utf-8') + 'edited\n');
+    write(p.root, '.claude/commands/a.md', 'x\n');
+    write(p.root, '.codex/prompts/z.md', 'x\n');
+    const nav = buildSpecsPayload(p.root, '0.0.0-test').nav;
+    expect(nav.instructions.map(f => [f.path, f.exists])).toEqual([
+      ['CLAUDE.md', false], ['AGENTS.md', false], ['.github/copilot-instructions.md', false], ['.cursor/rules/specpilot.mdc', true],
+      ['.windsurfrules', false], ['.antigravity/rules.md', false], ['CODEX_INSTRUCTIONS.md', false],
+    ]);
+    expect(nav.instructions[3].bytes).toBe(6);
+    const generated = nav.commands.filter(f => f.generated).map(f => f.path);
+    expect(generated).toHaveLength(7);
+    expect(generated.every(f => f.startsWith('.cursor/commands/specpilot-'))).toBe(true);
+    expect(nav.commands.filter(f => !f.generated).map(f => f.path).sort()).toEqual(['.claude/commands/a.md', '.codex/prompts/z.md', '.cursor/commands/mine.md', edited].sort());
+    expect(nav.commands[0].path).toBe('.claude/commands/a.md');
+    expect(nav.commands[nav.commands.length - 1].path).toBe('.codex/prompts/z.md');
+    expect(nav.prompts).toEqual([]);
+  });
+
+  it('with more files under .cursor/commands than the scan cap, every .specs/ file is still listed', () => {
+    for (let i = 0; i < 2001; i++) write(p.root, `.cursor/commands/c${i}.md`, 'x\n');
+    const scan = listAllowedFiles(p.root);
+    expect(scan.capped).toBe(true);
+    expect(scan.files).toEqual(expect.arrayContaining(['.specs/project/project.yaml', '.specs/planning/tasks.md']));
+  });
+
+  it('specpilot_read_spec reads the added files and refuses the rest of those IDE folders', async () => {
+    for (const f of ['.cursor/commands/specpilot-status.md', ...REFUSED]) write(p.root, f, 'x\n');
+    const spec = await startSpecServer([p.root], 0, '0.0.0-test', { registry: regFile(), mcp: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const read = async (path: string) => (await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'specpilot_read_spec', arguments: { path } } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': spec.mcpToken! }, '/mcp')).json.result;
+      expect((await read('.cursor/commands/specpilot-status.md')).content[0].text).toBe('x\n');
+      for (const f of REFUSED) {
+        const r = await read(f);
+        expect(r.isError).toBe(true);
+        expect(r.content[0].text).toBe(`Not found, or not a file SpecPilot shows: ${f}`);
+        expect((await hit(port, '/api/file?p=' + encodeURIComponent(f))).status).toBe(404);
+      }
     } finally {
       await spec.close();
     }
@@ -261,8 +336,8 @@ describe('buildSpecsPayload against this repo', () => {
     expect(Object.keys(payload.files).sort()).toEqual([...payload.nav.specs].sort());
     expect(payload.nav.specs).toEqual(expect.arrayContaining(['planning/tasks.md', 'project/project.yaml', 'architecture/api.yaml']));
     expect(payload.files['planning/tasks.md'].fileID).toBe('TASKS-001');
-    expect(payload.nav.instructions.map(f => f.path)).toEqual(['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md']);
-    expect(payload.nav.commands.every(f => f.path.startsWith('.claude/commands/'))).toBe(true);
+    expect(payload.nav.instructions.map(f => f.path)).toEqual(['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md', '.cursor/rules/specpilot.mdc', '.windsurfrules', '.antigravity/rules.md', 'CODEX_INSTRUCTIONS.md']);
+    expect(payload.nav.commands.every(f => ['.claude/commands/', '.cursor/commands/', '.windsurf/workflows/', '.agent/workflows/', '.codex/prompts/'].some(d => f.path.startsWith(d)))).toBe(true);
     expect(payload.nav.prompts.every(f => f.path.startsWith('.github/prompts/'))).toBe(true);
     expect(payload.nav.skills.every(f => f.path.startsWith('.claude/skills/') && f.path.endsWith('/SKILL.md'))).toBe(true);
     expect(payload.nav.commands.find(f => f.path === '.claude/commands/specpilot-archive.md')?.frontMatter?.['allowed-tools']).toBe('Bash, Read, Edit');
@@ -877,6 +952,18 @@ describe('the poller watches exactly what /api/file serves', () => {
       write(r, '.github/workflows/ci.yml', 'not allowlisted');
       write(r, 'AGENTS.md', 'agents');
       write(r, 'README.md', 'not allowlisted');
+      // BL-152: the other IDEs' files SpecPilot writes, beside their settings files, which stay out
+      write(r, '.cursor/rules/specpilot.mdc', 'r');
+      write(r, '.cursor/rules/mine.mdc', 'not allowlisted');
+      write(r, '.cursor/commands/c.md', 'c');
+      write(r, '.cursor/mcp.json', 'not allowlisted');
+      write(r, '.windsurf/workflows/w.md', 'w');
+      write(r, '.agent/workflows/a.md', 'a');
+      write(r, '.codex/prompts/p.md', 'p');
+      write(r, '.codex/config.toml', 'not allowlisted');
+      write(r, '.antigravity/rules.md', 'r');
+      write(r, '.windsurfrules', 'r');
+      write(r, 'CODEX_INSTRUCTIONS.md', 'r');
       symlinkSync(join(r, '.specs', 'a.md'), join(r, '.specs', 'alias.md')); // file symlink inside the allowlist
       symlinkSync(join(r, 'src', 'secret.ts'), join(r, '.specs', 'leak.md')); // leaves the allowlist
       symlinkSync(join(p.outside, 'secret.txt'), join(r, '.specs', 'out.md')); // leaves the root
@@ -893,15 +980,16 @@ describe('the poller watches exactly what /api/file serves', () => {
         });
       const candidates = [
         ...all('.specs'), ...all('.claude'), ...all('.github'), ...all('src'),
-        'CLAUDE.md', 'AGENTS.md', 'README.md',
+        ...all('.cursor'), ...all('.windsurf'), ...all('.agent'), ...all('.codex'), ...all('.antigravity'),
+        'CLAUDE.md', 'AGENTS.md', 'README.md', '.windsurfrules', 'CODEX_INSTRUCTIONS.md',
         '.specs/linkdir/tasks.md', '.claude/commands/docs/d.md',
       ];
       const served = candidates.filter(c => resolveAllowedPath(r, c) !== null).sort();
       const watched = watchedFiles(r);
       expect(watched).toEqual(served);
       // And the edge cases landed where they should.
-      expect(served).toEqual(expect.arrayContaining(['.specs/a.md', '.specs/alias.md', '.claude/commands/cmd.md', 'AGENTS.md']));
-      for (const out of ['.specs/.hidden.md', '.specs/.git/HEAD', '.specs/sub/.cache/x.md', '.specs/node_modules/pkg/readme.md', '.claude/commands/.draft.md', '.specs/leak.md', '.specs/out.md', '.specs/linkdir/tasks.md', '.claude/commands/docs/d.md', '.claude/settings.json', 'README.md']) {
+      expect(served).toEqual(expect.arrayContaining(['.specs/a.md', '.specs/alias.md', '.claude/commands/cmd.md', 'AGENTS.md', '.cursor/commands/c.md', '.cursor/rules/specpilot.mdc', 'CODEX_INSTRUCTIONS.md']));
+      for (const out of ['.specs/.hidden.md', '.specs/.git/HEAD', '.specs/sub/.cache/x.md', '.specs/node_modules/pkg/readme.md', '.claude/commands/.draft.md', '.specs/leak.md', '.specs/out.md', '.specs/linkdir/tasks.md', '.claude/commands/docs/d.md', '.claude/settings.json', 'README.md', '.cursor/rules/mine.mdc', '.cursor/mcp.json', '.codex/config.toml']) {
         expect(served).not.toContain(out);
       }
     } finally {
@@ -2139,11 +2227,13 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
     expect(existsSync(at(SKILL))).toBe(false);
   });
 
-  it('names the command folders the page does not list', async () => {
+  it('lists the Cursor commands it adds, with no "Not listed" line (BL-152)', async () => {
     write(p.root, '.cursor/rules/specpilot.mdc', 'rules\n');
     const res = await regen();
-    expect(res.json.added.filter((f: string) => f.startsWith('.cursor/commands/'))).toHaveLength(8);
-    expect(res.json.message[res.json.message.length - 1]).toBe('Not listed on this page: .cursor/commands/.');
+    const cursor = res.json.added.filter((f: string) => f.startsWith('.cursor/commands/'));
+    expect(cursor).toHaveLength(8);
+    expect(res.json.message.some((l: string) => l.startsWith('Not listed'))).toBe(false);
+    for (const f of cursor) expect(flag(res.json.specs.nav.commands, f)).toBe(true);
   });
 
   it('says so when no IDE instruction file is there, writing nothing', async () => {

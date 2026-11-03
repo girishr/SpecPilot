@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The Commands and Instructions views list every IDE's files** (BL-152): `specpilot serve` showed only Claude Code's and Copilot's, so a Cursor project's 8 `specpilot-*` commands showed as 0. The views now list `.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/` and `.codex/prompts/`, and the instruction files `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md` and `CODEX_INSTRUCTIONS.md` (Instructions now counts 7). Each is added by exact name; the rest of those IDE folders, such as `.cursor/mcp.json`, stays out.
+
+### Changed
+
+- `specpilot_read_spec` on the local MCP endpoint reads the same added files, as it reads what the page shows (BL-152).
+
+### Removed
+
+- Regenerate All's `Not listed on this page` result line: every folder it writes is now listed (BL-152).
+
 ## [2.20.0] - 2026-11-01
 
 ### Added

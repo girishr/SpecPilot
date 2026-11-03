@@ -58,6 +58,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-153 | chore | P3 | Chore, P3. Fold the `project.cursor` check (REQ-002.H.34) into the default allowlist now that `.cursor/rules/specpilot.mdc` is on it (BL-152): remove the one-path allowed set of `resolveAllowedPath()` if nothing else uses it. Attribution: the architect, 2026-11-03, BL-152 open question (6). |
 | BL-123 | feat | P2 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
@@ -71,6 +72,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-152 | bug | P2 | Bug, P2. The Commands and Instructions views of `specpilot serve` list only Claude Code's and Copilot's files: a Cursor project's 8 `specpilot-*` commands in `.cursor/commands/` show as 0 (found on `CLI-Testing/scratch1/test`, 2026-11-03), and Regenerate All writes there while saying `Not listed on this page`. Same for Windsurf, Antigravity and Codex. Add each instruction file and command folder SpecPilot writes to the read allowlist, by exact name, never a whole IDE folder (`.cursor/mcp.json` and the like stay out). Architectural (SEC-004.8): Spec Report first. Attribution: the developer, 2026-11-03; REQ-002.H.65. Approved 2026-11-03 |
 
 ## Won't do
 

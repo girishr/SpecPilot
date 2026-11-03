@@ -185,12 +185,12 @@ describe('specPoller', () => {
   it('caps the scan and says so once', async () => {
     for (let i = 0; i < 10; i++) write(root, `.specs/many/f${i}.md`, 'x');
     const log = jest.fn();
-    start({ maxFiles: 6, log });
+    start({ maxFiles: 10, log }); // above the 7 instruction paths every scan starts with (BL-152)
     await sleep(250);
     expect(log).toHaveBeenCalledTimes(1);
-    expect(log.mock.calls[0][0]).toContain('first 6 files');
-    expect(listAllowedFiles(root, 6)).toMatchObject({ capped: true });
-    expect(listAllowedFiles(root, 6).files).toHaveLength(6);
+    expect(log.mock.calls[0][0]).toContain('first 10 files');
+    expect(listAllowedFiles(root, 10)).toMatchObject({ capped: true });
+    expect(listAllowedFiles(root, 10).files).toHaveLength(10);
   });
 });
 
@@ -221,6 +221,14 @@ describe('specPoller: the allowlisted roots themselves', () => {
     ['.github/copilot-instructions.md'],
     ['CLAUDE.md'],
     ['AGENTS.md'],
+    ['.cursor/commands/specpilot-status.md'], // BL-152: every IDE folder SpecPilot writes
+    ['.windsurf/workflows/specpilot-status.md'],
+    ['.agent/workflows/specpilot-status.md'],
+    ['.codex/prompts/specpilot-status.md'],
+    ['.cursor/rules/specpilot.mdc'],
+    ['.windsurfrules'],
+    ['.antigravity/rules.md'],
+    ['CODEX_INSTRUCTIONS.md'],
   ])('fires for an edit or new file at %s (dot-folders are skipped only below the roots)', async path => {
     poller = createPoller(root, { ...FAST, onChange: p => events.push(p) });
     poller.start();

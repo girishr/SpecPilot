@@ -119,6 +119,8 @@ function tasksHash(root: string): string | null {
 }
 
 const CURSOR_RULES = '.cursor/rules/specpilot.mdc';
+/** The command folders `nav.commands` lists, in this order; `nav.prompts` is Copilot's `.github/prompts` (BL-152). */
+const COMMAND_FOLDERS = ['.claude/commands', '.cursor/commands', '.windsurf/workflows', '.agent/workflows', '.codex/prompts'];
 
 /** Everything `GET /api/specs` returns: project metadata, readSpecs() output, the nav tree. */
 export function buildSpecsPayload(root: string, specpilotVersion: string) {
@@ -149,15 +151,12 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
         return { path, exists: real !== null, bytes: real ? statSync(real).size : 0 };
       }),
       // generated: the page's "From SpecPilot" group, else "Yours" (BL-PM-006)
-      commands: navFiles(root, scanned, '.claude/commands', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
+      commands: COMMAND_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('.md'))).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
       skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) && isSpecPilotSkill(root) })), // by the commands' rule, BL-PM-012
       prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
     },
   };
 }
-
-/** The command folders the Commands view lists; the result names any other folder Regenerate touched. */
-const LISTED_COMMAND_FOLDERS = ['.claude/commands/', '.github/prompts/'];
 
 /** What Regenerate All did, as project-relative paths, and the lines the page shows verbatim (BL-PM-006, REQ-002.H.30). */
 export function regenerateReport(results: SlashCommandBackfillResult[], skill: SkillRefresh | null = null) {
@@ -176,9 +175,6 @@ export function regenerateReport(results: SlashCommandBackfillResult[], skill: S
   if (updated.length) message.push(`Updated: ${updated.join(', ')}.`);
   if (added.length) message.push(`Added: ${added.join(', ')}.`);
   if (kept.length) message.push(`Kept as they were: ${kept.map(k => `${k.path} (${k.reason})`).join(', ')}.`);
-  const folders = [...new Set([...updated, ...added, ...kept.map(k => k.path)].filter(p => p !== skill?.path).map(p => p.slice(0, p.lastIndexOf('/') + 1)))];
-  const unlisted = folders.filter(f => !LISTED_COMMAND_FOLDERS.includes(f));
-  if (unlisted.length) message.push(`Not listed on this page: ${unlisted.join(', ')}.`);
   return { added, updated, kept, message };
 }
 

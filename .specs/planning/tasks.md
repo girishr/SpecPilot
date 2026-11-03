@@ -80,7 +80,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-152 | bug | P2 | Bug, P2. The Commands and Instructions views of `specpilot serve` list only Claude Code's and Copilot's files: a Cursor project's 8 `specpilot-*` commands in `.cursor/commands/` show as 0 (found on `CLI-Testing/scratch1/test`, 2026-11-03), and Regenerate All writes there while saying `Not listed on this page`. Same for Windsurf, Antigravity and Codex. Add each instruction file and command folder SpecPilot writes to the read allowlist, by exact name, never a whole IDE folder (`.cursor/mcp.json` and the like stay out). Architectural (SEC-004.8): Spec Report first. Attribution: the developer, 2026-11-03; REQ-002.H.65. Approved 2026-11-03 |
 
 ## Won't do
 
@@ -140,3 +139,4 @@ Notes
 | 261 | [CD-girishr-170] [BL-151] | The slot release race in the BL-144 browser tests: `holdSlots()`'s release waited for 0 streams by a 50 ms poll and missed it when the page's 5 s reopen landed in between; it now allows the page's one stream (`streams() <= 1`), and the later checks prove the slots were freed. A regression test holds the reopen and lets it through at the first 0: it failed 3 of 3 with the old wait. Test only, TESTS-002.4. Jest 1936, browser 110 → 111. Approved 2026-11-01. Feature commit `aacbc82`. |
 | 262 | [CD-girishr-171] | v2.20.0 release prepared and shipped (BL-077, BL-129, BL-130 to BL-139, BL-142 to BL-146, BL-151): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.20.0]`, annotated tag `v2.20.0`; pushed and published by the developer (row 263) |
 | 263 | [CD-girishr-172] | v2.20.0 shipped (BL-077, BL-129, BL-130 to BL-139, BL-142 to BL-146, BL-151): pushed, npm `specpilot@2.20.0` latest, GitHub release live (2026-11-01) |
+| 264 | [CD-girishr-173] [BL-152] | The Commands and Instructions views of `specpilot serve` list every IDE's files SpecPilot writes: the read allowlist adds `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md`, `CODEX_INSTRUCTIONS.md` and the `.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/`, `.codex/prompts/` folders by exact name (SEC-004.8 revision; MCP and settings files stay out); a Cursor-only project's 8 commands show under From SpecPilot; Regenerate's `Not listed on this page` line removed; `specpilot_read_spec` reads the same files. REQ-002.H.65. Jest 1936 → 1949, browser 111 → 113. Architectural; architect decision (a). Approved 2026-11-03. Feature commit `a9d53c7`. |

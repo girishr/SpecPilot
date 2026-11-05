@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-05: the developer: `153 is approved`, `commit`: feature `b23b6c0`, BL-153 to Won't do, `--no-ff` merge `f84bc79`, Jest 1949/1949 and browser 113/113 on `main`, branch deleted. BL-154 on `fix/bl-154-backfill-copilot`: Spec Report, spec-reviewer FIX (the warning's `add-specs` remedy, the summary line, dead code, docs) then PASS; built; Jest 1972/1972. To spec-review. Nothing committed.
 - 2026-11-05: the developer: `commit` for BL-152: feature `a9d53c7`, `docs(tasks)` `364c2bb` for BL-154 to BL-161, row 264, `--no-ff` merge, Jest 1949/1949 and browser 113/113 on `main`, branch deleted; not pushed. `continue`: BL-153 on `chore/bl-153-cursor-check`; its premise failed (three callers of the allowed set; a link to `CLAUDE.md` counts on the default allowlist); architect DECIDE: not folded, comment and spec notes corrected. Nothing committed.
 - 2026-11-03: BL-152 built, spec-reviewer FIX (README Limits sentence, tests.md names) then PASS; moved to Review. The developer: absent instruction files read `not in this repo`, which looks like something is missing when the file is only not needed for the project's IDE: BL-161 filed in Backlog. Nothing committed.
 - 2026-11-03: the developer: `move all to CS` (BL-153 to BL-160 to Current Sprint), then `ok now start fixing it based on the order`: BL-152 built on `fix/bl-152-ide-files-listed` from its reviewed spec; Jest 1949/1949, browser 113/113 three times. To spec-review. Nothing committed.

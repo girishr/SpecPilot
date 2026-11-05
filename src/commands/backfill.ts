@@ -52,9 +52,6 @@ function fileResultLines(label: string, r: BackfillFileResult, dryRun: boolean):
     } else {
       lines.push(chalk.green(`  ✅ All ${r.total} item${r.total === 1 ? '' : 's'} already present — nothing to backfill`));
     }
-  } else if (r.action === 'created') {
-    const verb = dryRun ? 'Would create' : 'Created';
-    lines.push(chalk.green(`  ✅ ${verb} with all ${r.total} mandates`));
   } else {
     // updated
     lines.push(chalk.green(`  ✅ ${r.found}/${r.total} items already present`));
@@ -128,7 +125,8 @@ function slashCommandResultLines(r: SlashCommandBackfillResult, dryRun: boolean)
 }
 
 function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger): void {
-  const allResults = [result.projectYaml, result.copilotInstructions, result.tasksMd, ...result.ideFiles];
+  const copilot = result.copilotInstructions;
+  const allResults = [result.projectYaml, ...(copilot ? [copilot] : []), result.tasksMd, ...result.ideFiles];
   const ideLines =
     result.ideFiles.length > 0
       ? [
@@ -151,8 +149,7 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     '',
     ...fileResultLines('.specs/project/project.yaml', result.projectYaml, dryRun),
     '',
-    ...fileResultLines('.github/copilot-instructions.md', result.copilotInstructions, dryRun),
-    '',
+    ...(copilot ? [...fileResultLines('.github/copilot-instructions.md', copilot, dryRun), ''] : []),
     ...fileResultLines('.specs/planning/tasks.md', result.tasksMd, dryRun),
     '',
     ...ideLines,
@@ -161,7 +158,7 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
   ];
 
   const updatedCount =
-    allResults.filter((r) => r.action === 'updated' || r.action === 'created').length +
+    allResults.filter((r) => r.action === 'updated').length +
     result.slashCommands.filter((r) => r.added.length > 0 || r.updated.length > 0).length +
     (result.skill?.action === 'added' || result.skill?.action === 'updated' ? 1 : 0);
   const skippedCount =
@@ -170,7 +167,9 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     (result.skill?.action === 'current' ? 1 : 0);
   const keptCount = result.skill?.action === 'kept' ? 1 : 0;
 
-  if (updatedCount === 0 && keptCount === 0) {
+  if (updatedCount === 0 && keptCount === 0 && copilot?.action === 'missing') {
+    content.push(chalk.yellow('⚠️  No IDE instruction file, so no mandates or commands were added.'));
+  } else if (updatedCount === 0 && keptCount === 0) {
     content.push(chalk.green('✅ Everything is up to date — nothing to backfill.'));
   } else if (dryRun) {
     content.push(

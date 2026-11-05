@@ -1,7 +1,6 @@
 import { join } from 'path';
 import { writeFileSync, existsSync, readFileSync } from 'fs';
-import { TemplateContext } from '../core/templateEngine';
-import { buildCopilotInstructions, COPILOT_INSTRUCTIONS_FILE, GITATTRIBUTES_FILE, GITATTRIBUTES_LINES } from '../core/ideConfig';
+import { GITATTRIBUTES_FILE, GITATTRIBUTES_LINES } from '../core/ideConfig';
 import { writeError, writeInside } from './specPaths';
 
 export { GITATTRIBUTES_FILE };
@@ -21,18 +20,10 @@ export function writeNew(path: string, content: string): boolean {
 }
 
 /**
- * The Node side of the IDE files (BL-032): what `specpilot backfill` creates and what the writer
- * merges. The content of every IDE file is in `src/core/ideConfig.ts`.
+ * The Node side of the IDE files (BL-032): what the writer merges. The content of every IDE file is
+ * in `src/core/ideConfig.ts`.
  */
 export class IdeConfigGenerator {
-  /**
-   * Generates .github/copilot-instructions.md with critical mandates (`specpilot backfill`, when it is
-   * missing). Read automatically by GitHub Copilot, Cursor, and other AI tools on every request.
-   */
-  generateCopilotInstructions(projectDir: string, context: TemplateContext): void {
-    writeInside(projectDir, COPILOT_INSTRUCTIONS_FILE, buildCopilotInstructions(context), { create: true });
-  }
-
   /**
    * Generates (or updates) .gitattributes at project root with merge=union rules
    * for append-heavy spec files, preventing git merge conflicts on shared branches.

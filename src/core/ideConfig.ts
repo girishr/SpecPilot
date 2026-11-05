@@ -46,7 +46,6 @@ const AI_CONTEXT_FILES: Record<string, string> = {
   'claude-code': 'CLAUDE.md',
 };
 const COPILOT_INSTRUCTIONS = '.github/copilot-instructions.md';
-export const COPILOT_INSTRUCTIONS_FILE = COPILOT_INSTRUCTIONS;
 
 export const GITATTRIBUTES_FILE = '.gitattributes';
 export const GITATTRIBUTES_LINES = [

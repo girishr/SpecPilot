@@ -329,7 +329,7 @@ specpilot backfill --dry-run
 
 - After upgrading SpecPilot to a newer version that added new mandates
 - When your existing `project.yaml` is missing critical or process mandates
-- When `.github/copilot-instructions.md` is out of date or missing
+- When `.github/copilot-instructions.md` is out of date
 
 **When NOT to use backfill:**
 

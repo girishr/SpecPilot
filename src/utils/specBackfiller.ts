@@ -2,8 +2,6 @@ import { basename, dirname, join } from 'path';
 import { existsSync, readFileSync } from 'fs';
 import * as os from 'os';
 import * as readline from 'readline';
-import { IdeConfigGenerator } from './ideConfigGenerator';
-import { TemplateContext } from '../core/templateEngine';
 import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
 import { buildProcessMandatesMarkdown } from '../core/ideConfig';
@@ -237,7 +235,7 @@ export function withTasksLine(content: string): string | null {
 }
 
 export interface BackfillFileResult {
-  action: 'updated' | 'created' | 'skipped' | 'missing';
+  action: 'updated' | 'skipped' | 'missing';
   found: number;
   total: number;
   added: string[];
@@ -246,7 +244,7 @@ export interface BackfillFileResult {
 
 export interface IdeFileBackfillResult {
   path: string;
-  action: 'updated' | 'created' | 'skipped' | 'missing' | 'warn';
+  action: 'updated' | 'skipped' | 'missing' | 'warn';
   found: number;
   total: number;
   added: string[];
@@ -260,13 +258,24 @@ export interface SlashCommandBackfillResult extends CommandRefresh {
 
 export interface BackfillResult {
   projectYaml: BackfillFileResult;
-  copilotInstructions: BackfillFileResult;
+  /** Left out when the file is absent and another IDE's instruction file exists (BL-154). */
+  copilotInstructions?: BackfillFileResult;
   tasksMd: BackfillFileResult;
   ideFiles: IdeFileBackfillResult[];
   slashCommands: SlashCommandBackfillResult[];
   /** The Claude Code skill (BL-PM-012); null without `CLAUDE.md`. */
   skill: SkillRefresh | null;
 }
+
+/** The instruction file that says each IDE is in use. */
+const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
+  { ide: 'claude-code', signalFile: 'CLAUDE.md' },
+  { ide: 'cursor', signalFile: '.cursor/rules/specpilot.mdc' },
+  { ide: 'windsurf', signalFile: '.windsurfrules' },
+  { ide: 'antigravity', signalFile: '.antigravity/rules.md' },
+  { ide: 'vscode', signalFile: '.github/copilot-instructions.md' },
+  { ide: 'codex', signalFile: 'CODEX_INSTRUCTIONS.md' },
+];
 
 export class SpecBackfiller {
   async backfill(
@@ -288,7 +297,7 @@ export class SpecBackfiller {
     await this.ensureDevPrefix(specsDir, dryRun, noPrompts);
 
     const yamlResult = this.backfillProjectYaml(specsDir, dryRun);
-    const copilotResult = await this.backfillCopilotInstructions(projectDir, specsDir, dryRun);
+    const copilotResult = await this.backfillCopilotInstructions(projectDir, dryRun);
     const tasksResult = this.backfillTasksMd(specsDir, dryRun);
     const ideFiles = this.backfillIdeFiles(projectDir, dryRun);
     // The Claude Code skill by the commands' rule (BL-PM-012), from this specs folder's project.yaml.
@@ -305,15 +314,6 @@ export class SpecBackfiller {
    * web-app-side generation (`slashCommandGenerator.ts`) never drift apart.
    */
   backfillSlashCommands(projectDir: string, dryRun: boolean): SlashCommandBackfillResult[] {
-    const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
-      { ide: 'claude-code', signalFile: 'CLAUDE.md' },
-      { ide: 'cursor', signalFile: '.cursor/rules/specpilot.mdc' },
-      { ide: 'windsurf', signalFile: '.windsurfrules' },
-      { ide: 'antigravity', signalFile: '.antigravity/rules.md' },
-      { ide: 'vscode', signalFile: '.github/copilot-instructions.md' },
-      { ide: 'codex', signalFile: 'CODEX_INSTRUCTIONS.md' },
-    ];
-
     const generator = new SlashCommandGenerator();
     const results: SlashCommandBackfillResult[] = [];
 
@@ -451,27 +451,21 @@ export class SpecBackfiller {
 
   private async backfillCopilotInstructions(
     projectDir: string,
-    specsDir: string,
     dryRun: boolean,
-  ): Promise<BackfillFileResult> {
+  ): Promise<BackfillFileResult | undefined> {
     const filePath = join(projectDir, '.github', 'copilot-instructions.md');
     const refused = writeError(projectDir, '.github/copilot-instructions.md');
     if (refused) return { action: 'skipped', found: 0, total: 0, added: [], reason: refused };
 
+    // Never created (BL-154): its absence is how a project says it does not use Copilot.
     if (!existsSync(filePath)) {
-      if (!dryRun) {
-        const projectName = this.readProjectField(specsDir, 'name') ?? require('path').basename(projectDir);
-        const language = this.readProjectField(specsDir, 'language') ?? 'typescript';
-        const framework = this.readProjectField(specsDir, 'framework');
-        const context: TemplateContext = { projectName, language, framework };
-        const ideGen = new IdeConfigGenerator();
-        ideGen.generateCopilotInstructions(projectDir, context);
-      }
+      if (IDE_SIGNALS.some(({ signalFile }) => existsSync(join(projectDir, ...signalFile.split('/'))))) return undefined;
       return {
-        action: 'created',
+        action: 'missing',
         found: 0,
-        total: MD_MANDATES.length + CODE_SECTIONS.length,
-        added: [...MD_MANDATES.map((m) => m.label), ...CODE_SECTIONS.map((s) => s.label)],
+        total: 0,
+        added: [],
+        reason: `none of ${IDE_SIGNALS.map(({ signalFile }) => signalFile).join(', ')} is in this project, so none was created and no commands were added. Create your IDE's file, then re-run specpilot backfill.`,
       };
     }
 
@@ -718,30 +712,6 @@ export class SpecBackfiller {
       };
       ask();
     });
-  }
-
-  /**
-   * Reads a top-level scalar field from project.yaml using a simple regex.
-   * Handles both quoted (`name: "My Project"`) and unquoted (`name: my-project`) values.
-   * Does not parse YAML to preserve formatting safety.
-   */
-  private readProjectField(specsDir: string, field: string): string | undefined {
-    const yamlPath = join(specsDir, 'project', 'project.yaml');
-    if (!existsSync(yamlPath)) return undefined;
-    try {
-      const content = readFileSync(yamlPath, 'utf-8');
-      // Try double-quoted value first
-      const quoted = content.match(new RegExp(`^${field}:\\s+"([^"]+)"`, 'm'));
-      if (quoted) return quoted[1].trim();
-      // Try single-quoted
-      const singleQuoted = content.match(new RegExp(`^${field}:\\s+'([^']+)'`, 'm'));
-      if (singleQuoted) return singleQuoted[1].trim();
-      // Try unquoted (stop at newline or comment)
-      const unquoted = content.match(new RegExp(`^${field}:\\s+([^\\n#]+)`, 'm'));
-      return unquoted ? unquoted[1].trim() : undefined;
-    } catch {
-      return undefined;
-    }
   }
 
   /**

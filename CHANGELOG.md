@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`specpilot backfill` no longer adds Copilot files to other IDEs' projects** (BL-154): it created `.github/copilot-instructions.md` whenever it was missing, then treated that file as a sign of Copilot and wrote `.github/prompts/`. It now updates that file only when it exists. A project with no instruction file at all gets a warning and nothing created. If an earlier backfill added these to a project that does not use Copilot, remove both `.github/copilot-instructions.md` and `.github/prompts/specpilot-*` by hand, or the prompts come back on the next backfill.
 - **The Commands and Instructions views list every IDE's files** (BL-152): `specpilot serve` showed only Claude Code's and Copilot's, so a Cursor project's 8 `specpilot-*` commands showed as 0. The views now list `.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/` and `.codex/prompts/`, and the instruction files `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md` and `CODEX_INSTRUCTIONS.md` (Instructions now counts 7). Each is added by exact name; the rest of those IDE folders, such as `.cursor/mcp.json`, stays out.
 
 ### Changed

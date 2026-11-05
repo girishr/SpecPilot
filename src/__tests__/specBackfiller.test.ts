@@ -1,6 +1,7 @@
 import { SpecBackfiller, withTasksLine } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
+import { buildCopilotInstructions } from '../core/ideConfig';
 import { join } from 'path';
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
@@ -358,16 +359,105 @@ rules:
   // backfillCopilotInstructions
   // ===========================================================================
 
-  describe('backfillCopilotInstructions — file absent', () => {
-    it('creates copilot-instructions.md when missing', async () => {
-      scaffoldSpecs(testDir, {
-        projectYaml: FULL_YAML,
-        tasksMd: makeFullTasksMd('girishr'),
-        // no copilotMd
+  describe('backfillCopilotInstructions — file absent (BL-154)', () => {
+    const REASON = "none of CLAUDE.md, .cursor/rules/specpilot.mdc, .windsurfrules, .antigravity/rules.md, .github/copilot-instructions.md, CODEX_INSTRUCTIONS.md is in this project, so none was created and no commands were added. Create your IDE's file, then re-run specpilot backfill.";
+    const copilotFile = () => join(testDir, '.github', 'copilot-instructions.md');
+    const prompts = () => join(testDir, '.github', 'prompts');
+    const put = (rel: string, text = '# Rules\n') => {
+      mkdirSync(join(testDir, rel, '..'), { recursive: true });
+      writeFileSync(join(testDir, rel), text);
+    };
+    const scaffold = () => scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+
+    describe.each([
+      ['Cursor', 'cursor', '.cursor/rules/specpilot.mdc', '.cursor/commands'],
+      ['Windsurf', 'windsurf', '.windsurfrules', '.windsurf/workflows'],
+      ['Antigravity', 'antigravity', '.antigravity/rules.md', '.agent/workflows'],
+      ['Claude Code', 'claude-code', 'CLAUDE.md', '.claude/commands'],
+      ['Codex', 'codex', 'CODEX_INSTRUCTIONS.md', '.codex/prompts'],
+    ])('a %s-only project', (_name, ide, signal, commands) => {
+      it.each([false, true])('gets no Copilot file or prompts, and its own commands (dry run %s)', async dryRun => {
+        scaffold();
+        put(signal);
+        const result = await backfiller.backfill(testDir, '.specs', dryRun, true);
+        expect(result.copilotInstructions).toBeUndefined();
+        expect(existsSync(copilotFile())).toBe(false);
+        expect(existsSync(prompts())).toBe(false);
+        expect(result.slashCommands.map(r => r.ide)).toEqual([ide]);
+        expect(existsSync(join(testDir, commands, 'specpilot-status.md'))).toBe(!dryRun);
       });
+    });
+
+    it('still updates an existing Copilot file and writes its prompts', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr'), copilotMd: '# Copilot\n' });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions.action).toBe('created');
-      expect(existsSync(join(testDir, '.github', 'copilot-instructions.md'))).toBe(true);
+      expect(result.copilotInstructions!.action).toBe('updated');
+      expect(existsSync(join(prompts(), 'specpilot-status.prompt.md'))).toBe(true);
+    });
+
+    it('a Codex project from init, with both files, still counts as Copilot until BL-158', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr'), copilotMd: '# Copilot\n' });
+      put('CODEX_INSTRUCTIONS.md');
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.slashCommands.map(r => r.ide)).toEqual(['vscode', 'codex']);
+      expect(existsSync(join(prompts(), 'specpilot-status.prompt.md'))).toBe(true);
+    });
+
+    it('fills an empty hand-made Cursor rules file, adds its commands and no front matter', async () => {
+      scaffold();
+      put('.cursor/rules/specpilot.mdc', '');
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.ideFiles.find(f => f.path === '.cursor/rules/specpilot.mdc')!.action).toBe('updated');
+      const rules = readFileSync(join(testDir, '.cursor/rules/specpilot.mdc'), 'utf-8');
+      expect(rules).toContain('Critical Mandates');
+      expect(rules).not.toContain('alwaysApply');
+      expect(existsSync(join(testDir, '.cursor/commands/specpilot-status.md'))).toBe(true);
+    });
+
+    describe.each([
+      ['no other file', null],
+      ['only AGENTS.md', 'AGENTS.md'],
+      ['only .cursor/rules/project.mdc', '.cursor/rules/project.mdc'],
+    ])('a project with %s', (_name, other) => {
+      it.each([false, true])('creates nothing and says why (dry run %s)', async dryRun => {
+        scaffold();
+        if (other) put(other);
+        const result = await backfiller.backfill(testDir, '.specs', dryRun, true);
+        expect(result.copilotInstructions).toMatchObject({ action: 'missing', reason: REASON });
+        expect(result.slashCommands).toEqual([]);
+        expect(existsSync(copilotFile())).toBe(false);
+        expect(existsSync(prompts())).toBe(false);
+      });
+    });
+
+    describe('what backfill prints', () => {
+      let out: string;
+      let spies: jest.SpyInstance[];
+      beforeEach(() => {
+        out = '';
+        spies = (['log', 'info', 'warn', 'error'] as const).map(m => jest.spyOn(console, m).mockImplementation((...a: unknown[]) => void (out += a.join(' ') + '\n')));
+        process.exitCode = undefined;
+      });
+      afterEach(() => spies.forEach(s => s.mockRestore()));
+      const up = (dryRun: boolean) => backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true, dryRun });
+
+      it.each([false, true])('no Copilot heading when another IDE is in use (dry run %s)', async dryRun => {
+        scaffold();
+        put('.cursor/rules/specpilot.mdc');
+        await up(dryRun);
+        expect(out).not.toContain('.github/copilot-instructions.md');
+        expect(out).not.toContain('File not found');
+      });
+
+      it.each([false, true])('with no instruction file: the reason once, the warning, not "up to date", exit code 0 (dry run %s)', async dryRun => {
+        scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+        await up(dryRun);
+        expect(out.split('File not found').length - 1).toBe(1);
+        expect(out.replace(/\s+/g, ' ')).toContain('File not found — none of CLAUDE.md');
+        expect(out).toContain('No IDE instruction file, so no mandates or commands were added.');
+        expect(out).not.toContain('Everything is up to date');
+        expect(process.exitCode ?? 0).toBe(0);
+      });
     });
   });
 
@@ -379,10 +469,10 @@ rules:
         tasksMd: makeFullTasksMd('girishr'),
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions.action).toBe('skipped');
-      expect(result.copilotInstructions.found).toBe(11);
-      expect(result.copilotInstructions.total).toBe(11);
-      expect(result.copilotInstructions.added).toHaveLength(0);
+      expect(result.copilotInstructions!.action).toBe('skipped');
+      expect(result.copilotInstructions!.found).toBe(11);
+      expect(result.copilotInstructions!.total).toBe(11);
+      expect(result.copilotInstructions!.added).toHaveLength(0);
     });
   });
 
@@ -395,8 +485,8 @@ rules:
         tasksMd: makeFullTasksMd('girishr'),
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions.action).toBe('updated');
-      expect(result.copilotInstructions.added.length).toBeGreaterThan(0);
+      expect(result.copilotInstructions!.action).toBe('updated');
+      expect(result.copilotInstructions!.added.length).toBeGreaterThan(0);
       const written = readFileSync(join(testDir, '.github', 'copilot-instructions.md'), 'utf-8');
       expect(written).toContain('SpecPilot Mandates (backfilled');
       expect(written).toContain('NEVER push');
@@ -466,10 +556,7 @@ rules:
     const mdFile = () => join(testDir, '.github', 'copilot-instructions.md');
 
     it('reports a file written by init today as up to date', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { IdeConfigGenerator } = require('../utils/ideConfigGenerator');
-      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr') });
-      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' });
+      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr'), copilotMd: buildCopilotInstructions({ projectName: 'x', language: 'typescript' }) });
       const before = readFileSync(mdFile(), 'utf-8');
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 11, total: 11 });
@@ -477,13 +564,10 @@ rules:
     });
 
     it('adds a missing mandate to a terse file in terse wording', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { IdeConfigGenerator } = require('../utils/ideConfigGenerator');
-      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr') });
-      await new IdeConfigGenerator().generateCopilotInstructions(testDir, { projectName: 'x', language: 'typescript' });
+      scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr'), copilotMd: buildCopilotInstructions({ projectName: 'x', language: 'typescript' }) });
       writeFileSync(mdFile(), readFileSync(mdFile(), 'utf-8').replace('2. No push unless asked.\n', ''));
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions.added).toEqual(['Never push']);
+      expect(result.copilotInstructions!.added).toEqual(['Never push']);
       const written = readFileSync(mdFile(), 'utf-8');
       expect(written).toContain('## 🔴 Critical Mandates — Never violate, no exceptions\n\n2. No push unless asked.\n');
       expect(written).not.toContain('NEVER');
@@ -492,7 +576,7 @@ rules:
     it('adds the terse block to a file with neither wording', async () => {
       scaffoldSpecs(testDir, { projectYaml: BARE_YAML, copilotMd: '# My instructions\n', tasksMd: makeFullTasksMd('girishr') });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions.added).toHaveLength(11);
+      expect(result.copilotInstructions!.added).toHaveLength(11);
       const written = readFileSync(mdFile(), 'utf-8');
       expect(written).toContain('1. No commit unless asked.');
       expect(written).not.toContain('NEVER');
@@ -511,7 +595,7 @@ rules:
       const yamlBefore = readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8');
       const result = await backfiller.backfill(testDir, '.specs', true, true);
       expect(result.projectYaml.action).toBe('skipped');
-      expect(result.copilotInstructions.action).toBe('skipped');
+      expect(result.copilotInstructions!.action).toBe('skipped');
       expect(result.tasksMd).toMatchObject({ action: 'skipped', found: 1, total: 1 }); // BL-069
       expect(readFileSync(join(testDir, '.specs', 'project', 'project.yaml'), 'utf-8')).toBe(yamlBefore);
       const v = await new SpecValidator().validate(testDir, { fix: false, verbose: false });
@@ -721,7 +805,7 @@ rules:
       });
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       expect(result.projectYaml.action).toBe('skipped');
-      expect(result.copilotInstructions.action).toBe('skipped');
+      expect(result.copilotInstructions!.action).toBe('skipped');
       expect(result.tasksMd.action).toBe('skipped');
     });
   });
@@ -1350,15 +1434,15 @@ describe('the MCP Tasks line (BL-088)', () => {
   });
   const backfill = (dryRun = false) => new SpecBackfiller().backfill(testDir, '.specs', dryRun, true);
 
-  test.each([false, true])('CLAUDE.md linked to an in-repo AGENTS.md → Skipped, AGENTS.md unchanged, copilot-instructions.md still created (dry run %s)', async dryRun => {
+  test.each([false, true])('CLAUDE.md linked to an in-repo AGENTS.md → Skipped, AGENTS.md unchanged, copilot-instructions.md not created (dry run %s)', async dryRun => {
     scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
     writeFileSync(join(testDir, 'AGENTS.md'), '# Agents\n');
     symlinkSync('AGENTS.md', join(testDir, 'CLAUDE.md'));
     const result = await backfill(dryRun);
     expect(readFileSync(join(testDir, 'AGENTS.md'), 'utf-8')).toBe('# Agents\n');
     expect(result.ideFiles.find(f => f.path === 'CLAUDE.md')).toMatchObject({ action: 'skipped', reason: 'CLAUDE.md is a symbolic link, so nothing was written.' });
-    expect(result.copilotInstructions.action).toBe('created');
-    expect(existsSync(join(testDir, '.github', 'copilot-instructions.md'))).toBe(!dryRun);
+    expect(result.copilotInstructions).toBeUndefined();
+    expect(existsSync(join(testDir, '.github', 'copilot-instructions.md'))).toBe(false);
   });
 
   test('a linked tasks.md → Skipped with the reason, the target unchanged', async () => {
@@ -1385,6 +1469,15 @@ describe('the MCP Tasks line (BL-088)', () => {
     const result = await backfill();
     expect(existsSync(join(outside, 'new.md'))).toBe(false);
     expect(result.copilotInstructions).toMatchObject({ action: 'skipped', reason: '.github/copilot-instructions.md is a symbolic link, so nothing was written.' });
+  });
+
+  test('a live linked copilot-instructions.md → Skipped, its target unchanged', async () => {
+    scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+    writeFileSync(join(outside, 'mine.md'), '# Mine\n');
+    symlinkSync(join(outside, 'mine.md'), join(testDir, '.github', 'copilot-instructions.md'));
+    const result = await backfill();
+    expect(result.copilotInstructions).toMatchObject({ action: 'skipped', reason: '.github/copilot-instructions.md is a symbolic link, so nothing was written.' });
+    expect(readFileSync(join(outside, 'mine.md'), 'utf-8')).toBe('# Mine\n');
   });
 
   test('a linked .github folder → copilot-instructions.md not created in the target', async () => {

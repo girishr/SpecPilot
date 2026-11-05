@@ -101,7 +101,7 @@ program
 program
   .command('backfill')
   .alias('bf')
-  .description('Backfill missing SpecPilot mandates into existing project.yaml and copilot-instructions.md')
+  .description('Backfill missing SpecPilot mandates into project.yaml and existing IDE instruction files, and commands for those IDEs; creates no instruction file')
   .option('-d, --dir <directory>', 'Project directory', '.')
   .option('--specs-name <name>', 'Name for specs folder', '.specs')
   .option('--dry-run', 'Preview changes without writing any files')

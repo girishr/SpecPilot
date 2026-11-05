@@ -137,7 +137,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       root,
       branch: readBranch(root),
       specs: !specsMissing(root), // false → the page offers guided setup (BL-055)
-      // the file SpecPilot writes for Cursor; checked, never served (BL-PM-010, SEC-004.8)
+      // the file SpecPilot writes for Cursor; exactly this path, so a link to another allowlisted file is false (REQ-002.H.34, BL-153)
       cursor: resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project

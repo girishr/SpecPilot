@@ -59,7 +59,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-153 | chore | P3 | Chore, P3. Fold the `project.cursor` check (REQ-002.H.34) into the default allowlist now that `.cursor/rules/specpilot.mdc` is on it (BL-152): remove the one-path allowed set of `resolveAllowedPath()` if nothing else uses it. Attribution: the architect, 2026-11-03, BL-152 open question (6). |
 | BL-154 | bug | P1 | Bug, P1. `specpilot backfill` creates `.github/copilot-instructions.md` whenever it is missing (`backfillCopilotInstructions()` in `src/utils/specBackfiller.ts`), whatever IDE the project uses; its slash-command step then takes that file as Copilot's signal and writes `.github/prompts/`. Reproduced on a scratch copy with a temp HOME: 9 Copilot files added to a Cursor-only project. Only update the file when it exists, as the other IDE files are handled. Specs disagree: REQ-002 line 61 ("based on selected IDE") and REQ line 77 ("an existing `.github/copilot-instructions.md`") vs the command's help text. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-155 | bug | P2 | Bug, P2. The left menu's Commands and Skills rows show fixed labels `.claude/commands/` and `.claude/skills/` (`#cmdMeta`, `#sklMeta` in `ui/index.html`), never updated, so a Cursor project reads as Claude Code. Show the folders the project actually has, or no folder label. Take with or after BL-152. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-156 | bug | P2 | Bug, P2. The Skills view reads only `.claude/skills/` (`nav.skills` in `src/utils/specServer.ts`), and SpecPilot writes a skill only for Claude Code, yet the view shows for every project. Hide it for a project without Claude Code, or cover each IDE's skill folder if it has one (unchecked whether Cursor or Codex does). Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
@@ -80,6 +79,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-153 | chore | P3 | Chore, P3. Fold the `project.cursor` check (REQ-002.H.34) into the default allowlist now that `.cursor/rules/specpilot.mdc` is on it (BL-152): remove the one-path allowed set of `resolveAllowedPath()` if nothing else uses it. Attribution: the architect, 2026-11-03, BL-152 open question (6). Outcome: not folded, architect decision 2026-11-05; only the stale comment and spec notes changed. Approved 2026-11-05 |
 
 ## Won't do
 

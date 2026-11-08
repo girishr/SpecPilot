@@ -1000,7 +1000,8 @@ const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
-const inspOpen = (page: Page) => page.waitForFunction(() => document.querySelector('#insp')!.classList.contains('open'));
+/** Open, and done sliding in, so positions read after it are settled (BL-163). One predicate: getAnimations() flushes style, so it sees the slide in the same poll as the class. */
+const inspOpen = (page: Page) => page.waitForFunction(() => { const el = document.querySelector('#insp')!; return el.classList.contains('open') && el.getAnimations().length === 0; });
 const inspClosed = (page: Page) => page.waitForFunction(() => !document.querySelector('#insp')!.classList.contains('open'));
 const formOpen = (page: Page) => page.waitForFunction(() => !(document.querySelector('#rvForm') as HTMLElement | null)?.hidden && document.activeElement?.id === 'rvNote');
 const formClosed = (page: Page) => page.waitForFunction(() => (document.querySelector('#rvForm') as HTMLElement | null)?.hidden === true);
@@ -1201,7 +1202,9 @@ browserTest('Send back with a note (a line break and a | typed) writes one space
   expect(await page.locator('#insp .hist .hn').allTextContents()).toEqual(['an earlier note', 'a \\| b']);
   await page.keyboard.press('Escape');
   await inspClosed(page);
+  const rev = Number(await page.evaluate(() => document.documentElement.dataset.rev || 0));
   writeFileSync(env.tasks(), before); // the fixture as it was for the rest of the case
+  await page.waitForFunction(r => Number(document.documentElement.dataset.rev || 0) > r, rev); // its reload drawn, so the next send has its hash (BL-163)
   await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green') === null && document.querySelectorAll('#boardMode .row[data-col="currentSprint"]').length === 2);
   // no note: the dot form, sent with Cmd/Ctrl+Enter from the box; the History of a row that was sent back before lists both notes when it comes back
   await row(page, 'review', 0).click();
@@ -1358,6 +1361,15 @@ browserTest('the card shows Priority, then Type, then Approved on its bottom lin
   await page.click('#rvApprove');
   await page.waitForFunction(() => document.querySelector('#boardMode .row[data-col="review"] .chip.green')?.textContent === 'Approved');
   expect(await trail(page, 'review', 0)).toEqual(['pill chip ty v-chore:chore', 'pill green chip:Approved']);
+});
+
+browserTest('inspOpen() returns once the panel has finished sliding in (BL-163)', b, async open => {
+  const { page } = await open(srv);
+  await waitView(page, 'v-board');
+  await page.locator('#insp').evaluate(e => void (e.style.transitionDuration = '2s')); // a slide long enough to be caught mid-way; the CSP refuses a style tag
+  await row(page, 'backlog', 0).click();
+  await inspOpen(page);
+  expect(await page.locator('#insp').evaluate(e => [getComputedStyle(e).transform, e.getAnimations().length])).toEqual(['none', 0]);
 });
 
 browserTest('the detail panel sets Priority and Type on choice, arrow keys move and choose, and the card follows', b, async open => {

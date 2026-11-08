@@ -78,6 +78,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-163 | chore | P2 | Chore, P2. The browser test 'the detail panel sets Priority and Type on choice…' (`tasks.browser.test.ts`) fails about 1 run in 8: `inspOpen()` waits only for the panel's `open` class, not for its 0.26 s slide-in, and the test reads five element positions in five separate calls, so a slide still running puts them at different offsets (the label 92 px left of its box). Wait in `inspOpen()` for the slide to finish, which covers all 18 callers; the 'Send back with a note…' test, whose own race that exposed, waits for the reload of its `tasks.md` write. Test only. Attribution: found on `main` after the BL-155 merge (2026-11-08); fails on `2be8887` too. Approved 2026-11-08 |
 
 ## Won't do
 

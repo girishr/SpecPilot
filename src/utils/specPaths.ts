@@ -7,8 +7,9 @@ import { basename, dirname, isAbsolute, join, posix, relative, sep } from 'path'
 
 // BL-152: every instruction file and command folder SpecPilot writes, by exact name (never a whole IDE folder:
 // their MCP and settings files can hold tokens), after the original entries so `.specs/` walks first under the cap.
+// BL-156: then each IDE's documented project skills folder, last (REQ-002.H.67).
 export const ALLOWED_FILES = ['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md', '.cursor/rules/specpilot.mdc', '.windsurfrules', '.antigravity/rules.md', 'CODEX_INSTRUCTIONS.md'];
-export const ALLOWED_DIRS = ['.specs/', '.claude/commands/', '.claude/skills/', '.github/prompts/', '.cursor/commands/', '.windsurf/workflows/', '.agent/workflows/', '.codex/prompts/'];
+export const ALLOWED_DIRS = ['.specs/', '.claude/commands/', '.claude/skills/', '.github/prompts/', '.cursor/commands/', '.windsurf/workflows/', '.agent/workflows/', '.codex/prompts/', '.agents/skills/', '.cursor/skills/', '.github/skills/', '.agent/skills/'];
 
 /** Upper bound on files one scan returns, so a huge tree cannot make each poll expensive. */
 export const MAX_SCAN_FILES = 2000;

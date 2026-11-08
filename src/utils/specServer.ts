@@ -121,6 +121,8 @@ function tasksHash(root: string): string | null {
 const CURSOR_RULES = '.cursor/rules/specpilot.mdc';
 /** The command folders `nav.commands` lists, in this order; `nav.prompts` is Copilot's `.github/prompts` (BL-152). */
 const COMMAND_FOLDERS = ['.claude/commands', '.cursor/commands', '.windsurf/workflows', '.agent/workflows', '.codex/prompts'];
+/** The project skills folders `nav.skills` lists, in this order: each IDE's documented one (BL-156, REQ-002.H.67). */
+const SKILL_FOLDERS = ['.claude/skills', '.agents/skills', '.cursor/skills', '.github/skills', '.agent/skills'];
 
 /** Everything `GET /api/specs` returns: project metadata, readSpecs() output, the nav tree. */
 export function buildSpecsPayload(root: string, specpilotVersion: string) {
@@ -152,7 +154,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       }),
       // generated: the page's "From SpecPilot" group, else "Yours" (BL-PM-006)
       commands: COMMAND_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('.md'))).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
-      skills: navFiles(root, scanned, '.claude/skills', p => p.endsWith('/SKILL.md')).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) && isSpecPilotSkill(root) })), // by the commands' rule, BL-PM-012
+      skills: SKILL_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('/SKILL.md'))).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) && isSpecPilotSkill(root) })), // by the commands' rule, BL-PM-012
       prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
     },
   };

@@ -229,6 +229,10 @@ describe('specPoller: the allowlisted roots themselves', () => {
     ['.windsurfrules'],
     ['.antigravity/rules.md'],
     ['CODEX_INSTRUCTIONS.md'],
+    ['.agents/skills/x/SKILL.md'], // BL-156: every documented project skills folder
+    ['.cursor/skills/x/SKILL.md'],
+    ['.github/skills/x/SKILL.md'],
+    ['.agent/skills/x/SKILL.md'],
   ])('fires for an edit or new file at %s (dot-folders are skipped only below the roots)', async path => {
     poller = createPoller(root, { ...FAST, onChange: p => events.push(p) });
     poller.start();

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Skills view lists every IDE's project skills folder** (BL-156): it read only `.claude/skills/`, so a Cursor project's `.cursor/skills/` skills were missing. It now also lists `.agents/skills/` (Cursor, Codex, Copilot), `.cursor/skills/`, `.github/skills/` (Copilot) and `.agent/skills/` (Antigravity), under Yours. Every file in a skill's folder is shown, scripts included; the rest of those IDE folders stays out.
 - **The left menu no longer labels Commands and Skills as `.claude/`** (BL-155): those two rows showed `.claude/commands/` and `.claude/skills/` in every project, whatever its IDE. They now show their names only.
 - **`specpilot backfill` no longer adds Copilot files to other IDEs' projects** (BL-154): it created `.github/copilot-instructions.md` whenever it was missing, then treated that file as a sign of Copilot and wrote `.github/prompts/`. It now updates that file only when it exists. A project with no instruction file at all gets a warning and nothing created. If an earlier backfill added these to a project that does not use Copilot, remove both `.github/copilot-instructions.md` and `.github/prompts/specpilot-*` by hand, or the prompts come back on the next backfill.
 - **The Commands and Instructions views list every IDE's files** (BL-152): `specpilot serve` showed only Claude Code's and Copilot's, so a Cursor project's 8 `specpilot-*` commands showed as 0. The views now list `.cursor/commands/`, `.windsurf/workflows/`, `.agent/workflows/` and `.codex/prompts/`, and the instruction files `.cursor/rules/specpilot.mdc`, `.windsurfrules`, `.antigravity/rules.md` and `CODEX_INSTRUCTIONS.md` (Instructions now counts 7). Each is added by exact name; the rest of those IDE folders, such as `.cursor/mcp.json`, stays out.
@@ -16,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `specpilot_read_spec` on the local MCP endpoint reads the same added files, as it reads what the page shows (BL-152).
+- `specpilot_read_spec` also reads the four added skills folders (BL-156).
 
 ### Removed
 

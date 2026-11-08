@@ -106,3 +106,52 @@ browserTest('at 420px in both themes the Commands and Instructions views fit idl
     await page.unroute('**/api/commands/regenerate**');
   }
 }, [/status of 500/]);
+
+// Every documented project skills folder (BL-156, REQ-002.H.67): the skills are written here, so the rows are known.
+const skill = (rel: string) => {
+  mkdirSync(join(env.project, ...rel.split('/').slice(0, -1)), { recursive: true });
+  writeFileSync(join(env.project, ...rel.split('/')), '---\nname: x\ndescription: A skill.\n---\n\nA skill.\n');
+};
+const counts = async (page: Page) => [await page.locator('#sklSpCnt').textContent(), await page.locator('#sklYouCnt').textContent()];
+
+browserTest("a Cursor-only project's .cursor/skills and .agents/skills skills are listed under Yours and open", b, async open => {
+  skill('.cursor/skills/x/SKILL.md');
+  skill('.agents/skills/y/SKILL.md');
+  const { page } = await open(srv, '#skills');
+  await waitView(page, 'v-skills');
+  await page.waitForFunction(() => document.querySelector('#sklYouCnt')?.textContent === '2');
+  expect(await counts(page)).toEqual(['0', '2']);
+  expect(await page.locator('#sklMine').textContent()).toEqual(expect.stringContaining('.agents/skills/y/SKILL.md'));
+  expect(await page.locator('#sklMine').textContent()).toEqual(expect.stringContaining('.cursor/skills/x/SKILL.md'));
+  expect(await page.locator('[aria-labelledby="gAuto"] [data-v="skills"]').count()).toBe(1);
+  await page.click('[data-open=".cursor/skills/x/SKILL.md"]');
+  await page.locator('#insp .md').waitFor();
+  expect(await page.locator('#insp').textContent()).toContain('.cursor/skills/x/SKILL.md');
+});
+
+browserTest('at 420px in both themes the Skills view fits empty, with skills, with a long path, with a skill open and after its file is deleted', b, async open => {
+  const LONG = `.github/skills/${'a-very-long-skill-folder-name-'.repeat(4)}end/SKILL.md`;
+  for (const light of [false, true]) {
+    const theme = light ? 'light' : 'dark';
+    rmSync(join(env.project, '.cursor', 'skills'), { recursive: true, force: true });
+    rmSync(join(env.project, '.agents'), { recursive: true, force: true });
+    rmSync(join(env.project, '.github', 'skills'), { recursive: true, force: true });
+    const { page } = await open(srv, '#skills', { width: 420, light });
+    await waitView(page, 'v-skills');
+    expect([theme, await counts(page)]).toEqual([theme, ['0', '0']]);
+    expect([theme, 'empty', await noSideScroll(page)]).toEqual([theme, 'empty', true]);
+    skill('.cursor/skills/x/SKILL.md');
+    skill('.agents/skills/y/SKILL.md');
+    await page.waitForFunction(() => document.querySelector('#sklYouCnt')?.textContent === '2');
+    expect([theme, 'present', await noSideScroll(page)]).toEqual([theme, 'present', true]);
+    skill(LONG);
+    await page.waitForFunction(() => document.querySelector('#sklYouCnt')?.textContent === '3');
+    expect([theme, 'long path', await noSideScroll(page)]).toEqual([theme, 'long path', true]);
+    await page.click(`[data-open="${LONG}"]`);
+    await page.locator('#insp .md').waitFor();
+    expect([theme, 'open', await noSideScroll(page)]).toEqual([theme, 'open', true]);
+    rmSync(join(env.project, ...LONG.split('/')));
+    await page.waitForFunction(() => /no longer exists/i.test(document.querySelector('#insp')!.textContent!));
+    expect([theme, 'deleted', await noSideScroll(page)]).toEqual([theme, 'deleted', true]);
+  }
+});

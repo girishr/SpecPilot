@@ -34,6 +34,14 @@ const go = async (page: Page, view: string) => {
   await page.goto(page.url().replace(/#.*$/, '#' + view));
   await waitView(page, 'v-' + view);
 };
+/** The Automation rows Commands and Skills carry no folder label, in any project (BL-155). */
+const bareRows = async (page: Page, state: string) => {
+  const rows = page.locator('[aria-labelledby="gAuto"]');
+  const text = async (view: string) => (await rows.locator(`[data-v="${view}"]`).textContent())!.trim();
+  expect([state, await text('commands'), await text('skills')]).toEqual([state, 'Commands', 'Skills']);
+  expect([state, await page.locator('#cmdMeta, #sklMeta').count()]).toEqual([state, 0]);
+  expect([state, await rows.textContent()]).not.toEqual([state, expect.stringContaining('.claude')]);
+};
 const regenDone = (page: Page) =>
   page.waitForFunction(() => !(document.querySelector('#cmdRegen') as HTMLButtonElement).disabled && !!document.querySelector('#regenNote')?.textContent);
 
@@ -56,12 +64,20 @@ browserTest("a Cursor-only project's commands show under From SpecPilot, its rul
   expect(await page.locator('#insBox').textContent()).toContain('CODEX_INSTRUCTIONS.md');
 });
 
+browserTest('the left menu names no folder for Commands or Skills, and Instructions keeps its count', b, async open => {
+  const { page } = await open(srv, '#commands');
+  await waitView(page, 'v-commands');
+  await bareRows(page, 'Cursor-only');
+  expect(await page.locator('#insMeta').textContent()).toBe('1 of 7');
+});
+
 browserTest('at 420px in both themes the Commands and Instructions views fit idle, while Regenerate All runs and after an error', b, async open => {
   for (const light of [false, true]) {
     const { page } = await open(srv, '#commands', { width: 420, light });
     const theme = light ? 'light' : 'dark';
     await waitView(page, 'v-commands');
     expect([theme, 'commands idle', await noSideScroll(page)]).toEqual([theme, 'commands idle', true]);
+    await bareRows(page, `${theme} idle`);
     await go(page, 'instructions');
     expect([theme, 'instructions idle', await noSideScroll(page)]).toEqual([theme, 'instructions idle', true]);
     await go(page, 'commands');
@@ -75,6 +91,7 @@ browserTest('at 420px in both themes the Commands and Instructions views fit idl
     await page.click('#cmdRegen');
     await page.waitForFunction(() => (document.querySelector('#cmdRegen') as HTMLButtonElement).disabled);
     expect([theme, 'commands running', await noSideScroll(page)]).toEqual([theme, 'commands running', true]);
+    await bareRows(page, `${theme} running`);
     release();
     await regenDone(page);
     await page.unroute('**/api/commands/regenerate**');
@@ -84,6 +101,7 @@ browserTest('at 420px in both themes the Commands and Instructions views fit idl
     await regenDone(page);
     expect(await page.locator('#regenNote').innerText()).toBe('The server could not finish this request. Command files may have been partly written.');
     expect([theme, 'commands error', await noSideScroll(page)]).toEqual([theme, 'commands error', true]);
+    await bareRows(page, `${theme} error`);
     expect(await page.locator('#cmdSpCnt').textContent()).toBe('8');
     await page.unroute('**/api/commands/regenerate**');
   }

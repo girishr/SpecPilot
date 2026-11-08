@@ -38,6 +38,8 @@ browserTest('Commands and Skills split into From SpecPilot and Yours; Regenerate
   const { page } = await open(srv, '#commands');
   await waitView(page, 'v-commands');
   expect(await page.locator('#v-commands').textContent()).toContain('From SpecPilot');
+  expect(await page.locator('[aria-labelledby="gAuto"] [data-v="commands"]').textContent()).toBe('Commands'); // no folder label (BL-155)
+  expect(await page.locator('[aria-labelledby="gAuto"] [data-v="skills"]').textContent()).toBe('Skills');
   expect(await page.locator('#cmdYouCnt').textContent()).toBe('1');
   expect(await page.locator('#cmdSpCnt').textContent()).toBe('0');
   await page.locator('#cmdRegen').focus();

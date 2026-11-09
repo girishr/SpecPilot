@@ -30,7 +30,7 @@ const MIN_POLL_MS = 250;
 /** `SPECPILOT_MCP_TOKEN` (BL-PM-007): at least 32 visible ASCII characters, so it is hard to guess and fits in a header. */
 export const MCP_TOKEN_PATTERN = /^[\x21-\x7e]{32,}$/;
 
-/** The one line an IDE's MCP settings take (the page's card builds the same line, ui/route.js). */
+/** The one line Claude Code's `.mcp.json` takes (the page's card builds the same line, ui/route.js; other IDEs' configs there, BL-157). */
 export function mcpConfigLine(host: string, token: string): string {
   return JSON.stringify({ mcpServers: { 'specpilot-local': { type: 'http', url: `http://${host}/mcp`, headers: { 'X-SpecPilot-Token': token } } } });
 }
@@ -275,7 +275,8 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
   if (registryNote) console.log(registryNote);
   if (mcp) {
     console.log(`MCP endpoint: ${url}/mcp${options.readOnly ? ' (read tools only)' : ''}`);
-    console.log(`Add to your IDE's MCP settings: ${mcpConfigLine(`127.0.0.1:${port}`, envToken !== undefined ? '${SPECPILOT_MCP_TOKEN}' : handle.mcpToken!)}`);
+    console.log(`Claude Code (.mcp.json): ${mcpConfigLine(`127.0.0.1:${port}`, envToken !== undefined ? '${SPECPILOT_MCP_TOKEN}' : handle.mcpToken!)}`);
+    console.log("Other IDEs: Connect Your AI IDE on the page gives each one's file."); // BL-157, REQ-002.H.68
   }
   if (options.open) openBrowser(url, logger);
 

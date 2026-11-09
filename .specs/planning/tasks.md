@@ -61,7 +61,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-157 | bug | P2 | Bug, P2. The MCP config note on Home and the Setup view (`#mcpNote` in `ui/app.js`) assumes Claude Code: it says to add the line to `.mcp.json` and that Claude Code fills in `${SPECPILOT_MCP_TOKEN}`. Cursor reads `.cursor/mcp.json`; VS Code's `.vscode/mcp.json` takes a `servers` key, not the `mcpServers` that `mcpConfigLine()` in `ui/route.js` writes (from memory, not checked against VS Code's docs). Check each IDE's documented format, then give per-IDE file names and shapes. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-158 | feat | P2 | Feature, P2, Architectural. Record the IDE or IDEs chosen at setup (`init`, `add-specs`, guided setup, `specpilot_setup_project`) in `project.yaml`, and have `backfill`, Regenerate All and the `serve` page read it instead of inferring the IDE from which files exist. Root cause of BL-152 and BL-154 to BL-156: the answer is asked for, then dropped. Spec Report first. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-159 | feat | P3 | Feature, P3. `init` and `add-specs` start from `ide = 'vscode'` (`src/commands/init.ts`, `src/commands/add-specs.ts`; guided setup the same in `specSetup.ts`), so with `--no-prompts` every project gets Copilot, and no `--ide` option exists. Add `--ide <name>` taking the IDE choice values. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-160 | chore | P3 | Chore, P3. Claude-only wording in files for other IDEs: the `specpilot-backfill` command file written to `.cursor/commands/` (and the other IDEs' folders) carries the Claude Code `$N` substitution comment (BL-093), and `specpilot_read_spec`'s description in `src/utils/mcpLocal.ts` gives `CLAUDE.md` as its example. A template change: golden recordings change, so not a trivial row. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
@@ -78,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-157 | bug | P2 | Bug, P2. The MCP config note on Home and the Setup view (`#mcpNote` in `ui/app.js`) assumed Claude Code: one `mcpServers` line for `.mcp.json`, which VS Code (`servers`), Codex (TOML) and the other IDEs do not take as pasted. Fixed with one IDE choice and each IDE's documented file, config and note (REQ-002.H.68), checked against each IDE's own docs on 2026-11-09. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. Approved 2026-11-09 Approved 2026-11-09 |
 
 ## Won't do
 

@@ -190,12 +190,37 @@ function flowBody(list,answers){
   return body;
 }
 
-/* The one line an IDE's MCP settings take (BL-PM-007); serve.ts prints the same line. */
+/* The one line Claude Code's .mcp.json takes (BL-PM-007); serve.ts prints the same line. */
 function mcpConfigLine(host,token){
   return JSON.stringify({mcpServers:{'specpilot-local':{type:'http',url:`http://${host}/mcp`,headers:{'X-SpecPilot-Token':token}}}});
 }
+/* Each IDE's file, config and note for /mcp (BL-157, REQ-002.H.68), from its own docs read 2026-11-09. `token` is the
+   page's token, or null when the server took SPECPILOT_MCP_TOKEN, whose value the page never holds. */
+const MCP_IDES=['Claude Code','Cursor','VS Code','Windsurf','Codex','Antigravity'];
+function mcpConfig(ide,host,token){
+  const url=`http://${host}/mcp`,ph='<SPECPILOT_MCP_TOKEN value>';
+  const d={
+    'Claude Code':{file:'.mcp.json',env:'${SPECPILOT_MCP_TOKEN}'},
+    'Cursor':{file:'.cursor/mcp.json',env:'${env:SPECPILOT_MCP_TOKEN}',body:k=>({mcpServers:{'specpilot-local':{url,headers:{'X-SpecPilot-Token':k}}}})},
+    'VS Code':{file:'.vscode/mcp.json',env:'${env:SPECPILOT_MCP_TOKEN}',body:k=>({servers:{'specpilot-local':{type:'http',url,headers:{'X-SpecPilot-Token':k}}}})},
+    'Windsurf':{file:'~/.codeium/windsurf/mcp_config.json',user:true,body:k=>({mcpServers:{'specpilot-local':{serverUrl:url,headers:{'X-SpecPilot-Token':k}}}})},
+    'Codex':{file:'~/.codex/config.toml',user:true},
+    'Antigravity':{file:'.agents/mcp_config.json',body:k=>({mcpServers:{'specpilot-local':{serverUrl:url,headers:{'X-SpecPilot-Token':k}}}})},
+  }[ide];
+  if(!d)return null;
+  const f=d.file,k=token!==null?token:(d.env||ph);
+  const text=ide==='Codex'
+    ?`[mcp_servers.specpilot-local]\nurl = "${url}"\n`+(token!==null?`http_headers = { "X-SpecPilot-Token" = "${token}" }`:'env_http_headers = { "X-SpecPilot-Token" = "SPECPILOT_MCP_TOKEN" }')
+    :JSON.stringify(d.body?d.body(k):JSON.parse(mcpConfigLine(host,k)),null,2);
+  const note=token!==null?(d.user?`Add this to ${f}. The token changes each time specpilot serve starts.`:`Add this to ${f} in your project, and add ${f} to .gitignore. The token changes each time specpilot serve starts.`)
+    :ide==='Codex'?`Add this to ${f}. Codex reads SPECPILOT_MCP_TOKEN from the environment.`
+    :d.env?`Add this to ${f} in your project. ${ide} fills in SPECPILOT_MCP_TOKEN from the environment.`
+    :d.user?`Add this to ${f}, and put your SPECPILOT_MCP_TOKEN value in place of ${ph}.`
+    :`Add this to ${f} in your project, put your SPECPILOT_MCP_TOKEN value in place of ${ph}, and add ${f} to .gitignore.`;
+  return {file:f,text,note};
+}
 
-const api={mcpConfigLine,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,CLONE_STAGES,cloneStatus,cloneProgress,projectLabel,
+const api={mcpConfigLine,mcpConfig,MCP_IDES,resolveRoute,goneHtml,when,editorUrl,cursorPromptUrl,onboardingPrompt,recentHtml,openOutcome,reloadView,repoNameFromUrl,CLONE_STAGES,cloneStatus,cloneProgress,projectLabel,
   projectNameError,handleError,HANDLE_PATTERN,flowValue,answered,flowQuestions,flowBody};
 if(typeof module==='object'&&module.exports)module.exports=api;else Object.assign(root,api);
 })(this);

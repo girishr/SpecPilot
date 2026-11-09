@@ -355,15 +355,26 @@ specpilot serve --no-mcp        # without the local MCP endpoint for your AI IDE
 - `--open`: Open the UI in the default browser
 - `--no-mcp`: Leave out the MCP endpoint at `/mcp`, which is served by default (below); `--mcp` is still accepted and changes nothing
 
-**Connecting your AI IDE:** on every start (unless `--no-mcp`) the terminal prints, and the Connect Your AI IDE card on Home and the Setup view show, one line such as
+**Connecting your AI IDE:** on every start (unless `--no-mcp`) the terminal prints Claude Code's line, such as
 
 ```json
 {"mcpServers":{"specpilot-local":{"type":"http","url":"http://127.0.0.1:4321/mcp","headers":{"X-SpecPilot-Token":"<token>"}}}}
 ```
 
-Put it in your IDE's MCP settings (or a `.mcp.json` you keep out of git). The IDE then has nine tools: `specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs`, `specpilot_regenerate_commands`, and the two setup tools `specpilot_setup_questions` and `specpilot_setup_project` for a folder the page is setting up. They run the page's own code behind the page's own checks; the task writes need the `sha256` from `specpilot_list_tasks` and are refused when the file changed since. The token is new on every start; set `SPECPILOT_MCP_TOKEN` (32 characters or more) in the environment of `serve` and of your IDE to keep it, and the line then reads `${SPECPILOT_MCP_TOKEN}`. With `--read-only` only the four read tools are offered (no setup tools).
+for `.mcp.json` (keep it out of git). Other IDEs take other files and shapes: choose yours on the Connect Your AI IDE card on Home or in the Setup view, which shows its file, config and note:
 
-**Setting up a folder without `.specs/`:** the page shows a Setup view (also for Start a New Project on Home): connect your AI IDE with the line above, paste the one line it gives you into the IDE, and watch the Progress rows; the IDE reads the code and asks you only what it cannot tell. When `.specs/` appears the page opens the project. In the terminal, `specpilot add-specs` (existing code) or `specpilot init` (new project) asks the same questions.
+| IDE | File | Shape |
+|---|---|---|
+| Claude Code | `.mcp.json` in the project | `mcpServers`, `type: "http"`, `url`, `headers`; reads `${SPECPILOT_MCP_TOKEN}` |
+| Cursor | `.cursor/mcp.json` in the project | `mcpServers`, `url`, `headers`; reads `${env:SPECPILOT_MCP_TOKEN}` |
+| VS Code (Copilot) | `.vscode/mcp.json` in the project | `servers`, `type: "http"`, `url`, `headers`; reads `${env:SPECPILOT_MCP_TOKEN}` |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` | `mcpServers`, `serverUrl`, `headers` |
+| Codex | `~/.codex/config.toml` | TOML `[mcp_servers.specpilot-local]`, `url`, `http_headers` or `env_http_headers` |
+| Antigravity | `.agents/mcp_config.json` in the project | `mcpServers`, `serverUrl`, `headers` |
+
+The IDE then has nine tools: `specpilot_list_projects`, `specpilot_read_spec`, `specpilot_list_tasks`, `specpilot_new_task`, `specpilot_move_task`, `specpilot_validate_specs`, `specpilot_regenerate_commands`, and the two setup tools `specpilot_setup_questions` and `specpilot_setup_project` for a folder the page is setting up. They run the page's own code behind the page's own checks; the task writes need the `sha256` from `specpilot_list_tasks` and are refused when the file changed since. The token is new on every start; set `SPECPILOT_MCP_TOKEN` (32 characters or more) in the environment of `serve` and of your IDE to keep it, and the line then reads `${SPECPILOT_MCP_TOKEN}`. With `--read-only` only the four read tools are offered (no setup tools).
+
+**Setting up a folder without `.specs/`:** the page shows a Setup view (also for Start a New Project on Home): connect your AI IDE with the config above, paste the one line it gives you into the IDE, and watch the Progress rows; the IDE reads the code and asks you only what it cannot tell. When `.specs/` appears the page opens the project. In the terminal, `specpilot add-specs` (existing code) or `specpilot init` (new project) asks the same questions.
 
 ### Generated Slash Commands
 

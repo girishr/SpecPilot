@@ -81,7 +81,7 @@ function renderProject(){
   document.title=name+' · SpecPilot Local';
 }
 /* Everything a payload draws; with no project served (BL-080) only the rail, bar and footer. */
-function renderAll(){renderProject();if(!DATA.project)return;renderTasks();renderIde();renderAgentFiles();}
+function renderAll(){drawMcp();renderProject();if(!DATA.project)return;renderTasks();renderIde();renderAgentFiles();}
 
 /* ---------------- views ---------------- */
 const homeBtn=$('#homeBtn');
@@ -981,14 +981,13 @@ function renderSetup(){
   $('#suOff').hidden=MCP_ON;
   $$('#v-setup .step').forEach(el=>{el.classList.toggle('off',!MCP_ON);el.inert=!MCP_ON;});
   $('#suConfigBox').hidden=!MCP_ON;
-  if(MCP_ON){const env=MCP==='env',line=mcpConfigLine(location.host,env?'${SPECPILOT_MCP_TOKEN}':TOKEN);
-    $('#suConfig').textContent=JSON.stringify(JSON.parse(line),null,2);$('#suConfig').dataset.line=line;$('#suMcpNote').textContent=$('#mcpNote').textContent;}
-  else $('#suMcpNote').textContent='';
+  $('#suIde').hidden=!MCP_ON;
+  if(MCP_ON)drawMcp();else $('#suMcpNote').textContent='';
   $('#suFoot').innerHTML=`Prefer the terminal? ${mono(isNew?'specpilot init':'specpilot add-specs')} in that folder asks the same questions one by one.`;
   suStatus();suPrompt();drawProgress();
 }
 function copyText(text){(navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(()=>toast('Copied.'),()=>toast('Could not copy. Select the line and copy it.'));}
-$('#suConfigCopy').onclick=()=>copyText($('#suConfig').dataset.line);
+$('#suConfigCopy').onclick=()=>copyText($('#suConfig').textContent);
 $('#suPromptCopy').onclick=()=>copyText($('#suPrompt').textContent);
 /* #new: when the name passes init's rule and a parent is typed, register <parent>/<name> as the one pending path. */
 async function registerPending(){
@@ -1124,17 +1123,33 @@ const openVeil=$('#openVeil'),addBtn=$('#addBtn'),pathIn=$('#pathIn');
 const TABS=['folder','clone'],GO={folder:'Open',clone:'Clone Repository'};
 let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,browseCtl=null,browseBtn=null,cloneNamed=false,cloneTick=null,cloneT0=0,cloneProg=null;
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
-/* Connect Your AI IDE (BL-PM-007): the config line for this server's /mcp, unless --no-mcp (BL-105). No status here:
-   the page cannot know whether an IDE uses it. `env`: the token is SPECPILOT_MCP_TOKEN, so the line names it. */
+/* Connect Your AI IDE (BL-PM-007): the config for this server's /mcp, unless --no-mcp (BL-105). No status here:
+   the page cannot know whether an IDE uses it. Per IDE since BL-157 (REQ-002.H.68), one choice for Home and the Setup
+   view: kept in the browser, else the IDE of the first instruction file the project in front has, else Claude Code;
+   nothing labels that guess. `env`: the token is SPECPILOT_MCP_TOKEN, whose value the page never holds. */
+const IDE_OF={'CLAUDE.md':'Claude Code','AGENTS.md':'Codex','.github/copilot-instructions.md':'VS Code','.cursor/rules/specpilot.mdc':'Cursor','.windsurfrules':'Windsurf','.antigravity/rules.md':'Antigravity','CODEX_INSTRUCTIONS.md':'Codex'};
+let mcpIde=null;try{const v=localStorage.getItem('sp-mcp-ide');if(MCP_IDES.includes(v))mcpIde=v;}catch(e){}
+function mcpChoice(){
+  if(mcpIde)return mcpIde;
+  const f=DATA&&DATA.nav?DATA.nav.instructions.find(i=>i.exists):null;
+  return f&&IDE_OF[f.path]||'Claude Code';
+}
+function drawMcp(){
+  if(!TOKEN||!MCP)return;
+  const ide=mcpChoice(),c=mcpConfig(ide,location.host,MCP==='env'?null:TOKEN);
+  const a=document.activeElement,fg=a&&a.closest?a.closest('#mcpIde,#suIde'):null,fv=fg&&a.dataset.v; // a redraw keeps focus (live reload, a choice)
+  for(const [g,box] of [['#mcpIde','#homeMcp'],['#suIde','#suConnect']]){
+    $(g).innerHTML=MCP_IDES.map(v=>`<button type="button" role="radio" data-v="${v}" aria-checked="${v===ide}" tabindex="${v===ide?0:-1}" class="${v===ide?'on':''}">${v}</button>`).join('');
+    bindRadios($(box),(key,b)=>{mcpIde=b.dataset.v;try{localStorage.setItem('sp-mcp-ide',mcpIde);}catch(e){}drawMcp();});
+  }
+  if(fg)$(`#${fg.id} [data-v="${fv}"]`).focus();
+  $('#mcpLine').textContent=c.text;$('#mcpNote').textContent=c.note;
+  $('#suConfig').textContent=c.text;$('#suMcpNote').textContent=c.note;
+}
 if(TOKEN&&MCP){
-  const env=MCP==='env';
-  $('#mcpLine').textContent=mcpConfigLine(location.host,env?'${SPECPILOT_MCP_TOKEN}':TOKEN);
-  $('#mcpNote').textContent=env
-    ?'Add this to your IDE\u2019s MCP settings or to .mcp.json in your project. Claude Code fills in ${SPECPILOT_MCP_TOKEN} from the environment; for other IDEs, put the token in its place.'
-    :'Add this to your IDE\u2019s MCP settings, or to .mcp.json in your project and add .mcp.json to .gitignore. The token changes each time specpilot serve starts.';
+  drawMcp();
   $('#homeMcp').hidden=false;
-  $('#mcpCopy').onclick=()=>(navigator.clipboard?navigator.clipboard.writeText($('#mcpLine').textContent):Promise.reject())
-    .then(()=>toast('Copied.'),()=>toast('Could not copy. Select the line and copy it.'));
+  $('#mcpCopy').onclick=()=>copyText($('#mcpLine').textContent);
 }
 function openSheet(from,tab){
   hideTip();sheetFrom=from;openVeil.classList.add('open');

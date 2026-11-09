@@ -79,11 +79,15 @@ browserTest('Open: heading, crumb, lead, the connect card with Copy, the prompt 
     expect(await text(page, '#suLead')).toBe('acme-api has no SpecPilot specs yet. Your AI IDE sets them up: it reads the code, answers what it can, and asks you the rest.');
     expect(await page.locator('#suNew').isHidden()).toBe(true);
     expect(await page.locator('#suOff').isHidden()).toBe(true);
-    const line = routeJs.mcpConfigLine(srv.host, srv.handle.mcpToken!);
-    expect(await text(page, '#suConfig')).toBe(JSON.stringify(JSON.parse(line), null, 2));
+    // a folder with no instruction file: Claude Code, its config pretty-printed, and Copy writes what is shown (BL-157)
+    const cfg = routeJs.mcpConfig('Claude Code', srv.host, srv.handle.mcpToken!);
+    expect(cfg.text).toBe(JSON.stringify(JSON.parse(routeJs.mcpConfigLine(srv.host, srv.handle.mcpToken!)), null, 2));
+    expect(await page.locator('#suIde [aria-checked="true"]').textContent()).toBe('Claude Code');
+    expect(await text(page, '#suConfig')).toBe(cfg.text);
+    expect(await text(page, '#suMcpNote')).toBe(cfg.note);
     await page.click('#suConfigCopy');
     await waitToast(page, /^Copied\.$/);
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(line);
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(cfg.text);
     expect(await status(page)).toBe('Waiting for a connection');
     expect(await text(page, '#suPrompt')).toBe(`Set up SpecPilot for ${bare}`);
     await page.click('#suPromptCopy');

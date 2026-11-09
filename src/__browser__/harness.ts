@@ -24,6 +24,8 @@ export const routeJs: {
   cursorPromptUrl: (text: string) => string | null;
   onboardingPrompt: (src: string) => string;
   mcpConfigLine: (host: string, token: string) => string;
+  MCP_IDES: string[];
+  mcpConfig: (ide: string, host: string, token: string | null) => { file: string; text: string; note: string };
 } = require(join(REPO, 'ui', 'route.js'));
 
 /** A condition polled every 50 ms until it holds: never a fixed sleep. */

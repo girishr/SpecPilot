@@ -804,7 +804,8 @@ describe('serveCommand', () => {
       logs.length = 0;
       const { port, out } = await runAndStop(opts);
       expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp\n`);
-      expect(out).toMatch(/^Add to your IDE's MCP settings: \{"mcpServers"/m);
+      expect(out).toMatch(/^Claude Code \(\.mcp\.json\): \{"mcpServers"/m);
+      expect(out).toMatch(/^Other IDEs: Connect Your AI IDE on the page gives each one's file\.$/m); // BL-157
     }
   });
 
@@ -820,7 +821,7 @@ describe('serveCommand', () => {
   it('prints the endpoint and the config line with a per-start token (BL-PM-007)', async () => {
     const { port, out } = await runAndStop({ mcp: true });
     expect(out).toContain(`MCP endpoint: http://127.0.0.1:${port}/mcp\n`);
-    const line = /Add to your IDE's MCP settings: (\{.*\})$/m.exec(out)![1];
+    const line = /^Claude Code \(\.mcp\.json\): (\{.*\})$/m.exec(out)![1];
     const cfg = JSON.parse(line).mcpServers['specpilot-local'];
     expect(cfg.type).toBe('http');
     expect(cfg.url).toBe(`http://127.0.0.1:${port}/mcp`);
@@ -1121,6 +1122,45 @@ describe('UI routing (ui/route.js)', () => {
     expect(line).toBe('{"mcpServers":{"specpilot-local":{"type":"http","url":"http://localhost:4400/mcp","headers":{"X-SpecPilot-Token":"abc"}}}}');
     expect(line).toBe(require('../commands/serve').mcpConfigLine('localhost:4400', 'abc'));
     expect(mcpConfigLine('127.0.0.1:4321', '${SPECPILOT_MCP_TOKEN}')).toContain('"X-SpecPilot-Token":"${SPECPILOT_MCP_TOKEN}"');
+  });
+
+  it('gives each IDE its own file, config and note, with the page\'s token and with SPECPILOT_MCP_TOKEN (BL-157, REQ-002.H.68)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const r = require('../../ui/route.js') as { MCP_IDES: string[]; mcpConfigLine: (h: string, t: string) => string; mcpConfig: (ide: string, h: string, t: string | null) => { file: string; text: string; note: string } | null };
+    const U = 'http://127.0.0.1:4321/mcp', at = (ide: string, t: string | null) => r.mcpConfig(ide, '127.0.0.1:4321', t)!;
+    const json = (ide: string, t: string | null) => JSON.parse(at(ide, t).text);
+    expect(r.MCP_IDES).toEqual(['Claude Code', 'Cursor', 'VS Code', 'Windsurf', 'Codex', 'Antigravity']);
+    expect(r.mcpConfig('Zed', '127.0.0.1:4321', 'abc')).toBeNull();
+    const head = (k: string) => ({ 'X-SpecPilot-Token': k });
+    for (const [t, cc, env] of [['abc', 'abc', 'abc'], [null, '${SPECPILOT_MCP_TOKEN}', '${env:SPECPILOT_MCP_TOKEN}']] as const) {
+      const ph = t ?? '<SPECPILOT_MCP_TOKEN value>';
+      expect(at('Claude Code', t).text).toBe(JSON.stringify(JSON.parse(r.mcpConfigLine('127.0.0.1:4321', cc)), null, 2));
+      expect(json('Claude Code', t)).toEqual({ mcpServers: { 'specpilot-local': { type: 'http', url: U, headers: head(cc) } } });
+      expect(json('Cursor', t)).toEqual({ mcpServers: { 'specpilot-local': { url: U, headers: head(env) } } });
+      expect(json('VS Code', t)).toEqual({ servers: { 'specpilot-local': { type: 'http', url: U, headers: head(env) } } });
+      expect(json('Windsurf', t)).toEqual({ mcpServers: { 'specpilot-local': { serverUrl: U, headers: head(ph) } } });
+      expect(json('Antigravity', t)).toEqual({ mcpServers: { 'specpilot-local': { serverUrl: U, headers: head(ph) } } });
+    }
+    expect(at('Codex', 'abc').text).toBe(`[mcp_servers.specpilot-local]\nurl = "${U}"\nhttp_headers = { "X-SpecPilot-Token" = "abc" }`);
+    expect(at('Codex', null).text).toBe(`[mcp_servers.specpilot-local]\nurl = "${U}"\nenv_http_headers = { "X-SpecPilot-Token" = "SPECPILOT_MCP_TOKEN" }`);
+    expect(r.MCP_IDES.map(i => at(i, 'abc').file)).toEqual(['.mcp.json', '.cursor/mcp.json', '.vscode/mcp.json', '~/.codeium/windsurf/mcp_config.json', '~/.codex/config.toml', '.agents/mcp_config.json']);
+    const T = ' The token changes each time specpilot serve starts.';
+    expect(r.MCP_IDES.map(i => at(i, 'abc').note)).toEqual([
+      `Add this to .mcp.json in your project, and add .mcp.json to .gitignore.${T}`,
+      `Add this to .cursor/mcp.json in your project, and add .cursor/mcp.json to .gitignore.${T}`,
+      `Add this to .vscode/mcp.json in your project, and add .vscode/mcp.json to .gitignore.${T}`,
+      `Add this to ~/.codeium/windsurf/mcp_config.json.${T}`,
+      `Add this to ~/.codex/config.toml.${T}`,
+      `Add this to .agents/mcp_config.json in your project, and add .agents/mcp_config.json to .gitignore.${T}`,
+    ]);
+    expect(r.MCP_IDES.map(i => at(i, null).note)).toEqual([
+      'Add this to .mcp.json in your project. Claude Code fills in SPECPILOT_MCP_TOKEN from the environment.',
+      'Add this to .cursor/mcp.json in your project. Cursor fills in SPECPILOT_MCP_TOKEN from the environment.',
+      'Add this to .vscode/mcp.json in your project. VS Code fills in SPECPILOT_MCP_TOKEN from the environment.',
+      'Add this to ~/.codeium/windsurf/mcp_config.json, and put your SPECPILOT_MCP_TOKEN value in place of <SPECPILOT_MCP_TOKEN value>.',
+      'Add this to ~/.codex/config.toml. Codex reads SPECPILOT_MCP_TOKEN from the environment.',
+      'Add this to .agents/mcp_config.json in your project, put your SPECPILOT_MCP_TOKEN value in place of <SPECPILOT_MCP_TOKEN value>, and add .agents/mcp_config.json to .gitignore.',
+    ]);
   });
 
   it('opens a listed file', () => {
@@ -1461,7 +1501,7 @@ describe('UI routing (ui/route.js)', () => {
       expect(page.split('Browse…').length - 1).toBe(3); // and #new's Parent folder (BL-103)
       for (const left of ['Browse Folders', '/mcp', 'sample project', 'disabled']) expect(page).not.toContain(left);
       // BL-PM-007: the card is in the markup but hidden, and without --mcp nothing tells the script to show it
-      expect(page).toContain('<div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional, one line</span></div>');
+      expect(page).toContain('<div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional</span></div>');
       expect(page).not.toContain('specpilot-mcp');
       expect(page.includes('specpilot-token" content=')).toBe(!readOnly); // no token, so the script never shows the tile
     } finally {

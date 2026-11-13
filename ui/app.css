@@ -494,6 +494,14 @@ input.txt{width:100%}
 .tile.home .logo{width:26px;height:26px;margin:0}
 #content:focus{outline:0}
 .content>.welcome{width:100%;max-width:560px;margin:0 auto;gap:22px;padding:clamp(28px,8vh,72px) 0 48px}
+/* BL-165: the buttons and Recent projects, then the benefit rows and the Connect card. One under the
+   other in the 560px column; from 1100px two columns under the logo, heading and line, the server line under both. */
+.welcome .wcol{display:flex;flex-direction:column;gap:inherit;min-width:0}
+@media (min-width:1100px){
+  .content>.welcome.on{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:48px;align-items:start;max-width:1040px}
+  .welcome>:not(.wcol){grid-column:1/-1}
+  .content>.welcome .lead{max-width:none} /* the line runs over both columns; one class more than the 52ch rule below */
+}
 .welcome .logo{width:56px;height:56px;border-radius:12px;flex:none}
 /* the wordmark as specpilot.dev's nav (32px logo, 20px text, 10px gap) scaled to the 56px logo; it shrinks first in a narrow window */
 .welcome .brand{display:flex;align-items:center;gap:17.5px;min-width:0}

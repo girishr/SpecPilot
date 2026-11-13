@@ -18,7 +18,7 @@ const packageJson = require('../package.json');
 
 program
   .name('specpilot')
-  .description('CLI tool for initializing specification-driven development projects')
+  .description('Spec-driven development CLI for AI coding agents, with a local command center (specpilot serve)')
   .version(packageJson.version);
 
 // Initialize command

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SpecPilot Local</title>
+<title>SpecPilot</title>
 <meta name="theme-color" content="#0f172a">
 <!-- specpilot-token -->
 <!-- specpilot-mcp -->
@@ -130,18 +130,24 @@
     <!-- HOME (BL-PM-001): the mockup's #s-welcome column, cut down to what is built and true today -->
     <section class="view welcome" id="v-home" aria-labelledby="wTitle">
       <div class="brand"><svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg><svg class="wordmark" role="img" aria-label="SpecPilot" focusable="false"><use href="#wordmark"/></svg></div>
-      <div><h1 id="wTitle">Your specs, as a board.</h1><p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p></div>
-      <div class="cta">
-        <button type="button" class="btn pri big" id="homeOpen">Open a Project Folder</button>
-        <div class="alt"><button type="button" class="btn line" id="homeNew">Start a New Project</button><button type="button" class="btn line" id="homeClone">Clone a Repository</button></div>
+      <div><h1 id="wTitle">The command center for your spec-driven projects.</h1><p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and lays it out in one place: the tasks, the architecture, the test plan, the security model, and the instructions, commands and skills your AI IDE works from. Your AI IDE keeps doing the coding.</p></div>
+      <!-- BL-165: two columns in a wide window, one under the other in a narrow one -->
+      <div class="wcol">
+        <div class="cta">
+          <button type="button" class="btn pri big" id="homeOpen">Open a Project Folder</button>
+          <div class="alt"><button type="button" class="btn line" id="homeNew">Start a New Project</button><button type="button" class="btn line" id="homeClone">Clone a Repository</button></div>
+        </div>
+        <div class="gl recents"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
       </div>
-      <div class="gl benefits"><div class="box">
-        <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div></div></div>
-        <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? Your AI IDE writes one for you.</div></div></div>
-      </div></div>
-      <div class="gl recents"><div class="gh">Recent projects <span class="cnt" id="homePath" translate="no"></span></div><div class="box" id="homeBox"></div></div>
-      <!-- BL-PM-007: unless specpilot serve --no-mcp (BL-105) -->
-      <div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional</span></div><div class="seg ides" role="radiogroup" aria-label="Your AI IDE" id="mcpIde"></div><div class="box"><div class="mcp"><pre class="v" id="mcpLine" translate="no"></pre><button type="button" class="btn sm" id="mcpCopy">Copy</button></div></div><p class="note" id="mcpNote"></p></div>
+      <div class="wcol">
+        <div class="gl benefits"><div class="box">
+          <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-test"/></svg></span><div class="body"><div class="ttl">Tests and security, not just tasks</div><div class="det">Your test plan, threat model and security decisions sit next to the work they apply to, so you see them before you merge, not after.</div></div></div>
+          <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div></div></div>
+          <div class="row"><span class="ic2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? Your AI IDE writes one for you.</div></div></div>
+        </div></div>
+        <!-- BL-PM-007: unless specpilot serve --no-mcp (BL-105) -->
+        <div class="gl" id="homeMcp" hidden><div class="gh">Connect Your AI IDE <span class="cnt">optional</span></div><div class="seg ides" role="radiogroup" aria-label="Your AI IDE" id="mcpIde"></div><div class="box"><div class="mcp"><pre class="v" id="mcpLine" translate="no"></pre><button type="button" class="btn sm" id="mcpCopy">Copy</button></div></div><p class="note" id="mcpNote"></p></div>
+      </div>
       <div class="fine"><i aria-hidden="true"></i><span>Server running on <span class="mono" id="homeAddr" translate="no"></span> · <span id="homeVer" translate="no"></span></span></div>
     </section>
 

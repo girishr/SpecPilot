@@ -1454,19 +1454,31 @@ describe('UI routing (ui/route.js)', () => {
       expect(page).toMatch(/<symbol id="wordmark" viewBox="0 0 9216 1024" preserveAspectRatio="xMinYMid meet"><!-- wordmark \(BL-PM-014\)[^>]*Copyright 2021 The Sixtyfour Project Authors \(https:\/\/github\.com\/jenskutilek\/homecomputer-fonts\)\.\n\s*Licensed under the SIL Open Font License, Version 1\.1: ui\/OFL-Sixtyfour\.txt --><path fill="currentColor" d="M[^"]+"\/><\/symbol>/);
       expect(page).toMatch(/<button class="tile act" id="addBtn" aria-label="Add a project" data-tip="Add a project" hidden>/); // shown by the script only with the token
 
-      expect(home).toContain('<h1 id="wTitle">Your specs, as a board.</h1>');
+      expect(home).toContain('<h1 id="wTitle">The command center for your spec-driven projects.</h1>'); // BL-165
       expect(home).toContain(
-        '<p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and shows its tasks and spec files as they are written. Your AI IDE keeps doing the coding.</p>',
+        '<p class="lead">SpecPilot reads the <span class="mono" translate="no">.specs/</span> folder of any project on this machine and lays it out in one place: the tasks, the architecture, the test plan, the security model, and the instructions, commands and skills your AI IDE works from. Your AI IDE keeps doing the coding.</p>',
       );
+      const tests = '<use href="#i-test"/></svg></span><div class="body"><div class="ttl">Tests and security, not just tasks</div><div class="det">Your test plan, threat model and security decisions sit next to the work they apply to, so you see them before you merge, not after.</div>';
+      expect(home).toContain(tests);
+      expect(home.indexOf(tests)).toBeLessThan(home.indexOf('Files are the truth')); // the new row first (BL-165)
+      expect(require('../../package.json').description).toBe('Spec-driven development CLI for AI coding agents: creates, validates and syncs a .specs/ folder, and specpilot serve lays it out on this machine as a command center for the project.');
       expect(home).toContain(
         '<use href="#i-folder"/></svg></span><div class="body"><div class="ttl">Files are the truth</div><div class="det">Every view is read from <span class="mono" translate="no">.specs/</span> and git. Every action writes a file you could have edited by hand.</div>',
       );
       expect(home).toContain(
         '<use href="#i-shield"/></svg></span><div class="body"><div class="ttl">Nothing leaves this machine</div><div class="det">Runs on localhost, no account, no telemetry. No <span class="mono" translate="no">.specs/</span> yet? Your AI IDE writes one for you.</div>',
       );
-      expect(home.match(/class="ic2"/g)).toHaveLength(2); // two benefit rows, not the mockup's three
+      expect(home.match(/class="ic2"/g)).toHaveLength(3); // three benefit rows: BL-165's, then two of the mockup's three
       expect(home).toContain('Server running on <span class="mono" id="homeAddr" translate="no"></span> · <span id="homeVer" translate="no"></span>'); // filled by the script with the real values
-      expect(home.indexOf('benefits')).toBeLessThan(home.indexOf('id="homeBox"'));
+      // BL-165: two wrappers, the buttons and Recent projects, then the benefit rows and the Connect card
+      const order = ['<div class="wcol">', 'id="homeClone"', 'id="homeBox"', '<div class="wcol">', 'class="gl benefits"', 'id="homeMcp"', '<div class="fine">'];
+      let at = -1;
+      for (const part of order) {
+        const next = home.indexOf(part, at + 1);
+        expect(next).toBeGreaterThan(at);
+        at = next;
+      }
+      expect(home.match(/<div class="wcol">/g)).toHaveLength(2);
       expect(page).not.toContain('needs you');
       expect(page).toContain('id="homeOpen">Open a Project Folder</button>');
       // BL-PM-003 and BL-PM-002: the mockup's .alt row, Start a New Project then Clone a Repository
@@ -4679,7 +4691,7 @@ describe('specpilot serve --stop (BL-098)', () => {
     const seen: string[] = [];
     const other = createServer((req, res) => {
       seen.push(`${req.method} ${req.url}`);
-      res.end('<html><title>SpecPilot Local</title></html>');
+      res.end('<html><title>SpecPilot</title></html>');
     });
     await new Promise<void>(r => other.listen(0, '127.0.0.1', r));
     const port = (other.address() as AddressInfo).port;
@@ -4760,7 +4772,7 @@ describe('leftover browser state on the origin (BL-142)', () => {
     for (const host of [undefined, `localhost:${port}`]) {
       const res = await page(headers, host);
       expect(res.status).toBe(200);
-      expect(res.body).toContain('<title>SpecPilot Local</title>');
+      expect(res.body).toContain('<title>SpecPilot</title>');
       expect(res.body).not.toContain('specpilot-token');
       expect(res.body).not.toContain(MCP_META);
       expect(res.headers['clear-site-data']).toBe('"storage"');

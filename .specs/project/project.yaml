@@ -5,7 +5,7 @@ name: "SpecPilot SDD CLI"
 version: "2.20.0"
 language: "typescript"
 framework: "node"
-description: "CLI tool for initializing specification-driven development projects"
+description: "Spec-driven development CLI for AI coding agents, with a local command center (specpilot serve)"
 contributors: [girishr]
 license: "MIT"
 team:

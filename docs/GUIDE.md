@@ -175,6 +175,7 @@ specpilot init my-project --no-prompts
 - `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
 - `--no-prompts`: Skip all interactive prompts
 - `--dry-run`: List all files that would be created without writing anything
+- `--ide <name>`: The AI IDE to set up for: `claude-code`, `cursor`, `vscode` (GitHub Copilot), `windsurf`, `antigravity` or `codex`, in any case. Skips the IDE question; without it, `--no-prompts` sets up GitHub Copilot. With `--dry-run`, lists that IDE's files.
 
 #### `specpilot add-specs`
 
@@ -197,6 +198,7 @@ specpilot add-specs --no-analysis
 
 Files outside `.specs/` that already exist (IDE settings, `CLAUDE.md`, `.github/copilot-instructions.md`, rules files, `specpilot-*` command files) are never changed: they are kept and listed at the end (the same applies to `init` and `refine --update`). Run `specpilot backfill` to add missing SpecPilot sections to them. `.gitattributes` is the one file that is added to: its missing `merge=union` lines are appended, and the command says how many. `--no-prompts` is no longer needed to avoid the existing-file question; it still skips the setup questions.
 - `--no-prompts`: Skip all interactive prompts
+- `--ide <name>`: The AI IDE to set up for, as for `init` (`specpilot add-specs --no-prompts --ide cursor`)
 
 #### `specpilot validate [options]`
 

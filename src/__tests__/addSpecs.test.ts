@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
@@ -9,6 +9,8 @@ const realOs = require('os') as typeof import('os');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const questions = require('../utils/addSpecsQuestions') as typeof import('../utils/addSpecsQuestions');
 
+jest.mock('inquirer', () => ({ __esModule: true, default: { prompt: jest.fn() } }));
+import inquirer from 'inquirer';
 import { addSpecsCommand, AddSpecsOptions } from '../commands/add-specs';
 import { CodeAnalyzer } from '../utils/codeAnalyzer';
 
@@ -95,6 +97,12 @@ describe('the add-specs options as src/cli.ts defines them (BL-074)', () => {
     expect(options).not.toHaveProperty('deepAnalysis');
   });
 
+  it('passes --ide as given, an empty value included (BL-159)', () => {
+    expect(parse('--ide', 'Cursor', '--no-prompts').options).toMatchObject({ ide: 'Cursor', prompts: false });
+    expect(parse('--ide', '', '--no-prompts').options).toMatchObject({ ide: '' });
+    expect(parse('--no-prompts').options).not.toHaveProperty('ide');
+  });
+
   it('rejects --deep-analysis as an unknown option and exits 1', () => {
     const { options, error } = parse('--deep-analysis', '--no-prompts');
     expect(options).toBeUndefined();
@@ -117,5 +125,47 @@ describe('a linked IDE folder (BL-077, REQ-002.E.17)', () => {
     } finally {
       rmSync(outside, { recursive: true, force: true });
     }
+  });
+});
+
+describe('specpilot add-specs --ide (BL-159, REQ-002.A.14)', () => {
+  const prompt = inquirer.prompt as unknown as jest.Mock;
+  const projectYaml = () => readFileSync(join(dir, '.specs', 'project', 'project.yaml'), 'utf8');
+  const asked = () => prompt.mock.calls.flatMap(([qs]) => (qs as { name: string }[]).map(q => q.name));
+  beforeEach(() => {
+    prompt.mockReset();
+    prompt.mockImplementation(async (qs: { name: string; choices?: { value: string }[] }[]) =>
+      Object.fromEntries(qs.map(q => [q.name, q.name === 'developerName' ? 'jsmith' : q.choices ? q.choices[0].value ?? q.choices[0] : ''])));
+  });
+
+  it('sets up the named IDE with --no-prompts and records it', async () => {
+    await run({ analysis: false, ide: 'cursor' });
+    expect(existsSync(join(dir, '.cursor', 'rules', 'specpilot.mdc'))).toBe(true);
+    expect(existsSync(join(dir, '.github', 'copilot-instructions.md'))).toBe(false);
+    expect(projectYaml()).toMatch(/^ides: \[cursor\]$/m);
+  });
+
+  it('takes the value in any case', async () => {
+    await run({ analysis: false, ide: 'Claude-Code' });
+    expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(true);
+    expect(projectYaml()).toMatch(/^ides: \[claude-code\]$/m);
+  });
+
+  it('does not ask the IDE question with prompts on, and still asks the others', async () => {
+    await run({ analysis: false, prompts: true, ide: 'windsurf' });
+    expect(asked()).not.toContain('ide');
+    expect(asked()).toEqual(expect.arrayContaining(['projectType', 'apiParadigm', 'developerName']));
+    expect(projectYaml()).toMatch(/^ides: \[windsurf\]$/m);
+  });
+
+  it.each(['emacs', ''])('refuses "%s" before any question, analysis or write, exit 1', async value => {
+    const errors: string[] = [];
+    jest.spyOn(console, 'error').mockImplementation((...args) => void errors.push(stripVTControlCharacters(args.join(' '))));
+    const analyze = jest.spyOn(CodeAnalyzer.prototype, 'analyzeCodebase');
+    await expect(run({ prompts: true, ide: value })).rejects.toThrow('exit 1');
+    expect(errors.join('\n')).toContain(`Unknown IDE "${value}". Use one of: claude-code, cursor, vscode, windsurf, antigravity, codex.`);
+    expect(prompt).not.toHaveBeenCalled();
+    expect(analyze).not.toHaveBeenCalled();
+    expect(existsSync(join(dir, '.specs'))).toBe(false);
   });
 });

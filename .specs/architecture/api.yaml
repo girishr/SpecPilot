@@ -43,12 +43,15 @@ commands:
       --dry-run:
         type: boolean
         description: List files that would be created without writing them
+      --ide:
+        type: string
+        description: "The AI IDE to set up for (claude-code, cursor, vscode, windsurf, antigravity, codex; any case); skips the IDE question; any other value exits 1 before anything is asked or written (BL-159, REQ-002.A.14)"
     interactive-prompts:
       - "Greenfield or brownfield project type"
       - "Framework selection"
       - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
-      - "IDE selection (GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
+      - "IDE selection (GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, Codex); not asked with --ide"
       - "What does your project do? (mandatory)"
       - "Who are the target users? (optional)"
       - "Expected scale? (optional)"
@@ -77,12 +80,15 @@ commands:
       --no-prompts:
         type: boolean
         description: Skip interactive prompts
+      --ide:
+        type: string
+        description: "The AI IDE to set up for (claude-code, cursor, vscode, windsurf, antigravity, codex; any case); skips the IDE question; any other value exits 1 before anything is asked or written (BL-159, REQ-002.A.14)"
     interactive-prompts:
       - "Greenfield or brownfield project type"
       - "Framework selection"
       - "API paradigm (REST / CLI / GraphQL / None)"
       - "Short developer handle for task/prompt IDs"
-      - "IDE selection (GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, Codex)"
+      - "IDE selection (GitHub Copilot, Cursor, Windsurf, Antigravity, Claude Code, Codex); not asked with --ide"
     behavior:
       - "Files outside .specs/ that already exist are kept, never written or written through (wx), and listed after the success line: Kept as they were: <paths>. ... (BL-073)"
       - ".gitattributes: missing merge=union lines are appended and reported (Appended <n> line(s) to .gitattributes); it is never listed as kept"

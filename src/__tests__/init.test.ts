@@ -165,3 +165,51 @@ describe('specpilot init into a folder with a linked IDE folder (BL-077, REQ-002
     expect(existsSync(join(dir, 'demo', '.specs'))).toBe(false);
   });
 });
+
+describe('specpilot init --ide (BL-159, REQ-002.A.14)', () => {
+  const projectYaml = () => readFileSync(join(dir, 'demo', '.specs', 'project', 'project.yaml'), 'utf8');
+  const asked = () => prompt.mock.calls.flatMap(([qs]) => (qs as { name: string }[]).map(q => q.name));
+  const UNKNOWN = (v: string) => `Unknown IDE "${v}". Use one of: claude-code, cursor, vscode, windsurf, antigravity, codex.`;
+
+  it('sets up the named IDE with --no-prompts and records it', async () => {
+    await run('demo', options({ prompts: false, ide: 'cursor' }));
+    expect(existsSync(join(dir, 'demo', '.cursor', 'rules', 'specpilot.mdc'))).toBe(true);
+    expect(existsSync(join(dir, 'demo', '.cursor', 'commands', 'specpilot-status.md'))).toBe(true);
+    expect(existsSync(join(dir, 'demo', '.github', 'copilot-instructions.md'))).toBe(false);
+    expect(projectYaml()).toMatch(/^ides: \[cursor\]$/m);
+  });
+
+  it('takes the value in any case', async () => {
+    await run('demo', options({ prompts: false, ide: 'Claude-Code' }));
+    expect(existsSync(join(dir, 'demo', 'CLAUDE.md'))).toBe(true);
+    expect(projectYaml()).toMatch(/^ides: \[claude-code\]$/m);
+  });
+
+  it('does not ask the IDE question with prompts on, and still asks the others', async () => {
+    answer(ANSWERS);
+    await run('demo', options({ ide: 'windsurf' }));
+    expect(asked()).not.toContain('ide');
+    expect(asked()).toEqual(expect.arrayContaining(['projectType', 'apiParadigm', 'developerName', 'whatItDoes']));
+    expect(projectYaml()).toMatch(/^ides: \[windsurf\]$/m);
+    expect(existsSync(join(dir, 'demo', '.windsurfrules'))).toBe(true);
+  });
+
+  it.each(['emacs', ''])('refuses "%s" before any question or write, exit 1', async value => {
+    answer(ANSWERS);
+    const out = await run('demo', options({ ide: value }));
+    expect(out).toContain(UNKNOWN(value));
+    expect(out).toContain('[exit 1]');
+    expect(prompt).not.toHaveBeenCalled();
+    expect(existsSync(join(dir, 'demo'))).toBe(false);
+  });
+
+  it('lists the named IDE\'s files for --dry-run', async () => {
+    const out = await run('demo', options({ dryRun: true, ide: 'codex' }));
+    expect(out).toContain('For Codex:');
+    expect(out).not.toContain('For VS Code');
+    const listed = out.split('\n').filter(l => l.startsWith('  <dir>/demo/') && !l.endsWith('/')).map(l => l.slice('  <dir>/demo/'.length));
+    const generator = new SpecGenerator();
+    expect(listed.slice(generator.targetsInSpecs('', '.specs').length)).toEqual(generator.targetsOutsideSpecs('Codex'));
+    expect(listed.some(f => f.startsWith('.vscode/'))).toBe(false);
+  });
+});

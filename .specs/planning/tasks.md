@@ -64,7 +64,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-159 | feat | P3 | Feature, P3. `init` and `add-specs` start from `ide = 'vscode'` (`src/commands/init.ts`, `src/commands/add-specs.ts`; guided setup the same in `specSetup.ts`), so with `--no-prompts` every project gets Copilot, and no `--ide` option exists. Add `--ide <name>` taking the IDE choice values. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-160 | chore | P3 | Chore, P3. Claude-only wording in files for other IDEs: the `specpilot-backfill` command file written to `.cursor/commands/` (and the other IDEs' folders) carries the Claude Code `$N` substitution comment (BL-093), and `specpilot_read_spec`'s description in `src/utils/mcpLocal.ts` gives `CLAUDE.md` as its example. A template change: golden recordings change, so not a trivial row. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. |
 | BL-123 | feat | P2 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
@@ -79,6 +78,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-159 | feat | P3 | Feature, P3. `init` and `add-specs` start from `ide = 'vscode'` (`src/commands/init.ts`, `src/commands/add-specs.ts`; guided setup the same in `specSetup.ts`), so with `--no-prompts` every project gets Copilot, and no `--ide` option exists. Add `--ide <name>` taking the IDE choice values. Attribution: the developer, 2026-11-03. Found in the IDE audit (2026-11-03) on `CLI-Testing/scratch1/test`, a Cursor-only project. Approved 2026-11-13. |
 
 ## Won't do
 

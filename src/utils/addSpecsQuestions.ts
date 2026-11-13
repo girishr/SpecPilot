@@ -65,6 +65,13 @@ export const IDE_CHOICES = [
   { name: 'Codex', value: 'Codex' },
 ];
 
+/** The `IDE_CHOICES` entry `--ide` names, in any case, or null (BL-159, REQ-002.A.14). */
+export const ideChoice = (value: string) => IDE_CHOICES.find(c => c.value.toLowerCase() === value.toLowerCase()) ?? null;
+
+/** What `init` and `add-specs` print for an `--ide` value that is not one of `IDE_CHOICES`. */
+export const unknownIdeMessage = (value: string) =>
+  `Unknown IDE "${value}". Use one of: claude-code, cursor, vscode, windsurf, antigravity, codex.`;
+
 /** The line `add-specs` prints for a detected project. */
 export const detectedLine = (info: ProjectInfo) => `✅ Detected ${info.language}${info.framework ? `/${info.framework}` : ''} project`;
 

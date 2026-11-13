@@ -8,7 +8,7 @@ import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { Logger } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 import {
-  API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
+  API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE, ideChoice, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES, unknownIdeMessage,
 } from '../utils/addSpecsQuestions';
 import { CONTEXT_QUESTIONS, INIT_PROJECT_TYPE_CHOICES, initOptions, projectNameError } from '../utils/initQuestions';
 import { loadRepoYaml } from '../utils/specReader';
@@ -20,6 +20,7 @@ export interface InitOptions {
   specsName: string;
   prompts: boolean;
   dryRun?: boolean;
+  ide?: string;
 }
 
 export async function initCommand(name: string, options: InitOptions) {
@@ -37,6 +38,13 @@ export async function initCommand(name: string, options: InitOptions) {
     // Validate supported language
     if (!SUPPORTED_LANGUAGES.includes(options.lang)) {
       logger.displayError('Unsupported Language', `Language "${options.lang}" is not supported\n\n💡 Supported languages: ${SUPPORTED_LANGUAGES.join(', ')}`);
+      process.exit(1);
+    }
+
+    // --ide names the IDE; any other value stops here, before any question or write (BL-159)
+    const chosenIde = options.ide !== undefined ? ideChoice(options.ide) : undefined;
+    if (chosenIde === null) {
+      logger.displayError('Unknown IDE', unknownIdeMessage(options.ide as string));
       process.exit(1);
     }
     
@@ -73,8 +81,8 @@ export async function initCommand(name: string, options: InitOptions) {
         chalk.white('  ' + targetDir + '/'),
         ...list(generator.targetsInSpecs('', options.specsName)),
         '',
-        chalk.gray('  For VS Code; the IDE you choose decides these:'),
-        ...list(generator.targetsOutsideSpecs('vscode')),
+        chalk.gray(chosenIde ? `  For ${chosenIde.name}:` : '  For VS Code; the IDE you choose decides these:'),
+        ...list(generator.targetsOutsideSpecs(chosenIde?.value ?? 'vscode')),
         '',
         chalk.gray(`(${files} files, ${seen.size + 1} directories)`),
         '',
@@ -149,8 +157,8 @@ export async function initCommand(name: string, options: InitOptions) {
     }
     
     // Get IDE/Agent preference for context configuration
-    let ide = 'vscode'; // default
-    if (options.prompts) {
+    let ide = chosenIde?.value ?? 'vscode'; // default
+    if (options.prompts && !chosenIde) {
       const ideResponse = await inquirer.prompt([{
         type: 'list',
         name: 'ide',

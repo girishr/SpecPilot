@@ -33,6 +33,7 @@ program
   .option('--specs-name <name>', 'Name for specs folder', '.specs')
   .option('--no-prompts', 'Skip interactive prompts')
   .option('--dry-run', 'List files that would be created without writing them')
+  .option('--ide <name>', 'AI IDE to set up for (claude-code, cursor, vscode, windsurf, antigravity, codex); skips the IDE question')
   .action(initCommand);
 
 // Validate command
@@ -95,6 +96,7 @@ program
   .option('-f, --framework <framework>', 'Framework (react, express, django, etc.)')
   .option('--no-analysis', 'Skip codebase analysis')
   .option('--no-prompts', 'Skip interactive prompts')
+  .option('--ide <name>', 'AI IDE to set up for (claude-code, cursor, vscode, windsurf, antigravity, codex); skips the IDE question')
   .action(addSpecsCommand);
 
 // Backfill command

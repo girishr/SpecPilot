@@ -11,7 +11,7 @@ import { Logger, terminalText } from '../utils/logger';
 import { CODEX_PROMPTS_NOTICE } from '../utils/slashCommandGenerator';
 import {
   addSpecsOptions, API_PARADIGM_CHOICES, API_PARADIGM_MESSAGE, detectedLine, FRAMEWORK_MESSAGE, handleMessage, IDE_CHOICES, IDE_MESSAGE,
-  PROJECT_TYPE_CHOICES, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES,
+  ideChoice, PROJECT_TYPE_CHOICES, PROJECT_TYPE_MESSAGE, SUPPORTED_LANGUAGES, unknownIdeMessage,
 } from '../utils/addSpecsQuestions';
 
 export interface AddSpecsOptions {
@@ -19,12 +19,20 @@ export interface AddSpecsOptions {
   framework?: string;
   analysis?: boolean; // false with --no-analysis (Commander's negatable option, BL-074)
   prompts: boolean;
+  ide?: string;
 }
 
 export async function addSpecsCommand(options: AddSpecsOptions) {
   const logger = new Logger();
   
   try {
+    // --ide names the IDE; any other value stops here, before any question, analysis or write (BL-159)
+    const chosenIde = options.ide !== undefined ? ideChoice(options.ide) : undefined;
+    if (chosenIde === null) {
+      logger.error(`❌ ${unknownIdeMessage(options.ide as string)}`);
+      process.exit(1);
+    }
+
     logger.info('🔍 Analyzing existing project...');
     
     const projectDir = process.cwd();
@@ -114,8 +122,8 @@ export async function addSpecsCommand(options: AddSpecsOptions) {
     }
     
     // Get IDE/Agent preference for context configuration
-    let ide = 'vscode'; // default
-    if (options.prompts) {
+    let ide = chosenIde?.value ?? 'vscode'; // default
+    if (options.prompts && !chosenIde) {
       const ideResponse = await inquirer.prompt([{
         type: 'list',
         name: 'ide',

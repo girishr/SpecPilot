@@ -2,7 +2,7 @@
 import { Browser } from 'playwright-core';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, remember, routeJs, serve, Served, until, viewOf, waitToast, waitView } from './harness';
+import { browserTest, Env, launch, makeEnv, makeProject, noSideScroll, read, registry, remember, routeJs, serve, Served, until, viewOf, waitToast, waitView } from './harness';
 
 let browser: Browser;
 let env: Env;
@@ -353,4 +353,143 @@ esac
     await idle(page);
     await check(); // after the error
     }, [/status of 422/]); // the failing dialog's answer
+});
+
+// BL-165: Home in two columns from 1100px, one column below (REQ-002.H.22)
+describe('Home layout', () => {
+  const rects = (page: import('playwright-core').Page) =>
+    page.evaluate(() => {
+      const r = (sel: string) => {
+        const el = document.querySelector(sel) as HTMLElement | null;
+        if (!el || el.hidden) return null;
+        const b = el.getBoundingClientRect();
+        return { left: b.left, right: b.right, top: b.top, bottom: b.bottom, width: b.width };
+      };
+      return {
+        home: r('#v-home')!,
+        content: r('#content')!,
+        h1: r('#wTitle')!,
+        lead: r('#v-home .lead')!,
+        cta: r('#v-home .cta')!,
+        recents: r('#v-home .recents')!,
+        benefits: r('#v-home .benefits')!,
+        mcp: r('#homeMcp'),
+        fine: r('#v-home .fine')!,
+        cols: [r('#v-home>.wcol')!, r('#v-home>.wcol~.wcol')!],
+      };
+    });
+  type Rects = Awaited<ReturnType<typeof rects>>;
+  const twoColumns = (r: Rects) => {
+    const [left, right] = r.cols;
+    expect(Math.abs(left.width - right.width)).toBeLessThan(1);
+    expect(right.left - left.right).toBeCloseTo(48, 0);
+    expect(Math.abs(left.top - right.top)).toBeLessThan(1);
+    expect(r.h1.bottom).toBeLessThanOrEqual(left.top);
+    expect(r.lead.bottom).toBeLessThanOrEqual(left.top);
+    expect(Math.abs(r.h1.left - left.left)).toBeLessThan(1); // the top block left-aligned with the left column
+    expect(Math.abs(r.cta.top - r.benefits.top)).toBeLessThan(1);
+    expect(r.recents.top).toBeGreaterThanOrEqual(r.cta.bottom);
+    expect(r.recents.right).toBeLessThanOrEqual(r.benefits.left);
+    if (r.mcp) {
+      expect(r.mcp.top).toBeGreaterThanOrEqual(r.benefits.bottom);
+      expect(Math.abs(r.mcp.left - r.benefits.left)).toBeLessThan(1);
+    }
+    expect(r.fine.top).toBeGreaterThanOrEqual(Math.max(left.bottom, right.bottom)); // the server line under both
+    expect(Math.abs(r.fine.left - left.left)).toBeLessThan(1);
+  };
+  const oneColumn = (r: Rects) => {
+    const stack = [r.h1, r.lead, r.cta, r.recents, r.benefits, ...(r.mcp ? [r.mcp] : []), r.fine];
+    for (let i = 1; i < stack.length; i++) expect(stack[i].top).toBeGreaterThanOrEqual(stack[i - 1].bottom);
+    expect(r.home.width).toBeLessThanOrEqual(560);
+    expect(r.lead.width).toBeLessThanOrEqual(r.home.width);
+  };
+
+  browserTest('at 1280px the buttons and Recent projects are left, the benefit rows and the Connect card right, the server line under both', b, async open => {
+    const mcp = await serve(env, [env.project], { mcp: true });
+    try {
+      const { page } = await open(mcp, '#home');
+      await waitView(page, 'v-home');
+      await page.waitForFunction(() => document.querySelectorAll('#homeBox .row').length === 3 && !(document.querySelector('#homeMcp') as HTMLElement).hidden);
+      const r = await rects(page);
+      expect(r.mcp).not.toBeNull();
+      twoColumns(r);
+      expect(r.home.width).toBeLessThanOrEqual(1040);
+      expect(r.home.width).toBeGreaterThan(1000);
+      expect(Math.abs(r.home.left - r.content.left - (r.content.right - r.home.right))).toBeLessThan(24); // centred, but for a scrollbar
+      expect(Math.abs(r.lead.width - r.home.width)).toBeLessThan(1); // the line runs over both columns
+      expect(Math.abs(r.lead.right - r.cols[1].right)).toBeLessThan(1);
+      expect(await noSideScroll(page)).toBe(true);
+    } finally {
+      await mcp.close();
+    }
+  });
+
+  browserTest('two columns from 1100px, with no sideways scroll; one column at 1099px and at 800px', b, async open => {
+    const mcp = await serve(env, [env.project], { mcp: true });
+    try {
+      for (const width of [1100, 1099, 800]) {
+        const { page } = await open(mcp, '#home', { width });
+        await waitView(page, 'v-home');
+        await page.waitForFunction(() => document.querySelectorAll('#homeBox .row').length === 3 && !(document.querySelector('#homeMcp') as HTMLElement).hidden);
+        const r = await rects(page);
+        if (width === 1100) twoColumns(r);
+        else oneColumn(r);
+        expect(await noSideScroll(page)).toBe(true);
+      }
+    } finally {
+      await mcp.close();
+    }
+  });
+
+  browserTest('without the Connect card the right column is the benefit rows alone and the server line stays under both', b, async open => {
+    const { page } = await open(srv, '#home');
+    await waitView(page, 'v-home');
+    await page.waitForFunction(() => document.querySelectorAll('#homeBox .row').length === 3);
+    const r = await rects(page);
+    expect(r.mcp).toBeNull();
+    twoColumns(r);
+    expect(r.cols[1].bottom).toBeCloseTo(r.benefits.bottom, 0);
+  });
+
+  browserTest('an empty Recent projects shows its text, and an unreadable registry its error, under the buttons at 1280px and in the one column at 420px', b, async open => {
+    registry.writeRegistry(env.registryFile, []);
+    const mcp = await serve(env, [env.project], { mcp: true });
+    try {
+      registry.writeRegistry(env.registryFile, []);
+      for (const width of [1280, 420]) {
+        const { page } = await open(mcp, '#home', { width });
+        await waitView(page, 'v-home');
+        await page.waitForFunction(() => document.querySelector('#homeBox .empty')?.textContent === 'No projects remembered yet.' && !(document.querySelector('#homeMcp') as HTMLElement).hidden);
+        const r = await rects(page);
+        if (width === 1280) twoColumns(r);
+        else oneColumn(r);
+        expect(await noSideScroll(page)).toBe(true);
+        // the error state: a registry file that cannot be read, its message in place of the list
+        writeFileSync(env.registryFile, '{not json');
+        await page.reload();
+        await waitView(page, 'v-home');
+        await page.waitForFunction(() => /not valid JSON/.test(document.querySelector('#homeBox p.note')?.textContent ?? '') && !(document.querySelector('#homeMcp') as HTMLElement).hidden);
+        const e = await rects(page);
+        if (width === 1280) twoColumns(e);
+        else oneColumn(e);
+        expect(await noSideScroll(page)).toBe(true);
+        rmSync(env.registryFile); // no file is an empty list again, for the next width
+      }
+    } finally {
+      await mcp.close();
+    }
+  });
+
+  browserTest('at 420px the order is the buttons, Recent projects, the benefit rows, the Connect card, with no sideways scroll', b, async open => {
+    const mcp = await serve(env, [env.project], { mcp: true });
+    try {
+      const { page } = await open(mcp, '#home', { width: 420 });
+      await waitView(page, 'v-home');
+      await page.waitForFunction(() => document.querySelectorAll('#homeBox .row').length === 3 && !(document.querySelector('#homeMcp') as HTMLElement).hidden);
+      oneColumn(await rects(page));
+      expect(await noSideScroll(page)).toBe(true);
+    } finally {
+      await mcp.close();
+    }
+  });
 });

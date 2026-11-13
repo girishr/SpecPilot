@@ -71,14 +71,14 @@ function renderProject(){
   const p=DATA.project;
   if(!p){ // no project served (BL-080): an empty rail and top bar; Home is the view
     $('#projList').innerHTML='';$('#curGrp').textContent='';$('#curGrp').title='';$('#curBranch').textContent='';
-    $('#subName').textContent='';$('#subPath').textContent='';document.title='SpecPilot Local';return;}
+    $('#subName').textContent='';$('#subPath').textContent='';document.title='SpecPilot';return;}
   const name=projectLabel(p), where=p.root+(p.branch?' · '+p.branch:'');
   $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=projectLabel(q),cur=i===PROJECT&&!NOPROJ.includes(curView);
     return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
   $('#subName').textContent=name;$('#subPath').textContent=where;$('#editorBtn').href=editorUrl(p.root);syncIde();
-  document.title=name+' · SpecPilot Local';
+  document.title=name+' · SpecPilot';
 }
 /* Everything a payload draws; with no project served (BL-080) only the rail, bar and footer. */
 function renderAll(){drawMcp();renderProject();if(!DATA.project)return;renderTasks();renderIde();renderAgentFiles();}

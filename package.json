@@ -1,7 +1,7 @@
 {
   "name": "specpilot",
   "version": "2.20.0",
-  "description": "A CLI tool for initializing specification-driven development projects with flexible, production-ready structures.",
+  "description": "Spec-driven development CLI for AI coding agents: creates, validates and syncs a .specs/ folder, and specpilot serve lays it out on this machine as a command center for the project.",
   "main": "dist/index.js",
   "bin": {
     "specpilot": "cli.js"

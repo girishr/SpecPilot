@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Home says what the page is for** (BL-165): its heading is now "The command center for your spec-driven projects.", the line under it names what the page lays out (tasks, architecture, test plan, security model, and your AI IDE's instructions, commands and skills), and a first benefit row, "Tests and security, not just tasks", points at the test plan, threat model and security decisions. The `package.json` description and `specpilot --help` no longer describe SpecPilot as only initializing projects. In a window 1100px wide or more Home is laid out in two columns under the logo, heading and line: the three buttons and Recent projects on the left, the benefit rows and Connect Your AI IDE on the right, the server line under both. A narrower window keeps one column, with Recent projects now above the benefit rows. The browser tab now reads "SpecPilot", or the project's name and "SpecPilot", where it read "SpecPilot Local".
 - `specpilot_read_spec` on the local MCP endpoint reads the same added files, as it reads what the page shows (BL-152).
 - `specpilot_read_spec` also reads the four added skills folders (BL-156).
 

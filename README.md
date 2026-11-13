@@ -88,13 +88,13 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 
 | Command     | Options                                                                             |
 | ----------- | ----------------------------------------------------------------------------------- |
-| `init`      | `--lang` · `--framework` · `--dir` · `--specs-name` · `--no-prompts` · `--dry-run` |
+| `init`      | `--lang` · `--framework` · `--dir` · `--specs-name` · `--no-prompts` · `--dry-run` · `--ide` |
 | `validate`  | `--fix` · `--verbose`                                                               |
 | `migrate`   | `--from` · `--to` · `--backup`                                                      |
 | `list`      | `--lang` · `--verbose`                                                              |
 | `refine`    | `--update` · `--no-prompts`                                                         |
 | `archive`   | `--dry-run` · `--force`                                                             |
-| `add-specs` | `--no-analysis` · `--no-prompts`                                                    |
+| `add-specs` | `--no-analysis` · `--no-prompts` · `--ide`                                          |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
 | `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--no-mcp` · `--stop`              |
 

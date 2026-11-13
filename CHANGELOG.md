@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`--ide` for `init` and `add-specs`** (BL-159): `specpilot init my-app --no-prompts --ide cursor` sets up Cursor instead of GitHub Copilot, and records it in `project.yaml`. Takes `claude-code`, `cursor`, `vscode`, `windsurf`, `antigravity` or `codex`, skips the IDE question, and with `init --dry-run` lists that IDE's files. An unknown name stops before anything is asked or written.
+
 ### Fixed
 
 - **Connect Your AI IDE gives each IDE its own config** (BL-157): the card on Home and the Setup view gave one line in Claude Code's format and named only `.mcp.json`, which VS Code (`servers`), Codex (TOML) and the others do not take as pasted. Both now have a button per IDE, Claude Code, Cursor, VS Code, Windsurf, Codex and Antigravity, chosen from the project's instruction file until you pick one, and show that IDE's file, config and note; Copy copies what is shown. The terminal labels its line `Claude Code (.mcp.json):` and points other IDEs at the page.

@@ -784,3 +784,30 @@ Implement enhanced `add-specs` command with codebase analysis features built-in,
 
 ---
 
+## Archived on 2026-11-13 15:54:25
+
+- 2026-10-31: the developer: `Approve, then commit` for BL-144: row marked `Approved 2026-10-31`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-31: the developer: `push`: `main` pushed to origin (`feefb74..8a5f333`)
+- 2026-10-31: the developer: `Start BL-138 and continue till 144.` (each item still stops in Review for the card and the typed `commit`; the next starts after its merge). Branch `fix/bl-138-md-linear-patterns` from `main` (`f2706b0`); Spec Report written (REQ-002.H.60, context.md), to spec-reviewer before code
+- 2026-10-31: BL-138 spec-reviewer FIX on the report (the exact link rule, the `[`-in-target and lone-`|` exceptions, four more quadratic line patterns with U+2028, tests): applied; the four patterns taken into BL-138 (same file, same threat), the new shape checked equal in `node`
+- 2026-10-31: BL-138 spec-reviewer PASS on the fixed report; built: 6 tests first (the browser test took 17.7 s on `main`), Jest 1891/1891, browser 91/91 three times. Nothing committed
+- 2026-10-31: BL-138 spec-reviewer PASS on the build; BL-138 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Start BL-137`. Branch `fix/bl-137-yaml-schema-cap` from `main` (`6b66389`); Spec Report written (REQ-002.A.3, context.md), to spec-reviewer before code
+- 2026-10-30: BL-137 spec-reviewer FIX on the report (CORE is JSON in js-yaml 4, the merge and tag effects, the cap's unit, the size error as a constant, `flattenRules` over aliases, two more spec files, more tests): applied
+- 2026-10-30: BL-137 spec-reviewer PASS on the fixed report; built: 13 tests first, Jest 1886/1886, golden unchanged, scratch-repo `validate` check clean. Nothing committed
+- 2026-10-30: BL-137 spec-reviewer PASS on the build; its optional length guard before encoding taken; BL-137 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-137: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-30: after the BL-137 merge `validate` on `main` warned that the `## Completed` section of `tasks.md` exceeds 40 lines; the developer: `Archive now`: `specpilot archive` on `main` moved 13 lines (rows 221 to 233) to `tasks-archive.md`; `validate` clean. Not pushed
+- 2026-10-30: the developer: `Start BL-136`. Branch `fix/bl-136-analyzer-walk-bounds` from `main` (`79c9fbb`); Spec Report written (REQ-002.D.6, context.md), to spec-reviewer before code
+- 2026-10-30: BL-136 spec-reviewer FIX on the report (a total byte cap, wording, the root readdir, the full empty-package.json effect, more tests, three more spec edits, golden note): applied; 8 MB per run taken
+- 2026-10-30: BL-136 tests first: a nested test file is never counted on `main` (paths stored relative to the subfolder): not BL-136's change, filed as BL-149 (Backlog); the normal-input test puts its test file at the root
+- 2026-10-30: BL-136 built: 11 tests first, Jest 1873/1873, golden unchanged, scratch-repo `add-specs` check clean. Nothing committed
+- 2026-10-30: BL-136 spec-reviewer PASS on the build; BL-136 moved to Review by hand. Branch left checked out, nothing committed
+- 2026-10-30: the developer: `Approve, then commit` for BL-136: row marked `Approved 2026-10-30`; feature commit, completion commit, `--no-ff` merge into `main`, tests on `main`, branch deleted. Not pushed
+- 2026-10-30: the developer: `Start BL-135`. Branch `fix/bl-135-task-write-folders` from `main` (`cf4488c`); Spec Report written (REQ-002.H task moves, context.md), to spec-reviewer before code
+- 2026-10-30: BL-135 spec-reviewer FIX on the report (architecture.md and SEC-004.10 on the build list, two more tests, the MCP case's wording): applied
+- 2026-10-30: BL-135 spec-reviewer PASS on the fixed report; built: 5 tests first, Jest 1862/1862, validate with no warning. Nothing committed
+- 2026-10-30: BL-135 spec-reviewer PASS on the build; BL-135 moved to Review by hand. Branch left checked out, nothing committed
+
+---
+

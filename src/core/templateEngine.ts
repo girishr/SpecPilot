@@ -231,6 +231,10 @@ repository: {{yaml repository}}
 {{#if license}}
 license: {{yaml license}}
 {{/if}}
+{{#if ide}}
+# The AI IDEs this project uses; SpecPilot reads this list. Values: claude-code, cursor, vscode (GitHub Copilot), windsurf, antigravity, codex.
+ides: [{{yaml (lowercase ide)}}]
+{{/if}}
 
 # Rules and mandates: see your AI agent configuration file (single source of truth)
 

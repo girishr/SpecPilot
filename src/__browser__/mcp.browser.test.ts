@@ -152,6 +152,45 @@ browserTest('the preselection: the project\'s instruction file, else Claude Code
   }
 });
 
+browserTest('project.yaml ides beats the file guess: [windsurf] beside CLAUDE.md, [] over Cursor\'s rules file; a kept choice still wins (BL-158)', b, async open => {
+  const yamlFile = join(env.project, '.specs', 'project', 'project.yaml');
+  const base = readFileSync(yamlFile, 'utf-8');
+  writeFileSync(yamlFile, base + '\nides: [windsurf]\n');
+  let srv = await serve(env, [env.project], { mcp: true });
+  try {
+    for (const light of [false, true]) {
+      const { page } = await open(srv, '#home', { width: 420, light });
+      await homeCard(page);
+      await page.waitForFunction(() => document.querySelector('#mcpIde [aria-checked="true"]')?.textContent === 'Windsurf');
+      await shows(page, 'Windsurf', srv.handle.mcpToken!);
+      expect([light, await noSideScroll(page)]).toEqual([light, true]);
+    }
+    const { page } = await open(srv, '#home');
+    await homeCard(page);
+    await choose(page, 'Codex'); // kept in the browser
+    await page.reload();
+    await homeCard(page);
+    await page.waitForFunction(() => !!document.querySelector('#mcpIde [aria-checked="true"]'));
+    expect(await chosen(page)).toBe('Codex');
+  } finally {
+    await srv.close();
+  }
+  // an empty list: Claude Code, not the Cursor rules file's guess
+  rmSync(join(env.project, 'CLAUDE.md'));
+  mkdirSync(join(env.project, '.cursor', 'rules'), { recursive: true });
+  writeFileSync(join(env.project, '.cursor', 'rules', 'specpilot.mdc'), '---\nalwaysApply: true\n---\n');
+  writeFileSync(yamlFile, base + '\nides: []\n');
+  srv = await serve(env, [env.project], { mcp: true });
+  try {
+    const { page } = await open(srv, '#home');
+    await homeCard(page);
+    await page.waitForFunction(() => !!document.querySelector('#mcpIde [aria-checked="true"]'));
+    expect(await chosen(page)).toBe('Claude Code');
+  } finally {
+    await srv.close();
+  }
+});
+
 browserTest('one choice for Home and the Setup view, kept across a reload, and the Setup view fits at 420px with each IDE', b, async open => {
   const bare = join(env.home, 'dev', 'acme-api'); // a folder without .specs/: the Setup view
   mkdirSync(bare, { recursive: true });

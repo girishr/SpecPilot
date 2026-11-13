@@ -2,7 +2,7 @@
 // Cursor-only: its CLAUDE.md removed, SpecPilot's Cursor rules file and its 8 current commands written by the
 // built generator, so the rows are known and never this repo's own.
 import { Browser, Page } from 'playwright-core';
-import { mkdirSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { browserTest, Env, launch, makeEnv, noSideScroll, REPO, serve, Served, waitView } from './harness';
 
@@ -155,3 +155,34 @@ browserTest('at 420px in both themes the Skills view fits empty, with skills, wi
     expect([theme, 'deleted', await noSideScroll(page)]).toEqual([theme, 'deleted', true]);
   }
 });
+
+// The IDEs project.yaml lists decide Open in Cursor (BL-158, REQ-002.A.13); the fixture copy's project.yaml has none.
+const listIdes = (line: string) => {
+  const f = join(env.project, '.specs', 'project', 'project.yaml');
+  writeFileSync(f, readFileSync(f, 'utf-8') + `\n${line}\n`);
+};
+const ideMenu = async (page: Page) => {
+  await page.locator('#ideBtn').click();
+  await page.locator('#ideMenu').waitFor({ state: 'visible' });
+  return page.$$eval('#ideMenu [role=menuitem]', els => els.map(e => e.textContent));
+};
+
+browserTest('ides: [cursor] shows Open in Cursor without the rules file, at 420px in both themes', b, async open => {
+  rmSync(join(env.project, ...RULES.split('/')));
+  listIdes('ides: [cursor]');
+  for (const light of [false, true]) {
+    const { page } = await open(srv, '#board', { width: 420, light });
+    await waitView(page, 'v-board');
+    await page.locator('#ideBtn').waitFor({ state: 'visible' });
+    expect(await ideMenu(page)).toEqual(['Open in Cursor']);
+    expect([light, await noSideScroll(page)]).toEqual([light, true]);
+  }
+});
+
+browserTest('ides: [vscode] hides Open in Cursor though the rules file is there', b, async open => {
+  listIdes('ides: [vscode]');
+  const { page } = await open(srv, '#board');
+  await waitView(page, 'v-board');
+  expect(await page.locator('#ideWrap').isHidden()).toBe(true);
+});
+

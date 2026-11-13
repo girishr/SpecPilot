@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
@@ -136,6 +136,7 @@ describe('specpilot init: the generateSpecs() call (BL-075)', () => {
       ide: 'claude-code', mode: 'new', projectType: 'greenfield', apiParadigm: 'rest',
       projectContext: { whatItDoes: 'Tracks parcels', targetUsers: 'Couriers', expectedScale: NOT_SPECIFIED, constraints: 'Offline first' },
     }]]);
+    expect(readFileSync(join(dir, 'demo', '.specs', 'project', 'project.yaml'), 'utf-8')).toMatch(/^ides: \[claude-code\]$/m); // the answer, recorded (BL-158)
   });
 
   it('passes the options it always passed, with --no-prompts and --specs-name', async () => {
@@ -146,6 +147,7 @@ describe('specpilot init: the generateSpecs() call (BL-075)', () => {
       ide: 'vscode', mode: 'new', projectType: 'greenfield', apiParadigm: undefined,
       projectContext: { whatItDoes: NOT_SPECIFIED, targetUsers: NOT_SPECIFIED, expectedScale: NOT_SPECIFIED, constraints: NOT_SPECIFIED },
     }]]);
+    expect(readFileSync(join(dir, 'demo', 'docs', 'project', 'project.yaml'), 'utf-8')).toMatch(/^ides: \[vscode\]$/m); // the default setup used (BL-158)
   });
 });
 

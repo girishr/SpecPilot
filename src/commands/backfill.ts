@@ -167,7 +167,7 @@ function displayResult(result: BackfillResult, dryRun: boolean, logger: Logger):
     (result.skill?.action === 'current' ? 1 : 0);
   const keptCount = result.skill?.action === 'kept' ? 1 : 0;
 
-  if (updatedCount === 0 && keptCount === 0 && copilot?.action === 'missing') {
+  if (updatedCount === 0 && keptCount === 0 && copilot?.action === 'missing' && result.slashCommands.length === 0) { // no IDE at all (BL-154); a listed one is handled (BL-158)
     content.push(chalk.yellow('⚠️  No IDE instruction file, so no mandates or commands were added.'));
   } else if (updatedCount === 0 && keptCount === 0) {
     content.push(chalk.green('✅ Everything is up to date — nothing to backfill.'));

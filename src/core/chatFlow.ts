@@ -1134,7 +1134,7 @@ export function chatQuestions(all: CliQuestion[], cli: CliQuestion[], a: Answers
       } else if (key === 'ide') extra.type = 'cards';
       const choice = q.choices?.find(c => c.value === a[key]);
       const answered = key in a && (!q.choices || !!choice);
-      const files = key === 'ide' ? outside[String(choice?.value ?? q.choices?.[0]?.value)] ?? []
+      const files = key === 'ide' ? [...(outside[String(choice?.value ?? q.choices?.[0]?.value)] ?? []), 'project/project.yaml'] // the answer is recorded there too, as platforms is (BL-158)
         : key === 'projectType' && mode === 'setup' ? [] : FIELD_FILES[key] ?? [];
       out.push({
         ...q,

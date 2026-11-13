@@ -344,6 +344,34 @@ describe('every documented project skills folder is served and listed (BL-156)',
   });
 });
 
+describe('project.ides and project.cursor in the payload (BL-158, REQ-002.A.13)', () => {
+  let p: ReturnType<typeof makeProject>;
+  beforeEach(() => (p = makeProject()));
+  afterEach(() => p.cleanup());
+  const project = () => buildSpecsPayload(p.root, '0.0.0-test').project;
+  const ides = (line: string) => write(p.root, '.specs/project/project.yaml', `name: "P"\nlanguage: typescript\n${line}\n`);
+
+  it('carries the list, [] or null', () => {
+    expect(project().ides).toBeNull();
+    ides('ides: [Cursor, vscode]');
+    expect(project().ides).toEqual(['cursor', 'vscode']);
+    ides('ides: []');
+    expect(project().ides).toEqual([]);
+    ides('ides: [cursr]');
+    expect(project().ides).toBeNull();
+  });
+
+  it('cursor follows the list, whatever files exist; without one, the rules file as before', () => {
+    ides('ides: [cursor]');
+    expect(project().cursor).toBe(true);
+    write(p.root, '.cursor/rules/specpilot.mdc', 'r\n');
+    ides('ides: [vscode]');
+    expect(project().cursor).toBe(false);
+    ides('');
+    expect(project().cursor).toBe(true);
+  });
+});
+
 describe('isAllowedHost', () => {
   it('accepts the loopback names on the server port', () => {
     expect(isAllowedHost('127.0.0.1:4321', 4321)).toBe(true);
@@ -3002,6 +3030,7 @@ describe('setup tools on /mcp (BL-104)', () => {
     expect(r.data.written).toEqual(expect.arrayContaining(['.specs/project/project.yaml', '.vscode/settings.json']));
     expect(Array.isArray(r.data.validate.errors) && Array.isArray(r.data.validate.warnings)).toBe(true);
     expect(existsSync(join(e.root, '.specs/project/project.yaml'))).toBe(true);
+    expect(readFileSync(join(e.root, '.specs/project/project.yaml'), 'utf-8')).toMatch(/^ides: \[vscode\]$/m); // the answer, recorded (BL-158)
     await events.waitFor(/"row":"validate","state":"done"/);
     const ev = setupEvents();
     expect(ev.map(x => `${x.row}:${x.state}`)).toEqual(['read:running', 'read:done', 'questions:running', 'questions:done', 'write:running', 'write:done', 'validate:running', 'validate:done']);
@@ -4433,6 +4462,19 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     const SKILL = '.claude/skills/specpilot-project/SKILL.md';
     expect(r).toEqual({ added: page.added, updated: page.updated, kept: page.kept.filter((k: { path: string }) => k.path !== SKILL), message: page.message.filter((l: string) => !l.startsWith('Kept as they were: ' + SKILL)) });
     expect(r.added.length).toBeGreaterThan(0);
+  });
+
+  it('Regenerate, page and MCP alike, follows project.yaml ides over the files present (BL-158)', async () => {
+    for (const p of [a, b]) write(p.root, '.specs/project/project.yaml', 'name: "P"\nlanguage: typescript\nides: [cursor]\n'); // both have CLAUDE.md
+    await start();
+    const r = (await tool('specpilot_regenerate_commands', { project: 0 })).structuredContent;
+    const page = (await pageWrite('/api/commands/regenerate', {}, b.root, 1)).json;
+    const SKILL = '.claude/skills/specpilot-project/SKILL.md'; // the skill still follows CLAUDE.md (REQ-002.A.13, unchanged)
+    for (const added of [r.added, page.added.filter((f: string) => f !== SKILL)]) {
+      expect(added.length).toBeGreaterThan(0);
+      expect(added.every((f: string) => f.startsWith('.cursor/commands/'))).toBe(true);
+    }
+    expect(existsSync(join(a.root, '.claude/commands'))).toBe(false);
   });
 
   it('leaves an out-of-date released skill byte for byte, where the page route would refresh it (BL-PM-012)', async () => {

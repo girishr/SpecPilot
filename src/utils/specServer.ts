@@ -13,7 +13,7 @@ import { chatQuestions, CliQuestion, DESIGN_GATED, OPTIONAL_FIELD_LIMITS } from 
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
-import { SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
+import { projectIdes, SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
 import { isSpecPilotCommand, isSpecPilotSkill, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
 import { agentTargets } from '../core/agentConfig';
@@ -133,14 +133,17 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     if (real) contents[p.slice('.specs/'.length)] = readFileSync(real, 'utf-8');
   }
   const { files, tasks } = readSpecs(contents);
+  const ides = projectIdes(root);
   return {
     project: {
       name: projectName(contents['project/project.yaml']),
       root,
       branch: readBranch(root),
       specs: !specsMissing(root), // false → the page offers guided setup (BL-055)
-      // the file SpecPilot writes for Cursor; exactly this path, so a link to another allowlisted file is false (REQ-002.H.34, BL-153)
-      cursor: resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
+      ides, // project.yaml's IDEs, or null without a list (BL-158, REQ-002.A.13)
+      // with a list, whether it names Cursor; else the file SpecPilot writes for Cursor, exactly this path, so a link
+      // to another allowlisted file is false (REQ-002.H.34, BL-153)
+      cursor: ides ? ides.includes('cursor') : resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,

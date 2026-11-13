@@ -166,6 +166,9 @@ export interface ValidationResult {
 /** Written only when the API paradigm is not None, which no file records, so never required (BL-107). */
 const API_YAML = 'architecture/api.yaml';
 
+/** The values project.yaml `ides` may hold, as `projectIdes()` reads them (BL-158); `IDE_SIGNALS` in specBackfiller.ts names the same six. */
+const KNOWN_IDES = ['claude-code', 'cursor', 'vscode', 'windsurf', 'antigravity', 'codex'];
+
 export class SpecValidator {
   private requiredFiles = [
     'project/project.yaml',
@@ -354,6 +357,18 @@ export class SpecValidator {
         if (!projectData[field]) {
           result.errors.push(`project.yaml missing required field: ${field}`);
           result.isValid = false;
+        }
+      }
+
+      // `ides` (BL-158, REQ-002.A.13): warned, never an error; projectIdes() ignores what this flags
+      if ('ides' in projectData) {
+        const ides = projectData.ides;
+        if (!Array.isArray(ides) || !ides.every((v: unknown) => typeof v === 'string')) {
+          result.warnings.push('project.yaml: ides should be a list such as [cursor]; SpecPilot ignores it until it is.');
+        } else {
+          for (const v of ides as string[]) {
+            if (!KNOWN_IDES.includes(v.toLowerCase())) result.warnings.push(`project.yaml: ides lists "${v}", which SpecPilot does not know; known: ${KNOWN_IDES.join(', ')}.`);
+          }
         }
       }
 

@@ -5,7 +5,7 @@ import * as readline from 'readline';
 import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
 import { buildProcessMandatesMarkdown } from '../core/ideConfig';
-import { writeError, writeInside } from './specPaths';
+import { resolveAllowedPath, writeError, writeInside } from './specPaths';
 import { loadRepoYaml } from './specReader';
 
 /** `rel` below the specs folder as `writeInside()` takes it: the project folder and the `/`-joined path from it (BL-130). */
@@ -277,6 +277,26 @@ const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
   { ide: 'codex', signalFile: 'CODEX_INSTRUCTIONS.md' },
 ];
 
+/**
+ * The IDEs `project.yaml` says the project uses (BL-158, REQ-002.A.13): the known values of `ides`, lowercased,
+ * without duplicates, in file order. Null (keep guessing from files) when the file cannot be read, has no `ides`
+ * list of strings, or lists only unknown values; `[]` only for a list left empty.
+ */
+export function projectIdes(projectDir: string, specsName = '.specs'): string[] | null {
+  const rel = `${specsName}/project/project.yaml`;
+  const file = resolveAllowedPath(projectDir, rel, [rel]); // exactly this path: a link resolves elsewhere and is refused
+  let doc: unknown;
+  try {
+    doc = file && loadRepoYaml(readFileSync(file, 'utf-8'));
+  } catch {
+    return null;
+  }
+  const list = doc && typeof doc === 'object' ? (doc as Record<string, unknown>).ides : undefined;
+  if (!Array.isArray(list) || !list.every(v => typeof v === 'string')) return null;
+  const known = [...new Set((list as string[]).map(v => v.toLowerCase()))].filter(v => IDE_SIGNALS.some(s => s.ide === v));
+  return list.length && !known.length ? null : known;
+}
+
 export class SpecBackfiller {
   async backfill(
     projectDir: string,
@@ -297,28 +317,30 @@ export class SpecBackfiller {
     await this.ensureDevPrefix(specsDir, dryRun, noPrompts);
 
     const yamlResult = this.backfillProjectYaml(specsDir, dryRun);
-    const copilotResult = await this.backfillCopilotInstructions(projectDir, dryRun);
+    const copilotResult = await this.backfillCopilotInstructions(projectDir, dryRun, specsName);
     const tasksResult = this.backfillTasksMd(specsDir, dryRun);
     const ideFiles = this.backfillIdeFiles(projectDir, dryRun);
     // The Claude Code skill by the commands' rule (BL-PM-012), from this specs folder's project.yaml.
     const skill = new SlashCommandGenerator().refreshSkill(projectDir, specsName, dryRun);
-    const slashCommands = this.backfillSlashCommands(projectDir, dryRun);
+    const slashCommands = this.backfillSlashCommands(projectDir, dryRun, specsName);
 
     return { projectYaml: yamlResult, copilotInstructions: copilotResult, tasksMd: tasksResult, ideFiles, slashCommands, skill };
   }
 
   /**
-   * Adds missing and refreshes unmodified `specpilot-*` slash command files for IDEs already in use —
-   * detected by the signal file `backfillIdeFiles` checks for each IDE, plus `CODEX_INSTRUCTIONS.md` for Codex.
+   * Adds missing and refreshes unmodified `specpilot-*` slash command files for IDEs already in use: those
+   * `project.yaml` lists (BL-158, written whether or not their instruction file exists), else those whose signal
+   * file is present, as `backfillIdeFiles` checks, plus `CODEX_INSTRUCTIONS.md` for Codex.
    * Reuses `SlashCommandGenerator`'s per-IDE routing so CLI-side backfill and
    * web-app-side generation (`slashCommandGenerator.ts`) never drift apart.
    */
-  backfillSlashCommands(projectDir: string, dryRun: boolean): SlashCommandBackfillResult[] {
+  backfillSlashCommands(projectDir: string, dryRun: boolean, specsName = '.specs'): SlashCommandBackfillResult[] {
     const generator = new SlashCommandGenerator();
     const results: SlashCommandBackfillResult[] = [];
+    const listed = projectIdes(projectDir, specsName);
 
     for (const { ide, signalFile } of IDE_SIGNALS) {
-      if (!existsSync(join(projectDir, ...signalFile.split('/')))) continue;
+      if (listed ? !listed.includes(ide) : !existsSync(join(projectDir, ...signalFile.split('/')))) continue;
       results.push({ ide, signalFile, ...generator.refreshCommands(projectDir, ide, dryRun) });
     }
 
@@ -452,13 +474,17 @@ export class SpecBackfiller {
   private async backfillCopilotInstructions(
     projectDir: string,
     dryRun: boolean,
+    specsName = '.specs',
   ): Promise<BackfillFileResult | undefined> {
     const filePath = join(projectDir, '.github', 'copilot-instructions.md');
+    const listed = projectIdes(projectDir, specsName); // BL-158: a list that leaves Copilot out ends it here
+    if (listed && !listed.includes('vscode')) return undefined;
     const refused = writeError(projectDir, '.github/copilot-instructions.md');
     if (refused) return { action: 'skipped', found: 0, total: 0, added: [], reason: refused };
 
     // Never created (BL-154): its absence is how a project says it does not use Copilot.
     if (!existsSync(filePath)) {
+      if (listed) return { action: 'missing', found: 0, total: 0, added: [], reason: '.github/copilot-instructions.md is not in this project, so it was not updated. project.yaml lists vscode: create the file, then re-run specpilot backfill.' };
       if (IDE_SIGNALS.some(({ signalFile }) => existsSync(join(projectDir, ...signalFile.split('/'))))) return undefined;
       return {
         action: 'missing',

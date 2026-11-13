@@ -331,6 +331,8 @@ specpilot backfill --dry-run
 - When your existing `project.yaml` is missing critical or process mandates
 - When `.github/copilot-instructions.md` is out of date
 
+Commands are written for the IDEs `.specs/project/project.yaml` lists in `ides` (setup writes it, for example `ides: [cursor]`; `vscode` is GitHub Copilot), and `.github/copilot-instructions.md` is updated only when `vscode` is listed. Without that line, as in projects set up before it, backfill writes for each IDE whose instruction file exists. Backfill never adds `ides` itself.
+
 **When NOT to use backfill:**
 
 - Starting a new project (use `init` instead)

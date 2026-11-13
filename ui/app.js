@@ -1125,12 +1125,16 @@ let openBusy=false,sheetFrom=$('#homeOpen'),sheetTab='folder',cloneCtl=null,brow
 if(TOKEN){addBtn.hidden=false;homeBtn.hidden=false;$('#cmdRegen').hidden=false;$('#rail>.logo').remove();} // the Home tile takes the logo's place (BL-PM-001)
 /* Connect Your AI IDE (BL-PM-007): the config for this server's /mcp, unless --no-mcp (BL-105). No status here:
    the page cannot know whether an IDE uses it. Per IDE since BL-157 (REQ-002.H.68), one choice for Home and the Setup
-   view: kept in the browser, else the IDE of the first instruction file the project in front has, else Claude Code;
-   nothing labels that guess. `env`: the token is SPECPILOT_MCP_TOKEN, whose value the page never holds. */
+   view: kept in the browser, else the first IDE the project's project.yaml lists (BL-158, REQ-002.A.13), else
+   without a list the IDE of the first instruction file the project in front has, else Claude Code; nothing labels
+   that guess. `env`: the token is SPECPILOT_MCP_TOKEN, whose value the page never holds. */
+const IDE_NAME={'claude-code':'Claude Code',cursor:'Cursor',vscode:'VS Code',windsurf:'Windsurf',codex:'Codex',antigravity:'Antigravity'};
 const IDE_OF={'CLAUDE.md':'Claude Code','AGENTS.md':'Codex','.github/copilot-instructions.md':'VS Code','.cursor/rules/specpilot.mdc':'Cursor','.windsurfrules':'Windsurf','.antigravity/rules.md':'Antigravity','CODEX_INSTRUCTIONS.md':'Codex'};
 let mcpIde=null;try{const v=localStorage.getItem('sp-mcp-ide');if(MCP_IDES.includes(v))mcpIde=v;}catch(e){}
 function mcpChoice(){
   if(mcpIde)return mcpIde;
+  const ides=DATA&&DATA.project?DATA.project.ides:null;
+  if(ides)return IDE_NAME[ides[0]]||'Claude Code';
   const f=DATA&&DATA.nav?DATA.nav.instructions.find(i=>i.exists):null;
   return f&&IDE_OF[f.path]||'Claude Code';
 }

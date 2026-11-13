@@ -202,6 +202,7 @@ describe('what is sent (REQ-002.H.28)', () => {
     expect(cap('authStrategy')).toBe('For architecture/api.yaml & security/security-decisions.md');
     expect(cap('userTypes')).toBe('For development/onboarding.md');
     expect(cap('ide')).toMatch(/^For \d+ files$/);
+    expect(list.find(q => q.key === 'ide')!.files).toContain('project/project.yaml'); // the answer is recorded there (BL-158)
     for (const key of ['parent', 'handle', 'language', 'framework']) expect(cap(key)).toBe('');
     expect(ask({ ...answers, projectType: 'brownfield' }).find(q => q.key === 'technicalConstraints')!.caption).toBe('');
   });
@@ -233,6 +234,10 @@ describe('the field-to-file table is what render() changes (REQ-002.I.7)', () =>
       expect(changed(base(p), { ...base(p), projectContext: { ...base(p).projectContext, [key]: 'Z' } })).toEqual(core.FIELD_FILES[key]);
     }
     expect(changed(base(p), { ...base(p), projectType: 'brownfield' })).toEqual(core.FIELD_FILES.projectType);
+  });
+
+  it('the IDE answer changes project/project.yaml, which its caption names (BL-158)', () => {
+    expect(changed(base('rest'), { ...base('rest'), ide: 'Cursor' })).toContain('project/project.yaml');
   });
 
   it('the API paradigm changes api.yaml', () => {

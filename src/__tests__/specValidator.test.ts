@@ -190,6 +190,23 @@ describe('SpecValidator', () => {
     expect(missingErrors.length).toBe(9); // all 9 required files missing (api.yaml is optional, BL-107)
   });
 
+  // ─── project.yaml ides (BL-158, REQ-002.A.13) ───────────────────────────────
+
+  it.each([
+    ['ides: [cursor, vscode]', []],
+    ['', []],
+    ['ides: [cursor, Cursr]', ['project.yaml: ides lists "Cursr", which SpecPilot does not know; known: claude-code, cursor, vscode, windsurf, antigravity, codex.']],
+    ['ides: cursor', ['project.yaml: ides should be a list such as [cursor]; SpecPilot ignores it until it is.']],
+    ['ides: [cursor, 3]', ['project.yaml: ides should be a list such as [cursor]; SpecPilot ignores it until it is.']],
+  ])('warns, never errors, on project.yaml %j', async (line, want) => {
+    createValidSpecsDir(testDir);
+    const file = join(testDir, '.specs', 'project', 'project.yaml');
+    writeFileSync(file, readFileSync(file, 'utf-8') + `\n${line}\n`);
+    const result = await validator.validate(testDir, { fix: false, verbose: false });
+    expect(result.warnings.filter(w => w.includes('ides'))).toEqual(want);
+    expect(result.isValid).toBe(true);
+  });
+
   // ─── api.yaml is optional (BL-107, REQ-002.F.11) ──────────────────────────
 
   it('does not require api.yaml, offer to create it, or ask requirements.md to reference it while it is missing', async () => {

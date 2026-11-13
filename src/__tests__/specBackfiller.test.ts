@@ -1,4 +1,4 @@
-import { SpecBackfiller, withTasksLine } from '../utils/specBackfiller';
+import { projectIdes, SpecBackfiller, withTasksLine } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
 import { buildCopilotInstructions } from '../core/ideConfig';
@@ -1307,6 +1307,99 @@ rules:
       expect(out.join('\n')).toContain('kept: folder is a symbolic link or not a folder  .claude/commands/specpilot-status.md');
       rmSync(outside, { recursive: true, force: true });
     });
+  });
+});
+
+describe('the IDEs project.yaml lists (BL-158, REQ-002.A.13)', () => {
+  let testDir: string;
+  const backfiller = new SpecBackfiller();
+  const yaml = (ides: string, specs = '.specs') => {
+    mkdirSync(join(testDir, specs, 'project'), { recursive: true });
+    mkdirSync(join(testDir, specs, 'planning'), { recursive: true });
+    writeFileSync(join(testDir, specs, 'project', 'project.yaml'), FULL_YAML + (ides ? `\n${ides}\n` : ''), 'utf-8');
+  };
+  beforeEach(() => (testDir = makeTmpDir()));
+  afterEach(() => rmSync(testDir, { recursive: true, force: true }));
+
+  it.each([
+    ['ides: [cursor]', ['cursor']],
+    ['ides: [Cursor, vscode, cursor]', ['cursor', 'vscode']],
+    ['ides: [cursor, cursr]', ['cursor']],
+    ['ides: [cursr]', null],
+    ['ides: cursor', null],
+    ['ides: [cursor, 3]', null],
+    ['ides: []', []],
+    ['', null],
+  ])('projectIdes reads %j as %j', (line, want) => {
+    yaml(line);
+    expect(projectIdes(testDir)).toEqual(want);
+  });
+
+  it('projectIdes is null for a missing, unparsable or oversized file, and for a linked one', () => {
+    expect(projectIdes(testDir)).toBeNull();
+    mkdirSync(join(testDir, '.specs', 'project'), { recursive: true });
+    const file = join(testDir, '.specs', 'project', 'project.yaml');
+    writeFileSync(file, 'ides: [cursor\n');
+    expect(projectIdes(testDir)).toBeNull();
+    writeFileSync(file, `ides: [cursor]\n# ${'x'.repeat(300 * 1024)}\n`);
+    expect(projectIdes(testDir)).toBeNull();
+    if (process.platform !== 'win32') {
+      rmSync(file);
+      writeFileSync(join(testDir, 'real.yaml'), 'ides: [cursor]\n');
+      symlinkSync(join(testDir, 'real.yaml'), file);
+      expect(projectIdes(testDir)).toBeNull();
+    }
+  });
+
+  it('a list replaces the file guess: Cursor\'s commands only, though CLAUDE.md is present and Cursor\'s rules file is not', async () => {
+    yaml('ides: [cursor]');
+    writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n');
+    const r = await backfiller.backfill(testDir, '.specs', false, true);
+    expect(r.slashCommands.map(c => [c.ide, c.signalFile])).toEqual([['cursor', '.cursor/rules/specpilot.mdc']]);
+    expect(existsSync(join(testDir, '.cursor', 'commands', 'specpilot-status.md'))).toBe(true);
+    expect(existsSync(join(testDir, '.claude', 'commands'))).toBe(false);
+  });
+
+  it('codex listed: Codex\'s commands and no .github/prompts/, though copilot-instructions.md is present', async () => {
+    yaml('ides: [codex]');
+    mkdirSync(join(testDir, '.github'), { recursive: true });
+    writeFileSync(join(testDir, '.github', 'copilot-instructions.md'), '# Copilot\n');
+    const r = await backfiller.backfill(testDir, '.specs', false, true);
+    expect(r.slashCommands.map(c => c.ide)).toEqual(['codex']);
+    expect(existsSync(join(testDir, '.github', 'prompts'))).toBe(false);
+    expect(r.copilotInstructions).toBeUndefined(); // a list that leaves vscode out reports nothing for it
+  });
+
+  it('vscode listed with no copilot file: the new reason, Copilot\'s commands and none for Claude Code', async () => {
+    yaml('ides: [vscode]');
+    writeFileSync(join(testDir, 'CLAUDE.md'), '# CLAUDE.md\n');
+    const r = await backfiller.backfill(testDir, '.specs', false, true);
+    expect(r.copilotInstructions).toEqual({ action: 'missing', found: 0, total: 0, added: [], reason: '.github/copilot-instructions.md is not in this project, so it was not updated. project.yaml lists vscode: create the file, then re-run specpilot backfill.' });
+    expect(r.slashCommands.map(c => c.ide)).toEqual(['vscode']);
+    expect(existsSync(join(testDir, '.github', 'copilot-instructions.md'))).toBe(false);
+    expect(existsSync(join(testDir, '.claude', 'commands'))).toBe(false);
+  });
+
+  it('backfill reads the list from its own specs folder', async () => {
+    yaml('ides: [windsurf]', 'specs');
+    yaml('ides: [cursor]'); // the default folder says otherwise
+    const r = await backfiller.backfill(testDir, 'specs', false, true);
+    expect(r.slashCommands.map(c => c.ide)).toEqual(['windsurf']);
+  });
+
+  it('prints no "No IDE instruction file" line when a listed IDE was handled', async () => {
+    yaml('ides: [vscode]');
+    const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const out: string[] = [];
+    log.mockImplementation((...a: unknown[]) => void out.push(a.join(' ')));
+    try {
+      await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+      await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true }); // commands now current
+    } finally {
+      log.mockRestore();
+    }
+    expect(out.join('\n')).not.toContain('No IDE instruction file');
+    expect(out.join('\n')).toContain('project.yaml lists vscode');
   });
 });
 

@@ -234,6 +234,7 @@ describe('setupProject() writes what add-specs writes', () => {
     expect(Object.keys(got).sort()).toEqual(Object.keys(expected).sort());
     for (const p of Object.keys(expected)) expect([p, got[p].equals(expected[p])]).toEqual([p, true]);
     expect(readFileSync(join(a, '.specs/project/project.yaml'), 'utf-8')).toContain('python');
+    expect(readFileSync(join(a, '.specs/project/project.yaml'), 'utf-8')).toMatch(/^ides: \[cursor\]$/m); // page and CLI record the answer alike (BL-158)
   });
 
   it('uses the OS username for an empty handle, as the CLI does', async () => {

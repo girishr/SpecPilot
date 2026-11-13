@@ -114,7 +114,7 @@ export const MCP_TOOLS: McpTool[] = [
   {
     name: 'specpilot_read_spec',
     title: 'SpecPilot: read a spec file',
-    description: 'The text of one file, verbatim: a .specs/ file, or an instruction, command or skill file the page also shows (e.g. CLAUDE.md).',
+    description: 'The text of one file, verbatim: a .specs/ file, or an instruction, command or skill file the page also shows.',
     inputSchema: schema({ path: { type: 'string', description: 'Project-relative path, e.g. .specs/project/requirements.md' } }, ['path']),
     annotations: READ,
     writes: false,

@@ -225,7 +225,7 @@ archive_prompts() {
       for (i = 1; i <= 24; i++) MON[nm[i]] = nv[i] + 0
       for (i = 1; i < 256; i++) ORD[sprintf("%c", i)] = i
     }
-    # The record is spelled $(0): Claude Code replaces a dollar sign before a digit with a command argument (BL-093).
+    # The record is spelled $(0): some AI IDEs replace a dollar sign before a digit in a command file with a command argument (BL-093).
     { line[NR] = $(0); tl[NR] = trim($(0)) }
     END {
       L = total + 1
@@ -390,8 +390,8 @@ CANDIDATE_FILES=(
   ".antigravity/rules.md"
 )
 
-# Each check and append works on the loop's file, "$f": no positional parameters, since Claude Code
-# replaces a dollar sign before a digit in a command file with a command argument (BL-093).
+# Each check and append works on the loop's file, "$f": no positional parameters, since some AI IDEs
+# replace a dollar sign before a digit in a command file with a command argument (BL-093).
 has_critical() { grep -qF "Critical Mandates" "$f"; }
 has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$f"; }
 has_rules() { grep -qF "## Code Rules" "$f"; }

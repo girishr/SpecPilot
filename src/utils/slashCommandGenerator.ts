@@ -87,10 +87,12 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
+    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
   ],
   '.agent/workflows/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
+    '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
   ],
   '.agent/workflows/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -118,10 +120,12 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4ece400213565ec40fdce7e4767f984ee352ddb08cafac35cdaf4731edffcbe7',
     'c456c0067f69c7ec4300bdbe7fed3727734d7df8b44f56bda77d6ac4f7eece10',
     '3ae2d75ada7b2864f941025e4074f64ea58461d5eac026603cd4bce09e9c16f2',
+    'c4f067cf661f20f23eb67ced7508a25eb44f9b995700e54726cd945759235373',
   ],
   '.claude/commands/specpilot-backfill.md': [
     '16c9c26b3e63b6e77067dab0037cb49d51d344e9bf392a431f09f7918ee3c813',
     '14848ce3ddedac11c2422736e48bf289047a11d4aa04b20a670d24b558e0af01',
+    '1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78',
   ],
   '.claude/commands/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -149,10 +153,12 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
+    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
   ],
   '.codex/prompts/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
+    '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
   ],
   '.codex/prompts/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -180,10 +186,12 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
+    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
   ],
   '.cursor/commands/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
+    '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
   ],
   '.cursor/commands/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -211,10 +219,12 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '6dc00a9bce104395f819bde397978154aadc8716a8258ad3f5bf23559f94f834',
     'd04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2',
     '9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58',
+    'cdf87099cff14e4a33bb8140306bbdf900ed967b487d0fa64b69f6e80a720cfd',
   ],
   '.github/prompts/specpilot-backfill.prompt.md': [
     'df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc',
     '0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5',
+    '9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f',
   ],
   '.github/prompts/specpilot-reanchor.prompt.md': [
     '30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf',
@@ -242,10 +252,12 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
+    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
   ],
   '.windsurf/workflows/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
+    '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
   ],
   '.windsurf/workflows/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',

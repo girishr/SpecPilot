@@ -200,6 +200,14 @@ describe('optional template fields (BL-032 phase 2)', () => {
     }
   });
 
+  test('no IDE\'s command files name Claude Code, since every IDE gets the same text (BL-160, REQ-002.A.15)', () => {
+    for (const { value: ide } of IDE_CHOICES) {
+      const files = render({ ...BASE, ide, apiParadigm: 'rest' } as RenderOptions).files.filter(f => /(^|\/)(commands|workflows|prompts)\//.test(f.path));
+      expect(files.length).toBeGreaterThan(0);
+      for (const f of files) expect([f.path, f.content.includes('Claude Code')]).toEqual([f.path, false]);
+    }
+  });
+
   test('each section renders as REQ-002.I.4 says', () => {
     const all = { ...BASE, ide: 'vscode', apiParadigm: 'rest' as const, ...ALL_FIELDS };
     expect(file(all, '.specs/project/project.yaml')).toContain('  documentation_required: true\n  \n# Platforms\nplatforms:\n  - iOS Native\n  - Node.js / Express\n\n# Build and Deployment\n');

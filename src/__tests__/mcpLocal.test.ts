@@ -86,6 +86,12 @@ describe('messages', () => {
 });
 
 describe('tools', () => {
+  it('describes specpilot_read_spec without naming one IDE\'s file (BL-160, REQ-002.A.15)', async () => {
+    const tools = ((await ask(req('tools/list'))).body as any).result.tools;
+    expect(tools.find((t: any) => t.name === 'specpilot_read_spec').description).toBe(
+      'The text of one file, verbatim: a .specs/ file, or an instruction, command or skill file the page also shows.');
+  });
+
   it('lists the ten tools with the hosted server naming, titles, schemas and annotations, and nothing internal', async () => {
     const tools = ((await ask(req('tools/list'))).body as any).result.tools;
     expect(tools.map((t: any) => t.name)).toEqual([

@@ -372,6 +372,55 @@ describe('project.ides and project.cursor in the payload (BL-158, REQ-002.A.13)'
   });
 });
 
+describe('project.uses and each instruction file\'s ides (BL-161, REQ-002.H.69)', () => {
+  let p: ReturnType<typeof makeProject>;
+  beforeEach(() => (p = makeProject()));
+  afterEach(() => p.cleanup());
+  const payload = () => buildSpecsPayload(p.root, '0.0.0-test');
+  const ides = (line: string) => write(p.root, '.specs/project/project.yaml', `name: "P"\n${line}\n`);
+  const forFile = (path: string) => payload().nav.instructions.find(f => f.path === path)!.ides;
+
+  it('(a) with a list: uses is the list in file order, and each file names the listed IDEs it is written for', () => {
+    ides('ides: [codex, cursor, vscode]');
+    expect(payload().project.uses).toEqual(['codex', 'cursor', 'vscode']);
+    expect(payload().nav.instructions.map(f => [f.path, f.ides])).toEqual([
+      ['CLAUDE.md', []], ['AGENTS.md', []], ['.github/copilot-instructions.md', ['codex', 'vscode']], ['.cursor/rules/specpilot.mdc', ['cursor']], // project.uses order
+      ['.windsurfrules', []], ['.antigravity/rules.md', []], ['CODEX_INSTRUCTIONS.md', ['codex']],
+    ]);
+  });
+
+  it('(b) without a list: uses is the IDEs whose signal file is present, in IDE_SIGNALS order', () => {
+    write(p.root, '.github/copilot-instructions.md', 'c\n');
+    write(p.root, '.windsurfrules', 'w\n');
+    expect(payload().project.uses).toEqual(['claude-code', 'windsurf', 'vscode']);
+    expect(forFile('.github/copilot-instructions.md')).toEqual(['vscode']); // Codex is not guessed from Copilot's file
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('(c) without a list, a linked instruction file is neither shown nor counted', () => {
+    rmSync(join(p.root, 'CLAUDE.md'));
+    symlinkSync(join(p.outside, 'secret.txt'), join(p.root, 'CLAUDE.md'));
+    expect(payload().nav.instructions[0]).toMatchObject({ path: 'CLAUDE.md', exists: false });
+    expect(payload().project.uses).toEqual([]);
+  });
+
+  it('(d) ides: [] and (e) no list with no instruction file both give uses []', () => {
+    ides('ides: []');
+    expect(payload().project.uses).toEqual([]);
+    ides('');
+    rmSync(join(p.root, 'CLAUDE.md'));
+    expect(payload().project.uses).toEqual([]);
+    expect(payload().nav.instructions.every(f => f.ides.length === 0)).toBe(true);
+  });
+
+  it('(f) AGENTS.md is no IDE\'s, (g) Copilot\'s file is VS Code\'s and Codex\'s, (h) CODEX_INSTRUCTIONS.md is Codex\'s', () => {
+    ides('ides: [claude-code, cursor, vscode, windsurf, antigravity, codex]');
+    expect(forFile('AGENTS.md')).toEqual([]);
+    expect(forFile('.github/copilot-instructions.md')).toEqual(['vscode', 'codex']);
+    expect(forFile('CODEX_INSTRUCTIONS.md')).toEqual(['codex']);
+    expect(forFile('CLAUDE.md')).toEqual(['claude-code']);
+  });
+});
+
 describe('isAllowedHost', () => {
   it('accepts the loopback names on the server port', () => {
     expect(isAllowedHost('127.0.0.1:4321', 4321)).toBe(true);

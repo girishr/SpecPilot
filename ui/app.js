@@ -502,11 +502,19 @@ async function renderSecurity(){
 }
 
 /* ---------------- automation: generated files, read as they are ---------------- */
+/* An absent file says why (BL-161, REQ-002.H.69): missing for an IDE the project uses, else not needed, else
+   (no IDE known) not in this repo. The server decides which IDEs; the page only names them. */
+function absentTrail(f,uses){
+  const names=a=>a.map(v=>IDE_NAME[v]||v).join(', ');
+  if(!uses.length)return {pill:'<span class="pill gray">not in this repo</span>',det:''};
+  return f.ides.length?{pill:'<span class="pill orange">missing</span>',det:`SpecPilot writes it for ${esc(names(f.ides))}.`}
+    :{pill:'<span class="pill gray">not needed</span>',det:`This project uses ${esc(names(uses))}.`};
+}
 function renderIde(){
-  const I=DATA.nav.instructions;
+  const I=DATA.nav.instructions,uses=DATA.project&&DATA.project.uses||[];
   $('#insBox').innerHTML=I.map(f=>f.exists
     ?`<button type="button" class="row act" data-open="${esc(f.path)}"><span class="st green" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div><div class="det">${f.bytes} bytes</div></div><div class="trail">${chev}</div></button>`
-    :`<div class="row"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div></div><div class="trail"><span class="pill gray">not in this repo</span></div></div>`).join('');
+    :(a=>`<div class="row"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div>${a.det?`<div class="det">${a.det}</div>`:''}</div><div class="trail">${a.pill}</div></div>`)(absentTrail(f,uses))).join('');
   $('#insMeta').textContent=I.filter(f=>f.exists).length+' of '+I.length;
 }
 function fileRows(list){

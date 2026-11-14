@@ -9,7 +9,7 @@
 cli:
   binary: specpilot
   version: 2.20.0
-  runtime: Node.js >= 16
+  runtime: Node.js ^22.23.5 || ^24.22.3 || >=26.13.1
   install: npm install -g specpilot
 
 commands:

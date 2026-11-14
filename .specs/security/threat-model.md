@@ -257,7 +257,7 @@ Same audit and status as SEC-002.12. The principal is a web page the user visits
 ## Out of Scope [SEC-004]
 
 - **OS-level permissions**: SpecPilot runs with the invoking user's permissions; filesystem sandboxing is the OS's responsibility.
-- **Runtime environment hardening**: Node.js version security, container isolation, etc. are outside SpecPilot's scope.
+- **Runtime environment hardening**: Node.js version security, container isolation, etc. are outside SpecPilot's scope, except that `package.json` `engines` names only Node release lines with security support, each at or above its November 2026 security release (`^22.23.5 || ^24.22.3 || >=26.13.1`, BL-170; raised by its own BL when a Node security release touches a module SpecPilot uses, and a line dropped at its end of life); npm warns on install outside it and does not block.
 - **Generated file security**: The `.specs/` files SpecPilot writes are plain text (Markdown/YAML). It is the user's responsibility to keep them safe (e.g., not committing secrets).
 - **CI/CD pipeline security**: Downstream use of spec files in build pipelines is out of scope.
 - **Compliance frameworks**: SOC2, GDPR, HIPAA, etc. are tracked in the backlog (BL-010) but not yet addressed.

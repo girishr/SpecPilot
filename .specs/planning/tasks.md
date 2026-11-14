@@ -77,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-176 | bug | P2 | The REST `api.yaml` SpecPilot writes is not valid OpenAPI 3.0: `apiYaml()` in `src/core/specFiles.ts` puts `project`, `version` and `lastUpdated` at the root of the document, and after the `openapi` section the data-layer keys `databases`, `auth_strategy` and `realtime` (REQ-002.I.4); OpenAPI 3.0 allows only its own root keys and `x-` extensions, so every REST project set up by `init` or `add-specs` fails a strict validator (seen in UbusRouter, 2026-11-14). Rename each to its `x-` form (`x-project`, `x-version`, `x-lastUpdated`, `x-databases`, `x-auth_strategy`, `x-realtime`), `rest` only (REQ-002.I.9; architect decision 2026-11-14); `src/core/chatFlow.ts` maps answers to these keys, the golden recordings change, and `SpecPilot.Init`'s port needs the same change (BL-121). Architectural: Spec Report first. Do before BL-177. Approved 2026-11-14 |
 
 ## Won't do
 

@@ -234,3 +234,21 @@ browserTest('with ides: [] no IDE is known, so an absent file reads not in this 
     expect(await page.locator(`#insBox [data-open="${RULES}"]`).count()).toBe(1);
   });
 });
+
+// Windsurf's project skills folders (BL-164, REQ-002.H.70): its docs name .devin/skills/ and the legacy .windsurf/skills/.
+browserTest("Windsurf's .devin/skills and .windsurf/skills skills are listed under Yours and open, at 420px in both themes", b, async open => {
+  skill('.devin/skills/d/SKILL.md');
+  skill('.windsurf/skills/w/SKILL.md');
+  for (const light of [false, true]) {
+    const { page } = await open(srv, '#skills', { width: 420, light });
+    await waitView(page, 'v-skills');
+    await page.waitForFunction(() => document.querySelector('#sklYouCnt')?.textContent === '2');
+    expect(await counts(page)).toEqual(['0', '2']);
+    expect(await page.$$eval('#sklMine [data-open]', els => els.map(e => e.getAttribute('data-open')))).toEqual(['.devin/skills/d/SKILL.md', '.windsurf/skills/w/SKILL.md']);
+    expect([light, 'listed', await noSideScroll(page)]).toEqual([light, 'listed', true]);
+    await page.click('[data-open=".windsurf/skills/w/SKILL.md"]');
+    await page.locator('#insp .md').waitFor();
+    expect(await page.locator('#insp').textContent()).toContain('.windsurf/skills/w/SKILL.md');
+    expect([light, 'open', await noSideScroll(page)]).toEqual([light, 'open', true]);
+  }
+});

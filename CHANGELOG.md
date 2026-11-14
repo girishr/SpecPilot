@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The Skills view lists Windsurf's project skills** (BL-164): skills in `.devin/skills/` and the older `.windsurf/skills/`, the folders Windsurf's docs (now Devin Desktop) name, are listed under Yours and open, and `specpilot_read_spec` reads them. Nothing else in `.devin/` or `.windsurf/` is read.
 - **`--ide` for `init` and `add-specs`** (BL-159): `specpilot init my-app --no-prompts --ide cursor` sets up Cursor instead of GitHub Copilot, and records it in `project.yaml`. Takes `claude-code`, `cursor`, `vscode`, `windsurf`, `antigravity` or `codex`, skips the IDE question, and with `init --dry-run` lists that IDE's files. An unknown name stops before anything is asked or written.
 
 ### Fixed
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `.windsurf/skills/` is no longer refused by `specpilot serve` and `specpilot_read_spec` (BL-164): it was left out while Windsurf's docs named no skills folder.
 - **Breaking: Node.js `^22.23.5 || ^24.22.3 || >=26.13.1` is required** (BL-170): `engines` allowed `>=16.0.0`, which took in Node.js versions that no longer get security fixes (16 to 21, 23, 25) and 22, 24 and 26 releases from before the November 2026 security releases. Upgrade Node.js to a patched 22, 24 or 26 before you update SpecPilot. npm warns on install outside the range and does not block it; SpecPilot itself does not check. README states the requirement.
 - **The Completed archive limit is 25 lines, and an archive keeps the newest 10 rows** (BL-123): it was 40 lines and 20 rows, and is now the same limit as the init.specpilot.dev connector's. 10, not 20, so a section is not back at the limit after one more completion. A `## Completed` section of 26 to 40 lines that passed before now gets the `specpilot validate` warning; run `specpilot archive`. Run `specpilot backfill` to update the `specpilot-archive` command in existing projects. The page's Archive dialog shows the new numbers.
 - **Command files no longer name Claude Code in other IDEs' folders** (BL-160): the `specpilot-archive` and `specpilot-backfill` commands, the same for every IDE, explained a script detail with "Claude Code replaces…"; they now say "some AI IDEs". `specpilot_read_spec`'s description no longer gives `CLAUDE.md` as its example. `specpilot backfill` and Regenerate All update earlier generated copies as before.

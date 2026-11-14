@@ -219,7 +219,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 
 ## Assumptions [ARCH-007]
 
-- **Node.js runtime**: Node.js >= 16 is required; the output module format is CommonJS (`"module": "commonjs"` in `tsconfig.json`) [ARCH-007.1]
+- **Node.js runtime**: Node.js `^22.23.5 || ^24.22.3 || >=26.13.1` is required (`package.json` `engines`; BL-170, 2026-11-14: Node release lines with security support, each at or above its November 2026 security release); the output module format is CommonJS (`"module": "commonjs"` in `tsconfig.json`) [ARCH-007.1]
 - **File paths**: All file path operations use `path.join()` / `path.resolve()` to ensure cross-platform compatibility (macOS, Linux, Windows) [ARCH-007.2]
 - **No network at runtime**: All templates are built-in; no HTTP calls are made during `init`, `add-specs`, or `validate`. `specpilot serve` opens a listener on the loopback interface only and makes no outbound requests; its UI loads nothing from outside the local server [ARCH-007.3]
 - **Single project root**: Every command operates on a single root directory, except `specpilot serve`, which serves a list of roots given at start and appended to by `POST /api/projects` (BL-067; never removed or reordered while it runs), each treated exactly as a single root (BL-054); monorepo detection is out of scope [ARCH-007.4]

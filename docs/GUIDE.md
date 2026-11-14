@@ -63,7 +63,7 @@ SDD addresses modern development challenges:
 
 ### Prerequisites
 
-- **Node.js**: >= 16.0.0
+- **Node.js**: `^22.23.5 || ^24.22.3 || >=26.13.1` (a patched 22, 24 or 26; BL-170)
 - **npm**: >= 8.0.0
 
 ### Global Installation

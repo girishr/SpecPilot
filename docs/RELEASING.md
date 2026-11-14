@@ -16,6 +16,7 @@ The release ritual, as done for 2.13.0. `X.Y.Z` is the new version. One npm publ
 
 ## 2. Check
 
+- [ ] `node -v` is inside `package.json` `engines.node` (BL-170); this run is recorded in `.specs/quality/tests.md`
 - [ ] `FORCE_COLOR=1 npm test` and `FORCE_COLOR=0 npm test`
 - [ ] `npm run test:browser`, three runs
 - [ ] `npm run lint` (no new problems)

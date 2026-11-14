@@ -37,6 +37,10 @@ No install, no API key. Full setup notes: <https://specpilot.dev/mcp-setup>
 
 `specpilot serve` also serves a local MCP endpoint, so your AI IDE can read this machine's specs, add or move tasks and set up a folder: see [Local MCP endpoint](#local-mcp-endpoint-specpilot-serve) below.
 
+## Requirements
+
+Node.js 22.23.5 or later 22.x, 24.22.3 or later 24.x, or 26.13.1 or later (`package.json` `engines`: `^22.23.5 || ^24.22.3 || >=26.13.1`): the Node.js release lines that still get security fixes, at or above their November 2026 security release. Older Node.js versions and 25.x are not supported. npm warns (`EBADENGINE`) when you install on a Node.js outside this range, but does not stop the install.
+
 ## Quick Start
 
 ```bash

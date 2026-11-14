@@ -13,10 +13,11 @@ import { chatQuestions, CliQuestion, DESIGN_GATED, OPTIONAL_FIELD_LIMITS } from 
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { pickFolder } from './folderPicker';
 import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
-import { projectIdes, SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
+import { IDE_SIGNALS, projectIdes, SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
 import { isSpecPilotCommand, isSpecPilotSkill, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
 import { agentTargets } from '../core/agentConfig';
+import { aiContextTarget } from '../core/ideConfig';
 import { SpecValidator } from './specValidator';
 import { answerMcp, MCP_TOOLS, mcpClientName, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
 
@@ -134,6 +135,13 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
   }
   const { files, tasks } = readSpecs(contents);
   const ides = projectIdes(root);
+  const instructions = ALLOWED_FILES.map(path => {
+    const real = resolveAllowedPath(root, path);
+    return { path, exists: real !== null, bytes: real ? statSync(real).size : 0 };
+  });
+  // The IDEs the project uses: its list, else the IDEs whose instruction file is shown present (BL-161, REQ-002.H.69)
+  const uses = ides ?? IDE_SIGNALS.filter(s => instructions.some(f => f.path === s.signalFile && f.exists)).map(s => s.ide);
+  const writesFor = (path: string) => uses.filter(ide => aiContextTarget(ide) === path || agentTargets(ide).includes(path));
   return {
     project: {
       name: projectName(contents['project/project.yaml']),
@@ -144,6 +152,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       // with a list, whether it names Cursor; else the file SpecPilot writes for Cursor, exactly this path, so a link
       // to another allowlisted file is false (REQ-002.H.34, BL-153)
       cursor: ides ? ides.includes('cursor') : resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
+      uses,
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,
@@ -151,10 +160,7 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     tasks: tasks ? { ...tasks, intro: tasksIntro(contents['planning/tasks.md']), sha256: tasksHash(root), nextIds: suggestedIds(root, contents['planning/tasks.md']), archive: completedArchiveStatus(contents['planning/tasks.md']), moves: MOVES } : null,
     nav: {
       specs: Object.keys(contents),
-      instructions: ALLOWED_FILES.map(path => {
-        const real = resolveAllowedPath(root, path);
-        return { path, exists: real !== null, bytes: real ? statSync(real).size : 0 };
-      }),
+      instructions: instructions.map(f => ({ ...f, ides: writesFor(f.path) })), // ides: the IDEs of uses SpecPilot writes it for
       // generated: the page's "From SpecPilot" group, else "Yours" (BL-PM-006)
       commands: COMMAND_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('.md'))).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
       skills: SKILL_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('/SKILL.md'))).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) && isSpecPilotSkill(root) })), // by the commands' rule, BL-PM-012

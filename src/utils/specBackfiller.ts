@@ -268,7 +268,7 @@ export interface BackfillResult {
 }
 
 /** The instruction file that says each IDE is in use. */
-const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
+export const IDE_SIGNALS: { ide: string; signalFile: string }[] = [
   { ide: 'claude-code', signalFile: 'CLAUDE.md' },
   { ide: 'cursor', signalFile: '.cursor/rules/specpilot.mdc' },
   { ide: 'windsurf', signalFile: '.windsurfrules' },

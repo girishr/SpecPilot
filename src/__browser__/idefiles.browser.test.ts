@@ -186,3 +186,51 @@ browserTest('ides: [vscode] hides Open in Cursor though the rules file is there'
   expect(await page.locator('#ideWrap').isHidden()).toBe(true);
 });
 
+
+// An absent instruction file says why (BL-161, REQ-002.H.69): the fixture copy is Cursor-only (its rules file, no
+// CLAUDE.md) and its project.yaml lists no IDEs until a test appends a list.
+const absent = (page: Page) => page.$$eval('#insBox > .row:not(.act)', rows => rows.map(r => [
+  r.querySelector('.id')!.textContent, r.querySelector('.trail .pill')!.textContent, r.querySelector('.pill')!.className,
+  r.querySelector('.det')?.textContent ?? null,
+]));
+const insAt420 = async (open: Parameters<Parameters<typeof browserTest>[2]>[0], state: string, check: (page: Page) => Promise<void>) => {
+  for (const light of [false, true]) {
+    const { page } = await open(srv, '#instructions', { width: 420, light });
+    await waitView(page, 'v-instructions');
+    await check(page);
+    expect([state, light, await noSideScroll(page)]).toEqual([state, light, true]);
+  }
+};
+const NOT_NEEDED = (path: string, uses: string) => [path, 'not needed', 'pill gray', `This project uses ${uses}.`];
+
+browserTest('without a list, a Cursor project reads every other file as not needed, at 420px in both themes', b, async open => {
+  await insAt420(open, 'not needed', async page => {
+    expect(await absent(page)).toEqual(['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md', '.windsurfrules', '.antigravity/rules.md', 'CODEX_INSTRUCTIONS.md'].map(p => NOT_NEEDED(p, 'Cursor')));
+    expect(await page.locator('#insMeta').textContent()).toBe('1 of 7');
+    expect(await page.locator(`#insBox [data-open="${RULES}"] .det`).textContent()).toMatch(/^\d+ bytes$/);
+  });
+});
+
+browserTest('a listed IDE without its file reads missing, names joined with a comma, at 420px in both themes', b, async open => {
+  listIdes('ides: [cursor, vscode, codex]');
+  await insAt420(open, 'missing', async page => {
+    const uses = 'Cursor, VS Code, Codex';
+    expect(await absent(page)).toEqual([
+      NOT_NEEDED('CLAUDE.md', uses), NOT_NEEDED('AGENTS.md', uses),
+      ['.github/copilot-instructions.md', 'missing', 'pill orange', 'SpecPilot writes it for VS Code, Codex.'],
+      NOT_NEEDED('.windsurfrules', uses), NOT_NEEDED('.antigravity/rules.md', uses),
+      ['CODEX_INSTRUCTIONS.md', 'missing', 'pill orange', 'SpecPilot writes it for Codex.'],
+    ]);
+    expect(await page.locator('#insMeta').textContent()).toBe('1 of 7');
+  });
+});
+
+browserTest('with ides: [] no IDE is known, so an absent file reads not in this repo, at 420px in both themes', b, async open => {
+  listIdes('ides: []');
+  await insAt420(open, 'not in this repo', async page => {
+    const rows = await absent(page);
+    expect(rows).toHaveLength(6);
+    expect(rows.every(([, pill, cls, det]) => pill === 'not in this repo' && cls === 'pill gray' && det === null)).toBe(true);
+    expect(await page.locator(`#insBox [data-open="${RULES}"]`).count()).toBe(1);
+  });
+});

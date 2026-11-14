@@ -288,7 +288,7 @@ specpilot refine "new feature" --no-prompts
 
 #### `specpilot archive [options]`
 
-Archive oversized `.specs/` files to keep them readable. Triggers automatically when `development/prompts.md` exceeds 100 lines or the `## Completed` section of `planning/tasks.md` exceeds 40 lines.
+Archive oversized `.specs/` files to keep them readable. Triggers automatically when `development/prompts.md` exceeds 100 lines or the `## Completed` section of `planning/tasks.md` exceeds 25 lines; an archive keeps its newest 10 rows.
 
 ```bash
 # Archive in current project directory

@@ -155,7 +155,7 @@ After running it:
     name: 'archive',
     description: 'Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard',
     allowedTools: ['Bash', 'Read', 'Edit'],
-    body: `Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+    body: `Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 25 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
 
 Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
 
@@ -164,8 +164,8 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 PROMPTS_LINE_LIMIT=100
 PROMPTS_KEEP_LINES=80
-COMPLETED_LINE_LIMIT=40
-COMPLETED_KEEP_ENTRIES=20
+COMPLETED_LINE_LIMIT=25
+COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then

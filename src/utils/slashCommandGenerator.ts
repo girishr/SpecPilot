@@ -87,7 +87,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
-    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
+    '2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b',
   ],
   '.agent/workflows/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
@@ -120,7 +120,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4ece400213565ec40fdce7e4767f984ee352ddb08cafac35cdaf4731edffcbe7',
     'c456c0067f69c7ec4300bdbe7fed3727734d7df8b44f56bda77d6ac4f7eece10',
     '3ae2d75ada7b2864f941025e4074f64ea58461d5eac026603cd4bce09e9c16f2',
-    'c4f067cf661f20f23eb67ced7508a25eb44f9b995700e54726cd945759235373',
+    'c7f0b37f6fdcd921556a2f90f5272d5724588dd65b693c02ecc9b571b9e2e4c0',
   ],
   '.claude/commands/specpilot-backfill.md': [
     '16c9c26b3e63b6e77067dab0037cb49d51d344e9bf392a431f09f7918ee3c813',
@@ -153,7 +153,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
-    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
+    '2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b',
   ],
   '.codex/prompts/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
@@ -186,7 +186,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
-    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
+    '2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b',
   ],
   '.cursor/commands/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
@@ -219,7 +219,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '6dc00a9bce104395f819bde397978154aadc8716a8258ad3f5bf23559f94f834',
     'd04af73d7f467f888a44e310b669361f6f8863fe325702fe639f51751634e2f2',
     '9dc54381e45e0a1b29f9be41cc5666c6ca7ffaa615655aa7137c80c0af6fed58',
-    'cdf87099cff14e4a33bb8140306bbdf900ed967b487d0fa64b69f6e80a720cfd',
+    '3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd',
   ],
   '.github/prompts/specpilot-backfill.prompt.md': [
     'df986c946846ce107888b4b21e197fb2c8498c6a32925d2d79e92d3dd39298dc',
@@ -252,7 +252,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '4828517e26559b39ec143269a1ddcdd2909eeb2044a97824396a6b91d8ad23c1',
     'dcb3f3baa3fad300e0cf813e9c21c25d7c20dd362857e0aaf34f283536ab6497',
     '909f1fba21874031d256faa5cd883ce540e448367197448fd2b06a929f742890',
-    'c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096',
+    '2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b',
   ],
   '.windsurf/workflows/specpilot-backfill.md': [
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',

@@ -2,7 +2,7 @@
 
 exports[`optional template fields (BL-032 phase 2) every field set: claude-code graphql and codex cli (hashes) 1`] = `
 {
-  ".claude/commands/specpilot-archive.md": "c4f067cf661f20f23eb67ced7508a25eb44f9b995700e54726cd945759235373",
+  ".claude/commands/specpilot-archive.md": "c7f0b37f6fdcd921556a2f90f5272d5724588dd65b693c02ecc9b571b9e2e4c0",
   ".claude/commands/specpilot-backfill.md": "1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78",
   ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
@@ -31,7 +31,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
 
 exports[`optional template fields (BL-032 phase 2) every field set: claude-code graphql and codex cli (hashes) 2`] = `
 {
-  ".codex/prompts/specpilot-archive.md": "c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096",
+  ".codex/prompts/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
   ".codex/prompts/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -140,7 +140,7 @@ mode: agent
 description: Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard
 ---
 
-Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 25 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
 
 Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
 
@@ -149,8 +149,8 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 PROMPTS_LINE_LIMIT=100
 PROMPTS_KEEP_LINES=80
-COMPLETED_LINE_LIMIT=40
-COMPLETED_KEEP_ENTRIES=20
+COMPLETED_LINE_LIMIT=25
+COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
@@ -1168,7 +1168,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 
 exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenfield 1`] = `
 {
-  ".agent/workflows/specpilot-archive.md": "c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096",
+  ".agent/workflows/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
   ".agent/workflows/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".agent/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".agent/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -1198,7 +1198,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
 
 exports[`spec core golden recording (BL-032) claude-code javascript/react rest greenfield 1`] = `
 {
-  ".claude/commands/specpilot-archive.md": "c4f067cf661f20f23eb67ced7508a25eb44f9b995700e54726cd945759235373",
+  ".claude/commands/specpilot-archive.md": "c7f0b37f6fdcd921556a2f90f5272d5724588dd65b693c02ecc9b571b9e2e4c0",
   ".claude/commands/specpilot-backfill.md": "1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78",
   ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
@@ -1227,7 +1227,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
 
 exports[`spec core golden recording (BL-032) codex typescript no framework rest greenfield 1`] = `
 {
-  ".codex/prompts/specpilot-archive.md": "c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096",
+  ".codex/prompts/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
   ".codex/prompts/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -1256,7 +1256,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
 
 exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfield 1`] = `
 {
-  ".cursor/commands/specpilot-archive.md": "c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096",
+  ".cursor/commands/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
   ".cursor/commands/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".cursor/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".cursor/commands/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -1288,7 +1288,7 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "5382be791bac53e2426fd8b0dc9953b859e3d8f0024f1d652a9e6380677e8250",
-  ".github/prompts/specpilot-archive.prompt.md": "cdf87099cff14e4a33bb8140306bbdf900ed967b487d0fa64b69f6e80a720cfd",
+  ".github/prompts/specpilot-archive.prompt.md": "3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
@@ -1318,7 +1318,7 @@ exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] =
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "4b4e9a8b10c23ceb3a660fba8c6a555c34dad844649026a77610ed43b84d5e69",
-  ".github/prompts/specpilot-archive.prompt.md": "cdf87099cff14e4a33bb8140306bbdf900ed967b487d0fa64b69f6e80a720cfd",
+  ".github/prompts/specpilot-archive.prompt.md": "3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
@@ -1426,7 +1426,7 @@ mode: agent
 description: Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard
 ---
 
-Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 25 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
 
 Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
 
@@ -1435,8 +1435,8 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 PROMPTS_LINE_LIMIT=100
 PROMPTS_KEEP_LINES=80
-COMPLETED_LINE_LIMIT=40
-COMPLETED_KEEP_ENTRIES=20
+COMPLETED_LINE_LIMIT=25
+COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
@@ -2464,7 +2464,7 @@ mode: agent
 description: Archive oversized .specs/ files (tasks.md Completed section, prompts.md) with a branch safety guard
 ---
 
-Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 40 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
+Archive oversized \`.specs/\` files: \`.specs/planning/tasks.md\`'s \`## Completed\` section beyond 25 lines, and \`.specs/development/prompts.md\` beyond 100 total lines.
 
 Run the script below — it computes thresholds and moves lines deterministically. Do not hand-count lines or decide what to move yourself; the script's arithmetic is the source of truth.
 
@@ -2473,8 +2473,8 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
 PROMPTS_LINE_LIMIT=100
 PROMPTS_KEEP_LINES=80
-COMPLETED_LINE_LIMIT=40
-COMPLETED_KEEP_ENTRIES=20
+COMPLETED_LINE_LIMIT=25
+COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
@@ -3410,7 +3410,7 @@ exports[`spec core golden recording (BL-032) vscode typescript/react none inferr
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "95c336a94ad060d1f41a1281b07b9be61b352a1d5b68dbe991a04bb2053ff627",
-  ".github/prompts/specpilot-archive.prompt.md": "cdf87099cff14e4a33bb8140306bbdf900ed967b487d0fa64b69f6e80a720cfd",
+  ".github/prompts/specpilot-archive.prompt.md": "3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
@@ -3453,7 +3453,7 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
   ".windsurf/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
   ".windsurf/settings.json": "24f529abe8c9c93f91ca9c1590151223a01ecf4cbbb37ae36200bf6004a96014",
-  ".windsurf/workflows/specpilot-archive.md": "c27c7264e5addd287dda46577ae95302640285d790364872fc784abd6f3af096",
+  ".windsurf/workflows/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
   ".windsurf/workflows/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".windsurf/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".windsurf/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",

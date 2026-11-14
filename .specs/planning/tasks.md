@@ -27,6 +27,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-169 | chore | P3 | `SpecPilot.Init` (another repository): `specpilot-archive`'s `COMPLETED_KEEP_ENTRIES` goes from 20 to 10 to match this CLI's REQ-002.A.16 (BL-123). With 20 at a 25-line limit, a table section with 7 or more other lines sits at the limit after an archive, and the next completion warns. That repo's own row and Spec Report. Attribution: the architect, BL-123, 2026-11-14. |
 | BL-166 | bug | P2 | Removing a project on Home (the row's remove button, REQ-002.H.32) does not remove its tile from the rail. `POST /api/projects/remove` only edits the registry; the project stays open and the rail draws one tile per open project, so the tile stays until `serve` restarts. REQ-002.H.21 says remove "redraws the list from the response, nothing else", so the spec allows this. Decide whether removing an open project also closes it (removes the rail tile and moves the shown project if it was that one) or whether Home should say it stays open. Found 2026-11-13. |
 | BL-150 | chore | P3 | Chore, P3. The audit checks BL-145 could not run: Firefox (Playwright's Firefox 155 does not start on this macOS: "Could not find profile folder"; check by hand in Firefox, or with a later Playwright), Safari itself (WebKit was measured, not Safari), both for items 8, 12 and 13 and the `Sec-Fetch-Dest`, `Sec-Fetch-Site` and `Service-Worker-Navigation-Preload` values BL-142 to BL-144 rely on; and a Windows VM (UTM) for item 3 (`serve --open`, `archive`). Also run SpecPilot's real page against a leftover worker and a cached script in WebKit or Safari (the `?v=`, `integrity` and unregister-and-reload path), since WebKit did not act on `Clear-Site-Data` as Chromium did in BL-145's scratch run. Record each result in the threat model; SEC-002.14 (c) stays open until then. Attribution: BL-145, SEC-002.14 (c), SEC-002.15. |
 | BL-121 | chore | P1 | **High priority; held until the current sprints here and in `SpecPilot.Init` are done (the developer, 2026-10-23: a bigger undertaking needing close attention).** One spec core for the CLI and the connector: `src/core` is the source of truth (BL-049) and already pure (BL-032), but it renders with the Handlebars compiler at run time, which Cloudflare Workers forbid (`eval`, `new Function`), which is why `SpecPilot.Init` keeps its own `src/lib/specCore/` port and why that port has drifted (tasks.md as a numbered list without `## Review`, the pre-BL-117 onboarding line, no Process Mandates Tasks line, `specpilot-archive` at 25 lines, command bytes outside `KNOWN_COMMAND_HASHES`; a project set up there landed on this board 2026-10-22 with every Completed row unparseable). Phase 3 of BL-032: (1) `src/core` renders without the compiler at run time, templates precompiled at build onto `handlebars/runtime` or moved to template literals, the golden recording (REQ-002.I.3) proving byte parity; (2) published as `@specpilot/spec-core`, or `specpilot/core` as a subpath export of this package; (3) in `SpecPilot.Init`, its own row: the browser and the Worker import the package and `src/lib/specCore/` is deleted; (4) until (3), a parity test over there renders one answer set through both and diffs. Direction of every item is this CLI to the connector; the connector's 25-line archive limit is the one exception, adopted here as BL-123. Architectural: Spec Report first. |
@@ -64,7 +65,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-123 | feat | P2 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-08 | feat | P2 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
@@ -77,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-123 | feat | P2 | The Completed section's archive limit goes from 40 lines to 25 (the developer, 2026-10-23, taking the connector's number so the two agree). The 40 sits in `specArchiver.ts` (`COMPLETED_LINE_LIMIT`, with `COMPLETED_KEEP_ENTRIES` 20 to be reconsidered against 25), the validator's warning, the `specpilot-archive` command script (`KNOWN_COMMAND_HASHES` re-made), the page's Archive dialog texts (BL-TB-06 writes 40 and 20 in its gate texts), README, ARCH-004.32, REQ-002.H.51 and the tasks.md template's Completed note. This repo's own Completed is at 38 lines, so the change warns here at once and an archive follows it. Feature: Spec Report first, with the keep count as its open question. Approved 2026-11-14. |
 
 ## Won't do
 
@@ -103,7 +104,7 @@ Notes
 ## Completed
 
 > Older completed entries are archived in [tasks-archive.md](tasks-archive.md).
-> **Line limit**: The Completed section has a 40-line limit. When exceeded, run `specpilot archive` to move older entries to `tasks-archive.md`.
+> **Line limit**: The Completed section has a 25-line limit. When exceeded, run `specpilot archive` to move older entries to `tasks-archive.md`.
 
 | # | ID | Description |
 |---|---|---|

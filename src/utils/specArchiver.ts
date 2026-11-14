@@ -130,10 +130,10 @@ export function planPromptsArchive(lines: string[]): PromptsArchivePlan {
   return { start, end, tableHeader: log.tableHeader };
 }
 
-/** Archive tasks.md Completed section when it exceeds this many lines. */
-export const COMPLETED_LINE_LIMIT = 40;
-/** How many Completed entries to retain in the active file. */
-export const COMPLETED_KEEP_ENTRIES = 20;
+/** Archive tasks.md Completed section when it exceeds this many lines (25 since BL-123, the connector's; 40 before). */
+export const COMPLETED_LINE_LIMIT = 25;
+/** How many Completed entries to retain in the active file: 10, so an archive leaves room before the next warning (BL-123). */
+export const COMPLETED_KEEP_ENTRIES = 10;
 
 export interface CompletedArchivePlan {
   /** Line indices [start, end) moved out of tasks.md. */

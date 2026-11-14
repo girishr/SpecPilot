@@ -439,7 +439,7 @@ describe('buildSpecsPayload against this repo', () => {
 
   it('tasks.archive is the Completed section\'s lines and what POST /api/tasks/archive would move now with force (BL-TB-06)', () => {
     const plan = planCompletedArchive(tasksMd, true);
-    expect(payload.tasks!.archive).toEqual({ lines: expect.any(Number), rows: plan ? plan.end - plan.start : 0 });
+    expect(payload.tasks!.archive).toEqual({ lines: expect.any(Number), rows: plan ? plan.end - plan.start : 0, limit: 25, keep: 10 });
     expect(payload.tasks!.archive).toEqual(completedArchiveStatus(tasksMd.join('\n')));
     expect(payload.tasks!.archive.lines).toBeGreaterThan(0);
   });
@@ -2167,13 +2167,13 @@ describe('archive Completed over HTTP (BL-TB-06)', () => {
     const lines = ARCHIVE_TASKS.split('\n');
     const plan = planCompletedArchive(lines)!;
     const before = JSON.parse((await hit(port, '/api/specs')).body);
-    expect(before.tasks.archive).toEqual({ lines: 46, rows: 21 });
+    expect(before.tasks.archive).toEqual({ lines: 46, rows: 31, limit: 25, keep: 10 });
     const res = await post(port, '{}', good(), ARCHIVE);
     expect(res.status).toBe(200);
-    expect(res.json).toMatchObject({ sha256: hashOf(a), linesMoved: 21 });
+    expect(res.json).toMatchObject({ sha256: hashOf(a), linesMoved: 31 });
     expect(res.json.specs.tasks.sha256).toBe(res.json.sha256);
-    expect(res.json.specs.tasks.archive).toEqual({ lines: 25, rows: 0 });
-    expect(res.json.specs.tasks.completed).toHaveLength(20);
+    expect(res.json.specs.tasks.archive).toEqual({ lines: 15, rows: 0, limit: 25, keep: 10 });
+    expect(res.json.specs.tasks.completed).toHaveLength(10);
     expect(readFileSync(tasks(a), 'utf-8')).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
     const archived = readFileSync(archiveOf(a), 'utf-8');
     expect(archived).toMatch(/^## Archived on \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n\n\| # \| ID \| Description \|\n\|---\|---\|---\|\n/);
@@ -2188,7 +2188,7 @@ describe('archive Completed over HTTP (BL-TB-06)', () => {
     expect(existsSync(archiveOf(a))).toBe(true);
   });
 
-  it('422s with the reason when nothing is over the limit and force was not sent, and forced with nothing past the newest 20; writing nothing', async () => {
+  it('422s with the reason when nothing is over the limit and force was not sent, and forced with nothing past the newest 10; writing nothing', async () => {
     for (const body of ['{}', '{"force":false}']) {
       const res = await post(port, body, good({ 'If-Match': hashOf(b) }), `${ARCHIVE}?project=1`);
       expect([res.status, res.json.error]).toEqual([422, NOTHING_TO_ARCHIVE_ERROR]);
@@ -2199,14 +2199,14 @@ describe('archive Completed over HTTP (BL-TB-06)', () => {
     expect(existsSync(archiveOf(b))).toBe(false);
   });
 
-  it('within the limit, {force: true} archives the rows past the newest 20 (D8)', async () => {
-    const within = MOVE_TASKS.replace('| 1 | [CD-001] | Done |\n', ['| 1 | [CD-001] | Done |', ...Array.from({ length: 25 }, (_, i) => `| ${i + 2} | [CD-${String(i + 2).padStart(3, '0')}] | Done ${i + 2} |`)].join('\n') + '\n'); // 26 rows, 31 lines
+  it('within the limit, {force: true} archives the rows past the newest 10 (D8, BL-123)', async () => {
+    const within = MOVE_TASKS.replace('| 1 | [CD-001] | Done |\n', ['| 1 | [CD-001] | Done |', ...Array.from({ length: 19 }, (_, i) => `| ${i + 2} | [CD-${String(i + 2).padStart(3, '0')}] | Done ${i + 2} |`)].join('\n') + '\n'); // 20 rows, 25 lines
     writeFileSync(tasks(b), within);
-    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).tasks.archive).toEqual({ lines: 31, rows: 6 });
+    expect(JSON.parse((await hit(port, '/api/specs?project=1')).body).tasks.archive).toEqual({ lines: 25, rows: 10, limit: 25, keep: 10 });
     const res = await post(port, '{"force":true}', good({ 'If-Match': hashOf(b) }), `${ARCHIVE}?project=1`);
     expect(res.status).toBe(200);
-    expect(res.json).toMatchObject({ linesMoved: 6 });
-    expect(res.json.specs.tasks.archive).toEqual({ lines: 25, rows: 0 });
+    expect(res.json).toMatchObject({ linesMoved: 10 });
+    expect(res.json.specs.tasks.archive).toEqual({ lines: 15, rows: 0, limit: 25, keep: 10 });
     const lines = within.split('\n');
     const plan = planCompletedArchive(lines, true)!;
     expect(readFileSync(tasks(b), 'utf-8')).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));

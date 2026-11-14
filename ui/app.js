@@ -858,7 +858,7 @@ $('#taskForm').onsubmit=e=>{e.preventDefault();addTask();};
 /* ---------------- archive Completed (BL-TB-06, D8) ----------------
    The Completed step of `specpilot archive`, run by the server with the same plan and block as the CLI. The
    dialog says what the action does and lists the gates from the latest payload: the CLI's branch guard and the
-   40-line limit, each with a box to tick when it warns; a section within the limit is archived with {force:true}
+   line limit (its numbers from tasks.archive, BL-123), each with a box to tick when it warns; a section within the limit is archived with {force:true}
    once the user ticks that box. Every other answer than 200 is shown in the dialog, as New Task does. */
 const archVeil=$('#archVeil');
 let archiving=false;
@@ -867,9 +867,9 @@ function archGates(){
   if(!b)out.push({key:'branch',text:'No git branch.'});
   else if(b==='main'||b==='master')out.push({key:'branch',text:`On ${b}.`});
   else out.push({key:'branch:'+b,warn:true,text:`On branch ${b}. Archive is recommended only on the default branch after merging. ${branchRisk('The archive')} Archive on this branch anyway.`});
-  if(!a.rows)out.push({key:'none',off:true,text:`Nothing to archive: ## Completed has ${n} ${n===1?'row':'rows'}, and an archive keeps the newest 20.`});
-  else if(a.lines>40)out.push({key:'limit',text:`## Completed is ${a.lines} lines, over its 40-line limit: ${a.rows} rows move, the newest 20 stay.`});
-  else out.push({key:'force',warn:true,text:`## Completed is ${a.lines} lines, within its 40-line limit. Archive ${a.rows} rows anyway; the newest 20 stay.`});
+  if(!a.rows)out.push({key:'none',off:true,text:`Nothing to archive: ## Completed has ${n} ${n===1?'row':'rows'}, and an archive keeps the newest ${a.keep}.`});
+  else if(a.lines>a.limit)out.push({key:'limit',text:`## Completed is ${a.lines} lines, over its ${a.limit}-line limit: ${a.rows} rows move, the newest ${n-a.rows} stay.`});
+  else out.push({key:'force',warn:true,text:`## Completed is ${a.lines} lines, within its ${a.limit}-line limit. Archive ${a.rows} rows anyway; the newest ${n-a.rows} stay.`});
   const act=recentActivity();
   if(act)out.push({key:'activity',warn:true,text:`${act}: an agent or editor may still be working on the specs. If it saves planning/tasks.md from a copy it read before the archive, the archive is lost; if it edits after, its edit can fail or land on the wrong row because the rows moved under it. Archive anyway.`});
   return out;

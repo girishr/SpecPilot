@@ -221,7 +221,7 @@ function addBacklogRows(): number {
   writeFileSync(env.tasks(), lines.join('\n'));
   return rowsIn(read(env.tasks()), 'Backlog').length;
 }
-/** `count` more Completed rows in the fixture (three columns): 30 are more than fit a 900px-high lane (BL-TB-07); 40 put the section past its 40-line limit (BL-TB-06). */
+/** `count` more Completed rows in the fixture (three columns): 30 are more than fit a 900px-high lane (BL-TB-07); 40 put the section past its 25-line limit (BL-TB-06, BL-123). */
 function addCompletedRows(count = 30): number {
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Completed');
@@ -402,7 +402,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
   await archOpen(page);
   expect(await page.locator('#archGates .gate').count()).toBe(3); // BL-127: the row written from outside above adds the activity gate
   expect(await gateText(page, 0)).toBe('On main.');
-  expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 1 row, and an archive keeps the newest 20.');
+  expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 1 row, and an archive keeps the newest 10.');
   expect(await page.locator('#archGates input').count()).toBe(1);
   expect(await page.locator('#archGates input').getAttribute('data-gate')).toBe('activity');
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
@@ -413,7 +413,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
 });
 
 // BL-TB-06 (D8): `Archive` is always in the Completed lane header and opens the `Archive oldest Completed rows` dialog, which lists the gates
-// (the CLI's branch guard, the 40-line limit) from the latest payload with a box to tick for each that warns; Archive runs the
+// (the CLI's branch guard, the 25-line limit, BL-123) from the latest payload with a box to tick for each that warns; Archive runs the
 // Completed step with the CLI's plan and block; within the limit a ticked limit gate sends {force:true}.
 browserTest('Archive sits in the Completed header; past the limit on main the dialog has no box to tick, one click archives the oldest rows as the CLI does, and the next open says nothing is left', b, async open => {
   const completed = addCompletedRows(40);
@@ -446,7 +446,7 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   expect(await page.locator('#archGates .gate').count()).toBe(3);
   expect(await page.locator('#archGates .gate.ok').count()).toBe(2); // on main, over the limit: neither warns
   expect(await gateText(page, 0)).toBe('On main.');
-  expect(await gateText(page, 1)).toBe(`## Completed is ${lines} lines, over its 40-line limit: ${moved} rows move, the newest 20 stay.`);
+  expect(await gateText(page, 1)).toBe(`## Completed is ${lines} lines, over its 25-line limit: ${moved} rows move, the newest ${completed - moved} stay.`);
   // BL-127: the reload written from outside above is activity, a warned gate last with a box to tick
   expect(await page.locator('#archGates input').count()).toBe(1);
   expect(await gateText(page, 2)).toMatch(ACTIVITY_GATE);
@@ -470,7 +470,7 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   // the next open: nothing left to archive, the action disabled, Escape returns to the button
   await laneArchive(page).click();
   await archOpen(page);
-  expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 20 rows, and an archive keeps the newest 20.');
+  expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 10 rows, and an archive keeps the newest 10.');
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
   // BL-127: the outside write is still within its 120 seconds (the page's own archive is not activity): focus on its box
   expect(await page.locator('#archGates input').getAttribute('data-gate')).toBe('activity');
@@ -480,8 +480,8 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
   await focusOnArchive(page);
 });
 
-browserTest('off main and within the limit the dialog warns twice, Archive waits for both ticks, a redraw keeps a tick and shows the new branch, and a ticked limit gate forces the rows past the newest 20', b, async open => {
-  const completed = addCompletedRows(25); // 26 rows, 31 lines: within the limit
+browserTest('off main and within the limit the dialog warns twice, Archive waits for both ticks, a redraw keeps a tick and shows the new branch, and a ticked limit gate forces the rows past the newest 10', b, async open => {
+  const completed = addCompletedRows(19); // 20 rows, 25 lines: within the limit
   writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
   const { page } = await open(srv);
   await waitView(page, 'v-board');
@@ -493,7 +493,7 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   expect(await page.locator('#archGates .gate.warn').count()).toBe(2);
   expect(await page.locator('#archGates input').count()).toBe(2);
   expect(await gateText(page, 0)).toBe(`On branch feature. Archive is recommended only on the default branch after merging. ${ARCHIVE_RISK} Archive on this branch anyway.`);
-  expect(await gateText(page, 1)).toBe('## Completed is 31 lines, within its 40-line limit. Archive 6 rows anyway; the newest 20 stay.');
+  expect(await gateText(page, 1)).toBe('## Completed is 25 lines, within its 25-line limit. Archive 10 rows anyway; the newest 10 stay.');
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
   await page.waitForFunction(() => document.activeElement?.matches('#archGates input') ?? false); // focus starts on the first box
   await page.check('#archGates input[data-gate="force"]');
@@ -533,7 +533,7 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   expect(await page.locator('#archGo').isDisabled()).toBe(true);
   await page.check('#archGates input[data-gate="activity"]');
   const { after, block, moved } = archivePlan(true);
-  expect(moved).toBe(6);
+  expect(moved).toBe(10);
   await page.check('#archGates input[data-gate="force"]');
   expect(await page.locator('#archGo').isEnabled()).toBe(true);
   await page.click('#archGo');
@@ -542,8 +542,41 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
   await waitToast(page, new RegExp(`^Moved ${moved} rows from ## Completed`));
   await archClosed(page);
   await focusOnArchive(page);
-  expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(20);
+  expect(await page.locator('#boardMode .row[data-col="completed"]').count()).toBe(10);
 });
+
+// BL-123: the dialog's numbers come from tasks.archive (limit 25, keep 10), the rows that stay from the board; at 420px in each state, both themes.
+for (const light of [false, true]) {
+  browserTest(`the Archive dialog names the payload's limit and keep and the rows that stay, within, over (fewer than 10 fit) and with nothing left, at 420px (${light ? 'light' : 'dark'})`, b, async open => {
+    const dialog = async () => {
+      const { page } = await open(srv, '', { width: 420, light });
+      await waitView(page, 'v-board');
+      await laneArchive(page).click();
+      await archOpen(page);
+      return page;
+    };
+    // within: 20 rows in 25 lines (the fixture's section has 5 lines that are not rows)
+    addCompletedRows(19);
+    let page = await dialog();
+    expect(await gateText(page, 1)).toBe('## Completed is 25 lines, within its 25-line limit. Archive 10 rows anyway; the newest 10 stay.');
+    expect(await noSideScroll(page)).toBe(true);
+    // over, with 12 note lines: 17 lines that are not rows, so only 8 rows fit in 25
+    const lines = read(env.tasks()).split('\n');
+    lines.splice(lines.findIndex(l => l.trim() === '## Completed') + 1, 0, ...Array(12).fill('> note'));
+    writeFileSync(env.tasks(), lines.join('\n'));
+    page = await dialog();
+    expect(await gateText(page, 1)).toBe('## Completed is 37 lines, over its 25-line limit: 12 rows move, the newest 8 stay.');
+    expect(await noSideScroll(page)).toBe(true);
+    await page.click('#archGo');
+    await waitToast(page, /^Moved 12 rows from ## Completed to planning\/tasks-archive.md$/);
+    await archClosed(page);
+    // nothing left: 8 rows, fewer than the keep
+    await laneArchive(page).click();
+    await archOpen(page);
+    expect(await page.locator('#archGates .gate.off').textContent()).toBe('Nothing to archive: ## Completed has 8 rows, and an archive keeps the newest 10.');
+    expect(await noSideScroll(page)).toBe(true);
+  });
+}
 
 browserTest(
   'a tasks.md changed after the page loaded shows the 409 text in the Archive dialog, which stays open, and writes nothing',
@@ -554,14 +587,15 @@ browserTest(
     try {
       const { page } = await open(slow);
       const narrow = (await open(slow, '', { width: 420 })).page; // the error state at 420px too, on a page that also holds the old hash
-      for (const pg of [page, narrow]) {
+      const narrowLight = (await open(slow, '', { width: 420, light: true })).page; // and in the light theme (BL-123)
+      for (const pg of [page, narrow, narrowLight]) {
         await waitView(pg, 'v-board');
         await pg.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
       }
       const archiveBefore = archive();
       const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
       writeFileSync(env.tasks(), changed);
-      for (const pg of [page, narrow]) {
+      for (const pg of [page, narrow, narrowLight]) {
         await laneArchive(pg).click();
         await archOpen(pg);
         await pg.click('#archGo');
@@ -571,6 +605,7 @@ browserTest(
         expect(await pg.locator('#archGo').isEnabled()).toBe(true); // the gates redrawn from the fresh payload: still on main, still over the limit
       }
       expect(await noSideScroll(narrow)).toBe(true);
+      expect(await noSideScroll(narrowLight)).toBe(true);
       expect(read(env.tasks())).toBe(changed);
       expect(archive()).toBe(archiveBefore);
     } finally {

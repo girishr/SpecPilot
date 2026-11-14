@@ -796,21 +796,29 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it('completedArchiveStatus gives the section\'s lines and the rows a forced archive would move, over the content the write plans from', () => {
-    expect(completedArchiveStatus(withCompleted(34))).toEqual({ lines: 40, rows: 15 }); // within the limit: 35 rows, the keep rule still leaves 15 to force
-    expect(completedArchiveStatus(withCompleted(35))).toEqual({ lines: 41, rows: 16 }); // 41 lines: 36 rows, keep 20
-    const plan = planCompletedArchive(BIG.split('\n'))!;
-    expect(completedArchiveStatus(BIG)).toEqual({ lines: 46, rows: plan.end - plan.start });
-    expect(completedArchiveStatus(BIG).rows).toBe(21);
-    expect(completedArchiveStatus(TASKS)).toEqual({ lines: 6, rows: 0 }); // one row: nothing past the newest 20
-    expect(completedArchiveStatus(withCompleted(19))).toEqual({ lines: 25, rows: 0 }); // exactly 20 rows
-    expect(completedArchiveStatus(withCompleted(20))).toEqual({ lines: 26, rows: 1 });
-    expect(completedArchiveStatus(TASKS.replace('## Completed', '## Done'))).toEqual({ lines: 0, rows: 0 });
-    expect(planCompletedArchive(withCompleted(34).split('\n'))).toBeNull(); // the CLI and the validator never force
+  it('completedArchiveStatus carries the limit 25 and the keep 10, and the refusals name them (BL-123)', () => {
+    expect(completedArchiveStatus(TASKS)).toMatchObject({ limit: 25, keep: 10 });
+    expect(NOTHING_TO_ARCHIVE_ERROR).toBe('Nothing to archive: ## Completed in planning/tasks.md is within its 25-line limit, and the request did not force it.');
+    expect(nothingPastKeepError(3)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 3 rows, and an archive keeps the newest 10.');
   });
 
-  it('within the limit: 422 without force, and with force the rows past the newest 20 move as the CLI\'s keep rule would', () => {
-    const within = withCompleted(25); // 26 rows, 31 lines
+  it('completedArchiveStatus gives the section\'s lines and the rows a forced archive would move, over the content the write plans from', () => {
+    // limit 25, keep 10 (BL-123); withCompleted(n) has n + 1 rows in n + 6 lines
+    const numbers = { limit: 25, keep: 10 };
+    expect(completedArchiveStatus(withCompleted(19))).toEqual({ lines: 25, rows: 10, ...numbers }); // within the limit: 20 rows, the keep rule still leaves 10 to force
+    expect(completedArchiveStatus(withCompleted(20))).toEqual({ lines: 26, rows: 11, ...numbers }); // 26 lines: 21 rows, keep 10
+    const plan = planCompletedArchive(BIG.split('\n'))!;
+    expect(completedArchiveStatus(BIG)).toEqual({ lines: 46, rows: plan.end - plan.start, ...numbers });
+    expect(completedArchiveStatus(BIG).rows).toBe(31);
+    expect(completedArchiveStatus(TASKS)).toEqual({ lines: 6, rows: 0, ...numbers }); // one row: nothing past the newest 10
+    expect(completedArchiveStatus(withCompleted(9))).toEqual({ lines: 15, rows: 0, ...numbers }); // exactly 10 rows
+    expect(completedArchiveStatus(withCompleted(10))).toEqual({ lines: 16, rows: 1, ...numbers });
+    expect(completedArchiveStatus(TASKS.replace('## Completed', '## Done'))).toEqual({ lines: 0, rows: 0, ...numbers });
+    expect(planCompletedArchive(withCompleted(19).split('\n'))).toBeNull(); // the CLI and the validator never force
+  });
+
+  it('within the limit: 422 without force, and with force the rows past the newest 10 move as the CLI\'s keep rule would', () => {
+    const within = withCompleted(19); // 20 rows, 25 lines
     writeFileSync(file, within);
     expect(archiveCompleted(root, sha256(within))).toEqual({ status: 422, error: NOTHING_TO_ARCHIVE_ERROR });
     expect(archiveCompleted(root, sha256(within), false)).toEqual({ status: 422, error: NOTHING_TO_ARCHIVE_ERROR });
@@ -820,9 +828,9 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     const plan = planCompletedArchive(lines, true)!;
     const out = archiveCompleted(root, sha256(within), true);
     const after = readFileSync(file, 'utf-8');
-    expect(out).toEqual({ status: 200, sha256: sha256(after), linesMoved: 6 });
+    expect(out).toEqual({ status: 200, sha256: sha256(after), linesMoved: 10 });
     expect(after).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
-    expect(after.split('\n').filter(l => /^\| \d+ \|/.test(l))).toHaveLength(20);
+    expect(after.split('\n').filter(l => /^\| \d+ \|/.test(l))).toHaveLength(10);
     expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(completedArchiveBlock(lines, plan)));
   });
 
@@ -832,9 +840,9 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     const plan = planCompletedArchive(lines)!;
     const out = archiveCompleted(root, sha256(BIG));
     const after = readFileSync(file, 'utf-8');
-    expect(out).toEqual({ status: 200, sha256: sha256(after), linesMoved: 21 });
+    expect(out).toEqual({ status: 200, sha256: sha256(after), linesMoved: 31 });
     expect(after).toBe([...lines.slice(0, plan.start), ...lines.slice(plan.end)].join('\n'));
-    expect(after.split('\n').filter(l => /^\| \d+ \|/.test(l))).toHaveLength(20);
+    expect(after.split('\n').filter(l => /^\| \d+ \|/.test(l))).toHaveLength(10);
     expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(completedArchiveBlock(lines, plan)));
     expect(readFileSync(archive, 'utf-8')).toContain('| # | ID | Description |\n|---|---|---|\n| 1 | [CD-001] | Done |\n');
     expect(statSync(archive).mode & 0o777).toBe(0o640);
@@ -868,8 +876,8 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     writeFileSync(file, list);
     const lines = list.split('\n');
     const plan = planCompletedArchive(lines)!;
-    const moved = plan.end - plan.start; // the CLI's list rule counts the blank line after the entries, so 22 of the 41 entries move
-    expect(moved).toBe(22);
+    const moved = plan.end - plan.start; // the CLI's list rule counts the blank line after the entries, so 32 of the 41 entries move (keep 10, BL-123)
+    expect(moved).toBe(32);
     const checksBefore = tasksChecks(list);
     expect(archiveCompleted(root, sha256(list))).toMatchObject({ status: 200, linesMoved: moved }); // BL-116: the no-table warning is validate()'s alone, so the count's change is no new problem
     const checksAfter = tasksChecks(readFileSync(file, 'utf-8'));
@@ -881,16 +889,16 @@ describe('archiveCompleted: the Completed archive on disk', () => {
     expect(stamp(readFileSync(archive, 'utf-8'))).toBe(stamp(completedArchiveBlock(lines, plan)));
   });
 
-  it('refuses with nothing over the limit, and forced with nothing past the newest 20, writing nothing', () => {
+  it('refuses with nothing over the limit, and forced with nothing past the newest 10, writing nothing', () => {
     writeFileSync(file, TASKS);
     expect(archiveCompleted(root, sha256(TASKS))).toEqual({ status: 422, error: NOTHING_TO_ARCHIVE_ERROR });
-    expect(NOTHING_TO_ARCHIVE_ERROR).toBe('Nothing to archive: ## Completed in planning/tasks.md is within its 40-line limit, and the request did not force it.');
+    expect(NOTHING_TO_ARCHIVE_ERROR).toBe('Nothing to archive: ## Completed in planning/tasks.md is within its 25-line limit, and the request did not force it.');
     expect(archiveCompleted(root, sha256(TASKS), true)).toEqual({ status: 422, error: nothingPastKeepError(1) });
-    expect(nothingPastKeepError(1)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 1 row, and an archive keeps the newest 20.');
-    expect(nothingPastKeepError(20)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 20 rows, and an archive keeps the newest 20.');
-    const twenty = withCompleted(19);
-    writeFileSync(file, twenty);
-    expect(archiveCompleted(root, sha256(twenty), true)).toEqual({ status: 422, error: nothingPastKeepError(20) });
+    expect(nothingPastKeepError(1)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 1 row, and an archive keeps the newest 10.');
+    expect(nothingPastKeepError(10)).toBe('Nothing to archive: ## Completed in planning/tasks.md has 10 rows, and an archive keeps the newest 10.');
+    const ten = withCompleted(9);
+    writeFileSync(file, ten);
+    expect(archiveCompleted(root, sha256(ten), true)).toEqual({ status: 422, error: nothingPastKeepError(10) });
     const none = TASKS.replace('## Completed', '## Done');
     writeFileSync(file, none);
     expect(archiveCompleted(root, sha256(none), true)).toEqual({ status: 422, error: NO_COMPLETED_ERROR });

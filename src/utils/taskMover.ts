@@ -575,6 +575,9 @@ export interface CompletedArchiveStatus {
   lines: number;
   /** The lines a forced archive would move now, 0 with nothing past the kept entries. */
   rows: number;
+  /** COMPLETED_LINE_LIMIT and COMPLETED_KEEP_ENTRIES, so the page writes neither number (BL-123). */
+  limit: number;
+  keep: number;
 }
 
 /** What the page's Archive Completed dialog shows (BL-TB-06, D8), over the same content the write plans from. */
@@ -582,7 +585,7 @@ export function completedArchiveStatus(content: string): CompletedArchiveStatus 
   const lines = content.split('\n');
   const bounds = findSectionBounds(lines, '## Completed');
   const plan = planCompletedArchive(lines, true);
-  return { lines: bounds ? bounds.end - bounds.start : 0, rows: plan ? plan.end - plan.start : 0 };
+  return { lines: bounds ? bounds.end - bounds.start : 0, rows: plan ? plan.end - plan.start : 0, limit: COMPLETED_LINE_LIMIT, keep: COMPLETED_KEEP_ENTRIES };
 }
 
 /** The section's entries: numbered items, else table body rows. */

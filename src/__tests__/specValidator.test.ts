@@ -686,7 +686,7 @@ describe('SpecValidator', () => {
     expect(warn).toBeUndefined();
   });
 
-  it('warns when tasks.md Completed section exceeds 40 lines', async () => {
+  it('warns when tasks.md Completed section exceeds 25 lines (40 until BL-123)', async () => {
     createValidSpecsDir(testDir);
     const completedLines = Array.from({ length: 50 }, (_, i) => `${i + 1}. [CD-${String(i + 100).padStart(3, '0')}] Completed task ${i + 1}`);
     writeFileSync(join(testDir, '.specs', 'planning', 'tasks.md'), [
@@ -704,16 +704,16 @@ describe('SpecValidator', () => {
     ].join('\n'));
 
     const result = await validator.validate(testDir, { fix: false, verbose: false });
-    const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 40'));
+    const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 25'));
     expect(warn).toBeDefined();
     expect(warn).toContain('specpilot archive');
   });
 
-  it('does not warn when tasks.md Completed section is under 40 lines', async () => {
+  it('does not warn when tasks.md Completed section is under 25 lines', async () => {
     createValidSpecsDir(testDir);
     // Default valid tasks.md from createValidSpecsDir has no ## Completed section (short)
     const result = await validator.validate(testDir, { fix: false, verbose: false });
-    const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 40'));
+    const warn = result.warnings.find(w => w.includes('tasks.md') && w.includes('limit: 25'));
     expect(warn).toBeUndefined();
   });
 });

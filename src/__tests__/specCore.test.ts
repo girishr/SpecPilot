@@ -219,9 +219,10 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(arch).toContain('## Performance Considerations\n- **API response-time target**: < 200 ms (p95)\n- **Availability target**: 99.9%\n\n## Monitoring');
     expect(file({ ...BASE, teamSize: 'Solo' }, '.specs/architecture/architecture.md')).toContain('## Scale\n- Team size: Solo\n\n## Design Decisions');
     expect(file({ ...BASE, otherApis: 'Mapbox' }, '.specs/architecture/architecture.md')).toContain('## Integrations\nOther: Mapbox\n\n## Design Decisions');
-    expect(file(all, '.specs/architecture/api.yaml')).toContain('          description: "Success"\n\ndatabases:\n  - PostgreSQL\n  - Redis\nauth_strategy: Clerk\nrealtime:\n  enabled: true\n  transports:\n  - WebSockets\n');
+    expect(file(all, '.specs/architecture/api.yaml')).toContain('          description: "Success"\n\nx-databases:\n  - PostgreSQL\n  - Redis\nx-auth_strategy: Clerk\nx-realtime:\n  enabled: true\n  transports:\n  - WebSockets\n');
     expect(file({ ...all, apiParadigm: 'graphql' }, '.specs/architecture/api.yaml')).toContain('description: "[TODO: What does this mutation do?]"\n\ndatabases:\n');
     expect(file({ ...all, apiParadigm: 'cli' }, '.specs/architecture/api.yaml')).not.toContain('databases');
+    expect(file({ ...all, apiParadigm: 'graphql' }, '.specs/architecture/api.yaml')).not.toContain('x-');
     expect(file(all, '.specs/security/security-decisions.md')).toMatch(/## Decisions \[SEC-002\.1\]\nAuth strategy: Clerk\nCompliance: GDPR, SOC 2\nCI\/CD: GitHub Actions\n$/);
     expect(file(all, '.specs/security/threat-model.md')).toContain('## Threat Model [SEC-002]\n\n### Security concerns\n- Rate limiting\n- Audit logging\n\n### Integration-derived threat entries\n- payments: Stripe — review vendor data-handling and auth scopes\n- ai: OpenAI, Anthropic — review vendor data-handling and auth scopes\n\n## Attack Surface Summary [SEC-003]\n[TODO]');
     expect(file(all, '.specs/planning/roadmap.md')).toContain('## Milestones\nBuild timeline: 3 months\n\n[TODO]\n\n## Objectives');
@@ -286,7 +287,18 @@ describe('optional template fields (BL-032 phase 2)', () => {
     expect(file({ ...BASE, projectName: '123', description: 'Deploy: nightly' }, '.specs/project/project.yaml')).toContain('name: "123"\nversion: "1.0.0"\nlanguage: typescript\nframework: express\ndescription: "Deploy: nightly"\n');
     expect(file({ ...BASE, description: "Don't & <b>" }, '.specs/project/project.yaml')).toContain("description: Don't & <b>\n");
     expect(file({ ...BASE, platforms: ['a: b', 'true'] }, '.specs/project/project.yaml')).toContain('platforms:\n  - "a: b"\n  - "true"\n');
-    expect(file({ ...BASE, authStrategy: 'OAuth 2.0: PKCE' }, '.specs/architecture/api.yaml')).toContain('auth_strategy: "OAuth 2.0: PKCE"\n');
+    expect(file({ ...BASE, authStrategy: 'OAuth 2.0: PKCE' }, '.specs/architecture/api.yaml')).toContain('x-auth_strategy: "OAuth 2.0: PKCE"\n');
+  });
+
+  test('a rest api.yaml has only OpenAPI 3.0 root keys and x- extensions (BL-176, REQ-002.I.9)', () => {
+    const OPENAPI = ['openapi', 'info', 'servers', 'paths', 'components', 'security', 'tags', 'externalDocs'];
+    const sets = [...Object.values(GOLDEN), { ...BASE, ide: 'vscode', apiParadigm: 'rest' as const, ...ALL_FIELDS }];
+    const rest = sets.map(o => generated(o)['.specs/architecture/api.yaml']).filter(c => c?.includes('\nopenapi: '));
+    expect(rest).toHaveLength(8); // six IDE sets, the brownfield set, the phase 2 set
+    for (const content of rest) {
+      const doc = yaml.load(content) as Record<string, unknown>;
+      expect(Object.keys(doc).filter(k => !OPENAPI.includes(k) && !k.startsWith('x-'))).toEqual([]);
+    }
   });
 
   test('no HTML escaping: the seven characters land as typed in markdown (BL-PM-004b)', () => {
@@ -311,7 +323,8 @@ describe('optional template fields (BL-032 phase 2)', () => {
         for (const [path, text] of fronts(files)) {
           let doc: unknown;
           expect(() => { doc = yaml.load(text); }).not.toThrow();
-          const d = (doc ?? {}) as { project?: unknown; framework?: unknown; language?: unknown; info?: { title?: string } };
+          const d = (doc ?? {}) as { project?: unknown; 'x-project'?: unknown; framework?: unknown; language?: unknown; info?: { title?: string } };
+          if (path.endsWith('api.yaml') && apiParadigm === 'rest') expect([path, d['x-project']]).toEqual([path, projectName]);
           if (typeof d.project === 'string' && !path.endsWith('project.yaml')) expect([path, d.project]).toEqual([path, projectName]);
           if ('framework' in d && d.framework !== null) expect([path, d.framework]).toEqual([path, '"x']);
           if (d.info?.title) expect(d.info.title).toBe(`${projectName} API`);

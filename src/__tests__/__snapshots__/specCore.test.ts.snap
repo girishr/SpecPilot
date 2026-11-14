@@ -653,9 +653,9 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
   ".specs/architecture/api.yaml": "# .specs/architecture/api.yaml
 # meta: project=parcel-track language=typescript framework=express updated=2026-10-06
 
-project: "parcel-track"
-version: "1.0.0"
-lastUpdated: "2026-10-06"
+x-project: "parcel-track"
+x-version: "1.0.0"
+x-lastUpdated: "2026-10-06"
 
 openapi: "3.0.0"
 info:
@@ -675,11 +675,11 @@ paths:
         "200":
           description: "Success"
 
-databases:
+x-databases:
   - PostgreSQL
   - Redis
-auth_strategy: Clerk
-realtime:
+x-auth_strategy: Clerk
+x-realtime:
   enabled: true
   transports:
   - WebSockets
@@ -1181,7 +1181,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
   ".antigravity/settings.json": "abfe0583c667af7f587b3f37d40226e79a577ae59ddb9405a533754984e46f42",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
-  ".specs/architecture/api.yaml": "f8c0d041587ac536be3bb29ec28e3dda817806e8caa788ebb8db5c92da7b56dd",
+  ".specs/architecture/api.yaml": "1832090caa8dfcf0fcb241948dac9a365c6816f98c04be7486b40f79fd144206",
   ".specs/architecture/architecture.md": "1e09a48f30641c4cf4364ba3129f42973a5b598c43efd6829046d9566d965066",
   ".specs/development/context.md": "c6f80dfecccc8b227c1bc30d52f9e90c3d94cabb1d30aca7c85dd02697af6bdc",
   ".specs/development/onboarding.md": "30c4af9ab971437a84ccdcde02f19f59d929cf9dda95e7ff7c9e5f79f0d5d7ea",
@@ -1209,7 +1209,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
   ".claude/skills/specpilot-project/SKILL.md": "fa91c80c532f33378aaf51e68371990e792e3272b0c4897d6019f6e83d33ed96",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
-  ".specs/architecture/api.yaml": "b6e312a288db4bf4302b9fc040b16734eef3efe7275c719d00952c8bcf0c6ab3",
+  ".specs/architecture/api.yaml": "0cd1137eec748748eeb3bfe752fa62bebd132fd2402ef7d473cfb0688efccc6a",
   ".specs/architecture/architecture.md": "16cbf967bc8567094abd2d6b2fd3ebf42e8b9cce3d5d3ea48e43e43cc4e5fb77",
   ".specs/development/context.md": "859cf077a7652d235b581d4e4bf13bfd4426bf30cc0f3935e3912873484cf79d",
   ".specs/development/onboarding.md": "da16673a6c1baa5021e243832cf692ecd8bc772c70798aeda9a86741bf894a01",
@@ -1238,7 +1238,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "e46873b2b0e00e10fdf9b1d436494f5d29c8afa0395d9dafbcd932c1b9ea4e1d",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
-  ".specs/architecture/api.yaml": "8fa3ff6fdc5c8269285007fa754fcae14f39ac543a682bb2a1a58988e6def0c8",
+  ".specs/architecture/api.yaml": "410a994dd339c515f09b21104aa1271c7622cce4b14b720027aee28671779100",
   ".specs/architecture/architecture.md": "3e14693f91a127e70d1c57432a284a35317e173b646a940870a3a903d06068d5",
   ".specs/development/context.md": "603e6c8c9b46652928fe92cf3edabe3d8c528c8b74c17cc8583ea4f630a41179",
   ".specs/development/onboarding.md": "21193bb104c75031491bd5b66c894f122170f775d1e287ce427268b8aebd3959",
@@ -1269,7 +1269,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
   ".cursor/settings.json": "040a19c3ec92aa93f255ee9d3c1b1c8f0c1e4991508d01bfb22421c84f72677d",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
-  ".specs/architecture/api.yaml": "82921e367104d9a4deac9d469dd027e2d79bae2ab53513838db7ae0962263d97",
+  ".specs/architecture/api.yaml": "fd0c14c83de841e3e0a7852b305c234025dc1546fa49891d3f6b59bfb06f5967",
   ".specs/architecture/architecture.md": "e3be761c787aeec52a5a3db811aaad82dc7fbe327f150aac5c814ad3a8b2b341",
   ".specs/development/context.md": "1212b910b202e4f58e0bc9f9941907e67939c4cbe252f5dbafda4f86459c2bff",
   ".specs/development/onboarding.md": "e31fc3476b9854b40d6af103b5fc8eeca64a50aaa4b04e585477f0549fd788e5",
@@ -1939,9 +1939,9 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
   ".specs/architecture/api.yaml": "# .specs/architecture/api.yaml
 # meta: project=parcel-track language=typescript framework=express updated=2026-10-06
 
-project: "parcel-track"
-version: "1.0.0"
-lastUpdated: "2026-10-06"
+x-project: "parcel-track"
+x-version: "1.0.0"
+x-lastUpdated: "2026-10-06"
 
 openapi: "3.0.0"
 info:
@@ -2977,9 +2977,9 @@ For AI guidelines and prompt history, see [\`development/prompts.md\`](developme
   ".specs/architecture/api.yaml": "# .specs/architecture/api.yaml
 # meta: project=legacy-api language=typescript framework=nest updated=2026-10-06
 
-project: "legacy-api"
-version: "1.0.0"
-lastUpdated: "2026-10-06"
+x-project: "legacy-api"
+x-version: "1.0.0"
+x-lastUpdated: "2026-10-06"
 
 openapi: "3.0.0"
 info:
@@ -3439,7 +3439,7 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
-  ".specs/architecture/api.yaml": "093c04fa9daf2ccfa44249b87adf915a19ddcd68f52f2db67b3d0c2e23ce9dd4",
+  ".specs/architecture/api.yaml": "df6fad5526ed96b1e206284f768e6d7600ec6b8af63aa2f03bc1ec9a2a22373b",
   ".specs/architecture/architecture.md": "84ca1dbf45c875c33e7fce00bf99f3023ccf411ad51b091d2bb6fb80ce42f530",
   ".specs/development/context.md": "bc31cc7c5593b99db88cbc6fbd3a0fccbfae9009a69fe7243bbf8301590fb9ab",
   ".specs/development/onboarding.md": "cd89e51d936ec3657104a1e8005d1db8178948d75a95d12d8f14abac500c5a7a",

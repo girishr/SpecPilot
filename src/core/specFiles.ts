@@ -198,12 +198,14 @@ function apiYaml(engine: TemplateEngine, context: TemplateContext): string {
     const paradigm = context.apiParadigm ?? 'rest';
     if (paradigm === 'none') return '';
 
+    // A rest file is OpenAPI 3.0, so SpecPilot's own root keys are `x-` extensions there (REQ-002.I.9).
+    const x = paradigm === 'rest' ? 'x-' : '';
     const header = `# .specs/architecture/api.yaml
 # meta: project={{dq projectName}} language={{dq language}} framework={{dq framework}} updated={{currentDate}}
 
-project: "{{dq projectName}}"
-version: "1.0.0"
-lastUpdated: "{{currentDate}}"
+${x}project: "{{dq projectName}}"
+${x}version: "1.0.0"
+${x}lastUpdated: "{{currentDate}}"
 `;
 
     const sections: Record<string, string> = {
@@ -257,14 +259,14 @@ graphql:
     const extras = `{{#if (any databases authStrategy realtimeTypes)}}
 
 {{#if databases}}
-databases:
+${x}databases:
 {{yamlList databases}}
 {{/if}}
 {{#if authStrategy}}
-auth_strategy: {{yaml authStrategy}}
+${x}auth_strategy: {{yaml authStrategy}}
 {{/if}}
 {{#if realtimeTypes}}
-realtime:
+${x}realtime:
   enabled: true
   transports:
 {{yamlList realtimeTypes}}

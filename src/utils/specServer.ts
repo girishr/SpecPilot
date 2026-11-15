@@ -1201,8 +1201,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         projects.forEach(p => p.poller.stop());
         server.close(() => resolveClose());
         // Every socket, not only the idle ones: a page's stream can reopen on a kept-alive socket while close() waits (BL-146).
-        // Node 18.2+; before that there is no sweep at all, as before.
-        server.closeAllConnections?.();
+        server.closeAllConnections();
       });
     },
   };

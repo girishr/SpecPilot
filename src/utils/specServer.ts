@@ -121,7 +121,7 @@ function tasksHash(root: string): string | null {
 
 const CURSOR_RULES = '.cursor/rules/specpilot.mdc';
 /** The command folders `nav.commands` lists, in this order; `nav.prompts` is Copilot's `.github/prompts` (BL-152). */
-const COMMAND_FOLDERS = ['.claude/commands', '.cursor/commands', '.windsurf/workflows', '.agent/workflows', '.codex/prompts'];
+const COMMAND_FOLDERS = ['.claude/commands', '.cursor/commands', '.windsurf/workflows', '.agent/workflows', '.codex/prompts', '.devin/workflows']; // the last: Devin Desktop's, BL-175
 /** The project skills folders `nav.skills` lists, in this order: each IDE's documented one (BL-156, REQ-002.H.67). */
 const SKILL_FOLDERS = ['.claude/skills', '.agents/skills', '.cursor/skills', '.github/skills', '.agent/skills', '.devin/skills', '.windsurf/skills']; // the last two: Windsurf's, BL-164
 

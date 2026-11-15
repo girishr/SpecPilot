@@ -175,7 +175,7 @@ specpilot init my-project --no-prompts
 - `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
 - `--no-prompts`: Skip all interactive prompts
 - `--dry-run`: List all files that would be created without writing anything
-- `--ide <name>`: The AI IDE to set up for: `claude-code`, `cursor`, `vscode` (GitHub Copilot), `windsurf`, `antigravity` or `codex`, in any case. Skips the IDE question; without it, `--no-prompts` sets up GitHub Copilot. With `--dry-run`, lists that IDE's files.
+- `--ide <name>`: The AI IDE to set up for: `claude-code`, `cursor`, `vscode` (GitHub Copilot), `windsurf` (Devin Desktop), `antigravity` or `codex`, in any case. Skips the IDE question; without it, `--no-prompts` sets up GitHub Copilot. With `--dry-run`, lists that IDE's files.
 
 #### `specpilot add-specs`
 
@@ -401,7 +401,7 @@ Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-
 |---|---|---|
 | Claude Code | `.claude/commands/` | `specpilot-<name>.md` |
 | Cursor | `.cursor/commands/` | `specpilot-<name>.md` |
-| Windsurf | `.windsurf/workflows/` | `specpilot-<name>.md` |
+| Windsurf (Devin Desktop) | `.windsurf/workflows/` | `specpilot-<name>.md` |
 | Antigravity | `.agent/workflows/` | `specpilot-<name>.md` |
 | Codex | `.codex/prompts/` | `specpilot-<name>.md` (copy manually to `~/.codex/prompts/` — Codex only auto-discovers from the home directory) |
 | GitHub Copilot / VS Code / unknown | `.github/prompts/` | `specpilot-<name>.prompt.md` |
@@ -583,7 +583,7 @@ Each IDE/Agent selection generates one AI context file:
 | GitHub Copilot | `.github/copilot-instructions.md`  |
 | Codex       | `.github/copilot-instructions.md`     |
 | Cursor      | `.cursor/rules/specpilot.mdc`         |
-| Windsurf    | `.windsurfrules`                      |
+| Windsurf (Devin Desktop) | `.windsurfrules`         |
 | Antigravity | `.antigravity/rules.md`               |
 | Claude Code      | `CLAUDE.md`                           |
 
@@ -605,7 +605,7 @@ specpilot init my-project --lang typescript --framework react
 # When prompted for IDE/Agent, select your preferred option
 ```
 
-Supported values: `vscode`, `cursor`, `windsurf`, `antigravity`, `claude-code`, `codex`
+Supported values: `vscode`, `cursor`, `windsurf` (Devin Desktop), `antigravity`, `claude-code`, `codex`
 
 ## Troubleshooting
 

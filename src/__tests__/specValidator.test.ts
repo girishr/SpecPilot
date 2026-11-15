@@ -908,3 +908,168 @@ describe('validate and a hostile project.yaml (BL-137)', () => {
     expect((await parseErrors()).some(e => /^Failed to parse project\.yaml: unknown tag/.test(e))).toBe(true);
   });
 });
+
+// BL-177 (REQ-002.F.14): the content of architecture/api.yaml, on temp folders only.
+describe('validate and the content of api.yaml (BL-177)', () => {
+  let base: string;
+  const validator = new SpecValidator();
+  const api = () => join(base, '.specs', 'architecture', 'api.yaml');
+  const write = (text: string) => writeFileSync(api(), text);
+  const check = () => validator.validate(base, { fix: false, verbose: false });
+  const about = (lines: string[]) => lines.filter(l => l.includes('api.yaml'));
+  const OK = 'openapi: 3.0.0\ninfo:\n  title: API\n  version: 1.0.0\npaths: {}\n';
+  const OLD_KEYS = '# header comment\nproject: "shop"\nversion: "1.0.0"\nlastUpdated: "2026-10-06"\n\nopenapi: "3.0.0"\ninfo:\n  title: "shop API"\n  version: "1.0.0"\npaths:\n  /example:\n    get:\n      responses:\n        "200":\n          description: "Success"\n\ndatabases:\n  - PostgreSQL\nauth_strategy: Clerk # inline comment\n';
+  const warning = (key: string) => `architecture/api.yaml has the root key ${key}, which OpenAPI does not allow; \`specpilot validate --fix\` renames it to x-${key}.`;
+  const byHand = (key: string) => `architecture/api.yaml has the root key ${key}, which OpenAPI does not allow; rename it to x-${key} by hand.`;
+
+  beforeEach(() => {
+    base = join(os.tmpdir(), `specpilot-validator-api-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(base, { recursive: true });
+    createValidSpecsDir(base);
+  });
+  afterEach(() => rmSync(base, { recursive: true, force: true }));
+
+  test('a valid OpenAPI file gives nothing', async () => {
+    write(OK);
+    const r = await check();
+    expect([about(r.errors), about(r.warnings), r.fixable, r.fixPrompts]).toEqual([[], [], [], []]);
+  });
+
+  test('a file that does not parse: reason, line and column, and no text of the file', async () => {
+    write('openapi: 3.0.0\ninfo:\n  title: "SECRET-LINE \\| x"\n');
+    const r = await check();
+    expect(about(r.errors)).toEqual(['Failed to parse architecture/api.yaml: unknown escape sequence (line 3, column 24)']);
+    expect(JSON.stringify(r)).not.toContain('SECRET-LINE');
+    expect(r.isValid).toBe(false);
+  });
+
+  test('over 256 KB: the size error', async () => {
+    write(`openapi: 3.0.0\ninfo:\n  title: "${'x'.repeat(262144)}"\n`);
+    expect(about((await check()).errors)).toEqual(['architecture/api.yaml is larger than 256 KB, so it was not parsed.']);
+  });
+
+  test('a cli or graphql file that parses gives nothing', async () => {
+    for (const text of ['project: "p"\nversion: "1.0.0"\n\ncli:\n  name: "p"\n', 'project: "p"\n\ngraphql:\n  endpoint: "/graphql"\ndatabases:\n  - Redis\n']) {
+      write(text);
+      const r = await check();
+      expect([about(r.errors), about(r.warnings), r.fixable]).toEqual([[], [], []]);
+    }
+  });
+
+  test('openapi without info.title, info.version or paths: one error each and one fix prompt', async () => {
+    write('openapi: 3.0.0\ninfo:\n  description: x\n');
+    const r = await check();
+    expect(about(r.errors)).toEqual([
+      'architecture/api.yaml has openapi but no info.title.',
+      'architecture/api.yaml has openapi but no info.version.',
+      'architecture/api.yaml has openapi but no paths.',
+    ]);
+    expect(r.fixPrompts.filter(p => p.issue === 'architecture/api.yaml is missing OpenAPI fields')).toEqual([{
+      issue: 'architecture/api.yaml is missing OpenAPI fields',
+      prompt: "In .specs/architecture/api.yaml, add info.title (the API's name), info.version (the API's version) and paths (one entry per route the code serves). Keep every other key, value and comment as it is.",
+    }]);
+    write('openapi: 3.0.0\ninfo:\n  title: T\n  version: "1"\n');
+    expect((await check()).fixPrompts.find(p => p.issue === 'architecture/api.yaml is missing OpenAPI fields')!.prompt)
+      .toBe('In .specs/architecture/api.yaml, add paths (one entry per route the code serves). Keep every other key, value and comment as it is.');
+  });
+
+  test('every rest file render() writes gives no error and no warning', async () => {
+    const { render } = require('../core/render') as typeof import('../core/render');
+    const { ALL_FIELDS } = require('./fixtures/allFields') as typeof import('./fixtures/allFields');
+    const { IDE_CHOICES } = require('../utils/addSpecsQuestions') as typeof import('../utils/addSpecsQuestions');
+    const sets = [
+      ...IDE_CHOICES.map(c => ({ projectName: 'shop', language: 'typescript', ide: c.value, apiParadigm: 'rest' as const })),
+      { projectName: 'legacy', language: 'typescript', framework: 'nest', mode: 'existing' as const, apiParadigm: 'rest' as const },
+      { projectName: 'all', language: 'typescript', framework: 'express', ide: 'vscode', apiParadigm: 'rest' as const, ...ALL_FIELDS },
+    ];
+    for (const options of sets) {
+      write(render(options as never).files.find(f => f.path === '.specs/architecture/api.yaml')!.content);
+      const r = await check();
+      expect([options.projectName, about(r.errors), about(r.warnings), r.fixable]).toEqual([options.projectName, [], [], []]);
+    }
+  });
+
+  test('the pre-BL-176 root keys: one warning and one token each; --fix renames each line and keeps every other byte', async () => {
+    write(OLD_KEYS);
+    const r = await check();
+    const keys = ['project', 'version', 'lastUpdated', 'databases', 'auth_strategy'];
+    expect(about(r.warnings)).toEqual(keys.map(warning));
+    expect(about(r.errors)).toEqual([]);
+    expect(r.fixable).toEqual(keys.map(k => `rename-api-key:${k}`));
+    expect(await validator.autoFix(base, r.fixable)).toEqual(r.fixable);
+    expect(readFileSync(api(), 'utf-8')).toBe(OLD_KEYS.replace(/^(project|version|lastUpdated|databases|auth_strategy):/gm, 'x-$1:'));
+    const again = await check();
+    expect([about(again.warnings), again.fixable]).toEqual([[], []]);
+  });
+
+  test('already present as x-<key>, quoted, or a complex key: warned by hand, not fixable', async () => {
+    write(`${OK}project: a\nx-project: b\n`);
+    expect([about((await check()).warnings), (await check()).fixable]).toEqual([[byHand('project')], []]);
+    write(`${OK}"project": a\n`);
+    expect([about((await check()).warnings), (await check()).fixable]).toEqual([[byHand('project')], []]);
+    write(`${OK}? |-\n  a\n: 1\n`);
+    expect((await check()).fixable).toEqual([]);
+  });
+
+  test('a key holding a colon renames through its token', async () => {
+    write(`${OK}a:b: 1\n`);
+    const r = await check();
+    expect(r.fixable).toEqual(['rename-api-key:a:b']);
+    expect(await validator.autoFix(base, r.fixable)).toEqual(['rename-api-key:a:b']);
+    expect(readFileSync(api(), 'utf-8')).toBe(`${OK}x-a:b: 1\n`);
+  });
+
+  test('a file changed between validate and --fix is not written', async () => {
+    write(`${OK}project: a\n`);
+    const r = await check();
+    write(`${OK}x-project: a\n`);
+    expect(await validator.autoFix(base, r.fixable)).toEqual([]);
+    expect(readFileSync(api(), 'utf-8')).toBe(`${OK}x-project: a\n`);
+  });
+
+  test('webhooks and jsonSchemaDialect: allowed under 3.1 only, a number read as its text', async () => {
+    const body = 'info:\n  title: T\n  version: "1"\npaths: {}\nwebhooks: {}\njsonSchemaDialect: x\n';
+    for (const [openapi, want] of [['3.1.0', []], ['3.1', []], ['3.0.0', ['webhooks', 'jsonSchemaDialect']], ['3.0', ['webhooks', 'jsonSchemaDialect']]] as const) {
+      write(`openapi: ${openapi}\n${body}`);
+      expect([openapi, about((await check()).warnings)]).toEqual([openapi, want.map(warning)]);
+    }
+  });
+
+  test('a {name} path with no path parameter: one error naming it and the methods, and a fix prompt', async () => {
+    write('openapi: 3.0.0\ninfo:\n  title: T\n  version: "1"\npaths:\n  /backups/{name}:\n    get:\n      responses: {}\n    delete:\n      responses: {}\n');
+    const r = await check();
+    const error = 'architecture/api.yaml path /backups/{name} has no `in: path` parameter name for GET, DELETE.';
+    expect(about(r.errors)).toEqual([error]);
+    expect(r.fixPrompts.filter(p => p.issue === error)).toEqual([{
+      issue: error,
+      prompt: 'In .specs/architecture/api.yaml, under paths./backups/{name}, add a parameters entry for each of name with in: path, required: true and a schema that matches the route in the code. Keep every other key, value and comment as it is.',
+    }]);
+  });
+
+  test('a path parameter at the path level, at the operation level, or a $ref parameter: no error', async () => {
+    const head = 'openapi: 3.0.0\ninfo:\n  title: T\n  version: "1"\npaths:\n  /b/{name}:\n';
+    for (const rest of [
+      '    parameters:\n      - name: name\n        in: path\n        required: true\n    get:\n      responses: {}\n',
+      '    get:\n      parameters:\n        - name: name\n          in: path\n          required: true\n      responses: {}\n',
+      '    get:\n      parameters:\n        - $ref: "#/components/parameters/Name"\n      responses: {}\n',
+      '    summary: no operations\n',
+    ]) {
+      write(head + rest);
+      expect(about((await check()).errors)).toEqual([]);
+    }
+    write(head + '    get:\n      parameters:\n        - name: name\n          in: query\n      responses: {}\n');
+    expect(about((await check()).errors)).toEqual(['architecture/api.yaml path /b/{name} has no `in: path` parameter name for GET.']);
+  });
+
+  test('a linked api.yaml is not read, and --fix leaves the rename out', async () => {
+    const outside = join(base, 'outside.yaml');
+    writeFileSync(outside, `${OK}project: SECRET-LINE\n`);
+    rmSync(api());
+    symlinkSync(outside, api());
+    const r = await check();
+    expect(r.errors).toContain('architecture/api.yaml is a symbolic link, sits under a linked folder or is not a regular file, so it was not read.');
+    expect(JSON.stringify(r)).not.toContain('SECRET-LINE');
+    expect(await validator.autoFix(base, ['rename-api-key:project'])).toEqual([]);
+    expect(readFileSync(outside, 'utf-8')).toBe(`${OK}project: SECRET-LINE\n`);
+  });
+});

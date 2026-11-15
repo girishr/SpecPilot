@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`specpilot validate` checks `architecture/api.yaml`** (BL-177): it reports a file that does not parse (with the line), an OpenAPI file missing `info.title`, `info.version` or `paths`, and a path `{name}` with no matching path parameter, as errors; a root key that is neither OpenAPI nor `x-` is a warning that `--fix` renames to `x-<key>`, the form new REST projects get since BL-176.
 - **The Skills view lists Windsurf's project skills** (BL-164): skills in `.devin/skills/` and the older `.windsurf/skills/`, the folders Windsurf's docs (now Devin Desktop) name, are listed under Yours and open, and `specpilot_read_spec` reads them. Nothing else in `.devin/` or `.windsurf/` is read.
 - **`--ide` for `init` and `add-specs`** (BL-159): `specpilot init my-app --no-prompts --ide cursor` sets up Cursor instead of GitHub Copilot, and records it in `project.yaml`. Takes `claude-code`, `cursor`, `vscode`, `windsurf`, `antigravity` or `codex`, skips the IDE question, and with `init --dry-run` lists that IDE's files. An unknown name stops before anything is asked or written.
 

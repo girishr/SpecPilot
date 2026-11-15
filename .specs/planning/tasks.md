@@ -65,6 +65,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-172 | feat | P2 | `.specs/architecture/api.yaml` is not Swagger/OpenAPI: it has no `openapi`, `info` or `paths` keys, and the `specpilot serve` HTTP routes (`GET /api/specs`, `POST /api/tasks/move` and the rest) are prose under `commands.serve`. Decide whether the serve routes get their own OpenAPI document (Architectural: Spec Report first). Its YAML part (lines 285 and 288 did not parse) is fixed in BL-177 (architect decision 2026-11-15). Found 2026-11-14. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-08 | feat | P2 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
@@ -77,6 +78,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-177 | feat | P2 | `validate` checks `architecture/api.yaml`'s content; today `src/utils/specValidator.ts` only checks that it exists. With `js-yaml` (already a dependency, no new one): (1) the file does not parse: error with the line (BL-172's case); (2) with `openapi` set, `info.title`, `info.version` or `paths` missing: error with a fix prompt; (3) a root key that is neither an OpenAPI 3.0 key nor `x-`: fixable, `--fix` renames it to `x-<key>`; (4) a `{name}` in a path with no `in: path` parameter of that name: error with a fix prompt (the parameter's schema needs judgment). A full OpenAPI validator would be a new runtime dependency (its own gate) and is not part of this row. After BL-176. Approved 2026-11-15. |
 
 ## Won't do
 

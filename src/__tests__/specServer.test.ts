@@ -256,10 +256,83 @@ describe('every IDE file SpecPilot writes is served and listed (BL-152)', () => 
   });
 });
 
+describe('Devin Desktop\'s workflows folder is served and listed (BL-175, REQ-002.H.71)', () => {
+  const REFUSED = ['.devin/workflows/.hidden.md', '.devin/workflows/node_modules/x.md', '.devin/rules/mine.md', '.devin/mcp_config.json'];
+  let p: ReturnType<typeof makeProject>;
+  beforeEach(() => (p = makeProject()));
+  afterEach(() => p.cleanup());
+
+  it('serves and watches .devin/workflows/*.md, and refuses hidden files, node_modules and the rest of .devin/', () => {
+    for (const f of ['.devin/workflows/x.md', ...REFUSED]) write(p.root, f, 'x\n');
+    expect(resolveAllowedPath(p.root, '.devin/workflows/x.md')).toBe(realpathSync(join(p.root, '.devin/workflows/x.md')));
+    for (const f of REFUSED) expect(resolveAllowedPath(p.root, f)).toBeNull();
+    const watched = watchedFiles(p.root);
+    expect(watched).toContain('.devin/workflows/x.md');
+    for (const f of REFUSED) expect(watched).not.toContain(f);
+  });
+
+  it('lists .devin/workflows/ last in the Commands view, a copy of a SpecPilot workflow under Yours', () => {
+    new specSlash.SlashCommandGenerator().refreshCommands(p.root, 'windsurf', false);
+    const ours = '.windsurf/workflows/specpilot-status.md';
+    write(p.root, '.devin/workflows/specpilot-status.md', readFileSync(join(p.root, ours), 'utf-8'));
+    write(p.root, '.devin/workflows/x.md', 'x\n');
+    write(p.root, '.codex/prompts/z.md', 'x\n');
+    const commands = buildSpecsPayload(p.root, '0.0.0-test').nav.commands;
+    expect(commands.find(f => f.path === ours)?.generated).toBe(true);
+    expect(commands.slice(-3).map(f => [f.path, f.generated])).toEqual([
+      ['.codex/prompts/z.md', false], ['.devin/workflows/specpilot-status.md', false], ['.devin/workflows/x.md', false],
+    ]);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('a .devin folder that is a link: its workflows are neither listed, served nor watched', () => {
+    write(p.outside, 'devin/workflows/x.md', 'x\n');
+    symlinkSync(join(p.outside, 'devin'), join(p.root, '.devin'));
+    expect(buildSpecsPayload(p.root, '0.0.0-test').nav.commands).toEqual([]);
+    expect(resolveAllowedPath(p.root, '.devin/workflows/x.md')).toBeNull();
+    expect(watchedFiles(p.root).some(w => w.startsWith('.devin/'))).toBe(false);
+  });
+
+  (process.platform === 'win32' ? it.skip : it)('a .devin/workflows folder that is itself a link is neither listed, served nor watched', async () => {
+    write(p.outside, 'wf/x.md', 'x\n');
+    mkdirSync(join(p.root, '.devin'));
+    symlinkSync(join(p.outside, 'wf'), join(p.root, '.devin', 'workflows'));
+    const f = '.devin/workflows/x.md';
+    expect(buildSpecsPayload(p.root, '0.0.0-test').nav.commands).toEqual([]);
+    expect(resolveAllowedPath(p.root, f)).toBeNull();
+    expect(watchedFiles(p.root).some(w => w.startsWith('.devin/'))).toBe(false);
+    const spec = await startSpecServer([p.root], 0, '0.0.0-test', { registry: regFile(), mcp: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const r = (await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'specpilot_read_spec', arguments: { path: f } } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': spec.mcpToken! }, '/mcp')).json.result;
+      expect(r.isError).toBe(true);
+      expect((await hit(port, '/api/file?p=' + encodeURIComponent(f))).status).toBe(404);
+    } finally {
+      await spec.close();
+    }
+  });
+
+  it('/api/file and specpilot_read_spec serve a .devin/workflows/ file and refuse the rest', async () => {
+    for (const f of ['.devin/workflows/x.md', ...REFUSED]) write(p.root, f, 'x\n');
+    const spec = await startSpecServer([p.root], 0, '0.0.0-test', { registry: regFile(), mcp: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const read = async (path: string) => (await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'specpilot_read_spec', arguments: { path } } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': spec.mcpToken! }, '/mcp')).json.result;
+      expect((await read('.devin/workflows/x.md')).content[0].text).toBe('x\n');
+      expect((await hit(port, '/api/file?p=' + encodeURIComponent('.devin/workflows/x.md'))).status).toBe(200);
+      for (const f of REFUSED) {
+        expect((await read(f)).isError).toBe(true);
+        expect((await hit(port, '/api/file?p=' + encodeURIComponent(f))).status).toBe(404);
+      }
+    } finally {
+      await spec.close();
+    }
+  });
+});
+
 describe('every documented project skills folder is served and listed (BL-156, BL-164)', () => {
   const NEW = ['.agents/skills', '.cursor/skills', '.github/skills', '.agent/skills', '.devin/skills', '.windsurf/skills']; // the last two: BL-164, REQ-002.H.70
   const SERVED = NEW.flatMap(d => [`${d}/x/SKILL.md`, `${d}/x/scripts/run.sh`]);
-  const REFUSED = ['.agents/other.md', '.github/workflows/ci.yml', '.agent/config.json', '.devin/other.md', '.devin/workflows/x.md', '.devin/skills/x/.hidden/f.md', '.devin/skills/node_modules/x/SKILL.md', '.windsurf/rules.md', '.codex/skills/x/SKILL.md', '.agents/skills/x/.secret.md', '.cursor/skills/node_modules/x/SKILL.md'];
+  const REFUSED = ['.agents/other.md', '.github/workflows/ci.yml', '.agent/config.json', '.devin/other.md', '.devin/skills/x/.hidden/f.md', '.devin/skills/node_modules/x/SKILL.md', '.windsurf/rules.md', '.codex/skills/x/SKILL.md', '.agents/skills/x/.secret.md', '.cursor/skills/node_modules/x/SKILL.md'];
   let p: ReturnType<typeof makeProject>;
   beforeEach(() => (p = makeProject()));
   afterEach(() => p.cleanup());
@@ -510,7 +583,7 @@ describe('buildSpecsPayload against this repo', () => {
     expect(payload.nav.specs).toEqual(expect.arrayContaining(['planning/tasks.md', 'project/project.yaml', 'architecture/api.yaml']));
     expect(payload.files['planning/tasks.md'].fileID).toBe('TASKS-001');
     expect(payload.nav.instructions.map(f => f.path)).toEqual(['CLAUDE.md', 'AGENTS.md', '.github/copilot-instructions.md', '.cursor/rules/specpilot.mdc', '.windsurfrules', '.antigravity/rules.md', 'CODEX_INSTRUCTIONS.md']);
-    expect(payload.nav.commands.every(f => ['.claude/commands/', '.cursor/commands/', '.windsurf/workflows/', '.agent/workflows/', '.codex/prompts/'].some(d => f.path.startsWith(d)))).toBe(true);
+    expect(payload.nav.commands.every(f => ['.claude/commands/', '.cursor/commands/', '.windsurf/workflows/', '.agent/workflows/', '.codex/prompts/', '.devin/workflows/'].some(d => f.path.startsWith(d)))).toBe(true);
     expect(payload.nav.prompts.every(f => f.path.startsWith('.github/prompts/'))).toBe(true);
     expect(payload.nav.skills.every(f => ['.claude/skills/', '.agents/skills/', '.cursor/skills/', '.github/skills/', '.agent/skills/', '.devin/skills/', '.windsurf/skills/'].some(d => f.path.startsWith(d)) && f.path.endsWith('/SKILL.md'))).toBe(true);
     expect(payload.nav.commands.find(f => f.path === '.claude/commands/specpilot-archive.md')?.frontMatter?.['allowed-tools']).toBe('Bash, Read, Edit');
@@ -1149,6 +1222,7 @@ describe('the poller watches exactly what /api/file serves', () => {
       write(r, '.windsurf/skills/s/SKILL.md', 's'); // BL-164: served since Windsurf's docs name it
       write(r, '.devin/skills/s/SKILL.md', 's');
       write(r, '.devin/config.json', 'not allowlisted');
+      write(r, '.devin/workflows/w.md', 'w'); // BL-175
       write(r, '.codex/skills/s/SKILL.md', 'not allowlisted');
       symlinkSync(join(r, '.specs', 'a.md'), join(r, '.specs', 'alias.md')); // file symlink inside the allowlist
       symlinkSync(join(r, 'src', 'secret.ts'), join(r, '.specs', 'leak.md')); // leaves the allowlist
@@ -1175,7 +1249,7 @@ describe('the poller watches exactly what /api/file serves', () => {
       expect(watched).toEqual(served);
       // And the edge cases landed where they should.
       expect(served).toEqual(expect.arrayContaining(['.specs/a.md', '.specs/alias.md', '.claude/commands/cmd.md', 'AGENTS.md', '.cursor/commands/c.md', '.cursor/rules/specpilot.mdc', 'CODEX_INSTRUCTIONS.md',
-        '.agents/skills/s/SKILL.md', '.agents/skills/s/scripts/run.sh', '.cursor/skills/s/SKILL.md', '.github/skills/s/SKILL.md', '.agent/skills/s/SKILL.md', '.devin/skills/s/SKILL.md', '.windsurf/skills/s/SKILL.md']));
+        '.agents/skills/s/SKILL.md', '.agents/skills/s/scripts/run.sh', '.cursor/skills/s/SKILL.md', '.github/skills/s/SKILL.md', '.agent/skills/s/SKILL.md', '.devin/skills/s/SKILL.md', '.windsurf/skills/s/SKILL.md', '.devin/workflows/w.md']));
       for (const out of ['.specs/.hidden.md', '.specs/.git/HEAD', '.specs/sub/.cache/x.md', '.specs/node_modules/pkg/readme.md', '.claude/commands/.draft.md', '.specs/leak.md', '.specs/out.md', '.specs/linkdir/tasks.md', '.claude/commands/docs/d.md', '.claude/settings.json', 'README.md', '.cursor/rules/mine.mdc', '.cursor/mcp.json', '.codex/config.toml',
         '.agents/other.md', '.agent/config.json', '.devin/config.json', '.codex/skills/s/SKILL.md']) {
         expect(served).not.toContain(out);

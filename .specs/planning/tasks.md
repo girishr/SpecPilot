@@ -27,6 +27,8 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-185 | chore | P3 | Check in Devin Desktop itself, in a migrated workspace with no `.windsurf/`: (1) whether `.windsurf/workflows/specpilot-*.md` and `.windsurfrules` are still read; (2) whether `~/.codeium/windsurf/mcp_config.json` (the Connect card, REQ-002.H.68) is still read or only `~/.config/devin/mcp_config.json`. If not, decide whether to move the writes or the card path. Until checked, README Limits marks both unverified. Attribution: the architect, BL-175, 2026-11-15. |
+| BL-184 | chore | P3 | The page labels (`IDE_NAME`, `MCP_IDES` in `ui/`) and the setup question's IDE choice say `Windsurf`; the docs and the `--ide` help say `Windsurf (Devin Desktop)` since BL-175. Decide whether the page and the question follow; a `ui/` change with browser tests at 420px. Attribution: the architect, BL-175, 2026-11-15. |
 | BL-174 | chore | P2 | Node 22 reaches end of life on 2027-04-30: drop `^22.23.5` from `engines.node` (and `package-lock.json`), README, ARCH-007.1, REQ-004.1, SEC-004 and `api.yaml`, and make the breaking-or-not call (BL-170 policy, CTX-003). Attribution: the architect, BL-170, 2026-11-14. |
 | BL-173 | chore | P3 | With `engines` at `^22.23.5 || ^24.22.3 || >=26.13.1` (BL-170), two old-Node workarounds are no longer needed: `headersDistinct` (Node 18.3) could replace the `req.rawHeaders` read behind the local MCP endpoint's header check (REQ-002, BL-PM-007), and `server.closeAllConnections?.()` (Node 18.2, BL-146) could drop the `?.`. Decide each; golden recordings unchanged or it is not trivial. Attribution: the architect, BL-170, 2026-11-14. |
 | BL-169 | chore | P3 | `SpecPilot.Init` (another repository): `specpilot-archive`'s `COMPLETED_KEEP_ENTRIES` goes from 20 to 10 to match this CLI's REQ-002.A.16 (BL-123). With 20 at a 25-line limit, a table section with 7 or more other lines sits at the limit after an archive, and the next completion warns. That repo's own row and Spec Report. Attribution: the architect, BL-123, 2026-11-14. |
@@ -62,7 +64,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-175 | chore | P3 | Windsurf is now Devin Desktop (docs.windsurf.com redirects to docs.devin.ai, read 2026-11-14). Its Workflows page names `.devin/workflows/*.md` as preferred and `.windsurf/workflows/*.md` as the fallback still read; SpecPilot writes `.windsurf/workflows/` and lists only it. Decide whether SpecPilot writes or lists `.devin/workflows/`, whether `.windsurfrules` is still read (the pages read do not name it), and whether `IDE_CHOICES`, the page and the docs should say Devin Desktop. Check the vendor's own docs first. Attribution: BL-164, 2026-11-14. |
 | BL-167 | chore | P2 | `SpecPilot.Init` (another repository) writes `ides: [<choice>]` in the `project.yaml` it generates, as REQ-002.A.13 says here; nothing in this repo depends on it (without the key, readers keep the file guess). Attribution: the architect, BL-158, 2026-11-13. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
@@ -76,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-175 | chore | P3 | Windsurf is now Devin Desktop (docs.windsurf.com redirects to docs.devin.ai, read 2026-11-14). Its Workflows page names `.devin/workflows/*.md` as preferred and `.windsurf/workflows/*.md` as the fallback still read; SpecPilot writes `.windsurf/workflows/` and lists only it. Decide whether SpecPilot writes or lists `.devin/workflows/`, whether `.windsurfrules` is still read (the pages read do not name it), and whether `IDE_CHOICES`, the page and the docs should say Devin Desktop. Check the vendor's own docs first. Attribution: BL-164, 2026-11-14. Approved 2026-11-15 |
 
 ## Won't do
 

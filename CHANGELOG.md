@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **`specpilot validate` checks `architecture/api.yaml`** (BL-177): it reports a file that does not parse (with the line), an OpenAPI file missing `info.title`, `info.version` or `paths`, and a path `{name}` with no matching path parameter, as errors; a root key that is neither OpenAPI nor `x-` is a warning that `--fix` renames to `x-<key>`, the form new REST projects get since BL-176.
+- **The Commands view lists Devin Desktop's workflows** (BL-175): Windsurf is now Devin Desktop, whose docs name `.devin/workflows/` as its workflows folder. `specpilot serve` and `specpilot_read_spec` list and read the `.md` files there, after the other command folders, under Yours. SpecPilot still writes `.windsurf/workflows/` and `.windsurfrules`, which Devin Desktop reads as legacy files.
 - **The Skills view lists Windsurf's project skills** (BL-164): skills in `.devin/skills/` and the older `.windsurf/skills/`, the folders Windsurf's docs (now Devin Desktop) name, are listed under Yours and open, and `specpilot_read_spec` reads them. Nothing else in `.devin/` or `.windsurf/` is read.
 - **`--ide` for `init` and `add-specs`** (BL-159): `specpilot init my-app --no-prompts --ide cursor` sets up Cursor instead of GitHub Copilot, and records it in `project.yaml`. Takes `claude-code`, `cursor`, `vscode`, `windsurf`, `antigravity` or `codex`, skips the IDE question, and with `init --dry-run` lists that IDE's files. An unknown name stops before anything is asked or written.
 
@@ -26,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The README, `docs/GUIDE.md` and the `--ide` help call Windsurf `Windsurf (Devin Desktop)` (BL-175). The value is still `windsurf`.
 - `.windsurf/skills/` is no longer refused by `specpilot serve` and `specpilot_read_spec` (BL-164): it was left out while Windsurf's docs named no skills folder.
 - **Breaking: Node.js `^22.23.5 || ^24.22.3 || >=26.13.1` is required** (BL-170): `engines` allowed `>=16.0.0`, which took in Node.js versions that no longer get security fixes (16 to 21, 23, 25) and 22, 24 and 26 releases from before the November 2026 security releases. Upgrade Node.js to a patched 22, 24 or 26 before you update SpecPilot. npm warns on install outside the range and does not block it; SpecPilot itself does not check. README states the requirement.
 - **The Completed archive limit is 25 lines, and an archive keeps the newest 10 rows** (BL-123): it was 40 lines and 20 rows, and is now the same limit as the init.specpilot.dev connector's. 10, not 20, so a section is not back at the limit after one more completion. A `## Completed` section of 26 to 40 lines that passed before now gets the `specpilot validate` warning; run `specpilot archive`. Run `specpilot backfill` to update the `specpilot-archive` command in existing projects. The page's Archive dialog shows the new numbers.

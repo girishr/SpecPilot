@@ -169,7 +169,7 @@ COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
-  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging. The archive is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch."
   read -p "Continue? [y/N] " confirm
   if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "Archive cancelled."

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `specpilot serve` prints each open project's `.specs/` folder at startup, `Specs: <folder>/.specs`, beside the `No .specs/ in <folder>` line a folder without one already gets (BL-CL-02).
 - The `specpilot-archive` command's branch warning says what archiving on a branch means, as the page's Archive dialog does (BL-128): the archive is written to that branch's `planning/tasks.md`, so it is committed with the branch's work, and merging can conflict with `tasks.md` changes on the default branch. Run `specpilot backfill` to refresh an unedited copy.
 - The README, `docs/GUIDE.md` and the `--ide` help call Windsurf `Windsurf (Devin Desktop)` (BL-175). The value is still `windsurf`.
 - `.windsurf/skills/` is no longer refused by `specpilot serve` and `specpilot_read_spec` (BL-164): it was left out while Windsurf's docs named no skills folder.

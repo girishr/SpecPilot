@@ -4,6 +4,7 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { keepReport, SpecGenerator } from '../utils/specGenerator';
 import { writeError, writeInside } from '../utils/specPaths';
+import { projectIdes } from '../utils/specBackfiller';
 import { Logger, terminalText } from '../utils/logger';
 
 export interface RefineOptions {
@@ -144,6 +145,8 @@ export async function refineCommand(description: string | undefined, options: Re
       logger.info('🔄 Regenerating specifications with updated context...');
 
       const specGenerator = new SpecGenerator();
+      // The recorded IDEs (REQ-002.A.13): files for the first, the list written back; none recorded → vscode.
+      const ides = projectIdes(options.dir, options.specsName) ?? undefined;
 
       const result = await specGenerator.generateSpecs({
         projectName: projectName || 'updated-project',
@@ -151,7 +154,9 @@ export async function refineCommand(description: string | undefined, options: Re
         framework: framework,
         targetDir: options.dir,
         specsName: options.specsName,
-        description: projectDescription
+        description: projectDescription,
+        ide: ides?.[0],
+        ides,
       });
 
       logger.success('✅ Regenerated specifications with new description');

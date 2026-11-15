@@ -74,6 +74,15 @@ describe('spec core golden recording (BL-032)', () => {
     });
   }
 
+  test('project.yaml ides: one IDE without ides, the list with it, [] kept (BL-168)', () => {
+    const ides = (o: Partial<RenderOptions>) => render({ projectName: 'p', language: 'typescript', date: DATE, ...o })
+      .files.find(f => f.path === '.specs/project/project.yaml')!.content.match(/^ides:.*$/m)?.[0];
+    expect(ides({ ide: 'Cursor' })).toBe('ides: [cursor]');
+    expect(ides({})).toBe('ides: [vscode]');
+    expect(ides({ ide: 'cursor', ides: ['cursor', 'claude-code'] })).toBe('ides: [cursor, claude-code]');
+    expect(ides({ ides: [] })).toBe('ides: []');
+  });
+
   test('generateSpecs() writes exactly what render() returns, and render() writes nothing', async () => {
     for (const options of Object.values(GOLDEN)) {
       const dir = mkdtempSync(join(tmpdir(), 'spec-core-'));

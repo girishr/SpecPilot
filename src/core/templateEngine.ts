@@ -60,6 +60,7 @@ export interface TemplateContext extends OptionalFields {
   author?: string;
   description?: string;
   ide?: string;
+  ides?: string[];
   mode?: 'new' | 'existing';
   projectType?: 'greenfield' | 'brownfield';
   apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
@@ -233,7 +234,7 @@ license: {{yaml license}}
 {{/if}}
 {{#if ide}}
 # The AI IDEs this project uses; SpecPilot reads this list. Values: claude-code, cursor, vscode (GitHub Copilot), windsurf, antigravity, codex.
-ides: [{{yaml (lowercase ide)}}]
+ides: [{{#each ides}}{{#unless @first}}, {{/unless}}{{yaml this}}{{/each}}]
 {{/if}}
 
 # Rules and mandates: see your AI agent configuration file (single source of truth)

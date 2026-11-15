@@ -74,13 +74,13 @@ Notes
 | BL-TB-08 | feat | P2 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
 | BL-UI-01 | feat | P3 | `specpilot serve` Home: pretty-print (indented, multi-line) the MCP config JSON in "Connect Your AI IDE (optional, one line)" so it is readable and easy to copy. |
 | BL-UI-02 | feat | P2 | `specpilot serve` left rail: add a Settings item (cogwheel icon, label "Settings"); move the Light/Dark toggle and "Quit SpecPilot" into it and remove them from their current places. |
-| BL-CL-02 | feat | P3 | `specpilot serve` startup: print the project's `.specs/` folder path (not only the project root) and the generation path. Remainder of BL-CL-01 ("serve from any folder, warn when no `.specs/`, still start"), which BL-080 (`ac65d32`) already delivered and was verified 2026-10-18. Definition of "generation path" to confirm with the developer. |
 | CS-092 | chore | P2 | Real-IDE check of the v2.15.0 setup flow (the developer's, by hand): `specpilot serve` on a scratch folder (a scratch copy and a temp HOME, never this repo's `.specs/` or the real `~/.specpilot`), connect Claude Code with the printed config line, paste the Setup view's `Set up SpecPilot for …` line, and confirm that Claude Code follows the server's `instructions` (questions, answers from the code, asks only what is left, writes, reports validate), that the Progress rows move, and that the view opens the project; then the same for Start a New Project. Nothing in the test suite covers a real IDE. |
 
 ## Review
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-CL-02 | feat | P3 | `specpilot serve` startup: print the project's `.specs/` folder path (not only the project root) and the generation path. Remainder of BL-CL-01 ("serve from any folder, warn when no `.specs/`, still start"), which BL-080 (`ac65d32`) already delivered and was verified 2026-10-18. Definition of "generation path" to confirm with the developer. Approved 2026-11-15. |
 
 ## Won't do
 

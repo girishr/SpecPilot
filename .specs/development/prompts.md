@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-15: the developer: `Yes, approve it`, `commit` for BL-178: feature commit `2a558c7`, BL-178 to Completed (row 282), merged into `main` with `--no-ff`; not pushed.
 - 2026-11-15: the developer: `Yes, archive` (BL-178's log lines took prompts.md to 103 lines, over 100): `specpilot archive --force` moved the 24 oldest entries (2026-10-31 and 2026-11-01) to `prompts-archive.md`.
 - 2026-11-15: BL-178: spec-reviewer PASS on the Spec Report (suggestion taken: pin the skipped keys). Built: the `serve routes match api.yaml (BL-178)` suite in `specServer.test.ts`, 2 tests, run three times alone, passing; ARCH-004.77 says it is kept in step by the test. `npm test` 2049/2049, `tsc` clean, ESLint no new warnings.
 - 2026-11-15: the developer: `start with BL-178`. Branch `chore/bl-178-route-drift-test` from `main` (`9276a22`); row to Current Sprint; Spec Report written (Feature-sized chore): the TESTS-002.1 entry and the context.md entry; no code.

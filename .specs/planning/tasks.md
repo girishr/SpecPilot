@@ -70,7 +70,6 @@ Notes
 | ID | Type | Priority | Description |
 |---|---|---|---|
 | BL-167 | chore | P2 | `SpecPilot.Init` (another repository) writes `ides: [<choice>]` in the `project.yaml` it generates, as REQ-002.A.13 says here; nothing in this repo depends on it (without the key, readers keep the file guess). Attribution: the architect, BL-158, 2026-11-13. |
-| BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-08 | feat | P2 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
 | BL-UI-01 | feat | P3 | `specpilot serve` Home: pretty-print (indented, multi-line) the MCP config JSON in "Connect Your AI IDE (optional, one line)" so it is readable and easy to copy. |
@@ -82,6 +81,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. Approved 2026-11-15. |
 
 ## Won't do
 

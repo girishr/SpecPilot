@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The `specpilot-archive` command's branch warning says what archiving on a branch means, as the page's Archive dialog does (BL-128): the archive is written to that branch's `planning/tasks.md`, so it is committed with the branch's work, and merging can conflict with `tasks.md` changes on the default branch. Run `specpilot backfill` to refresh an unedited copy.
 - The README, `docs/GUIDE.md` and the `--ide` help call Windsurf `Windsurf (Devin Desktop)` (BL-175). The value is still `windsurf`.
 - `.windsurf/skills/` is no longer refused by `specpilot serve` and `specpilot_read_spec` (BL-164): it was left out while Windsurf's docs named no skills folder.
 - **Breaking: Node.js `^22.23.5 || ^24.22.3 || >=26.13.1` is required** (BL-170): `engines` allowed `>=16.0.0`, which took in Node.js versions that no longer get security fixes (16 to 21, 23, 25) and 22, 24 and 26 releases from before the November 2026 security releases. Upgrade Node.js to a patched 22, 24 or 26 before you update SpecPilot. npm warns on install outside the range and does not block it; SpecPilot itself does not check. README states the requirement.

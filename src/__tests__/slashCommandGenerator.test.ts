@@ -65,6 +65,8 @@ describe('SlashCommandGenerator', () => {
     expect(content).toContain('allowed-tools: Bash, Read, Edit');
     expect(content).toContain('```bash');
     expect(content).toContain("git rev-parse --abbrev-ref HEAD");
+    // The page's Archive branch gate sentence (REQ-002.H.59, ui/app.js branchRisk), byte for byte (BL-128).
+    expect(content).toContain(`echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging. The archive is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch."\n`);
     expect(content).toContain(`COMPLETED_LINE_LIMIT=${COMPLETED_LINE_LIMIT}\n`);
     expect(content).toContain(`PROMPTS_LINE_LIMIT=${PROMPTS_LINE_LIMIT}\n`);
     expect(content).toContain(`COMPLETED_KEEP_ENTRIES=${COMPLETED_KEEP_ENTRIES}\n`);

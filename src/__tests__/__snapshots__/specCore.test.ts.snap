@@ -2,7 +2,7 @@
 
 exports[`optional template fields (BL-032 phase 2) every field set: claude-code graphql and codex cli (hashes) 1`] = `
 {
-  ".claude/commands/specpilot-archive.md": "c7f0b37f6fdcd921556a2f90f5272d5724588dd65b693c02ecc9b571b9e2e4c0",
+  ".claude/commands/specpilot-archive.md": "ec55bea41f120e53574517a061f72e841aaf18b7066cdffa4a984d409eb46c1c",
   ".claude/commands/specpilot-backfill.md": "1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78",
   ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
@@ -31,7 +31,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
 
 exports[`optional template fields (BL-032 phase 2) every field set: claude-code graphql and codex cli (hashes) 2`] = `
 {
-  ".codex/prompts/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
+  ".codex/prompts/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".codex/prompts/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -154,7 +154,7 @@ COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
-  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging. The archive is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch."
   read -p "Continue? [y/N] " confirm
   if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "Archive cancelled."
@@ -1168,7 +1168,7 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 
 exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenfield 1`] = `
 {
-  ".agent/workflows/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
+  ".agent/workflows/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".agent/workflows/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".agent/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".agent/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -1198,7 +1198,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
 
 exports[`spec core golden recording (BL-032) claude-code javascript/react rest greenfield 1`] = `
 {
-  ".claude/commands/specpilot-archive.md": "c7f0b37f6fdcd921556a2f90f5272d5724588dd65b693c02ecc9b571b9e2e4c0",
+  ".claude/commands/specpilot-archive.md": "ec55bea41f120e53574517a061f72e841aaf18b7066cdffa4a984d409eb46c1c",
   ".claude/commands/specpilot-backfill.md": "1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78",
   ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
@@ -1227,7 +1227,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
 
 exports[`spec core golden recording (BL-032) codex typescript no framework rest greenfield 1`] = `
 {
-  ".codex/prompts/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
+  ".codex/prompts/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".codex/prompts/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -1256,7 +1256,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
 
 exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfield 1`] = `
 {
-  ".cursor/commands/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
+  ".cursor/commands/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".cursor/commands/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".cursor/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".cursor/commands/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
@@ -1288,7 +1288,7 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "5382be791bac53e2426fd8b0dc9953b859e3d8f0024f1d652a9e6380677e8250",
-  ".github/prompts/specpilot-archive.prompt.md": "3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd",
+  ".github/prompts/specpilot-archive.prompt.md": "f048aa2e38b8b2c1012e6335e2eb4c9e703356ef149e28a48eeb96d575fda2b1",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
@@ -1318,7 +1318,7 @@ exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] =
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "4b4e9a8b10c23ceb3a660fba8c6a555c34dad844649026a77610ed43b84d5e69",
-  ".github/prompts/specpilot-archive.prompt.md": "3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd",
+  ".github/prompts/specpilot-archive.prompt.md": "f048aa2e38b8b2c1012e6335e2eb4c9e703356ef149e28a48eeb96d575fda2b1",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
@@ -1440,7 +1440,7 @@ COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
-  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging. The archive is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch."
   read -p "Continue? [y/N] " confirm
   if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "Archive cancelled."
@@ -2478,7 +2478,7 @@ COMPLETED_KEEP_ENTRIES=10
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 if [ -n "$branch" ] && [ "$branch" != "main" ] && [ "$branch" != "master" ]; then
-  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging."
+  echo "WARNING: on branch '$branch'. Archive is recommended only on the default branch after merging. The archive is written to this branch's planning/tasks.md, so it is committed with this branch's work, and merging the branch can conflict with tasks.md changes made on the default branch."
   read -p "Continue? [y/N] " confirm
   if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "Archive cancelled."
@@ -3410,7 +3410,7 @@ exports[`spec core golden recording (BL-032) vscode typescript/react none inferr
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".github/copilot-instructions.md": "95c336a94ad060d1f41a1281b07b9be61b352a1d5b68dbe991a04bb2053ff627",
-  ".github/prompts/specpilot-archive.prompt.md": "3c0f7432eb2ba78c8c3c93c74fd2ac19b1224bddf2570fec124f27fe085d33dd",
+  ".github/prompts/specpilot-archive.prompt.md": "f048aa2e38b8b2c1012e6335e2eb4c9e703356ef149e28a48eeb96d575fda2b1",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
@@ -3453,7 +3453,7 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
   ".windsurf/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
   ".windsurf/settings.json": "24f529abe8c9c93f91ca9c1590151223a01ecf4cbbb37ae36200bf6004a96014",
-  ".windsurf/workflows/specpilot-archive.md": "2acee32e18009bae07d112a58ef7bae455c62b950e22293495c08dfed803364b",
+  ".windsurf/workflows/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".windsurf/workflows/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
   ".windsurf/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".windsurf/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",

@@ -376,6 +376,67 @@ describe('SpecGenerator', () => {
     expect(out.some(l => l.startsWith('Kept as they were: .vscode/settings.json, .vscode/extensions.json, .github/copilot-instructions.md, '))).toBe(true);
   });
 
+  describe('refine --update follows project.yaml ides (BL-168, REQ-002.A.13)', () => {
+    const yamlFile = () => join(testDir, '.specs', 'project', 'project.yaml');
+    const setIdes = (lines: string) => writeFileSync(yamlFile(), readFileSync(yamlFile(), 'utf-8').replace(/^ides: .*$/m, lines));
+    const idesLine = () => readFileSync(yamlFile(), 'utf-8').match(/^ides:.*$/m)?.[0];
+    const refine = async () => {
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      await refineCommand('A new description', { dir: testDir, specsName: '.specs', prompts: false, update: true });
+    };
+    const cursorProject = async (ides: string) => {
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cursor' });
+      setIdes(ides);
+    };
+
+    test('ides: [cursor] → Cursor files, no .vscode, the record kept', async () => {
+      await cursorProject('ides: [cursor]');
+      rmSync(join(testDir, '.cursor'), { recursive: true, force: true });
+      await refine();
+      expect(existsSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'))).toBe(true);
+      expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(false);
+      expect(idesLine()).toBe('ides: [cursor]');
+    });
+
+    test('ides: [cursor, claude-code] → files for the first only, the whole list kept', async () => {
+      await cursorProject('ides: [cursor, claude-code]');
+      await refine();
+      expect(existsSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'))).toBe(true);
+      expect(existsSync(join(testDir, 'CLAUDE.md'))).toBe(false);
+      expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(false);
+      expect(idesLine()).toBe('ides: [cursor, claude-code]');
+    });
+
+    test('a block list with a repeat → [cursor]; an unknown value is dropped', async () => {
+      await cursorProject('ides:\n  - Cursor\n  - cursor');
+      await refine();
+      expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(false);
+      expect(idesLine()).toBe('ides: [cursor]');
+      setIdes('ides: [cursor, cursr]');
+      await refine();
+      expect(idesLine()).toBe('ides: [cursor]');
+    });
+
+    test('ides: [] → VS Code files, the empty list kept', async () => {
+      await cursorProject('ides: []');
+      await refine();
+      expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(true);
+      expect(idesLine()).toBe('ides: []');
+    });
+
+    test('no ides key, or only unknown values → VS Code files and ides: [vscode], as before', async () => {
+      await cursorProject('');
+      await refine();
+      expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(true);
+      expect(idesLine()).toBe('ides: [vscode]');
+      rmSync(join(testDir, '.vscode'), { recursive: true, force: true });
+      setIdes('ides: [cursr]');
+      await refine();
+      expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(true);
+      expect(idesLine()).toBe('ides: [vscode]');
+    });
+  });
+
   // CS-068: onboarding.md + greenfield/brownfield prompt selection
 
   test('onboarding.md defaults to greenfield when no projectType set', async () => {

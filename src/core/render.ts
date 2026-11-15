@@ -18,6 +18,8 @@ export interface RenderOptions extends OptionalFields {
   author?: string;
   description?: string;
   ide?: string;
+  /** The `ides` list `project.yaml` records (BL-168); `[ide]` when absent. */
+  ides?: string[];
   mode?: 'new' | 'existing';
   projectType?: 'greenfield' | 'brownfield';
   apiParadigm?: 'rest' | 'cli' | 'graphql' | 'none';
@@ -111,6 +113,7 @@ export function toContext(options: RenderOptions): TemplateContext {
     contributors: [options.author || 'Your Name'],
     architecture: options.analysis && options.analysis.architecture,
     ide: options.ide || 'vscode',
+    ides: options.ides ?? [(options.ide || 'vscode').toLowerCase()],
     mode: options.mode || 'new',
     projectType: options.projectType ?? (options.mode === 'existing' ? 'brownfield' : 'greenfield'),
     apiParadigm: options.apiParadigm ?? inferApiParadigm(options.framework),

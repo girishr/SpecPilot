@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-15: the developer: `Approved, commit` for BL-175: feature commit `3e1dd0b`, BL-175 to Completed (row 284), merged into `main` with `--no-ff`; no push.
 - 2026-11-15: the developer: `yes, proceed` for BL-175. Built: tests first (`specServer.test.ts`, +5, 3 changed), `.devin/workflows/` appended to `ALLOWED_DIRS` and `COMMAND_FOLDERS`, the README, `docs/GUIDE.md` and `--ide` help say `Windsurf (Devin Desktop)`; Jest 2055 → 2060, browser 136/136, snapshots unchanged. spec-reviewer FIX (REQ-002.H.71 wording only: every file in the folder is served, `.md` listed), fixed, no re-run; BL-175 moved to Review.
 - 2026-11-15: the developer: `Do next one` (BL-175). Branch `chore/bl-175-devin-desktop` from `main` (`22b8c14`); Devin Desktop's docs read (Workflows, Memories, the CLI rules page, MCP); Spec Report (Architectural: the read allowlist); spec-reviewer ESCALATE; architect DECIDE (writes unchanged, `.devin/workflows/` listed under Yours and appended, docs and `--ide` help say `Windsurf (Devin Desktop)`, BL-184 and BL-185 filed); spec-reviewer PASS on the re-run. Waiting for the developer's `yes, proceed` (Architectural).
 - 2026-11-15: the developer: `Approved, commit` for BL-168: feature commit `7ccb110`, BL-168 to Completed (row 283), merged into `main` with `--no-ff`; no push.

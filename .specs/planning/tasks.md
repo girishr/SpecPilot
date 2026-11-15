@@ -27,7 +27,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-178 | chore | P3 | A Jest test that the `url.pathname` routes dispatched in `src/utils/specServer.ts` and the keys of `commands.serve.routes` in `.specs/architecture/api.yaml` name the same method and path set, so the only spec of the `serve` HTTP interface (ARCH-004.77) cannot drift from the code. Attribution: the architect, BL-172, 2026-11-15. |
 | BL-175 | chore | P3 | Windsurf is now Devin Desktop (docs.windsurf.com redirects to docs.devin.ai, read 2026-11-14). Its Workflows page names `.devin/workflows/*.md` as preferred and `.windsurf/workflows/*.md` as the fallback still read; SpecPilot writes `.windsurf/workflows/` and lists only it. Decide whether SpecPilot writes or lists `.devin/workflows/`, whether `.windsurfrules` is still read (the pages read do not name it), and whether `IDE_CHOICES`, the page and the docs should say Devin Desktop. Check the vendor's own docs first. Attribution: BL-164, 2026-11-14. |
 | BL-174 | chore | P2 | Node 22 reaches end of life on 2027-04-30: drop `^22.23.5` from `engines.node` (and `package-lock.json`), README, ARCH-007.1, REQ-004.1, SEC-004 and `api.yaml`, and make the breaking-or-not call (BL-170 policy, CTX-003). Attribution: the architect, BL-170, 2026-11-14. |
 | BL-173 | chore | P3 | With `engines` at `^22.23.5 || ^24.22.3 || >=26.13.1` (BL-170), two old-Node workarounds are no longer needed: `headersDistinct` (Node 18.3) could replace the `req.rawHeaders` read behind the local MCP endpoint's header check (REQ-002, BL-PM-007), and `server.closeAllConnections?.()` (Node 18.2, BL-146) could drop the `?.`. Decide each; golden recordings unchanged or it is not trivial. Attribution: the architect, BL-170, 2026-11-14. |
@@ -78,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-178 | chore | P3 | A Jest test that the `url.pathname` routes dispatched in `src/utils/specServer.ts` and the keys of `commands.serve.routes` in `.specs/architecture/api.yaml` name the same method and path set, so the only spec of the `serve` HTTP interface (ARCH-004.77) cannot drift from the code. Attribution: the architect, BL-172, 2026-11-15. Approved 2026-11-15. |
 
 ## Won't do
 

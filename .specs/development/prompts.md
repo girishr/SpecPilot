@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-15: the developer: `Approved, commit` for BL-168: feature commit `7ccb110`, BL-168 to Completed (row 283), merged into `main` with `--no-ff`; no push.
 - 2026-11-15: the developer: `do all.` (BL-175, BL-167, BL-168). BL-168 first, on `fix/bl-168-refine-ide` from `main` (`e4daca7`): Spec Report; spec-reviewer ESCALATE (a hand-made list of several IDEs, `ides: []`, and REQ-002.A.14's clause); architect DECIDE (write the known list back, keep `[]`, `null` gives `[vscode]`); spec-reviewer PASS on the re-run. Built: tests first, Jest 2049 → 2055, snapshots unchanged.
 - 2026-11-15: the developer: `move all to CS` (the three IDE-audit follow-ups): BL-175, BL-167 and BL-168 moved from Backlog to the top of Current Sprint in tasks.md by hand (the SpecPilot MCP server not authorized); no other row touched.
 - 2026-11-15: the developer: `Yes, approve it`, `commit` for BL-178: feature commit `2a558c7`, BL-178 to Completed (row 282), merged into `main` with `--no-ff`; not pushed.

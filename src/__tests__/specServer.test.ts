@@ -5114,3 +5114,49 @@ describe("the page's esc() escapes ' (BL-146)", () => {
   });
 });
 
+
+// ARCH-004.77: commands.serve.routes is the only spec of the serve HTTP interface, so it must name what the server dispatches.
+describe('serve routes match api.yaml (BL-178)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const yaml = require('js-yaml') as { load: (s: string) => { commands: { serve: { routes: Record<string, unknown> } } } };
+  const keys = Object.keys(yaml.load(readFileSync(join(REPO, '.specs/architecture/api.yaml'), 'utf-8')).commands.serve.routes);
+  const ROUTE_KEY = /^(GET|POST) (\/\S*)$/;
+  const specRoutes = keys.filter(k => ROUTE_KEY.test(k)).map(k => k.split('?')[0]).sort();
+  const source = readFileSync(join(REPO, 'src/utils/specServer.ts'), 'utf-8');
+
+  // The dispatch is an if chain: before the GET guard each path with the methods it tests (none named: POST, /mcp's handler
+  // answers POST only); after it every path tested is GET, and UI_ROUTES serves / and the assets.
+  const codeRoutes = (src: string): string[] => {
+    const start = src.indexOf("url.pathname === '");
+    const guard = src.indexOf("if (req.method !== 'GET')", start);
+    const end = src.indexOf('return openStream(i, req, res);', guard);
+    expect(start).toBeGreaterThan(-1);
+    expect(guard).toBeGreaterThan(start);
+    expect(end).toBeGreaterThan(guard);
+    const routes = new Set<string>();
+    const writes = [...src.slice(start, guard).matchAll(/url\.pathname === '([^']+)'/g)];
+    writes.forEach((m, n) => {
+      const segment = src.slice(start + m.index!, n + 1 < writes.length ? start + writes[n + 1].index! : guard);
+      const methods = [...segment.matchAll(/req\.method === '(\w+)'/g)].map(x => x[1]);
+      (methods.length ? methods : ['POST']).forEach(method => routes.add(`${method} ${m[1]}`));
+    });
+    for (const m of src.slice(guard, end).matchAll(/url\.pathname [!=]== '([^']+)'/g)) routes.add(`GET ${m[1]}`);
+    const table = src.slice(src.indexOf('const UI_ROUTES'), src.indexOf('};', src.indexOf('const UI_ROUTES')));
+    for (const m of table.matchAll(/^ {2}'(\/[^']*)':/gm)) routes.add(m[1].startsWith('/assets/') ? 'GET /assets/<file>' : `GET ${m[1]}`);
+    return [...routes].sort();
+  };
+
+  it('the method and path set dispatched in specServer.ts is the set of route keys', () => {
+    expect(keys.filter(k => !ROUTE_KEY.test(k)).sort()).toEqual([
+      'Any request with Service-Worker: script',
+      'Every response',
+      'GET /api/events, /api/specs, /api/file, /api/projects from another page',
+    ]);
+    expect(specRoutes).toHaveLength(19);
+    expect(codeRoutes(source)).toEqual(specRoutes);
+  });
+
+  it('a path renamed in the source no longer matches', () => {
+    expect(codeRoutes(source.replace("url.pathname === '/api/quit'", "url.pathname === '/api/stop'"))).not.toEqual(specRoutes);
+  });
+});

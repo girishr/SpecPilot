@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-15: the developer: `Yes, approve it`, `commit` for BL-172: feature commit `712a9b2`, BL-172 to Completed (row 281), merged into `main` with `--no-ff`; not pushed.
 - 2026-11-15: BL-172 Spec Report review: spec-reviewer ESCALATE (four questions) plus two wording fixes (reason (1), the cited IDs), applied; architect DECIDE: A (no OpenAPI document), class corrected to Feature (no CHANGELOG entry), ARCH-004.77 added, the drift test filed as BL-178 (chore, P3), BL-172 to Review then Completed. Spec-only build: a scratch copy of `.specs/` validates clean, `npm test` 2047/2047.
 - 2026-11-15: the developer: `start with BL-172`. Branch `feat/bl-172-serve-openapi` from `main` (`6da64ed`); Spec Report written (Architectural): the context.md entry and the `api.yaml` header note; proposed no OpenAPI document for the `serve` routes; no code.
 - 2026-11-15: the developer: `push` (main `74d8990..6da64ed`: BL-177), after Jest 2047/2047 and browser 136/136 on `main`.

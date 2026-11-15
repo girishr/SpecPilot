@@ -76,7 +76,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-173 | chore | P3 | With `engines` at `^22.23.5 || ^24.22.3 || >=26.13.1` (BL-170), two old-Node workarounds are no longer needed: `headersDistinct` (Node 18.3) could replace the `req.rawHeaders` read behind the local MCP endpoint's header check (REQ-002, BL-PM-007), and `server.closeAllConnections?.()` (Node 18.2, BL-146) could drop the `?.`. Decide each; golden recordings unchanged or it is not trivial. Attribution: the architect, BL-170, 2026-11-14. Approved 2026-11-15 |
 
 ## Won't do
 
@@ -122,3 +121,4 @@ Notes
 | 282 | [CD-girishr-191] [BL-178] | A Jest suite in `specServer.test.ts` keeps ARCH-004.77 true: the method and path set dispatched in `src/utils/specServer.ts` (the `url.pathname` tests around the GET guard, `UI_ROUTES`) equals the 19 route keys of `commands.serve.routes` in `api.yaml`, the three non-route keys pinned; a renamed path is shown to fail. Test only, no `src/` change. `prompts.md` archived (24 entries). Jest 2049/2049. Approved 2026-11-15. Feature commit `2a558c7`. |
 | 283 | [CD-girishr-192] [BL-168] | `refine --update` follows `project.yaml` `ides` (REQ-002.A.13): it wrote VS Code's files and reset the record to `ides: [vscode]`; it now writes the files for the first listed IDE and writes the known list back, keeps `ides: []`, and with no list gives VS Code's files and `[vscode]` as before (architect decision 2026-11-15). Commit 7ccb110. |
 | 284 | [CD-girishr-193] [BL-175] | The Commands view and the read allowlist cover Devin Desktop's `.devin/workflows/` (REQ-002.H.71): Windsurf is now Devin Desktop, whose docs name that folder and still read the legacy `.windsurf/workflows/` and `.windsurfrules`, so the writes stay; `.devin/workflows/` is appended to `ALLOWED_DIRS` and `COMMAND_FOLDERS`, its files under Yours; the README, `docs/GUIDE.md` and the `--ide` help say `Windsurf (Devin Desktop)` (architect decision 2026-11-15; BL-184 and BL-185 filed). Commit 3e1dd0b. |
+| 285 | [CD-girishr-194] [BL-173] | The two old-Node workarounds decided under BL-170's range: `server.closeAllConnections()` in `close()` without `?.` and without its Node 18.2 comment; `req.rawHeaders` kept, since `headersDistinct` gives the same values and the read is tested; REQ-002 and the Spec Server line drop the Node 18.2 caveat. Jest 2060/2060, browser 136/136. Approved 2026-11-15. Feature commit `c572763`. |

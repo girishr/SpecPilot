@@ -27,6 +27,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-178 | chore | P3 | A Jest test that the `url.pathname` routes dispatched in `src/utils/specServer.ts` and the keys of `commands.serve.routes` in `.specs/architecture/api.yaml` name the same method and path set, so the only spec of the `serve` HTTP interface (ARCH-004.77) cannot drift from the code. Attribution: the architect, BL-172, 2026-11-15. |
 | BL-175 | chore | P3 | Windsurf is now Devin Desktop (docs.windsurf.com redirects to docs.devin.ai, read 2026-11-14). Its Workflows page names `.devin/workflows/*.md` as preferred and `.windsurf/workflows/*.md` as the fallback still read; SpecPilot writes `.windsurf/workflows/` and lists only it. Decide whether SpecPilot writes or lists `.devin/workflows/`, whether `.windsurfrules` is still read (the pages read do not name it), and whether `IDE_CHOICES`, the page and the docs should say Devin Desktop. Check the vendor's own docs first. Attribution: BL-164, 2026-11-14. |
 | BL-174 | chore | P2 | Node 22 reaches end of life on 2027-04-30: drop `^22.23.5` from `engines.node` (and `package-lock.json`), README, ARCH-007.1, REQ-004.1, SEC-004 and `api.yaml`, and make the breaking-or-not call (BL-170 policy, CTX-003). Attribution: the architect, BL-170, 2026-11-14. |
 | BL-173 | chore | P3 | With `engines` at `^22.23.5 || ^24.22.3 || >=26.13.1` (BL-170), two old-Node workarounds are no longer needed: `headersDistinct` (Node 18.3) could replace the `req.rawHeaders` read behind the local MCP endpoint's header check (REQ-002, BL-PM-007), and `server.closeAllConnections?.()` (Node 18.2, BL-146) could drop the `?.`. Decide each; golden recordings unchanged or it is not trivial. Attribution: the architect, BL-170, 2026-11-14. |
@@ -65,7 +66,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-172 | feat | P2 | `.specs/architecture/api.yaml` is not Swagger/OpenAPI: it has no `openapi`, `info` or `paths` keys, and the `specpilot serve` HTTP routes (`GET /api/specs`, `POST /api/tasks/move` and the rest) are prose under `commands.serve`. Decide whether the serve routes get their own OpenAPI document (Architectural: Spec Report first). Its YAML part (lines 285 and 288 did not parse) is fixed in BL-177 (architect decision 2026-11-15). Found 2026-11-14. |
 | BL-128 | chore | P3 | Chore, P3 (the architect, 2026-10-25, out of BL-127): the `specpilot-archive` script's branch warning (`src/core/slashCommands.ts`) gains the page's branch consequence sentence (REQ-002.H.59) for parity. Take it with BL-123, which re-makes the same script and `KNOWN_COMMAND_HASHES`; golden recordings change, so never a trivial row. |
 | BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. |
 | BL-TB-08 | feat | P2 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. |
@@ -78,6 +78,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-172 | feat | P2 | `.specs/architecture/api.yaml` is not Swagger/OpenAPI: it has no `openapi`, `info` or `paths` keys, and the `specpilot serve` HTTP routes (`GET /api/specs`, `POST /api/tasks/move` and the rest) are prose under `commands.serve`. Decided 2026-11-15 (architect, Feature): no OpenAPI document; the routes stay specified under `commands.serve.routes`, the `api.yaml` header says so, ARCH-004.77. Its YAML part (lines 285 and 288 did not parse) is fixed in BL-177 (architect decision 2026-11-15). Found 2026-11-14. Approved 2026-11-15. |
 
 ## Won't do
 

@@ -5,6 +5,12 @@
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
+# The `specpilot serve` HTTP routes are specified under commands.serve.routes,
+# not as a separate OpenAPI document (BL-172). The page's routes have one
+# client, SpecPilot's own page, served from the same origin on 127.0.0.1 (Host
+# check; writes also take the page token and an Origin check); POST /mcp's
+# client is an AI IDE, and it lists its tools itself through tools/list. This
+# file has no `openapi` key, so validate's OpenAPI checks (BL-177) skip it.
 
 cli:
   binary: specpilot

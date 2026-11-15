@@ -46,6 +46,45 @@ export const RENAME_HEADING_PREFIX = 'rename-heading:';
 
 const joinAnd = (a: string[]): string => (a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a.join(''));
 
+/** A `fixable` token for `autoFix()`: `rename-api-key:<key>`, the key being the whole rest of the token, never split on `:` (BL-177). */
+export const RENAME_API_KEY_PREFIX = 'rename-api-key:';
+
+/** js-yaml's reason and position only: its message quotes lines of the file (BL-134). */
+function yamlError(file: string, error: unknown): string {
+  const e = error as { reason?: unknown; mark?: { line: number; column: number } };
+  return error instanceof RangeError && error.message === YAML_TOO_LARGE
+    ? `${file} is ${YAML_TOO_LARGE}.`
+    : error instanceof yaml.YAMLException && typeof e.reason === 'string'
+    ? `Failed to parse ${file}: ${e.reason}${e.mark ? ` (line ${e.mark.line + 1}, column ${e.mark.column + 1})` : ''}`
+    : `Failed to parse ${file}.`;
+}
+
+// ---- api.yaml content (BL-177, REQ-002.F.14): an OpenAPI root mapping, its fixed fields, and the root-key rename.
+
+const OPENAPI_KEYS = ['openapi', 'info', 'servers', 'paths', 'components', 'security', 'tags', 'externalDocs'];
+const OPENAPI_31_KEYS = ['webhooks', 'jsonSchemaDialect'];
+const OPERATIONS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
+
+type Mapping = Record<string, unknown>;
+const isMapping = (v: unknown): v is Mapping => !!v && typeof v === 'object' && !Array.isArray(v);
+
+/** The parsed file when it is a root mapping with an `openapi` key, else null: only those get checks (2) to (4). */
+function openapiRoot(doc: unknown): Mapping | null {
+  return isMapping(doc) && Object.prototype.hasOwnProperty.call(doc, 'openapi') ? doc : null;
+}
+
+/** The one line that writes `key` plain at column 0. */
+const keyLine = (key: string) => new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:(\\s|$)`);
+
+/** Each root key OpenAPI does not allow, and whether `--fix` may rename it: written plain on exactly one line, no `x-<key>` at the root. */
+function apiKeyRenames(content: string, doc: Mapping): { key: string; fixable: boolean }[] {
+  const allowed = String(doc.openapi).startsWith('3.1') ? [...OPENAPI_KEYS, ...OPENAPI_31_KEYS] : OPENAPI_KEYS;
+  const lines = content.split('\n');
+  return Object.keys(doc)
+    .filter(key => !allowed.includes(key) && !key.startsWith('x-'))
+    .map(key => ({ key, fixable: !(`x-${key}` in doc) && lines.filter(l => keyLine(key).test(l)).length === 1 }));
+}
+
 /**
  * BL-116: a known section with lines but no table, worded as `specpilot validate` warns. `validate()`'s alone,
  * never in `tasksChecks()`: the task mover diffs those strings before and after a write, and this count changes
@@ -250,6 +289,9 @@ export class SpecValidator {
   // Validate project.yaml structure
   await this.validateProjectYaml(specsDir, result);
 
+    // Validate api.yaml content (BL-177)
+    this.validateApiYaml(specsDir, result);
+
     // Validate mandate compliance
     await this.validateMandates(specsDir, result);
 
@@ -290,6 +332,8 @@ export class SpecValidator {
           fixed.push(fix);
         } else if (fix.startsWith(RENAME_HEADING_PREFIX)) {
           if (this.renameTasksHeading(projectDir, specs, fix)) fixed.push(fix);
+        } else if (fix.startsWith(RENAME_API_KEY_PREFIX)) {
+          if (this.renameApiKey(projectDir, specs, fix.slice(RENAME_API_KEY_PREFIX.length))) fixed.push(fix);
         }
       } catch {
         // Skip fixes that fail
@@ -398,17 +442,101 @@ export class SpecValidator {
       }
 
     } catch (error) {
-      // js-yaml's reason and position only: its message quotes lines of the file (BL-134).
-      const e = error as { reason?: unknown; mark?: { line: number; column: number } };
-      result.errors.push(
-        error instanceof RangeError && error.message === YAML_TOO_LARGE
-          ? `project.yaml is ${YAML_TOO_LARGE}.`
-          : error instanceof yaml.YAMLException && typeof e.reason === 'string'
-          ? `Failed to parse project.yaml: ${e.reason}${e.mark ? ` (line ${e.mark.line + 1}, column ${e.mark.column + 1})` : ''}`
-          : 'Failed to parse project.yaml.',
-      );
+      result.errors.push(yamlError('project.yaml', error));
       result.isValid = false;
     }
+  }
+
+  /** BL-177 (REQ-002.F.14): architecture/api.yaml's content, when the file exists. */
+  private validateApiYaml(specsDir: string, result: ValidationResult): void {
+    if (!existsSync(join(specsDir, API_YAML))) return; // optional (BL-107)
+    const content = readSpec(specsDir, API_YAML);
+    if (content === null) {
+      result.errors.push(notRead(API_YAML));
+      result.isValid = false;
+      return;
+    }
+    let doc: unknown;
+    try {
+      doc = loadRepoYaml(content);
+    } catch (error) {
+      result.errors.push(yamlError(API_YAML, error));
+      result.isValid = false;
+      return;
+    }
+    const root = openapiRoot(doc);
+    if (!root) return;
+
+    const info = isMapping(root.info) ? root.info : {};
+    const missing = [
+      ['info.title', info.title, "info.title (the API's name)"],
+      ['info.version', info.version, "info.version (the API's version)"],
+      ['paths', root.paths, 'paths (one entry per route the code serves)'],
+    ].filter(([, value]) => value === undefined || value === null);
+    for (const [field] of missing) result.errors.push(`${API_YAML} has openapi but no ${field}.`);
+    if (missing.length) {
+      result.isValid = false;
+      result.fixPrompts.push({
+        issue: `${API_YAML} is missing OpenAPI fields`,
+        prompt: `In .specs/${API_YAML}, add ${joinAnd(missing.map(m => m[2] as string))}. Keep every other key, value and comment as it is.`,
+      });
+    }
+
+    for (const { key, fixable } of apiKeyRenames(content, root)) {
+      if (fixable) {
+        result.warnings.push(`${API_YAML} has the root key ${key}, which OpenAPI does not allow; \`specpilot validate --fix\` renames it to x-${key}.`);
+        result.fixable.push(`${RENAME_API_KEY_PREFIX}${key}`);
+      } else {
+        result.warnings.push(`${API_YAML} has the root key ${key}, which OpenAPI does not allow; rename it to x-${key} by hand.`);
+      }
+    }
+
+    const params = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
+    for (const [path, item] of Object.entries(isMapping(root.paths) ? root.paths : {})) {
+      const names = [...path.matchAll(/\{([^}]+)\}/g)].map(m => m[1]);
+      if (!names.length || !isMapping(item)) continue;
+      const missingNames = new Set<string>();
+      const methods: string[] = [];
+      for (const op of OPERATIONS) {
+        const operation = item[op];
+        if (!isMapping(operation)) continue;
+        const all = [...params(item.parameters), ...params(operation.parameters)];
+        if (all.some(p => isMapping(p) && '$ref' in p)) continue; // no resolver
+        const absent = names.filter(n => !all.some(p => isMapping(p) && p.in === 'path' && p.name === n));
+        if (!absent.length) continue;
+        absent.forEach(n => missingNames.add(n));
+        methods.push(op.toUpperCase());
+      }
+      if (!methods.length) continue;
+      const list = joinAnd([...missingNames]);
+      const error = `${API_YAML} path ${path} has no \`in: path\` parameter ${list} for ${methods.join(', ')}.`;
+      result.errors.push(error);
+      result.isValid = false;
+      result.fixPrompts.push({
+        issue: error,
+        prompt: `In .specs/${API_YAML}, under paths.${path}, add a parameters entry for each of ${list} with in: path, required: true and a schema that matches the route in the code. Keep every other key, value and comment as it is.`,
+      });
+    }
+  }
+
+  /** BL-177: rename one api.yaml root key to `x-<key>` only if the file as it is now still offers exactly that rename. */
+  private renameApiKey(root: string, specs: string, key: string): boolean {
+    const rel = `${specs}/${API_YAML}`;
+    const file = join(root, ...rel.split('/'));
+    if (writeError(root, rel) || !existsSync(file)) return false;
+    const content = readFileSync(file, 'utf-8');
+    let doc: Mapping | null;
+    try {
+      doc = openapiRoot(loadRepoYaml(content));
+    } catch {
+      return false;
+    }
+    if (!doc || !apiKeyRenames(content, doc).some(r => r.key === key && r.fixable)) return false;
+    const lines = content.split('\n');
+    const i = lines.findIndex(l => keyLine(key).test(l));
+    lines[i] = `x-${lines[i]}`;
+    writeInside(root, rel, lines.join('\n'));
+    return true;
   }
 
   private flattenRules(rules: unknown): string[] {

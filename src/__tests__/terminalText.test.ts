@@ -122,6 +122,17 @@ describe('the commands print repository text filtered (BL-133)', () => {
     expect(out()).not.toMatch(CONTROL);
   });
 
+  test('validate --fix: the api.yaml root-key rename label (BL-177)', async () => {
+    const token = 'rename-api-key:proj\x1b[2Kect';
+    jest.spyOn(SpecValidator.prototype, 'validate')
+      .mockResolvedValueOnce(result({ fixable: [token] }) as never)
+      .mockResolvedValueOnce(result({ isValid: true, errors: [] }) as never);
+    jest.spyOn(SpecValidator.prototype, 'autoFix').mockResolvedValue([token]);
+    await validateCommand({ dir, fix: true, verbose: false } as never).catch(() => undefined);
+    expect(out()).toContain('• Renamed root key: proj[2Kect → x-proj[2Kect in architecture/api.yaml');
+    expect(out()).not.toMatch(CONTROL);
+  });
+
   test('refine: a requirements.md line with an OSC sequence; the Proposed changes line has no stray SGR text', async () => {
     mkdirSync(join(dir, '.specs', 'project'), { recursive: true });
     writeFileSync(join(dir, '.specs', 'project', 'project.yaml'), 'name: kit\nlanguage: typescript\n');

@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { RENAME_HEADING_PREFIX, SpecValidator, ValidationResult } from '../utils/specValidator';
+import { RENAME_API_KEY_PREFIX, RENAME_HEADING_PREFIX, SpecValidator, ValidationResult } from '../utils/specValidator';
 import { Logger, terminalText } from '../utils/logger';
 
 export interface ValidateOptions {
@@ -25,6 +25,10 @@ function fixLabel(fix: string): string {
   if (fix.startsWith(RENAME_HEADING_PREFIX)) {
     const [found, expected] = fix.slice(RENAME_HEADING_PREFIX.length).split(':');
     return `Renamed heading: ${found} → ${expected} in planning/tasks.md`;
+  }
+  if (fix.startsWith(RENAME_API_KEY_PREFIX)) {
+    const key = fix.slice(RENAME_API_KEY_PREFIX.length);
+    return `Renamed root key: ${key} → x-${key} in architecture/api.yaml`;
   }
   return fix;
 }

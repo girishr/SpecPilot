@@ -279,9 +279,19 @@ input.txt{width:100%}
 @media (min-width:901px){.board .gl.fold .gh{writing-mode:vertical-rl;min-height:0;padding:6px 0;height:auto;align-self:start}.board .gl.fold .gh .fold{margin:0;padding:4px 2px}.board .gl.fold .gh .fold .chev{transform:rotate(90deg)}}
 
 /* ---------- inspector ---------- */
-.insp{position:absolute;top:0;right:0;bottom:0;width:min(400px,100%);background:var(--ground);border-left:1px solid var(--sep);border-left:1px solid var(--sep-2);transform:translateX(102%);visibility:hidden;transition:transform .26s cubic-bezier(.2,.8,.2,1),visibility .26s;display:flex;flex-direction:column;z-index:20}
+.insp{position:absolute;top:0;right:0;bottom:0;width:min(var(--insp-w,400px),100%);background:var(--ground);border-left:1px solid var(--sep);border-left:1px solid var(--sep-2);transform:translateX(102%);visibility:hidden;transition:transform .26s cubic-bezier(.2,.8,.2,1),visibility .26s;display:flex;flex-direction:column;z-index:20}
 .insp.open{visibility:visible}
 .insp.open{transform:none}
+.insp.drag{transition:none}
+/* BL-TB-02: the panel's resize handle, a sibling of #insp (redrawn by innerHTML); shown only beside an open panel */
+#inspGrip{position:absolute;top:0;bottom:0;right:var(--insp-w,400px);width:8px;margin-right:-4px;cursor:col-resize;touch-action:none;z-index:21;display:none;outline:0}
+.insp.open+#inspGrip:not(.off){display:block}
+#inspGrip::after{content:"";position:absolute;top:0;bottom:0;left:3px;width:2px;background:transparent}
+#inspGrip:hover::after,#inspGrip:focus-visible::after,#inspGrip.drag::after{background:var(--focus)}
+/* the grip itself: a small pill across the edge, with two ridges, so the edge reads as draggable before it is hovered */
+#inspGrip::before{content:"";position:absolute;top:50%;left:-3px;width:12px;height:44px;margin-top:-22px;box-sizing:border-box;border:1px solid var(--sep-2);border-radius:6px;background:linear-gradient(90deg,transparent 3px,var(--label-3) 3px,var(--label-3) 4px,transparent 4px,transparent 6px,var(--label-3) 6px,var(--label-3) 7px,transparent 7px) center/10px 20px no-repeat,var(--group);z-index:1}
+#inspGrip:hover::before,#inspGrip:focus-visible::before,#inspGrip.drag::before{border-color:var(--focus);background-color:var(--ground)}
+body.resizing{user-select:none;cursor:col-resize}
 .insp .ih{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--sep);background:var(--group)}
 .insp .ih .id{font-family:var(--mono);font-size:12px;color:var(--label-3)}
 .insp .ih .x{margin-left:auto}

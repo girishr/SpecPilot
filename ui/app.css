@@ -128,6 +128,7 @@ a{color:var(--accent);text-decoration:none}
 .gl .gh .add,.gl .gh .arch{margin-left:auto;display:inline-flex;align-items:center;gap:3px;padding:2px 7px 2px 5px;border-radius:var(--rs);color:var(--label-2);font-weight:500;font-size:12px;text-transform:none;letter-spacing:0} /* BL-TB-05; .arch: BL-TB-06 */
 .gl .gh .add:hover,.gl .gh .arch:hover{background:var(--hover);color:var(--label)}
 .gl .gh .add .ico,.gl .gh .arch .ico{width:12px;height:12px}
+.gl .gh #edBtn{margin-left:auto;text-transform:none;letter-spacing:0} /* BL-TB-08 */
 #regenNote .note{margin:0 0 6px;overflow-wrap:anywhere}
 .box{background:var(--group);border-radius:var(--r);border:1px solid var(--sep-2);overflow:hidden}
 .row{display:flex;align-items:center;gap:12px;padding:0 14px;min-height:48px;border-top:1px solid var(--sep);width:100%;color:var(--label);position:relative;transition:background-color var(--t)}
@@ -291,14 +292,16 @@ input.txt{width:100%}
 .hist .hd{font-family:var(--mono);font-size:12px;color:var(--label-3)}
 .hist .hn{color:var(--label-2);overflow-wrap:anywhere}
 .insp .if{flex:none;border-top:1px solid var(--sep);background:var(--group);padding:10px 14px;display:flex;flex-direction:column;gap:8px}
-.insp .if .fb{display:flex;gap:8px;flex-wrap:wrap}
-.insp .if form{display:flex;flex-direction:column;gap:6px;margin:0}
+.insp .if .fb,#edForm .fb{display:flex;gap:8px;flex-wrap:wrap}
+.insp .if form,#edForm{display:flex;flex-direction:column;gap:6px;margin:0}
+#edForm[hidden]{display:none} /* BL-TB-08: the edit form shares Send back's look */
 .insp .if label{font-size:12.5px;color:var(--label-2)}
-.insp .if textarea{width:100%;background:var(--ground);border:1px solid var(--sep-2);border-radius:var(--r);padding:6px 9px;color:var(--label);font:14px/1.45 var(--sans);resize:none}
-.insp .if .fc{font-family:var(--mono);font-size:11px;color:var(--label-3);text-align:right}
-.insp .if .err{margin:0;overflow-wrap:anywhere}
+.insp .if textarea,#edText{box-sizing:border-box;width:100%;background:var(--ground);border:1px solid var(--sep-2);border-radius:var(--r);padding:6px 9px;color:var(--label);font:14px/1.45 var(--sans);resize:none}
+#edText{height:350px;min-height:120px;resize:vertical} /* opens 350px tall; the reader can drag it shorter or taller; width is the panel's */
+.insp .if .fc,#edForm .fc{font-family:var(--mono);font-size:11px;color:var(--label-3);text-align:right}
+.insp .if .err,#edForm .err{margin:0;overflow-wrap:anywhere}
 .insp .if .rvdone{margin:0;font-size:13px;line-height:1.5;color:var(--label-2)} /* D14 */
-.insp .if button:disabled{opacity:.6;cursor:default}
+.insp .if button:disabled,#edForm button:disabled{opacity:.6;cursor:default}
 .insp h2{font-size:17px;font-weight:600;margin:0;line-height:1.35;text-wrap:balance;padding:0 2px}
 .insp .gl .gh{font-size:12px}
 .insp .row{min-height:40px;padding:0 12px}

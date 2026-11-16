@@ -1115,13 +1115,71 @@ describe('planFields: the two cells of one typed row, every other byte kept (BL-
   });
 
   it('fieldsShapeError: an object with an ID and at least one value of its set', () => {
-    expect(fieldsShapeError(null)).toBe('The request must be a JSON object with id and a type or priority.');
-    expect(fieldsShapeError([])).toBe('The request must be a JSON object with id and a type or priority.');
+    expect(fieldsShapeError(null)).toBe('The request must be a JSON object with id and a type, priority or description.');
+    expect(fieldsShapeError([])).toBe('The request must be a JSON object with id and a type, priority or description.');
     expect(fieldsShapeError({ type: 'feat' })).toBe('The request has no task ID.');
-    expect(fieldsShapeError({ id: 'BL-001' })).toBe('Name a type or a priority to set.');
+    expect(fieldsShapeError({ id: 'BL-001' })).toBe('Name a type, a priority or a description to set.');
+    // the MCP tool's call (BL-TB-08): today's texts, and a description is not a field
+    expect(fieldsShapeError(null, false)).toBe('The request must be a JSON object with id and a type or priority.');
+    expect(fieldsShapeError({ id: 'BL-001' }, false)).toBe('Name a type or a priority to set.');
+    expect(fieldsShapeError({ id: 'BL-001', description: 'x' }, false)).toBe('Name a type or a priority to set.');
     expect(fieldsShapeError({ id: 'BL-001', type: 'story' })).toBe('Type must be feat, bug or chore, or empty.');
     expect(fieldsShapeError({ id: 'BL-001', priority: 'high' })).toBe('Priority must be P1, P2 or P3, or empty.');
     expect(fieldsShapeError({ id: 'BL-001', priority: '' })).toBeNull();
+  });
+});
+
+describe('planFields: a Backlog row\'s description (BL-TB-08, REQ-002.H.73)', () => {
+  const PLAIN = ['## Backlog', '', '| ID | Description |', '|---|---|', '| BL-001 | One |', '| BL-002 | Two  |  ', '| BL-003 | Open', '| BL-004 | `a | b` |\r', '', '## Current Sprint', '', '| ID | Description |', '|---|---|', '| CS-001 | Plain one |', ''].join('\n');
+  const at = (req: FieldsRequest, content = TYPED) => {
+    const out = planFields(content, req);
+    return out.ok ? (out.noop ? 'noop' : line(out.content, req.id)) : out.error;
+  };
+
+  it('replaces the last cell of a typed and a plain row, by column position, every other byte kept', () => {
+    expect(at({ id: 'BL-001', description: 'New one' })).toBe('| BL-001 | feat | P1 | New one |');
+    expect(at({ id: 'BL-003', description: 'Three' })).toBe('| BL-003 | bug | P2 | Three |'); // a | in backticks belongs to the cell
+    expect(at({ id: 'BL-004', description: '  Spaced  ' })).toBe('  | BL-004 | chore |  | Spaced |'); // trimmed; the leading white space stays
+    expect(at({ id: 'BL-001', description: 'New' }, PLAIN)).toBe('| BL-001 | New |');
+    expect(at({ id: 'BL-002', description: 'New' }, PLAIN)).toBe('| BL-002 | New |  '); // trailing white space after the closing | kept
+    expect(at({ id: 'BL-003', description: 'Shut' }, PLAIN)).toBe('| BL-003 | Shut '); // no closing |: up to the trimmed end
+    expect(at({ id: 'BL-004', description: 'Plain' }, PLAIN)).toBe('| BL-004 | Plain |\r'); // CRLF kept
+    const out = planFields(PLAIN, { id: 'BL-001', description: 'New' });
+    expect(out.ok && out.content).toBe(PLAIN.replace('| BL-001 | One |', '| BL-001 | New |'));
+  });
+
+  it('is a no-op when the trimmed text is the cell\'s, and sets the fields and the description in one edit', () => {
+    expect(at({ id: 'BL-001', description: ' One ' })).toBe('noop');
+    expect(at({ id: 'BL-002', description: 'Two' }, PLAIN)).toBe('noop');
+    expect(at({ id: 'BL-002', type: 'bug', priority: 'P1', description: 'Both' })).toBe('| BL-002 | bug | P1 | Both |');
+  });
+
+  it('refuses a row outside Backlog, before the Type and Priority row checks; a request is whole or nothing', () => {
+    const only = (id: string, section: string) => `Only a Backlog row's description can be edited. ${id} is in ${section}.`;
+    expect(at({ id: 'CS-001', description: 'x' })).toBe(only('CS-001', 'Current Sprint'));
+    expect(at({ id: 'BL-005', description: 'x' })).toBe(only('BL-005', 'Review'));
+    expect(at({ id: '[CD-001]', description: 'x' })).toBe(only('[CD-001]', 'Completed'));
+    expect(at({ id: 'CS-001', type: 'bug', description: 'x' })).toBe(only('CS-001', 'Current Sprint'));
+    expect(at({ id: 'BL-001', type: 'bug', description: 'x' }, PLAIN)).toBe('Backlog has no Type and Priority columns. Give the Backlog table those columns first.');
+  });
+
+  it('a Won\'t do row is refused too', () => {
+    const wont = TYPED + "\n## Won't do\n\n| ID | Description | Reason |\n|---|---|---|\n| BL-007 | Dropped | No |\n";
+    expect(at({ id: 'BL-007', description: 'x' }, wont)).toBe("Only a Backlog row's description can be edited. BL-007 is in Won't do.");
+  });
+
+  it('fieldsShapeError checks the description by New Task\'s rules, before the Type and Priority values', () => {
+    expect(fieldsShapeError({ id: 'BL-001', description: 'x' })).toBeNull();
+    expect(fieldsShapeError({ id: 'BL-001', description: ' ' })).toBe('Type a description for the task.');
+    expect(fieldsShapeError({ id: 'BL-001', description: 1 })).toBe('Type a description for the task.');
+    expect(fieldsShapeError({ id: 'BL-001', description: 'a\nb' })).toBe('The description must be one line: a table row cannot hold a line break.');
+    expect(fieldsShapeError({ id: 'BL-001', description: 'a | b' })).toContain('cannot contain |');
+    expect(fieldsShapeError({ id: 'BL-001', description: 'x Approved 2026-10-31' })).toContain('review marker');
+    expect(fieldsShapeError({ id: 'BL-001', description: 'x'.repeat(4001) })).toBe('The description is longer than 4000 characters.');
+    expect(fieldsShapeError({ id: 'BL-001', description: 'a | b', type: 'story' })).toContain('cannot contain |'); // the description's refusal first
+    expect(fieldsShapeError({ id: 'CS-001', description: 'x', type: 'story' })).toBe('Type must be feat, bug or chore, or empty.'); // a value error before planFields' Backlog check
+    // the same function New Task calls: the same texts
+    for (const d of [' ', 'a\nb', 'a | b', 'x'.repeat(4001), 'x\\']) expect(fieldsShapeError({ id: 'BL-001', description: d })).toBe(newTaskShapeError({ description: d, section: 'backlog' }));
   });
 });
 
@@ -1153,6 +1211,16 @@ describe('setTaskFields: the write on disk (BL-125)', () => {
     expect(setTaskFields(root, { id: 'BL-002', priority: 'P1' }, sha256('something else'))).toEqual({ status: 409, error: FIELDS_STALE_ERROR });
     expect(setTaskFields(root, { id: 'CS-001', priority: 'P1' }, sha256(TYPED)).status).toBe(422);
     expect(readFileSync(file, 'utf-8')).toBe(TYPED);
+  });
+
+  it('writes a Backlog description; a stale hash with a description gets the plain stale text (BL-TB-08)', () => {
+    const out = setTaskFields(root, { id: 'BL-002', description: 'Edited' }, sha256(TYPED));
+    const after = readFileSync(file, 'utf-8');
+    expect(out).toEqual({ status: 200, sha256: sha256(after) });
+    expect(after).toBe(TYPED.replace('| BL-002 |  |  | Two |', '| BL-002 |  |  | Edited |'));
+    expect(setTaskFields(root, { id: 'BL-002', description: 'Again' }, sha256(TYPED))).toEqual({ status: 409, error: REVIEW_STALE_ERROR });
+    expect(setTaskFields(root, { id: 'CS-001', type: 'bug', description: 'x' }, sha256(after))).toEqual({ status: 422, error: "Only a Backlog row's description can be edited. CS-001 is in Current Sprint." });
+    expect(readFileSync(file, 'utf-8')).toBe(after);
   });
 
   it('refuses bytes that are not UTF-8 and a symbolic-link tasks.md', () => {

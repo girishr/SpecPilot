@@ -356,15 +356,67 @@ function openTask(col,i,quiet){
   const foot=col==='review'&&TOKEN?`<div class="if" id="inspFoot">${done}<div class="fb">${t.approved?'':'<button type="button" class="btn pri" id="rvApprove">Approve</button>'}<button type="button" class="btn" id="rvSend">Send back</button></div>
     <form id="rvForm" autocomplete="off" hidden><label for="rvNote">What needs fixing? (optional)</label><textarea id="rvNote" name="review-note" rows="3" maxlength="200" aria-describedby="rvCount rvErr"></textarea><div class="fc" id="rvCount" aria-live="polite">0/200</div><div class="fb"><button type="submit" class="btn pri" id="rvGo">Send back to Current Sprint</button><button type="button" class="btn" id="rvCancel">Cancel</button></div></form>
     <p class="err" id="rvErr" role="alert" hidden></p></div>`:'';
+  const editable=col==='backlog'&&!!TOKEN; // BL-TB-08: a Backlog row's description, with a token
   insp.innerHTML=`<div class="ih">${col==='completed'?`<span class="id" translate="no">${esc(t.num)}</span>`:''}<span class="id" translate="no">${mdi(t.id)}</span><span class="pill ${PILL[col]}">${esc(COLS[col])}</span>${col==='review'&&t.approved?'<span class="pill green">Approved</span>':''}<button type="button" class="ib x" id="inspX" aria-label="Close Details"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button></div>
   <div class="ib2">
-    <div class="gl"><div class="gh">Description <span class="cnt" translate="no">tasks.md · ## ${esc(COLS[col])}</span></div><div class="box"><div class="desc md">${md(t.description)}</div></div></div>
+    <div class="gl"><div class="gh">Description <span class="cnt" translate="no">tasks.md · ## ${esc(COLS[col])}</span>${editable?'<button type="button" class="btn sm" id="edBtn">Edit</button>':''}</div><div class="box"${editable?' id="edBox"':''}><div class="desc md">${md(t.description)}</div></div>${editable?editForm():''}</div>
     ${fieldsBlock(col,t)}${reason}${hist}
     <div class="actions"><a class="btn sm" href="${esc(editorUrl(DATA.project.root+'/.specs/planning/tasks.md',t.line))}">Open tasks.md in VS Code</a></div>
   </div>${foot}`;
   if(foot)bindReview(col,i);
+  if(editable)bindEdit(col,i);
   bindRadios(insp,(key,btn)=>chooseField(col,i,key,btn));
   openInsp(quiet);
+}
+/* ---------------- Edit a Backlog description (BL-TB-08, REQ-002.H.73) ----------------
+   The cell's text in a one-line form; Save writes through POST /api/tasks/fields by New Task's rules. A redraw while
+   the form is open keeps it open with the typed text (apply); a closed panel or another card drops it. */
+const editForm=()=>`<form id="edForm" autocomplete="off" hidden><textarea id="edText" name="task-description" rows="4" maxlength="4000" aria-label="Description" aria-describedby="edCount edErr"></textarea><div class="fc" id="edCount" aria-live="polite">0/4000</div><div class="fb"><button type="submit" class="btn pri" id="edSave">Save</button><button type="button" class="btn" id="edCancel">Cancel</button></div><p class="err" id="edErr" role="alert" hidden></p></form>`;
+function edError(m){const e=$('#edErr');if(!e)return;e.textContent=m||'';e.hidden=!m;}
+function edCount(){const n=$('#edText'),c=$('#edCount');if(n&&c)c.textContent=[...n.value].length+'/4000';}
+function openEdit(text,err){
+  const f=$('#edForm');if(!f)return;f.hidden=false;$('#edBox').hidden=true;$('#edBtn').hidden=true;
+  const n=$('#edText');n.value=text;edCount();edError(err||'');n.focus();n.setSelectionRange(n.value.length,n.value.length);
+}
+function closeEdit(refocus){
+  const f=$('#edForm');if(!f||f.hidden)return;f.hidden=true;$('#edBox').hidden=false;$('#edBtn').hidden=false;edError('');
+  if(refocus)$('#edBtn').focus();
+}
+function bindEdit(col,i){
+  $('#edBtn').onclick=()=>openEdit(DATA.tasks[col][i].description);
+  $('#edCancel').onclick=()=>closeEdit(true);
+  $('#edText').oninput=edCount;
+  $('#edText').onkeydown=e=>{
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeEdit(true);}
+    else if(e.key==='Enter'&&!e.isComposing){e.preventDefault();if(!e.shiftKey)$('#edForm').requestSubmit();} // one line: Enter never breaks it
+  };
+  $('#edForm').onsubmit=e=>{e.preventDefault();saveEdit(col,i);};
+}
+let editingDesc=false;
+async function saveEdit(col,i){
+  const t=DATA.tasks[col]&&DATA.tasks[col][i],p=PROJECT;if(!t||editingDesc)return;
+  const typed=$('#edText').value;
+  editingDesc=true;$('#edForm').setAttribute('aria-busy','true');$('#edSave').disabled=true;
+  let r,body={};
+  try{
+    r=await fetch('/api/tasks/fields?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN,'If-Match':DATA.tasks.sha256},body:JSON.stringify({id:t.id,description:typed})});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  editingDesc=false;
+  if(p!==PROJECT)return;
+  const f=$('#edForm');if(f){f.removeAttribute('aria-busy');$('#edSave').disabled=false;}
+  if(r&&r.status===200){
+    closeEdit(false); // before the redraw, which would keep an open form open
+    wrote(['.specs/planning/tasks.md'],body.specs);await apply(body.specs,['.specs/planning/tasks.md']);
+    const b=$('#edBtn');if(b)b.focus();toast('Description saved.');return;
+  }
+  if(r&&r.status===409&&body.specs)await apply(body.specs,null); // still in Backlog: the redraw keeps the form and the typed text
+  const msg=!r?'The server did not answer. Nothing was changed.':body.error||`Nothing was changed (HTTP ${r.status}).`;
+  if($('#edForm')&&!$('#edForm').hidden&&inspOpen&&inspOpen.id===t.id){edError(msg);return;}
+  // the row left Backlog: the panel on its new lane, with no Edit; gone, the panel is closed. The typed text is dropped.
+  const c=Object.keys(COLS).find(k=>Array.isArray(DATA.tasks[k])&&DATA.tasks[k].some(x=>x.id===t.id));
+  if(c){openTask(c,findRow(c,t.id,0),true);$('#inspX').focus();}
+  toast(msg);
 }
 /* ---------------- Type and Priority (BL-125) ----------------
    A row of a typed Backlog, Current Sprint or Review table carries a Type and a Priority: chips on the card's bottom
@@ -1097,6 +1149,7 @@ async function apply(d,paths){
   const scroll=$('#content').scrollTop,ib0=insp.querySelector('.ib2'),inspScroll=ib0?ib0.scrollTop:0;
   const lanes=$$('#boardMode .gl[data-col] .box').map(b=>[b.closest('.gl').dataset.col,b.scrollTop]); // BL-TB-03: each lane's own scroll
   const was=inspOpen;
+  const edF=$('#edForm'),edTyped=edF&&!edF.hidden?$('#edText').value:null; // BL-TB-08: an open edit survives a redraw
   const hadSpecs=!(DATA&&DATA.project&&DATA.project.specs===false);
   DATA=d;
   renderAll();
@@ -1107,7 +1160,7 @@ async function apply(d,paths){
   if(curView==='security')await renderSecurity();
   if(was&&was.kind==='task'){
     const i=findRow(was.col,was.id,was.i);
-    if(i>=0){openTask(was.col,i,true);$$(`#v-board .row[data-col="${was.col}"][data-i="${i}"]`).forEach(r=>r.classList.add('sel'));}
+    if(i>=0){openTask(was.col,i,true);$$(`#v-board .row[data-col="${was.col}"][data-i="${i}"]`).forEach(r=>r.classList.add('sel'));if(edTyped!==null)openEdit(edTyped);}
     else{insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;}
   }
   if(was&&was.kind==='file'&&(!paths||paths.includes(was.path)))await openFile(was.path,true);

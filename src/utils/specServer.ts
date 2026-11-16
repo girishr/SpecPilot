@@ -510,11 +510,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (problem) return sendJson(res, 422, { error: problem });
       const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
       if (!ifMatch) return sendJson(res, 428, { error: 'This change needs an If-Match header with the file hash the page last loaded.' });
-      const { id, type, priority } = body as FieldsRequest;
+      const { id, type, priority, description } = body as FieldsRequest;
       underLock(res, () => {
         let out;
         try {
-          out = setTaskFields(roots[i], { id, type, priority }, ifMatch);
+          out = setTaskFields(roots[i], { id, type, priority, description }, ifMatch);
         } catch {
           return sendJson(res, 500, { error: 'planning/tasks.md could not be written. Nothing was changed.' });
         }
@@ -979,7 +979,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     }
     if (name === 'specpilot_set_task') {
       const req = { id: args.id, type: args.type, priority: args.priority };
-      const problem = fieldsShapeError(req);
+      const problem = fieldsShapeError(req, false);
       if (problem) throw new ToolRefusal(problem);
       const hash = mcpHash(args);
       const out = await taskWrite(() => setTaskFields(roots[i], req as FieldsRequest, hash));

@@ -225,14 +225,18 @@ export function newTaskShapeError(body: unknown): string | null {
   const b = body as Partial<NewTask> | null;
   if (!b || typeof b !== 'object') return 'The request must be a JSON object with description and section.';
   if (b.section !== 'backlog' && b.section !== 'currentSprint') return 'New tasks can only go to Backlog or Current Sprint.';
-  const d = b.description;
+  return descriptionError(b.description) ?? fieldValuesError(b);
+}
+
+/** A description as New Task and a Backlog edit take it (SEC-004.18, SEC-004.36), checked as sent; a plain-words problem or null. */
+function descriptionError(d: unknown): string | null {
   if (typeof d !== 'string' || !d.trim()) return 'Type a description for the task.';
   if (/[\r\n\u2028\u2029]/.test(d)) return 'The description must be one line: a table row cannot hold a line break.';
   if (d.includes('|')) return 'The description cannot contain |, because it would split the table cell. Write it another way, e.g. "or".';
   // The reader's own test, so a new row never shows as approved or sent back (BL-146).
   const marks = reviewMarks(d.trim());
   if (marks.approved !== null || marks.history.length) return 'The description cannot contain a review marker (Approved or Sent back with a date): only Approve and Send back write those.';
-  return cellError(d, 'description', MAX_DESCRIPTION) ?? fieldValuesError(b);
+  return cellError(d, 'description', MAX_DESCRIPTION);
 }
 
 /** What any text inside one table cell must not hold (SEC-004.18), worded for `what`: a control character, an unpaired surrogate, a trailing backslash, too many code points. */
@@ -502,15 +506,19 @@ export interface FieldsRequest {
   id: string;
   type?: string;
   priority?: string;
+  /** BL-TB-08: a Backlog row's new description, by New Task's rules; the page's route only. */
+  description?: string;
 }
 
-/** Check a fields request's shape; returns a plain-words problem or null. */
-export function fieldsShapeError(body: unknown): string | null {
+/** Check a fields request's shape; returns a plain-words problem or null. `description` false (the MCP tool) keeps the
+ *  texts that name only Type and Priority, and ignores a description. */
+export function fieldsShapeError(body: unknown, description = true): string | null {
   const b = body as Partial<FieldsRequest> | null;
-  if (!b || typeof b !== 'object' || Array.isArray(b)) return 'The request must be a JSON object with id and a type or priority.';
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return `The request must be a JSON object with id and a ${description ? 'type, priority or description' : 'type or priority'}.`;
   if (typeof b.id !== 'string' || !b.id) return 'The request has no task ID.';
-  if (b.type === undefined && b.priority === undefined) return 'Name a type or a priority to set.';
-  return fieldValuesError(b);
+  const d = description && b.description !== undefined;
+  if (b.type === undefined && b.priority === undefined && !d) return description ? 'Name a type, a priority or a description to set.' : 'Name a type or a priority to set.';
+  return (d ? descriptionError(b.description) : null) ?? fieldValuesError(b);
 }
 
 export type FieldsPlan = { ok: true; content: string; noop: boolean } | { ok: false; error: string };
@@ -524,13 +532,29 @@ export function planFields(content: string, req: FieldsRequest): FieldsPlan {
   if (hits.length > 1) return { ok: false, error: `${req.id} is on more than one row in planning/tasks.md, so SpecPilot cannot tell which to change.` };
   const { sec, line: at } = hits[0];
   const name = SECTION_HEADINGS[sec];
-  if (sec === 'completed' || sec === 'wontDo') return { ok: false, error: `${name} rows have no Type and Priority.` };
-  if (where[sec]!.shape !== 'typed') return { ok: false, error: `${name} has no Type and Priority columns. Give the ${name} table those columns first.` };
-  const line = lines[at];
-  const [, id, type, priority] = pipeAt(line, 4)!;
-  const cell = (v: string | undefined, from: number, to: number) => (v === undefined ? line.slice(from + 1, to) : v ? ` ${v} ` : '  ');
-  const edited = `${line.slice(0, id + 1)}${cell(req.type, id, type)}|${cell(req.priority, type, priority)}${line.slice(priority)}`;
-  if (edited === line) return { ok: true, content, noop: true };
+  // A request is applied whole or not at all (BL-TB-08): every refusal comes before any cell changes.
+  if (req.description !== undefined && sec !== 'backlog') return { ok: false, error: `Only a Backlog row's description can be edited. ${req.id} is in ${name}.` };
+  const fields = req.type !== undefined || req.priority !== undefined;
+  if (fields && (sec === 'completed' || sec === 'wontDo')) return { ok: false, error: `${name} rows have no Type and Priority.` };
+  if (fields && where[sec]!.shape !== 'typed') return { ok: false, error: `${name} has no Type and Priority columns. Give the ${name} table those columns first.` };
+  let edited = lines[at];
+  if (fields) {
+    const line = edited;
+    const [, id, type, priority] = pipeAt(line, 4)!;
+    const cell = (v: string | undefined, from: number, to: number) => (v === undefined ? line.slice(from + 1, to) : v ? ` ${v} ` : '  ');
+    edited = `${line.slice(0, id + 1)}${cell(req.type, id, type)}|${cell(req.priority, type, priority)}${line.slice(priority)}`;
+  }
+  if (req.description !== undefined) {
+    // The last cell as specReader's tableRows reads it: after the lane's 4th (typed) or 2nd (plain) pipe, up to the
+    // closing | of the trimmed line, or its trimmed end; a | inside the text belongs to the cell.
+    const n = where[sec]!.shape === 'typed' ? 4 : 2;
+    const from = pipeAt(edited, n)![n - 1] + 1;
+    const trimmed = edited.trimEnd();
+    const end = trimmed.length > from && trimmed.endsWith('|') ? trimmed.length - 1 : Math.max(from, trimmed.length);
+    const text = req.description.trim();
+    if (edited.slice(from, end).trim() !== text) edited = `${edited.slice(0, from)} ${text} ${edited.slice(end)}`;
+  }
+  if (edited === lines[at]) return { ok: true, content, noop: true };
   const out = lines.slice();
   out[at] = edited;
   return { ok: true, content: out.join('\n'), noop: false };
@@ -542,7 +566,8 @@ export const FIELDS_STALE_ERROR = 'planning/tasks.md changed on disk since this 
 
 /** Set or clear one row's Type and Priority on disk if `ifMatch` is tasks.md's current sha256: loadTasks(), planFields(), the validator's checks, writeTasks(). */
 export function setTaskFields(root: string, req: FieldsRequest, ifMatch: string): FieldsOutcome {
-  const loaded = loadTasks(root, ifMatch, FIELDS_STALE_ERROR, 'change a line');
+  const stale = req.description !== undefined ? REVIEW_STALE_ERROR : FIELDS_STALE_ERROR; // BL-TB-08: a description edit is not only Type and Priority
+  const loaded = loadTasks(root, ifMatch, stale, 'change a line');
   if ('status' in loaded) return loaded;
   const plan = planFields(loaded.content, req);
   if (!plan.ok) return { status: 422, error: plan.error };
@@ -552,7 +577,7 @@ export function setTaskFields(root: string, req: FieldsRequest, ifMatch: string)
   if (introduced.length) return { status: 422, error: `Nothing was changed, because \`specpilot validate\` would then report: ${introduced.join(' ')}` };
 
   const written = writeTasks(loaded, ifMatch, plan.content);
-  if (written === null) return { status: 409, error: FIELDS_STALE_ERROR };
+  if (written === null) return { status: 409, error: stale };
   return { status: 200, sha256: written };
 }
 

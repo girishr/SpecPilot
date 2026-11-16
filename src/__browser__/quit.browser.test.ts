@@ -1,4 +1,4 @@
-// Quit in the rail (BL-098, REQ-002.H.37), TESTS-002.4. A fixture project with known rows; the server's
+// Quit in the rail (BL-098, REQ-002.H.37), TESTS-002.4; in the Settings menu since BL-UI-02 (REQ-002.H.72). A fixture project with known rows; the server's
 // onQuit is a mock, so the test sees the call while the server keeps answering for the checks after it.
 import { Browser, Page } from 'playwright-core';
 import { join } from 'path';
@@ -30,7 +30,7 @@ const watch = (page: Page, re: RegExp) => {
   });
   return seen;
 };
-/** Click Quit and answer the confirm; at narrow widths the rail is opened first. */
+/** Open Settings, click Quit and answer the confirm; at narrow widths the rail is opened first. */
 const quit = async (page: Page, accept: boolean) => {
   if (await page.evaluate(() => innerWidth <= 900 && !document.querySelector('#win')!.classList.contains('nav'))) await page.click('#menuBtn');
   const asked = new Promise<string>(resolve =>
@@ -39,6 +39,7 @@ const quit = async (page: Page, accept: boolean) => {
       void (accept ? d.accept() : d.dismiss());
     }),
   );
+  await page.click('#setBtn');
   await page.click('#quitBtn');
   expect(await asked).toBe('Quit SpecPilot? Open pages stop updating.');
 };
@@ -82,10 +83,12 @@ browserTest('at 420px Quit is reachable and nothing scrolls sideways: idle, afte
   await waitView(page, 'v-board');
   expect(await noSideScroll(page)).toBe(true);
   await page.click('#menuBtn');
+  await page.click('#setBtn');
   await page.locator('#quitBtn').waitFor({ state: 'visible' });
   expect(await page.locator('#quitBtn').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
   expect(await noSideScroll(page)).toBe(true);
-  await page.click('#scrim');
+  await page.keyboard.press('Escape');
+  await page.click('#scrim', { position: { x: 400, y: 450 } }); // right of the open drawer (60px rail + 252px list), which covers the centre
   await page.route('**/api/quit', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'The server could not finish this request.' }) }));
   await quit(page, true);
   await waitToast(page, /^The server could not finish this request\.$/);

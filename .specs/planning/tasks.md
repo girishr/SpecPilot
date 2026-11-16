@@ -79,7 +79,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-UI-02 | feat | P2 | `specpilot serve` left rail: add a Settings item (cogwheel icon, label "Settings"); move the Light/Dark toggle and "Quit SpecPilot" into it and remove them from their current places. Approved 2026-11-15. |
 
 ## Won't do
 
@@ -120,3 +119,4 @@ Notes
 | 286 | [CD-girishr-195] [BL-128] | The `specpilot-archive` script's branch `WARNING:` line gains the page's Archive gate sentence (REQ-002.H.59) byte for byte; `Continue? [y/N]` kept, the CLI's own warning unchanged. The archive command's 13 golden recordings and its unreleased hashes change; this repo's two archive copies refreshed. Jest 2060/2060. Approved 2026-11-15. Feature commit 1dbf23a. |
 | 287 | [CD-girishr-196] [BL-CL-02] | `specpilot serve` startup prints `Specs: <root>/.specs` for each served folder with `.specs/`, in the list's order beside the `No .specs/ in <root>` lines (REQ-002.H.13); the developer dropped "the generation path" (generated IDE files go to the root, already printed). Jest 2061/2061. Approved 2026-11-15. Feature commit ac2ffee. |
 | 288 | [CD-girishr-197] [BL-UI-01] | The MCP config on Home is pretty-printed: delivered by BL-157 (REQ-002.H.68), JSON with a two-space indent in a wrapping block under `Connect Your AI IDE`; checked on a scratch serve 2026-11-15. No code. Approved 2026-11-15. Feature commit 7c990af (BL-157). |
+| 289 | [CD-girishr-198] [BL-UI-02] | Settings in the rail (REQ-002.H.72): one cog tile (the unused `i-gear` symbol) replaces the theme and Quit tiles; its menu holds `Light appearance` / `Dark appearance` and, with a token, `Quit SpecPilot…`, keyed and closed as the card menu, focus back on the cog after a choice, no page shortcut while open. A new `settings.browser.test.ts` (7); the Quit and events tests open Settings first. Jest 2061/2061, browser 143/143. Approved 2026-11-15. Feature commit 0edb24e. |

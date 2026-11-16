@@ -77,7 +77,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-TB-02 | feat | P3 | Tasks board: the task details slide-over (opened by clicking a card) gets a drag handle on its edge to resize its width. Approved 2026-11-16. |
 
 ## Won't do
 
@@ -120,3 +119,4 @@ Notes
 | 288 | [CD-girishr-197] [BL-UI-01] | The MCP config on Home is pretty-printed: delivered by BL-157 (REQ-002.H.68), JSON with a two-space indent in a wrapping block under `Connect Your AI IDE`; checked on a scratch serve 2026-11-15. No code. Approved 2026-11-15. Feature commit 7c990af (BL-157). |
 | 289 | [CD-girishr-198] [BL-UI-02] | Settings in the rail (REQ-002.H.72): one cog tile (the unused `i-gear` symbol) replaces the theme and Quit tiles; its menu holds `Light appearance` / `Dark appearance` and, with a token, `Quit SpecPilot…`, keyed and closed as the card menu, focus back on the cog after a choice, no page shortcut while open. A new `settings.browser.test.ts` (7); the Quit and events tests open Settings first. Jest 2061/2061, browser 143/143. Approved 2026-11-15. Feature commit 0edb24e. |
 | 290 | [CD-girishr-199] [BL-TB-08] | Edit a Backlog task's description in the details panel (REQ-002.H.73, SEC-004.36): an `Edit` button on a Backlog row with a token opens the cell's text in a 350px box that drags taller or shorter; Enter or Save writes it through `POST /api/tasks/fields` by New Task's rules (one shared check), replacing the last cell by column position, whole or nothing; Escape or Cancel leaves it; a 409 keeps the form while the row is in Backlog. `specpilot_set_task` ignores a description. Architect: the fields route, Backlog only. A new `edit.browser.test.ts` (8). Jest 2072/2072, browser 151/151. Approved 2026-11-16. Feature commit 21d5375. |
+| 291 | [CD-girishr-200] [BL-TB-02] | Resize the details panel (REQ-002.H.74): a handle on its left edge, a grip pill with two ridges, drags the width from 320px to the pane minus 160px; Left, Right, Home and End on the focused handle, a double-click back to 400px, Escape during a drag restores; kept per browser in `sp-insp-width`, clamped and never rewritten on open and window resize; hidden while the panel is closed and below a 480px pane. The grip pill added in review. A new `insp.browser.test.ts` (6). Jest 2072/2072, browser 157/157. Approved 2026-11-16. Feature commit 1fec12a. |

@@ -532,7 +532,42 @@ async function review(col,i,action,extra,isUndo){
   else if($('#inspFoot'))rvError(msg);
   else toast(msg);
 }
-function openInsp(quiet){insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;if(!quiet)setTimeout(()=>{if(insp.classList.contains('open')&&!insp.contains(document.activeElement))$('#inspX').focus();},60);} // the close button takes focus unless the panel closed meanwhile or something in it already has focus (the Send back box, BL-113)
+/* Resize the details panel (BL-TB-02, REQ-002.H.74): a handle on its left edge; the chosen width is kept per browser
+   in sp-insp-width and applied clamped to the pane on each open and window resize, a clamp never rewriting it. */
+const grip=$('#inspGrip'),INSP_W=400,INSP_MIN=320,INSP_GAP=160;
+let inspW=INSP_W;try{const v=parseInt(localStorage.getItem('sp-insp-width'),10);if(v>0)inspW=v;}catch(e){}
+function sizeInsp(){
+  const max=insp.parentElement.clientWidth-INSP_GAP,narrow=max<INSP_MIN,w=narrow?INSP_W:Math.max(INSP_MIN,Math.min(inspW,max));
+  grip.classList.toggle('off',narrow); // a narrow pane: min(400px, 100%) as before, no handle
+  insp.parentElement.style.setProperty('--insp-w',w+'px');
+  grip.setAttribute('aria-valuemin',INSP_MIN);grip.setAttribute('aria-valuemax',Math.max(INSP_MIN,max));grip.setAttribute('aria-valuenow',w);
+  return w;
+}
+const setInsp=w=>{inspW=w;inspW=sizeInsp();};
+const keepInsp=()=>{try{localStorage.setItem('sp-insp-width',String(inspW));}catch(e){}};
+grip.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;e.preventDefault();grip.focus();grip.setPointerCapture(e.pointerId);
+  const x0=e.clientX,w0=sizeInsp();let done=false;
+  const move=ev=>setInsp(w0+x0-ev.clientX); // the handle is on the left edge: left widens
+  const end=keep=>{
+    if(done)return;done=true;
+    grip.removeEventListener('pointermove',move);grip.removeEventListener('pointerup',up);grip.removeEventListener('lostpointercapture',up);document.removeEventListener('keydown',esc,true);
+    insp.classList.remove('drag');grip.classList.remove('drag');document.body.classList.remove('resizing');
+    if(keep)keepInsp();else setInsp(w0);
+  };
+  const up=()=>end(true);
+  const esc=ev=>{if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();end(false);}}; // capture: before the page's Escape, which closes the panel
+  insp.classList.add('drag');grip.classList.add('drag');document.body.classList.add('resizing');
+  grip.addEventListener('pointermove',move);grip.addEventListener('pointerup',up);grip.addEventListener('lostpointercapture',up);document.addEventListener('keydown',esc,true);
+});
+grip.addEventListener('keydown',e=>{
+  const cur=+grip.getAttribute('aria-valuenow'),to={ArrowLeft:cur+16,ArrowRight:cur-16,Home:INSP_MIN,End:Infinity}[e.key];
+  if(to===undefined)return;e.preventDefault();e.stopPropagation();setInsp(to);keepInsp();
+});
+grip.addEventListener('dblclick',()=>{inspW=INSP_W;sizeInsp();try{localStorage.removeItem('sp-insp-width');}catch(e){}});
+window.addEventListener('resize',()=>sizeInsp());
+sizeInsp();
+function openInsp(quiet){sizeInsp();insp.classList.add('open');insp.setAttribute('aria-hidden','false');$('#inspX').onclick=closeInsp;if(!quiet)setTimeout(()=>{if(insp.classList.contains('open')&&!insp.contains(document.activeElement))$('#inspX').focus();},60);} // the close button takes focus unless the panel closed meanwhile or something in it already has focus (the Send back box, BL-113)
 function closeInsp(){const was=insp.classList.contains('open');insp.classList.remove('open');insp.setAttribute('aria-hidden','true');selected=null;inspOpen=null;$$('.row.sel').forEach(r=>r.classList.remove('sel'));if(was&&lastFocus&&lastFocus.focus){lastFocus.focus();lastFocus=null;}}
 function bind(){
   $$('#v-board .row[data-col]').forEach(r=>{const col=r.dataset.col,i=+r.dataset.i;

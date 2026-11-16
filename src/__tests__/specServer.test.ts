@@ -2018,11 +2018,15 @@ describe('Type and Priority over HTTP (BL-125)', () => {
   });
 
   it.each([
-    [{ id: 'BL-002' }, 'Name a type or a priority to set.'],
+    [{ id: 'BL-002' }, 'Name a type, a priority or a description to set.'],
     [{ id: 'BL-002', priority: 'high' }, 'Priority must be P1, P2 or P3, or empty.'],
     [{ id: 'BL-002', type: 'story' }, 'Type must be feat, bug or chore, or empty.'],
     [{ priority: 'P1' }, 'The request has no task ID.'],
-    [[], 'The request must be a JSON object with id and a type or priority.'],
+    [[], 'The request must be a JSON object with id and a type, priority or description.'],
+    [{ id: 'BL-002', description: 'a | b' }, 'The description cannot contain |, because it would split the table cell. Write it another way, e.g. "or".'],
+    [{ id: 'BL-002', description: '' }, 'Type a description for the task.'],
+    [{ id: 'CS-001', description: 'x' }, "Only a Backlog row's description can be edited. CS-001 is in Current Sprint."],
+    [{ id: 'CS-001', type: 'bug', description: 'x' }, "Only a Backlog row's description can be edited. CS-001 is in Current Sprint."],
     [{ id: 'BL-099', priority: 'P1' }, 'No task row in planning/tasks.md has the ID BL-099.'],
     [{ id: 'CS-001', priority: 'P1' }, 'Current Sprint has no Type and Priority columns. Give the Current Sprint table those columns first.'],
     [{ id: '[CD-001]', priority: 'P1' }, 'Completed rows have no Type and Priority.'],
@@ -2056,6 +2060,17 @@ describe('Type and Priority over HTTP (BL-125)', () => {
       spy.mockRestore();
     }
     expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS);
+  });
+
+  it('replaces a Backlog row\'s description and answers {sha256, specs}; a stale one with a description 409s with the plain text (BL-TB-08)', async () => {
+    const r = await fields({ id: 'BL-002', description: '  Edited `x or y`?  ' });
+    expect(r.status).toBe(200);
+    expect(readFileSync(file, 'utf-8')).toBe(FIELDS_TASKS.replace('| BL-002 |  |  | Two |', '| BL-002 |  |  | Edited `x or y`? |'));
+    expect(r.json.specs.tasks.backlog[1]).toMatchObject({ id: 'BL-002', description: 'Edited `x or y`?' });
+    const stale = await fields({ id: 'BL-002', description: 'Again' }, { 'If-Match': 'a'.repeat(64) });
+    expect(stale.status).toBe(409);
+    expect(stale.json.error).toBe('planning/tasks.md changed on disk since this page loaded. Nothing was changed.');
+    expect(stale.json.specs.tasks.sha256).toBe(hash());
   });
 
   it('428s without If-Match, 409s on a stale one with the fresh payload, 403s a foreign Origin or a bad token, 405s other methods, and writes nothing', async () => {
@@ -4489,11 +4504,18 @@ describe('local MCP endpoint over HTTP (BL-PM-007)', () => {
     expect(r.structuredContent).toEqual({ sha256: hashOf(a.root) });
     expect((await pageWrite('/api/tasks/fields', { id: 'BL-002', type: 'bug', priority: 'P1' }, b.root, 1)).status).toBe(200);
     expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(readFileSync(fileOf(b.root), 'utf-8'));
-    for (const args of [{ id: 'CS-001', priority: 'P1' }, { id: 'BL-002', priority: 'high' }, { id: 'BL-002' }]) {
+    for (const args of [{ id: 'CS-001', priority: 'P1' }, { id: 'BL-002', priority: 'high' }]) {
       const page = await pageWrite('/api/tasks/fields', args, b.root, 1);
       const viaTool = await tool('specpilot_set_task', { ...args, sha256: hashOf(a.root) });
       expect(viaTool).toEqual({ content: [{ type: 'text', text: page.json.error }], isError: true });
     }
+    // BL-TB-08: the tool keeps the texts that name only its own keys, and ignores a description
+    expect((await tool('specpilot_set_task', { id: 'BL-002', sha256: hashOf(a.root) })).content[0].text).toBe('Name a type or a priority to set.');
+    const before = readFileSync(fileOf(a.root), 'utf-8');
+    expect((await tool('specpilot_set_task', { id: 'BL-002', description: 'Via tool', sha256: hashOf(a.root) })).content[0].text).toBe('Name a type or a priority to set.');
+    const both = await tool('specpilot_set_task', { id: 'BL-002', priority: 'P1', description: 'Via tool', sha256: hashOf(a.root) });
+    expect(both.isError).toBeUndefined();
+    expect(readFileSync(fileOf(a.root), 'utf-8')).toBe(before); // the same priority, and the description not written
     const stale = await tool('specpilot_set_task', { id: 'BL-002', priority: 'P2', sha256: 'a'.repeat(64) });
     expect(stale.content[0].text).toBe('planning/tasks.md changed on disk since you last read it, so Type and Priority were not changed. Call specpilot_list_tasks for the current sha256, then try again.');
     const added = await tool('specpilot_new_task', { description: 'Via tool', section: 'backlog', type: 'feat', priority: 'P2', sha256: hashOf(a.root) });

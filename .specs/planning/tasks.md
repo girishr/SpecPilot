@@ -78,7 +78,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-TB-08 | feat | P2 | Tasks board: edit option in the task details slide-over for tasks in the Backlog lane. Approved 2026-11-16. |
 
 ## Won't do
 
@@ -120,3 +119,4 @@ Notes
 | 287 | [CD-girishr-196] [BL-CL-02] | `specpilot serve` startup prints `Specs: <root>/.specs` for each served folder with `.specs/`, in the list's order beside the `No .specs/ in <root>` lines (REQ-002.H.13); the developer dropped "the generation path" (generated IDE files go to the root, already printed). Jest 2061/2061. Approved 2026-11-15. Feature commit ac2ffee. |
 | 288 | [CD-girishr-197] [BL-UI-01] | The MCP config on Home is pretty-printed: delivered by BL-157 (REQ-002.H.68), JSON with a two-space indent in a wrapping block under `Connect Your AI IDE`; checked on a scratch serve 2026-11-15. No code. Approved 2026-11-15. Feature commit 7c990af (BL-157). |
 | 289 | [CD-girishr-198] [BL-UI-02] | Settings in the rail (REQ-002.H.72): one cog tile (the unused `i-gear` symbol) replaces the theme and Quit tiles; its menu holds `Light appearance` / `Dark appearance` and, with a token, `Quit SpecPilot…`, keyed and closed as the card menu, focus back on the cog after a choice, no page shortcut while open. A new `settings.browser.test.ts` (7); the Quit and events tests open Settings first. Jest 2061/2061, browser 143/143. Approved 2026-11-15. Feature commit 0edb24e. |
+| 290 | [CD-girishr-199] [BL-TB-08] | Edit a Backlog task's description in the details panel (REQ-002.H.73, SEC-004.36): an `Edit` button on a Backlog row with a token opens the cell's text in a 350px box that drags taller or shorter; Enter or Save writes it through `POST /api/tasks/fields` by New Task's rules (one shared check), replacing the last cell by column position, whole or nothing; Escape or Cancel leaves it; a 409 keeps the form while the row is in Backlog. `specpilot_set_task` ignores a description. Architect: the fields route, Backlog only. A new `edit.browser.test.ts` (8). Jest 2072/2072, browser 151/151. Approved 2026-11-16. Feature commit 21d5375. |

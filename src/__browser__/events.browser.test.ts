@@ -145,6 +145,7 @@ browserTest(
     const { page } = await open(srv);
     await waitView(page, 'v-board');
     page.once('dialog', d => void d.accept());
+    await page.click('#setBtn');
     await page.click('#quitBtn');
     await page.locator('.stopped').waitFor();
     const events: string[] = [];

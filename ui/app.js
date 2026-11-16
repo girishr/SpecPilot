@@ -28,12 +28,13 @@ const chev='<svg class="ico chev" aria-hidden="true" focusable="false"><use href
 let theme=null;try{theme=localStorage.getItem('sp-theme');}catch(e){}
 function setMeta(light){const m=document.querySelector('meta[name=theme-color]');if(m)m.content=light?'#f8fafc':'#0f172a';}
 if(theme==='light'){document.documentElement.setAttribute('data-theme','light');setMeta(true);}
-$('#themeBtn').onclick=()=>{const light=document.documentElement.getAttribute('data-theme')==='light';if(light)document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme','light');setMeta(!light);try{light?localStorage.removeItem('sp-theme'):localStorage.setItem('sp-theme','light');}catch(e){}toast('Appearance: '+(light?'dark':'light'));};
+$('#themeBtn').onclick=()=>{closeSet(true);const light=document.documentElement.getAttribute('data-theme')==='light';if(light)document.documentElement.removeAttribute('data-theme');else document.documentElement.setAttribute('data-theme','light');setMeta(!light);try{light?localStorage.removeItem('sp-theme'):localStorage.setItem('sp-theme','light');}catch(e){}toast('Appearance: '+(light?'dark':'light'));};
 /* Quit (BL-098): the route `specpilot serve --stop` uses; the server then stops as on Ctrl+C. This page
    closes its stream and says so; other open pages see a dropped stream, as before. */
 let stopped=false;
 if(TOKEN)$('#quitBtn').hidden=false;
 $('#quitBtn').onclick=async()=>{
+  closeSet(true);
   if(!confirm('Quit SpecPilot? Open pages stop updating.'))return;
   let r;
   try{r=await fetch('/api/quit',{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:'{}'});}
@@ -43,6 +44,35 @@ $('#quitBtn').onclick=async()=>{
   const p=document.createElement('p');p.className='stopped';p.setAttribute('role','status');p.textContent='SpecPilot has stopped. Run specpilot serve to start it again.';
   document.querySelector('main.pane').replaceChildren(p);
 };
+
+/* Settings (BL-UI-02, REQ-002.H.72): the rail's cog opens a menu holding the theme item and Quit. It sits outside
+   the rail (position: fixed), since the rail scrolls and would clip it; keys as the card menu's. */
+const setBtn=$('#setBtn'),setMenu=$('#setMenu');
+function openSet(){
+  hideTip();
+  $('#themeBtn').textContent=document.documentElement.getAttribute('data-theme')==='light'?'Dark appearance':'Light appearance';
+  setMenu.hidden=false;setBtn.setAttribute('aria-expanded','true');
+  const r=setBtn.getBoundingClientRect(),w=setMenu.offsetWidth,h=setMenu.offsetHeight,m=8;
+  setMenu.style.left=Math.max(m,Math.min(r.right+6,innerWidth-w-m))+'px';
+  setMenu.style.top=Math.max(m,Math.min(r.bottom-h,innerHeight-h-m))+'px';
+  $('[role=menuitem]:not([hidden])',setMenu).focus();
+}
+function closeSet(refocus){
+  if(setMenu.hidden)return;
+  setMenu.hidden=true;setBtn.setAttribute('aria-expanded','false');
+  if(setMenu.contains(document.activeElement))document.activeElement.blur();
+  if(refocus)setBtn.focus();
+}
+setBtn.onclick=()=>setMenu.hidden?openSet():closeSet(true);
+setMenu.addEventListener('keydown',e=>{
+  const it=$$('[role=menuitem]:not([hidden])',setMenu),i=it.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();it[(i+(e.key==='ArrowDown'?1:it.length-1))%it.length].focus();}
+  else if(e.key==='Home'||e.key==='End'){e.preventDefault();it[e.key==='Home'?0:it.length-1].focus();}
+  else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeSet(true);}
+});
+setMenu.addEventListener('mousedown',e=>e.preventDefault()); // a press inside keeps focus in the menu, as the card menu's
+setMenu.addEventListener('focusout',e=>{if(!setMenu.contains(e.relatedTarget)&&e.relatedTarget!==setBtn)closeSet(false);});
+document.addEventListener('click',e=>{if(!setMenu.hidden&&!(e.target.closest&&e.target.closest('#setMenu,#setBtn')))closeSet(false);});
 
 /* ---------------- data: fetched, never embedded ---------------- */
 let DATA=null;
@@ -695,8 +725,8 @@ document.addEventListener('keydown',e=>{
   const mod=e.metaKey||e.ctrlKey;const inField=/INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
   if(mod&&e.key.toLowerCase()==='k'){e.preventDefault();palVeil.classList.contains('open')?closePal():openPal();return}
   if(mod&&/^[1-9]$/.test(e.key)){e.preventDefault();const n=NAV[+e.key-1];if(n)go(n[0],n[1]);return}
-  if(e.key==='Escape'){if(busyVeil.classList.contains('open')){closeBusy();return}if(!ideMenu.hidden){closeIde(true);return}if(!cardMenu.hidden){closeCardMenu(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
-  if(inField||mod||e.altKey||!cardMenu.hidden||taskVeil.classList.contains('open')||archVeil.classList.contains('open')||busyVeil.classList.contains('open'))return;
+  if(e.key==='Escape'){if(busyVeil.classList.contains('open')){closeBusy();return}if(!ideMenu.hidden){closeIde(true);return}if(!cardMenu.hidden){closeCardMenu(true);return}if(!setMenu.hidden){closeSet(true);return}hideTip();closeInsp();closePal();closeSheet();closeNewTask();closeArchive();setNav(false);return}
+  if(inField||mod||e.altKey||!cardMenu.hidden||!setMenu.hidden||taskVeil.classList.contains('open')||archVeil.classList.contains('open')||busyVeil.classList.contains('open'))return;
   if(e.key==='h'&&TOKEN&&!openVeil.classList.contains('open')){go('home');return;}
   if(/^[1-9]$/.test(e.key)){const n=NAV[+e.key-1];if(n)go(n[0],n[1]);}
   if((e.key==='j'||e.key==='k')&&curView==='board'){const rows=$$('#v-board .row[data-col]');if(!rows.length)return;let i=rows.findIndex(r=>r.dataset.col+':'+r.dataset.i===selected);i=e.key==='j'?Math.min(rows.length-1,i+1):Math.max(0,i-1);if(i<0)i=0;openTask(rows[i].dataset.col,+rows[i].dataset.i);rows[i].scrollIntoView({block:'nearest'});rows[i].focus();}

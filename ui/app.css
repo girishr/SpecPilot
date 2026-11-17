@@ -541,3 +541,23 @@ body.resizing{user-select:none;cursor:col-resize}
 .seg.ides{display:flex;flex-wrap:wrap;width:fit-content;max-width:100%;margin:0 0 8px}
 .welcome .fine{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--label-3);font-size:13px}
 .welcome .fine i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
+
+/* Overview (BL-171, REQ-002.H.76): two columns when the content area allows, one below; lane tiles two by two when narrow */
+#v-overview{container-type:inline-size}
+.ovgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
+@container (min-width:901px){.ovgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ovkv,.ovcount{display:flex;gap:12px;align-items:baseline;min-height:36px;padding:6px 12px}
+.ovkv .k,.ovcount .k{flex:none;min-width:96px;color:var(--label-2);font-size:13px}
+.ovkv .v,.ovcount .v{min-width:0;overflow-wrap:anywhere}
+.ovlanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--sep-2);border-bottom:1px solid var(--sep-2)}
+@container (max-width:520px){.ovlanes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ovlane{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;background:var(--group);text-align:left;min-width:0}
+.ovlane:hover{background:var(--hover)}
+.ovlane .n{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.ovlane .l{font-size:12.5px;color:var(--label-2);overflow-wrap:anywhere}
+.ovcommit{display:flex;gap:10px;align-items:baseline;padding:6px 12px;min-height:36px;flex-wrap:wrap}
+.ovcommit .m{flex:1 1 12em;min-width:0;overflow-wrap:anywhere}
+.ovcommit .det{color:var(--label-3);font-size:12px}
+.row .ttl.ovclamp{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ovroad{padding:10px 12px;min-width:0;overflow-wrap:anywhere}
+.ovmore{color:var(--green-ink);font-size:13px;padding:8px 12px}

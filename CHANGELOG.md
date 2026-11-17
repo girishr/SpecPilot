@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Overview, each project's landing page** (BL-171): `specpilot serve` opens each project on Overview, with cards for the project (from `project.yaml`), the task lanes and their counts, Review and Current Sprint rows, the latest roadmap release, recent activity (this clone's commits, `prompts.md` entries, Completed rows), the AI IDE files and the newest spec files. Every text is the files' own, and every count opens the view that lists it. Commits are read from `.git/logs/HEAD`; no `git` command is run.
 - **Resize the details panel** (BL-TB-02): with `specpilot serve`, drag the left edge of the details panel (a task or a file) to make it wider or narrower, from 320px to all but 160px of the window's content area; arrow keys, Home and End do the same on the focused edge, and a double-click goes back to 400px. The width is remembered in this browser. In a narrow window the panel stays as it was.
 - **Edit a Backlog task's description in the details panel** (BL-TB-08): with `specpilot serve`, a Backlog card's details panel has an `Edit` button. It opens the description as `tasks.md` has it; Enter or Save writes it back into that one cell, by the rules New Task uses (one line, no `|`, at most 4000 characters), and Escape or Cancel leaves it. Rows in other lanes, and `--read-only`, have no Edit. If the file changed on disk meanwhile, nothing is written and the page shows the file as it is.
 - **`specpilot validate` checks `architecture/api.yaml`** (BL-177): it reports a file that does not parse (with the line), an OpenAPI file missing `info.title`, `info.version` or `paths`, and a path `{name}` with no matching path parameter, as errors; a root key that is neither OpenAPI nor `x-` is a warning that `--fix` renames to `x-<key>`, the form new REST projects get since BL-176.
@@ -30,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Projects open on Overview, not Tasks** (BL-171): starting `serve`, clicking a project tile, opening, cloning or setting up a project, and an unknown route now land on Overview. Tasks keeps its row, and `1` still opens it.
 - **Settings in the left rail** (BL-UI-02): the light/dark toggle and Quit SpecPilot move into a Settings menu, the cog at the foot of the rail, in place of their two tiles.
 - `specpilot serve` prints each open project's `.specs/` folder at startup, `Specs: <folder>/.specs`, beside the `No .specs/ in <folder>` line a folder without one already gets (BL-CL-02).
 - The `specpilot-archive` command's branch warning says what archiving on a branch means, as the page's Archive dialog does (BL-128): the archive is written to that branch's `planning/tasks.md`, so it is committed with the branch's work, and merging can conflict with `tasks.md` changes on the default branch. Run `specpilot backfill` to refresh an unedited copy.

@@ -1,6 +1,6 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from 'http';
 import { AddressInfo } from 'net';
-import { existsSync, readFileSync, realpathSync, statSync } from 'fs';
+import { closeSync, existsSync, lstatSync, openSync, readFileSync, readSync, realpathSync, statSync } from 'fs';
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'path';
 import { homedir } from 'os';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
@@ -20,6 +20,7 @@ import { agentTargets } from '../core/agentConfig';
 import { aiContextTarget } from '../core/ideConfig';
 import { SpecValidator } from './specValidator';
 import { answerMcp, MCP_TOOLS, mcpClientName, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
+import { newestPrompts } from './specArchiver';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
@@ -63,6 +64,64 @@ export function readBranch(root: string): string | null {
   } catch {
     return null;
   }
+}
+
+const REFLOG_TAIL = 64 * 1024;
+const REFLOG_LINE = /^[0-9a-f]{40}(?:[0-9a-f]{24})? ([0-9a-f]{40}(?:[0-9a-f]{24})?) .*? (\d+) ([+-])(\d{2})(\d{2})\t(?:commit|commit \((?:initial|merge|amend)\)): (.*)$/;
+/**
+ * The newest commits made in this clone, from `.git/logs/HEAD` read as a file (BL-171, REQ-002.H.76, SEC-004.38): a linked
+ * worktree's `gitdir:` is followed only into `.git/worktrees/<name>`; the log must be a regular file and only its last 64 KB is
+ * read. Each entry gives a seven-character hash, its date in ISO 8601 with its own zone, and its message; never the author.
+ */
+export function readCommits(root: string, count = 5): { hash: string; date: string; message: string }[] {
+  try {
+    let gitDir = join(root, '.git');
+    const st = lstatSync(gitDir);
+    if (st.isFile()) {
+      const m = /^gitdir:\s*(.+)$/m.exec(readFileSync(gitDir, 'utf-8'));
+      if (!m) return [];
+      gitDir = realpathSync(resolve(root, m[1].trim()));
+      if (!/\/\.git\/worktrees\/[^/]+$/.test(gitDir.split(sep).join('/'))) return [];
+    } else if (!st.isDirectory()) return [];
+    const file = join(gitDir, 'logs', 'HEAD');
+    const fst = lstatSync(file);
+    if (!fst.isFile()) return [];
+    const len = Math.min(fst.size, REFLOG_TAIL);
+    const buf = Buffer.alloc(len);
+    const fd = openSync(file, 'r');
+    try {
+      readSync(fd, buf, 0, len, fst.size - len);
+    } finally {
+      closeSync(fd);
+    }
+    const lines = buf.toString('utf-8').split('\n');
+    if (fst.size > REFLOG_TAIL) lines.shift(); // the tail starts mid-line
+    const out: { hash: string; date: string; message: string }[] = [];
+    for (let i = lines.length - 1; i >= 0 && out.length < count; i--) {
+      const m = REFLOG_LINE.exec(lines[i]);
+      if (!m) continue;
+      const offset = (m[3] === '-' ? -1 : 1) * (Number(m[4]) * 60 + Number(m[5]));
+      const local = new Date((Number(m[2]) + offset * 60) * 1000).toISOString().slice(0, 19);
+      out.push({ hash: m[1].slice(0, 7), date: `${local}${m[3]}${m[4]}:${m[5]}`, message: m[6] });
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+const OVERVIEW_KEYS = ['name', 'description', 'version', 'language', 'framework', 'license'] as const;
+/** Overview's Project card (BL-171): six top-level project.yaml keys, each a string, number or boolean as written, else null. */
+function overviewProject(yamlText: string | undefined): Record<(typeof OVERVIEW_KEYS)[number], string | number | boolean | null> {
+  let doc: Record<string, unknown> | null = null;
+  try {
+    const d = yamlText === undefined ? null : loadRepoYaml(yamlText);
+    if (d && typeof d === 'object' && !Array.isArray(d)) doc = d as Record<string, unknown>;
+  } catch {
+    doc = null;
+  }
+  const scalar = (v: unknown) => (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? v : null);
+  return Object.fromEntries(OVERVIEW_KEYS.map(k => [k, scalar(doc?.[k])])) as Record<(typeof OVERVIEW_KEYS)[number], string | number | boolean | null>;
 }
 
 /** `key: value` lines of a leading `---` block, values as written; null when there is none. */
@@ -165,6 +224,12 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       commands: COMMAND_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('.md'))).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
       skills: SKILL_FOLDERS.flatMap(d => navFiles(root, scanned, d, p => p.endsWith('/SKILL.md'))).map(f => ({ ...f, generated: agentTargets('claude-code').includes(f.path) && isSpecPilotSkill(root) })), // by the commands' rule, BL-PM-012
       prompts: navFiles(root, scanned, '.github/prompts', p => p.endsWith('.md')).map(f => ({ ...f, generated: isSpecPilotCommand(root, f.path) })),
+    },
+    // Overview (BL-171, REQ-002.H.76): page-only, no MCP tool returns it
+    overview: {
+      project: overviewProject(contents['project/project.yaml']),
+      commits: readCommits(root),
+      prompts: contents['development/prompts.md'] === undefined ? [] : newestPrompts(contents['development/prompts.md'], 3),
     },
   };
 }

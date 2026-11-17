@@ -39,8 +39,8 @@ browserTest('removing the shown project on Home takes its tile off the rail, sta
   expect(await page.locator(`#homeBox [data-remove="${second}"]`).count()).toBe(0);
   await waitView(page, 'v-home');
   await page.click('#projList [data-project="0"]');
-  await waitView(page, 'v-board');
-  expect(await page.evaluate(() => location.hash)).toBe('#board');
+  await waitView(page, 'v-overview');
+  expect(await page.evaluate(() => location.hash)).toBe('#overview');
 });
 
 browserTest('removing another open project keeps the shown one', b, async o => {
@@ -50,7 +50,7 @@ browserTest('removing another open project keeps the shown one', b, async o => {
   await waitToast(page, closedToast);
   expect(await tiles(page)).toEqual(['0']);
   await page.click('#projList [data-project="0"]');
-  await waitView(page, 'v-board');
+  await waitView(page, 'v-overview');
   expect(await page.textContent('#subPath')).toContain('spec-project');
 });
 
@@ -70,10 +70,13 @@ browserTest('with project 0 closed: an empty hash and #board show the first open
   await waitView(page, 'v-home');
   await removeOnHome(page, env.project);
   await waitToast(page, closedToast);
-  const { page: fresh } = await o(srv, '');
-  await waitView(fresh, 'v-board');
-  await fresh.waitForFunction(() => location.hash === '#1/board');
+  const { page: fresh } = await o(srv, ''); // an empty hash: the first open project's Overview (BL-171)
+  await waitView(fresh, 'v-overview');
+  await fresh.waitForFunction(() => location.hash === '#1/overview');
   expect(await fresh.textContent('#subPath')).toContain('second-project');
+  await fresh.keyboard.press('1'); // Tasks, for the write
+  await waitView(fresh, 'v-board');
+  expect(await fresh.evaluate(() => location.hash)).toBe('#1/board');
   const moved = fresh.waitForRequest(r => r.url().includes('/api/tasks/move?project=1'));
   await fresh.locator('#boardMode .row[data-col="backlog"][data-i="1"]').focus(); // BL-002 has no Type or Priority
   await fresh.keyboard.press('Alt+ArrowRight');

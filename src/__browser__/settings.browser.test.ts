@@ -31,7 +31,7 @@ const inside = (page: Page) =>
   });
 
 browserTest('the cog replaces the theme and Quit tiles and opens and closes its menu by click, Escape, an outside click and Tab', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   expect(await page.locator('#rail #themeBtn, #rail #quitBtn').count()).toBe(0);
   expect(await page.getAttribute('#setBtn', 'aria-label')).toBe('Settings');
@@ -64,7 +64,7 @@ browserTest('the cog replaces the theme and Quit tiles and opens and closes its 
 });
 
 browserTest('keys move within the menu, and no page shortcut runs while it is open', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   await page.click('#setBtn');
   await page.keyboard.press('ArrowDown');
@@ -84,7 +84,7 @@ browserTest('keys move within the menu, and no page shortcut runs while it is op
 });
 
 browserTest('the theme item switches, relabels, keeps the choice and puts focus back on the cog', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   expect(await light(page)).toBe(false);
   await page.click('#setBtn');
@@ -102,7 +102,7 @@ browserTest('the theme item switches, relabels, keeps the choice and puts focus 
 });
 
 browserTest('a cancelled Quit sends nothing and puts focus back on the cog', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   const quits: string[] = [];
   page.on('request', r => void (new URL(r.url()).pathname === '/api/quit' && quits.push(r.url())));
@@ -116,7 +116,7 @@ browserTest('a cancelled Quit sends nothing and puts focus back on the cog', b, 
 
 for (const isLight of [false, true]) {
   browserTest(`at 420px the menu fits beside the drawer, nothing scrolls sideways: idle, after a Quit error, after the notice (${isLight ? 'light' : 'dark'})`, b, async o => {
-    const { page } = await o(srv, '', { width: 420, light: isLight });
+    const { page } = await o(srv, '#board', { width: 420, light: isLight });
     await waitView(page, 'v-board');
     const check = async () => {
       if (!(await page.evaluate(() => document.querySelector('#win')!.classList.contains('nav')))) await page.click('#menuBtn');
@@ -146,7 +146,7 @@ describe('with --read-only', () => {
   afterEach(async () => ro.close());
 
   browserTest('Settings holds the theme item only', b, async o => {
-    const { page } = await o(ro);
+    const { page } = await o(ro, '#board');
     await waitView(page, 'v-board');
     await page.click('#setBtn');
     expect(await page.locator('#setMenu [role=menuitem]:visible').allTextContents()).toEqual(['Light appearance']);

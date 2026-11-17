@@ -26,17 +26,17 @@ afterEach(async () => {
 const b = () => browser;
 
 browserTest('the Home tile, the h key and #home show Home; + shows Home with focus on Open a Project Folder', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.click('#homeBtn');
   await waitView(page, 'v-home');
   await page.click('#projList .tile');
-  await waitView(page, 'v-board');
+  await waitView(page, 'v-overview');
   await page.locator('#content').focus();
   await page.keyboard.press('h');
   await waitView(page, 'v-home');
   await page.click('#projList .tile');
-  await waitView(page, 'v-board');
+  await waitView(page, 'v-overview');
   await page.click('#addBtn');
   await waitView(page, 'v-home');
   await page.waitForFunction(() => document.activeElement?.id === 'homeOpen');
@@ -45,7 +45,7 @@ browserTest('the Home tile, the h key and #home show Home; + shows Home with foc
   expect(await direct.page.locator('#v-home svg.wordmark').isVisible()).toBe(true);
 });
 
-browserTest('Open a Project Folder opens a typed folder as the next project, with its tile, Tasks view and focus in the content', b, async open => {
+browserTest('Open a Project Folder opens a typed folder as the next project, with its tile, its Overview and focus in the content', b, async open => {
   const { page } = await open(srv, '#home');
   await waitView(page, 'v-home');
   await page.click('#homeOpen');
@@ -53,10 +53,10 @@ browserTest('Open a Project Folder opens a typed folder as the next project, wit
   await page.fill('#pathIn', '~/dev/third-project');
   await page.click('#openGo');
   await page.waitForFunction(() => document.querySelectorAll('#projList .tile').length === 2);
-  await waitView(page, 'v-board');
+  await waitView(page, 'v-overview');
   await waitToast(page, /third-project/);
   await page.waitForFunction(() => document.activeElement?.id === 'content');
-  expect(await page.evaluate(() => location.hash)).toBe('#1/board');
+  expect(await page.evaluate(() => location.hash)).toBe('#1/overview');
   expect(read(env.registryFile)).toContain(join(env.home, 'dev', 'third-project'));
 });
 
@@ -80,7 +80,7 @@ browserTest(
     expect(read(env.registryFile)).toContain(other);
     await page.click(`#homeBox [data-path="${other}"]`);
     await page.waitForFunction(() => document.querySelectorAll('#projList .tile').length === 2);
-    await waitView(page, 'v-board');
+    await waitView(page, 'v-overview');
     await page.waitForFunction(() => document.activeElement?.id === 'content');
   },
   [/status of 422/],

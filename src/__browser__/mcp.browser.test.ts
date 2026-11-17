@@ -271,7 +271,7 @@ browserTest('--read-only --mcp has no Home and no card', b, async open => {
   const srv = await serve(env, [env.project], { mcp: true, readOnly: true });
   try {
     const { page } = await open(srv, '#home');
-    await waitView(page, 'v-board'); // #home falls back to Tasks without Home
+    await waitView(page, 'v-overview'); // #home falls back to Overview without Home (BL-171)
     expect(await page.locator('#homeBtn').isHidden()).toBe(true);
     expect(await page.locator('#homeMcp').isHidden()).toBe(true);
   } finally {

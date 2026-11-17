@@ -5,7 +5,8 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSyn
 import { join } from 'path';
 import { stripVTControlCharacters } from 'util';
 import * as os from 'os';
-import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, SpecServer, startSpecServer } from '../utils/specServer';
+import { buildSpecsPayload, displayRoot, isAllowedHost, MAX_EVENT_STREAMS, readBranch, readCommits, SpecServer, startSpecServer } from '../utils/specServer';
+import { newestPrompts } from '../utils/specArchiver';
 import { listAllowedFiles, resolveAllowedPath } from '../utils/specPaths';
 import { ARCHIVE_STALE_ERROR, COMPLETED_BY_HAND, completedArchiveStatus, MOVES, nextTaskId, NOTHING_TO_ARCHIVE_ERROR, nothingPastKeepError, REVIEW_STALE_ERROR, FIELDS_STALE_ERROR } from '../utils/taskMover';
 import * as validator from '../utils/specValidator';
@@ -552,6 +553,106 @@ describe('readBranch', () => {
   });
 });
 
+describe('Overview data (BL-171, REQ-002.H.76, SEC-004.38)', () => {
+  let p: ReturnType<typeof makeProject>;
+  beforeEach(() => (p = makeProject()));
+  afterEach(() => p.cleanup());
+  const A = 'a'.repeat(40), B = 'b'.repeat(40), C = 'c'.repeat(40), D = 'd'.repeat(40);
+  const entry = (from: string, to: string, secs: number, zone: string, msg: string) => `${from} ${to} Ann Author <ann@example.com> ${secs} ${zone}\t${msg}\n`;
+  const log = (dir: string, text: string) => write(dir, 'logs/HEAD', text);
+
+  it('overview.project: the six keys as written when scalar, else null; no project.yaml gives every key null', () => {
+    write(p.root, '.specs/project/project.yaml', '# fileID: PROJ-001\n# lastUpdated: 2026-11-17\nname: "Fixture Project"\ndescription: A thing\nversion: 1.2\nlanguage: typescript\nframework: [a, b]\nlicense: true\n');
+    const o = buildSpecsPayload(p.root, 'x').overview;
+    expect(o.project).toEqual({ name: 'Fixture Project', description: 'A thing', version: 1.2, language: 'typescript', framework: null, license: true });
+    expect(buildSpecsPayload(p.root, 'x').files['project/project.yaml'].lastUpdated).toBe('2026-11-17');
+    rmSync(join(p.root, '.specs/project/project.yaml'));
+    expect(buildSpecsPayload(p.root, 'x').overview.project).toEqual({ name: null, description: null, version: null, language: null, framework: null, license: null });
+  });
+
+  it('readCommits: commit, initial, merge and amend entries newest first, at most five, other kinds and bad lines skipped, no author, the zone kept', () => {
+    const g = join(p.root, '.git');
+    log(g,
+      entry('0'.repeat(40), A, 1763300000, '+0530', 'commit (initial): First') +
+        entry(A, B, 1763300100, '+0530', 'checkout: moving from main to x') +
+        'not a reflog line\n' +
+        entry(B, C, 1763300200, '-0800', 'commit (merge): Merge branch x') +
+        entry(C, D, 1763300300, '+0000', 'reset: moving to HEAD~1') +
+        entry(C, D, 1763300400, '+0000', 'pull: Fast-forward') +
+        entry(C, D, 1763300500, '+0530', 'commit (amend): Amended') +
+        entry(D, A, 1763300600, '+0530', 'commit: Last one'),
+    );
+    const out = readCommits(p.root);
+    expect(out).toEqual([
+      { hash: 'aaaaaaa', date: '2025-11-16T19:13:20+05:30', message: 'Last one' },
+      { hash: 'ddddddd', date: '2025-11-16T19:11:40+05:30', message: 'Amended' },
+      { hash: 'ccccccc', date: '2025-11-16T05:36:40-08:00', message: 'Merge branch x' },
+      { hash: 'aaaaaaa', date: '2025-11-16T19:03:20+05:30', message: 'First' },
+    ]);
+    expect(JSON.stringify(buildSpecsPayload(p.root, 'x'))).not.toMatch(/Ann Author|ann@example\.com/);
+    log(g, Array.from({ length: 8 }, (_, i) => entry(A, B, 1763300000 + i, '+0000', `commit: m${i}`)).join(''));
+    expect(readCommits(p.root).map(c => c.message)).toEqual(['m7', 'm6', 'm5', 'm4', 'm3']);
+    const sha256 = 'e'.repeat(64);
+    log(g, entry('f'.repeat(64), sha256, 1763300000, '+0000', 'commit: sha256 repo'));
+    expect(readCommits(p.root)).toEqual([{ hash: 'eeeeeee', date: '2025-11-16T13:33:20+00:00', message: 'sha256 repo' }]);
+  });
+
+  it('readCommits: only the last 64 KB, its partial first line skipped; none for a missing file, a link, a folder or a planted gitdir', () => {
+    const g = join(p.root, '.git');
+    const filler = entry(A, B, 1763300000, '+0000', 'commit: ' + 'x'.repeat(70000)); // one line longer than the tail
+    log(g, filler + entry(A, B, 1763300001, '+0000', 'commit: in the tail'));
+    expect(readCommits(p.root).map(c => c.message)).toEqual(['in the tail']);
+    rmSync(join(g, 'logs'), { recursive: true });
+    expect(readCommits(p.root)).toEqual([]); // missing
+    write(p.outside, 'reflog', entry(A, B, 1763300000, '+0000', 'commit: elsewhere'));
+    mkdirSync(join(g, 'logs'));
+    symlinkSync(join(p.outside, 'reflog'), join(g, 'logs', 'HEAD'));
+    expect(readCommits(p.root)).toEqual([]); // a link
+    rmSync(join(g, 'logs'), { recursive: true });
+    mkdirSync(join(g, 'logs', 'HEAD'), { recursive: true });
+    expect(readCommits(p.root)).toEqual([]); // a folder
+    // a .git file: followed only into .git/worktrees/<name>
+    rmSync(g, { recursive: true });
+    const main = join(p.outside, 'main', '.git', 'worktrees', 'wt');
+    log(main, entry(A, B, 1763300000, '+0000', 'commit: in the worktree'));
+    writeFileSync(g, `gitdir: ${main}\n`);
+    expect(readCommits(p.root).map(c => c.message)).toEqual(['in the worktree']);
+    const planted = join(p.outside, 'planted');
+    log(planted, entry(A, B, 1763300000, '+0000', 'commit: planted'));
+    writeFileSync(g, `gitdir: ${planted}\n`);
+    expect(readCommits(p.root)).toEqual([]);
+    const sub = join(p.outside, 'main', '.git', 'modules', 'sub');
+    log(sub, entry(A, B, 1763300000, '+0000', 'commit: submodule'));
+    writeFileSync(g, `gitdir: ${sub}\n`);
+    expect(readCommits(p.root)).toEqual([]);
+  });
+
+  it('overview.prompts: the newest three entries of a Latest Entries list or a Prompt History table, none without either', () => {
+    expect(newestPrompts('# P\n\n## Latest Entries\n- 2026-11-15: c\n- 2026-11-17: a\n  more of a\n- 2026-11-16: b\n- 2026-11-01: d\n', 3)).toEqual(['- 2026-11-17: a\n  more of a', '- 2026-11-16: b', '- 2026-11-15: c']);
+    expect(newestPrompts('## Prompt History\n\n| Date | Who | Prompt |\n|---|---|---|\n| 2026-11-01 | @a | one |\n| 2026-11-02 | @a | two |\n', 3)).toEqual(['| 2026-11-02 | @a | two |', '| 2026-11-01 | @a | one |']);
+    expect(newestPrompts('# nothing here\n', 3)).toEqual([]);
+    write(p.root, '.specs/development/prompts.md', '## Latest Entries\n- 2026-11-17: one\n');
+    expect(buildSpecsPayload(p.root, 'x').overview.prompts).toEqual(['- 2026-11-17: one']);
+  });
+
+  it('no MCP tool returns overview, commits or prompts', async () => {
+    write(join(p.root, '.git'), 'logs/HEAD', entry(A, B, 1763300000, '+0000', 'commit: secret-ish message'));
+    const spec = await startSpecServer([p.root], 0, '0.0.0-test', { mcp: true });
+    try {
+      const port = (spec.server.address() as AddressInfo).port;
+      const call = async (name: string) =>
+        JSON.stringify((await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: {} } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': spec.mcpToken!, 'MCP-Protocol-Version': '2025-11-25' }, '/mcp')).json);
+      for (const name of ['specpilot_list_projects', 'specpilot_list_tasks']) {
+        const out = await call(name);
+        expect(out).not.toMatch(/"overview"|"commits"|secret-ish/);
+      }
+      expect(JSON.parse((await hit(port, '/api/specs')).body).overview.commits[0].message).toBe('secret-ish message');
+    } finally {
+      await spec.close();
+    }
+  });
+});
+
 describe('buildSpecsPayload against this repo', () => {
   const payload = buildSpecsPayload(REPO, '0.0.0-test');
   const tasksMd = readFileSync(join(REPO, '.specs/planning/tasks.md'), 'utf-8').split('\n');
@@ -575,7 +676,7 @@ describe('buildSpecsPayload against this repo', () => {
   });
 
   it('has project metadata, per-file metadata, tasks and the nav tree', () => {
-    expect(Object.keys(payload).sort()).toEqual(['files', 'nav', 'project', 'specpilotVersion', 'tasks']);
+    expect(Object.keys(payload).sort()).toEqual(['files', 'nav', 'overview', 'project', 'specpilotVersion', 'tasks']);
     expect(payload.project.name).toBe('SpecPilot SDD CLI');
     expect(payload.project.root).toBe(REPO);
     expect(payload.specpilotVersion).toBe('0.0.0-test'); // top level since BL-080
@@ -1330,10 +1431,10 @@ describe('UI routing (ui/route.js)', () => {
     expect(r('#0/tasks', [0])).toEqual({ project: 1, view: 'home', sub: '', missing: false });
     expect(r('#board', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
     expect(r('#file/quality/tests.md', [0, 1])).toEqual({ project: 2, view: 'file', sub: 'quality/tests.md', missing: false });
-    expect(r('', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
-    expect(r('#/', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
-    expect(r('#9/board', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
-    expect(r('#nothing', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(r('', [0])).toEqual({ project: 1, view: 'overview', sub: '', missing: false });
+    expect(r('#/', [0])).toEqual({ project: 1, view: 'overview', sub: '', missing: false });
+    expect(r('#9/board', [0])).toEqual({ project: 1, view: 'overview', sub: '', missing: false });
+    expect(r('#nothing', [0])).toEqual({ project: 1, view: 'overview', sub: '', missing: false });
     expect(r('#2/explorer', [0])).toEqual({ project: 2, view: 'explorer', sub: '', missing: false });
     expect(r('#board', [0, 1, 2])).toEqual({ project: 3, view: 'home', sub: '', missing: false }); // none open: Home
     expect(resolveRoute('#1/board', files, 3)).toEqual({ project: 1, view: 'board', sub: '', missing: false }); // no fifth argument: as before
@@ -1357,7 +1458,7 @@ describe('UI routing (ui/route.js)', () => {
     expect(goneHtml(r.sub)).toContain('&lt;img src=x onerror=alert(1)&gt;');
   });
 
-  it.each([['', 'board'], ['#', 'board'], ['#board/board', 'board'], ['#explorer', 'explorer'], ['#nope', 'board'], ['#file', 'board'], ['#file/', 'board']])(
+  it.each([['', 'overview'], ['#', 'overview'], ['#board/board', 'board'], ['#explorer', 'explorer'], ['#nope', 'overview'], ['#file', 'overview'], ['#file/', 'overview']])(
     'routes %j to %s',
     (hash, view) => {
       expect(resolveRoute(hash, files).view).toBe(view);
@@ -1383,34 +1484,34 @@ describe('UI routing (ui/route.js)', () => {
     expect(resolveRoute('#explorer', files, 3)).toEqual({ project: 0, view: 'explorer', sub: '', missing: false });
   });
 
-  it.each([['#9/explorer'], ['#3/explorer'], ['#01/explorer'], ['#1/explorer']])('sends %j (no such project) to project 0 Tasks', hash => {
-    expect(resolveRoute(hash, files, hash === '#1/explorer' ? 1 : 3)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+  it.each([['#9/explorer'], ['#3/explorer'], ['#01/explorer'], ['#1/explorer']])('sends %j (no such project) to project 0 Overview (BL-171)', hash => {
+    expect(resolveRoute(hash, files, hash === '#1/explorer' ? 1 : 3)).toEqual({ project: 0, view: 'overview', sub: '', missing: false });
   });
 
   it.each([['#home'], ['#home/x'], ['#1/home'], ['#9/home'], ['#01/home']])('routes %j to Home when the page has one, whatever index or rest it carries (BL-PM-001)', hash => {
     expect(resolveRoute(hash, files, 2, true)).toEqual({ project: 0, view: 'home', sub: '', missing: false });
   });
 
-  it.each([['#new'], ['#new/x'], ['#1/new'], ['#9/new']])('routes %j to the new-project chat when the page has a Home (BL-PM-004), and to Tasks without one', hash => {
+  it.each([['#new'], ['#new/x'], ['#1/new'], ['#9/new']])('routes %j to the new-project chat when the page has a Home (BL-PM-004), and to Overview without one (BL-171)', hash => {
     expect(resolveRoute(hash, files, 2, true)).toEqual({ project: 0, view: 'new', sub: '', missing: false });
-    expect(resolveRoute(hash, files, 2, false).view).toBe('board');
-    expect(resolveRoute('#news', files, 2, true).view).toBe('board');
+    expect(resolveRoute(hash, files, 2, false).view).toBe('overview');
+    expect(resolveRoute('#news', files, 2, true).view).toBe('overview');
     for (const had of [true, false]) for (const has of [true, false]) expect(reloadView('new', had, has)).toBeNull();
   });
 
   it('keeps #homes an unknown view and every other route as it was when the page has a Home', () => {
-    expect(resolveRoute('#homes', files, 2, true)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
-    expect(resolveRoute('#1/homes', files, 2, true)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#homes', files, 2, true)).toEqual({ project: 0, view: 'overview', sub: '', missing: false });
+    expect(resolveRoute('#1/homes', files, 2, true)).toEqual({ project: 1, view: 'overview', sub: '', missing: false });
     expect(resolveRoute('#1/explorer', files, 2, true)).toEqual({ project: 1, view: 'explorer', sub: '', missing: false });
     expect(resolveRoute('#file/quality/tests.md', files, 2, true)).toEqual({ project: 0, view: 'file', sub: 'quality/tests.md', missing: false });
-    expect(resolveRoute('#9/explorer', files, 2, true)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+    expect(resolveRoute('#9/explorer', files, 2, true)).toEqual({ project: 0, view: 'overview', sub: '', missing: false });
   });
 
-  it.each([[false], [undefined]])('sends #home to the Tasks view of the route\'s project when there is no Home (--read-only; home = %j)', home => {
-    expect(resolveRoute('#home', files, 2, home)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
-    expect(resolveRoute('#home/x', files, 2, home)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
-    expect(resolveRoute('#1/home', files, 2, home)).toEqual({ project: 1, view: 'board', sub: '', missing: false });
-    expect(resolveRoute('#9/home', files, 2, home)).toEqual({ project: 0, view: 'board', sub: '', missing: false });
+  it.each([[false], [undefined]])('sends #home to the Overview (BL-171) of the route\'s project when there is no Home (--read-only; home = %j)', home => {
+    expect(resolveRoute('#home', files, 2, home)).toEqual({ project: 0, view: 'overview', sub: '', missing: false });
+    expect(resolveRoute('#home/x', files, 2, home)).toEqual({ project: 0, view: 'overview', sub: '', missing: false });
+    expect(resolveRoute('#1/home', files, 2, home)).toEqual({ project: 1, view: 'overview', sub: '', missing: false });
+    expect(resolveRoute('#9/home', files, 2, home)).toEqual({ project: 0, view: 'overview', sub: '', missing: false });
   });
 
   const REG = {
@@ -1611,7 +1712,7 @@ describe('UI routing (ui/route.js)', () => {
     for (const had of [true, false]) for (const has of [true, false]) expect(reloadView('home', had, has)).toBeNull();
     expect(reloadView('board', true, false)).toBe('setup'); // .specs/ gone
     expect(reloadView('file', true, false)).toBe('setup');
-    expect(reloadView('setup', false, true)).toBe('board'); // .specs/ appeared another way
+    expect(reloadView('setup', false, true)).toBe('overview'); // .specs/ appeared another way
     expect(reloadView('setup', false, false)).toBeNull();
     expect(reloadView('setup', true, true)).toBeNull();
     expect(reloadView('board', true, true)).toBeNull();

@@ -59,8 +59,8 @@ browserTest('Open a Project Folder on a server with no project gives project 0, 
   await page.fill('#pathIn', '~/dev/third-project');
   await page.click('#openGo');
   await page.waitForFunction(() => document.querySelectorAll('#projList .tile').length === 1);
-  await waitView(page, 'v-board');
-  expect(await page.evaluate(() => location.hash)).toBe('#board');
+  await waitView(page, 'v-overview');
+  expect(await page.evaluate(() => location.hash)).toBe('#overview');
   expect(await page.locator('#curGrp').textContent()).not.toBe('');
   expect(read(env.registryFile)).toContain(join(env.home, 'dev', 'third-project'));
 });

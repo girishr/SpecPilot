@@ -88,9 +88,10 @@
   <div class="top"><b id="curGrp" translate="no"></b><span class="br mono" id="curBranch" translate="no"></span></div>
   <button class="search" id="palBtn"><svg class="ico ico-13" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>Search<kbd>&#8984;K</kbd></button>
   <div class="snav">
+    <button class="srow on" data-v="overview"><svg aria-hidden="true" focusable="false"><use href="#i-spark"/></svg><span class="t">Overview</span></button>
     <div class="grp" id="gPlan">Plan</div>
     <div role="group" aria-labelledby="gPlan">
-      <button class="srow on" data-v="board"><svg aria-hidden="true" focusable="false"><use href="#i-board"/></svg><span class="t">Tasks</span><span class="meta" translate="no">tasks.md</span></button>
+      <button class="srow" data-v="board"><svg aria-hidden="true" focusable="false"><use href="#i-board"/></svg><span class="t">Tasks</span><span class="meta" translate="no">tasks.md</span></button>
       <button class="srow" data-v="file" data-f="planning/roadmap.md"><svg aria-hidden="true" focusable="false"><use href="#i-map"/></svg><span class="t">Roadmap</span><span class="meta" translate="no">roadmap.md</span></button>
       <button class="srow" data-v="file" data-f="project/requirements.md"><svg aria-hidden="true" focusable="false"><use href="#i-req"/></svg><span class="t">Requirements</span><span class="meta" translate="no">requirements.md</span></button>
     </div>
@@ -149,7 +150,12 @@
     </section>
 
     <!-- TASKS: the rows of planning/tasks.md, from readSpecs() -->
-    <section class="view on" id="v-board">
+    <!-- OVERVIEW (BL-171, REQ-002.H.76): the landing; cards from the payload and roadmap.md, each left out when empty -->
+    <section class="view on" id="v-overview">
+      <div class="ovgrid" id="ovBox"></div>
+    </section>
+
+    <section class="view" id="v-board">
       <div class="gl" id="gRaw" hidden></div>
       <div class="gl" id="gHead" hidden role="status" aria-live="polite"></div>
       <div class="gl" id="gConv"></div>

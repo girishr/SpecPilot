@@ -43,14 +43,14 @@ export function lastDate(text: string): number | null {
   return key;
 }
 
-interface LogEntry {
+export interface LogEntry {
   start: number; // first line index
   end: number; // one past the last line
   date: number | null;
 }
 
 /** The log's entries: list items under "## Latest Entries", else rows under "## Prompt History". */
-function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: string[] } | null {
+export function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: string[] } | null {
   const list = findSectionBounds(lines, '## Latest Entries', true);
   if (list) {
     const entries: LogEntry[] = [];
@@ -75,6 +75,20 @@ function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: string[] 
     entries.push({ start: i, end: i + 1, date: lastDate(dateCol >= 0 ? cells(lines[i])[dateCol] ?? '' : lines[i]) });
   }
   return { entries, tableHeader: [lines[header], lines[header + 1]] };
+}
+
+/** The newest `count` entries of prompts.md, each its lines as written (BL-171, REQ-002.H.76): newest date first; on a tie, a
+ *  `## Latest Entries` list keeps file order (it is written newest first) and a table its reverse (rows are appended). */
+export function newestPrompts(text: string, count: number): string[] {
+  const lines = text.split('\n');
+  const log = findLog(lines);
+  if (!log) return [];
+  const list = log.tableHeader.length === 0;
+  return log.entries
+    .map((e, i) => ({ e, i }))
+    .sort((a, b) => (b.e.date ?? -1) - (a.e.date ?? -1) || (list ? a.i - b.i : b.i - a.i))
+    .slice(0, count)
+    .map(({ e }) => lines.slice(e.start, e.end).join('\n'));
 }
 
 export type PromptsArchivePlan = { start: number; end: number; tableHeader: string[] } | { refuse: string } | null;

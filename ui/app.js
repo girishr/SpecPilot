@@ -96,7 +96,19 @@ function initials(n){const w=String(n).split(/[^A-Za-z0-9]+/).filter(Boolean);
   if(!w.length)return '??';
   if(w.length>1)return (w[0][0]+w[1][0]).toUpperCase();
   return w[0].slice(0,2).toUpperCase();}
+/* BL-190 (REQ-002.H.78): the banner for a server Node.js outside engines.node; its words and versions from the payload, set as text. */
+const orList=xs=>xs.length>1?xs.slice(0,-1).join(', ')+' or '+xs[xs.length-1]:xs.join('');
+function drawNodeBar(){
+  const n=DATA&&DATA.node,bar=$('#nodeBar');
+  let gone=false;try{gone=!!n&&sessionStorage.getItem('sp-node-dismissed')===n.version;}catch(e){}
+  if(!n||n.ok!==false||gone){bar.hidden=true;return;}
+  $('#nodeLong').textContent='Node.js '+n.version+' on this server has known security vulnerabilities, including TLS certificate bypass, memory disclosure and denial of service (Node.js security releases, '+n.release+'). Update to '+orList(n.patched)+' or later.';
+  $('#nodeShort').textContent='Node.js '+n.version+' has known security vulnerabilities. Update to '+orList(n.patched)+'+.';
+  $('#nodeLink').href='https://nodejs.org/en/blog/vulnerability'; // set here: index.html carries no external src or href (the page-shell test in specServer.test.ts); a link loads nothing (SEC-004.39)
+  bar.hidden=false;}
+$('#nodeX').addEventListener('click',()=>{try{sessionStorage.setItem('sp-node-dismissed',DATA.node.version);}catch(e){}$('#nodeBar').hidden=true;});
 function renderProject(){
+  drawNodeBar();
   $('#footAddr').textContent=$('#homeAddr').textContent=location.host;$('#footVer').textContent=$('#homeVer').textContent='v'+DATA.specpilotVersion;
   const p=DATA.project;
   if(!p){ // no project served (BL-080): an empty rail and top bar; Home is the view

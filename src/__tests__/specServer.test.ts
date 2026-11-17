@@ -27,6 +27,7 @@ import { OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 import { ALL_FIELDS } from './fixtures/allFields';
 import { SpecBackfiller } from '../utils/specBackfiller';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
+import { nodeStatus, RELEASE } from '../utils/nodeCheck';
 
 // The UI's markdown renderer is plain browser JS that also exports itself for Node.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -3723,7 +3724,7 @@ describe('no project served (BL-080)', () => {
   it('answers GET /api/specs without a project as the no-project state, the version at the top level', async () => {
     const r = await hit(port, '/api/specs');
     expect(r.status).toBe(200);
-    expect(JSON.parse(r.body)).toEqual({ project: null, projects: [], files: {}, specpilotVersion: '0.0.0-test', mcp: { client: null } });
+    expect(JSON.parse(r.body)).toEqual({ project: null, projects: [], files: {}, specpilotVersion: '0.0.0-test', mcp: { client: null }, node: { ...nodeStatus(), release: RELEASE } });
   });
 
   it('answers 404 on every project route, with ?project=0 and without the parameter, after the shared write checks', async () => {
@@ -5562,5 +5563,51 @@ describe('serve routes match api.yaml (BL-178)', () => {
 
   it('a path renamed in the source no longer matches', () => {
     expect(codeRoutes(source.replace("url.pathname === '/api/quit'", "url.pathname === '/api/stop'"))).not.toEqual(specRoutes);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// The server's Node.js in the page's bodies (BL-190, REQ-002.H.78, SEC-004.39).
+describe('node in GET /api/specs (BL-190)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+  });
+  const start = async (nodeVersion?: string) => {
+    p = makeProject();
+    spec = await startSpecServer([], 0, '0.0.0-test', { pollMs: 250, settleMs: 30, heartbeatMs: 60, registry: regFile(), mcp: true, ...(nodeVersion ? { nodeVersion } : {}) });
+    port = (spec.server.address() as AddressInfo).port;
+    return /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  };
+  const OUT = { version: '25.9.0', ok: false, patched: ['22.23.5', '24.22.3', '26.13.1'], release: RELEASE };
+
+  it('is the same in the zero-project body, an open\'s specs and the project\'s body; never in an MCP result', async () => {
+    const token = await start('25.9.0');
+    expect(JSON.parse((await hit(port, '/api/specs')).body).node).toEqual(OUT);
+    const headers = { Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token };
+    const opened = await post(port, JSON.stringify({ path: p.root }), headers, '/api/projects');
+    expect(opened.status).toBe(200);
+    expect(opened.json.specs.node).toEqual(OUT); // addRoot(): open, new project and clone
+    expect(JSON.parse((await hit(port, '/api/specs?project=0')).body).node).toEqual(OUT); // payload(i)
+    const added = await post(port, JSON.stringify({ description: 'A new task', section: 'backlog' }), { ...headers, 'If-Match': opened.json.specs.tasks.sha256 }, '/api/tasks/new?project=0');
+    expect(added.status).toBe(200);
+    expect(added.json.specs.node).toEqual(OUT); // a write answer's specs
+    const mcpHeaders = { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': spec.mcpToken!, 'MCP-Protocol-Version': '2025-11-25' };
+    const listed = await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'specpilot_list_projects', arguments: {} } }), mcpHeaders, '/mcp');
+    expect(JSON.stringify(listed.json)).not.toContain('"node"');
+    expect(JSON.stringify(listed.json)).not.toContain('25.9.0');
+    expect(listed.json.result).toBeDefined();
+  });
+
+  it('a patched version is ok; no option judges the Node running the server', async () => {
+    await start('26.13.1');
+    expect(JSON.parse((await hit(port, '/api/specs')).body).node).toEqual({ ...OUT, version: '26.13.1', ok: true });
+    await spec.close();
+    p.cleanup();
+    await start();
+    expect(JSON.parse((await hit(port, '/api/specs')).body).node).toEqual({ ...nodeStatus(process.versions.node), release: RELEASE });
   });
 });

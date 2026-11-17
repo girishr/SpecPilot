@@ -79,6 +79,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-192 | bug | P2 | `serve` page: browser Back and Forward do not move between sections. After clicking through rail/sidebar sections, Back does not return to the previous section (likely leaves the page) and Forward does nothing. Likely cause: `setHash()` in `ui/app.js` writes the URL with `history.replaceState`, so a click never adds a history entry and the `hashchange` listener has nothing to go back to. Keep the sandboxed-frame in-memory fallback; add entries only for user navigation, not `route()` or the go-Home on project close (BL-166), so Back cannot loop or land on a closed project. Touches `ui/app.js` and maybe `route.js`; browser test with fixture rows (click, Back, Forward), 420px check. Reported by the developer, 2026-11-17. Approved 2026-11-17. |
 
 ## Won't do
 

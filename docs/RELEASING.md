@@ -16,7 +16,7 @@ The release ritual, as done for 2.13.0. `X.Y.Z` is the new version. One npm publ
 
 ## 2. Check
 
-- [ ] `node -v` is inside `package.json` `engines.node` (BL-170); this run is recorded in `.specs/quality/tests.md`
+- [ ] `node -v` is inside `package.json` `engines.node` (BL-170); this run is recorded in `.specs/quality/tests.md`. A release that raises `engines.node` also updates `RELEASE` in `src/utils/nodeCheck.ts` to that security release's month (BL-189)
 - [ ] `FORCE_COLOR=1 npm test` and `FORCE_COLOR=0 npm test`
 - [ ] `npm run test:browser`, three runs
 - [ ] `npm run lint` (no new problems)

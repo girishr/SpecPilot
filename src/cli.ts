@@ -13,6 +13,7 @@ import { backfillCommand } from './commands/backfill';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT } from './utils/specArchiver';
 import { serveCommand } from './commands/serve';
 import { Logger } from './utils/logger';
+import { printNodeNotice } from './utils/nodeCheck';
 
 const packageJson = require('../package.json');
 
@@ -134,6 +135,7 @@ Per-command options: specpilot <command> --help
 
 // Parse command line arguments
 const args = process.argv.slice(2);
+printNodeNotice(args, process.stderr); // BL-189: before any output of the command's own
 
 // If no arguments provided, show welcome message
 if (args.length === 0) {

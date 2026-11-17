@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Overview redesigned** (BL-191): a top band with the project, Open Tasks, an IDE button that follows your project's IDE, the lane counts and the Type and Priority chips; then two columns that stack on their own (Review, Current Sprint, Recent activity; Roadmap, Security, Agent Guidance) and the newest spec files. Review always shows, `All <n> in Tasks` is always there, and a roadmap with no release is flagged with the fix and a prompt to copy. The left menu's Automation group is now Agent Guidance.
 - **Projects open on Overview, not Tasks** (BL-171): starting `serve`, clicking a project tile, opening, cloning or setting up a project, and an unknown route now land on Overview. Tasks keeps its row, and `1` still opens it.
 - **Settings in the left rail** (BL-UI-02): the light/dark toggle and Quit SpecPilot move into a Settings menu, the cog at the foot of the rail, in place of their two tiles.
 - `specpilot serve` prints each open project's `.specs/` folder at startup, `Specs: <folder>/.specs`, beside the `No .specs/ in <folder>` line a folder without one already gets (BL-CL-02).

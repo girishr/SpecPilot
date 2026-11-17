@@ -79,6 +79,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-191 | feat | P2 | Overview (BL-171) to the developer's prototype of 2026-11-14 (`overview-prototype.html`): the twelve-column grid and card pairs, padded cards with their source on the right, the Project identity block with chips and Open Tasks / Open in VS Code, lane dots and Type and Priority chips, row chips, one Recent activity list, AI IDE tiles, the Spec files table, the grid icon; the content rule and BL-171's architect decisions kept. The developer: `Rework it now`, 2026-11-17. Approved 2026-11-17. |
 
 ## Won't do
 

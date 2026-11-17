@@ -438,60 +438,96 @@ async function saveEdit(col,i){
    The landing: cards from the payload (and roadmap.md's text), every text the files' own; a card with nothing to show is left
    out. Counts are of rows or files another view lists, and each opens that view (REQ-002.H.5's Overview exception). */
 const OV_TYPES=['feat','bug','chore'],OV_PRIS=['P1','P2','P3'];
-function ovCard(key,title,body){return body?`<div class="gl ovcard" data-card="${key}"><div class="gh">${esc(title)}</div><div class="box">${body}</div></div>`:'';}
-function ovTask(col,i,t){return `<button type="button" class="row act" data-task="${col}:${i}"><div class="body"><div class="ttl clamp"><span class="id" translate="no">${mdi(t.id)}</span> ${mdi(t.description)}</div></div></button>`;}
-function ovMore(go,label){return `<button type="button" class="row act ovmore" data-go="${go}">${esc(label)}</button>`;}
+/* BL-191 redesign (REQ-002.H.76): a top band, two columns that stack on their own, Spec files last; every card the same parts. */
+const ovIco=id=>`<svg class="ico" aria-hidden="true" focusable="false"><use href="#${id}"/></svg>`;
+function ovCard(key,icon,title,src,body,o={}){
+  return body?`<section class="ovcard${o.flag?' flag':''}" data-card="${key}"><div class="ovch">${ovIco(icon)}<h3>${esc(title)}</h3>${o.count!==undefined?`<span class="ovcount">${o.count}</span>`:''}${src?`<span class="ovsrc" translate="no">${esc(src)}</span>`:''}</div><div class="ovcb">${body}</div>${o.foot?`<div class="ovcf">${o.foot}</div>`:''}</section>`:'';
+}
+function ovLink(go,label,f){return `<button type="button" class="ovlink" data-go="${go}"${f?` data-f="${esc(f)}"`:''}>${esc(label)}${ovIco('i-chev')}</button>`;}
+function ovRow(col,i,t){return `<button type="button" class="ovrow" data-task="${col}:${i}"><span class="id" translate="no">${mdi(t.id)}</span><span class="d">${mdi(t.description)}</span><span class="ovchips">${chips(t)}</span></button>`;}
+const OV_LINKLESS=['claude-code','codex','windsurf','antigravity']; // IDEs the page has no open link for (README: Windsurf has none yet)
+function ovIdeBtn(){
+  const p=DATA.project;
+  if(p.cursor)return `<a class="btn" href="${esc(editorUrl(p.root,0,'cursor'))}">${ovIco('i-ext')}Open in Cursor</a>`;
+  if(OV_LINKLESS.includes((p.uses||[])[0]))return `<button type="button" class="btn" data-copypath>${ovIco('i-copy')}Copy folder path</button>`;
+  return `<a class="btn" href="${esc(editorUrl(p.root))}">${ovIco('i-ext')}Open in VS Code</a>`;
+}
 function renderOverview(){
   const box=$('#ovBox');if(!box||!DATA||!DATA.project)return;
-  const O=DATA.overview||{project:{},commits:[],prompts:[]},T=DATA.tasks,N=DATA.nav,F=DATA.files||{};
-  const pm=F['project/project.yaml']||{};
-  const kv=[...['name','description','version','language','framework','license'].map(k=>[k,O.project[k]]),['lastUpdated',pm.lastUpdated]].filter(([,v])=>v!==null&&v!==undefined);
-  const project=kv.map(([k,v])=>`<div class="row ovkv"><span class="k" translate="no">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`).join('');
-  let tasks='',review='',sprint='';
+  const O=DATA.overview||{project:{},commits:[],prompts:[]},P=O.project||{},T=DATA.tasks,N=DATA.nav,F=DATA.files||{};
+  const label=projectLabel(DATA.project),pm=F['project/project.yaml']||{},has=v=>v!==null&&v!==undefined;
+  const facts=[has(P.version)?`version ${P.version}`:null,has(P.language)?String(P.language):null,has(P.framework)?String(P.framework):null,has(P.license)?String(P.license):null,has(pm.lastUpdated)?`lastUpdated ${pm.lastUpdated}`:null].filter(x=>x!==null);
+  let lanes='',mixes='',review='',sprint='';
   if(T){
-    const lanes=['backlog','currentSprint','review','completed'].map(c=>`<button type="button" class="ovlane" data-go="board"><span class="n">${(T[c]||[]).length}</span><span class="l">${esc(COLS[c])}</span></button>`).join('');
+    lanes=`<div class="ovlanes">${['backlog','currentSprint','review','completed'].map(c=>`<button type="button" class="ovlane" data-go="board"><span class="n">${(T[c]||[]).length}</span><span class="l"><span class="st ${DOT[c]}" aria-hidden="true"></span>${esc(COLS[c])}</span></button>`).join('')}</div>`;
     const open=[...(T.backlog||[]),...(T.currentSprint||[]),...(T.review||[])];
-    const line=(label,key,vals)=>{const parts=vals.map(v=>[v,open.filter(t=>t[key]===v).length]).filter(([,n])=>n);
-      return parts.length?`<button type="button" class="row act ovcount" data-go="board"><span class="k">${label}</span><span class="v" translate="no">${parts.map(([v,n])=>`${esc(v)} ${n}`).join(' · ')}</span></button>`:'';};
-    tasks=`<div class="ovlanes">${lanes}</div>`+line('Type','type',OV_TYPES)+line('Priority','priority',OV_PRIS);
-    review=(T.review||[]).map((t,i)=>ovTask('review',i,t)).join('');
-    const cs=T.currentSprint||[];
-    sprint=cs.slice(0,5).map((t,i)=>ovTask('currentSprint',i,t)).join('')+(cs.length>5?ovMore('board',`All ${cs.length} in Tasks`):'');
+    const line=(key,label,cls,vals)=>{const parts=vals.map(v=>[v,open.filter(t=>t[key]===v).length]).filter(([,n])=>n);
+      return parts.length?`<button type="button" class="ovmix" data-go="board" data-mix="${key}"><span class="k">${label}</span>${parts.map(([v,n])=>`<span class="pill chip ${cls}${tone(v)}" translate="no">${esc(v)} ${n}</span>`).join('')}</button>`:'';};
+    const ty=line('type','Type','ty',OV_TYPES),pr=line('priority','Priority','pri',OV_PRIS);
+    mixes=ty||pr?`<div class="ovmixes">${ty}${pr}</div>`:'';
+    const rv=T.review||[],cs=T.currentSprint||[];
+    review=ovCard('review','i-check','Review','## Review',rv.length?`<div class="ovrows">${rv.map((t,i)=>ovRow('review',i,t)).join('')}</div>`:`<div class="ovempty">${ovIco('i-check')}<span>Nothing waiting for you. Agents move finished work here.</span></div>`,{count:rv.length,foot:ovLink('board','Open Review in Tasks')});
+    sprint=cs.length?ovCard('sprint','i-arrow','Current Sprint','## Current Sprint',`<div class="ovrows">${cs.slice(0,5).map((t,i)=>ovRow('currentSprint',i,t)).join('')}</div>`,{count:cs.length,foot:ovLink('board',`All ${cs.length} in Tasks`)}):'';
   }
-  const commits=(O.commits||[]).map(c=>`<div class="row ovcommit"><span class="mono" translate="no">${esc(c.hash)}</span><span class="m">${esc(c.message)}</span><span class="det">${esc(when(c.date))}</span></div>`).join('');
-  const prompts=(O.prompts||[]).map(p=>`<button type="button" class="row act" data-go="file" data-f="development/prompts.md"><div class="body"><div class="ttl ovclamp">${esc(p)}</div></div></button>`).join('');
-  const done=T?(T.completed||[]).slice().sort((a,b)=>Number(b.num)-Number(a.num)).slice(0,3).map(t=>`<button type="button" class="row act" data-go="board"><div class="body"><div class="ttl clamp"><span class="id" translate="no">${esc(t.num)}</span> <span class="id" translate="no">${mdi(t.id)}</span> ${mdi(t.description)}</div></div></button>`).join(''):'';
-  const recent=[commits,prompts,done].filter(Boolean).join('');
-  const I=N.instructions,gen=a=>a.filter(f=>f.generated).length;
-  const cmds=[...N.commands,...N.prompts];
-  const ide=`<button type="button" class="row act ovcount" data-go="instructions"><span class="k">Instructions</span><span class="v">${I.filter(f=>f.exists).length} of ${I.length}</span></button>`
-    +`<button type="button" class="row act ovcount" data-go="commands"><span class="k">Commands</span><span class="v">From SpecPilot ${gen(cmds)} · Yours ${cmds.length-gen(cmds)}</span></button>`
-    +`<button type="button" class="row act ovcount" data-go="skills"><span class="k">Skills</span><span class="v">From SpecPilot ${gen(N.skills)} · Yours ${N.skills.length-gen(N.skills)}</span></button>`;
+  const hero=`<section class="ovcard ovhero" data-card="project"><div class="ovident"><div class="ovbig" aria-hidden="true">${esc(initials(label))}</div><div class="ovtxt"><h2 class="ovname">${esc(label)}</h2>${has(P.description)?`<p class="ovdesc">${esc(String(P.description))}</p>`:''}${facts.length?`<div class="ovfacts">${facts.map(f=>`<span class="ovfact" translate="no">${esc(f)}</span>`).join('')}</div>`:''}</div>`
+    +`<div class="ovacts"><button type="button" class="btn pri" data-go="board">${ovIco('i-board')}Open Tasks</button>${ovIdeBtn()}</div></div>${lanes}${mixes}</section>`;
+  const commits=(O.commits||[]).map(c=>`<div class="ovrow ovcommit"><span class="id" translate="no">${esc(c.hash)}</span><span class="d">${esc(c.message)}</span><span class="when">${esc(when(c.date))}</span></div>`).join('');
+  const prompts=(O.prompts||[]).map(p=>`<button type="button" class="ovrow ovprompt" data-go="file" data-f="development/prompts.md"><span class="d">${esc(p)}</span></button>`).join('');
+  const done=T?(T.completed||[]).slice().sort((a,b)=>Number(b.num)-Number(a.num)).slice(0,3).map(t=>`<button type="button" class="ovrow ovdone" data-go="board"><span class="id" translate="no">#${esc(t.num)} ${mdi(t.id)}</span><span class="d">${mdi(t.description)}</span></button>`).join(''):'';
+  const group=(icon,title,rows)=>rows?`<div class="ovsub">${ovIco(icon)}${title}</div><div class="ovrows">${rows}</div>`:'';
+  const recent=ovCard('recent','i-git','Recent activity',[commits?'.git/logs/HEAD':'',prompts?'prompts.md':'',done?'## Completed':''].filter(Boolean).join(' · '),group('i-git','Commits',commits)+group('i-file','Prompt log',prompts)+group('i-check','Completed',done));
+  const secFiles=['security/threat-model.md','security/security-decisions.md'].filter(p=>p in F);
+  const security=secFiles.length?ovCard('security','i-shield','Security','security/',`<div class="ovsecs">${secFiles.map(p=>{const m=metaLine(F[p]);return `<button type="button" class="ovfile" data-go="security"><span class="p" translate="no">${esc(p)}</span>${m?`<span class="m" translate="no">${esc(m)}</span>`:''}</button>`;}).join('')}</div>`
+    +('security/security-decisions.md' in F?`<div class="ovtiles"><button type="button" class="ovtile wide" data-go="security" id="ovDec" hidden><span class="k">Decisions</span><span class="v"></span></button></div>`:''),{foot:ovLink('security','Open Security')}):'';
+  const I=N.instructions,gen=a=>a.filter(f=>f.generated).length,cmds=[...N.commands,...N.prompts],S=N.skills;
+  const tile=(go,k,v,small,wide)=>`<button type="button" class="ovtile${wide?' wide':''}" data-go="${go}"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span>${small?`<small translate="no">${esc(small)}</small>`:''}</button>`;
+  const guide=ovCard('guide','i-bot','Agent Guidance','',`<div class="ovtiles">`+tile('instructions','Instructions',`${I.filter(f=>f.exists).length} of ${I.length}`,I.filter(f=>f.exists).map(f=>f.path).join(' · '),true)
+    +tile('commands','Commands',String(cmds.length),`From SpecPilot ${gen(cmds)} · Yours ${cmds.length-gen(cmds)}`)
+    +tile('skills','Skills',String(S.length),[`From SpecPilot ${gen(S)} · Yours ${S.length-gen(S)}`,...S.map(f=>f.path.split('/').slice(-2,-1)[0])].join(' · '))+`</div>`);
   const specs=N.specs.slice().sort((a,b)=>{const x=(F[a]||{}).lastUpdated,y=(F[b]||{}).lastUpdated;
     if(x&&y&&x!==y)return x<y?1:-1;if(!x!==!y)return x?-1:1;return a<b?-1:a>b?1:0;});
-  const files=specs.slice(0,8).map(p=>{const line=metaLine(F[p]);return `<button type="button" class="row act" data-go="file" data-f="${esc(p)}"><div class="body"><div class="ttl" translate="no">${esc(p)}</div>${line?`<div class="det" translate="no">${esc(line)}</div>`:''}</div></button>`;}).join('')
-    +(specs.length>8?ovMore('explorer',`All ${specs.length} in Explorer`):'');
-  box.innerHTML=ovCard('project','Project',project)+ovCard('tasks','Tasks',tasks)+ovCard('review','Review',review)+ovCard('sprint','Current Sprint',sprint)
-    +'<div id="ovRoad"></div>'+ovCard('recent','Recent activity',recent)+ovCard('ide','AI IDE',ide)+ovCard('files','Spec files',files);
-  ovRoadmap();
+  const files=specs.length?ovCard('files','i-file','Spec files','newest first',`<div class="ovfiles">${specs.slice(0,8).map(p=>{const m=metaLine(F[p]);return `<button type="button" class="ovfile" data-go="file" data-f="${esc(p)}"><span class="p" translate="no">${esc(p)}</span>${m?`<span class="m" translate="no">${esc(m)}</span>`:''}</button>`;}).join('')}</div>`,{count:specs.length,foot:ovLink('explorer',`All ${specs.length} in Explorer`)}):'';
+  box.innerHTML=`<div id="ovFlag"></div>`+hero+`<div class="ovcols"><div class="ovcol">${review}${sprint}${recent}</div><div class="ovcol"><div id="ovRoad"></div>${security}${guide}</div></div>`+files;
+  ovRoadmap();ovDecisions();
 }
-/* The last ### under ## Timeline in roadmap.md and its first five non-empty lines, rendered as the file view renders them. */
+/* Roadmap, always (BL-191): the last ### under ## Timeline and its first five lines, or the board's Warning box saying what to fix. */
+const OV_ROAD={
+  norel:['## Timeline in planning/roadmap.md has no ### release','The card shows the last ### heading under ## Timeline and its first lines, and there is none.','add a ### heading for the next release under ## Timeline, with its first lines'],
+  notl:['planning/roadmap.md has no ## Timeline','The card shows the last ### release under ## Timeline, and the file has no such section.','add a ## Timeline section with a ### heading for the next release'],
+  nofile:['No planning/roadmap.md in .specs/','Every project needs a roadmap; the card shows its latest release.','create planning/roadmap.md with a ## Timeline section and a ### heading for the next release']};
+function ovRoadCard(body,flag){return ovCard('roadmap','i-map','Roadmap','planning/roadmap.md',body,flag?{flag:true}:{foot:ovLink('file','Open Roadmap','planning/roadmap.md')});}
+function ovRoadFlag(kind){
+  const [title,what,fix]=OV_ROAD[kind];
+  const prompt=kind==='nofile'?'Create .specs/planning/roadmap.md with a ## Timeline section and a ### heading for the next release, so SpecPilot’s Overview shows it.':`In .specs/planning/roadmap.md, ${fix}, so SpecPilot’s Overview shows the next release.`;
+  return ovRoadCard(`<div class="msg warn">${ovIco('i-warn')}<div class="mb"><div class="mt"><span class="mw">Warning</span> ${esc(title)}</div><p>${esc(what)}</p><p>Fix: ${esc(fix)}, best done by your AI IDE.</p>`
+    +`<div class="actions"><button type="button" class="btn sm" data-prompt="${esc(prompt)}">Copy prompt</button>${kind==='nofile'?'':`<button type="button" class="btn sm" data-go="file" data-f="planning/roadmap.md">Open Roadmap</button>`}</div></div></div>`,true);
+}
 async function ovRoadmap(){
-  const pj=PROJECT;if(!('planning/roadmap.md' in (DATA.files||{})))return;
-  let src;try{src=await getText('.specs/planning/roadmap.md');}catch(e){return;}
-  const slot=$('#ovRoad');if(PROJECT!==pj||curView!=='overview'||!slot)return;
+  const pj=PROJECT,place=(card,flagged)=>{const slot=$('#ovRoad');if(PROJECT!==pj||curView!=='overview'||!slot)return;slot.outerHTML=card;
+    const f=$('#ovFlag');if(f)f.innerHTML=flagged?`<div class="msg warn ovbanner">${ovIco('i-warn')}<div class="mb"><div class="mt">This project’s roadmap has no release to show. The Roadmap card says what to fix.</div></div></div>`:'';};
+  if(!('planning/roadmap.md' in (DATA.files||{})))return place(ovRoadFlag('nofile'),true);
+  let src;try{src=await getText('.specs/planning/roadmap.md');}catch(e){return place(ovRoadFlag('nofile'),true);}
   const lines=src.split('\n');
-  const t=lines.findIndex(l=>/^## Timeline\b/.test(l.trim()));if(t<0)return;
+  const t=lines.findIndex(l=>/^## Timeline\b/.test(l.trim()));if(t<0)return place(ovRoadFlag('notl'),true);
   let end=lines.findIndex((l,i)=>i>t&&/^## /.test(l.trim()));if(end<0)end=lines.length;
   let h=-1;for(let i=t+1;i<end;i++)if(/^### /.test(lines[i].trim()))h=i;
-  if(h<0)return;
+  if(h<0)return place(ovRoadFlag('norel'),true);
   let stop=lines.findIndex((l,i)=>i>h&&/^#{1,3} /.test(l.trim()));if(stop<0||stop>end)stop=end;
   const body=lines.slice(h+1,stop).filter(l=>l.trim()).slice(0,5);
-  slot.outerHTML=ovCard('roadmap','Roadmap',`<div class="ovroad md">${md([lines[h],...body].join('\n'))}</div>`+`<button type="button" class="row act ovmore" data-go="file" data-f="planning/roadmap.md">Open roadmap.md</button>`);
+  place(ovRoadCard(`<div class="ovroad md">${md([lines[h],...body].join('\n'))}</div>`,false),false);
+}
+/* Decisions <n>: the ### heading lines outside code fences in security-decisions.md, the headings the Security view renders. */
+async function ovDecisions(){
+  const pj=PROJECT;if(!('security/security-decisions.md' in (DATA.files||{})))return;
+  let src;try{src=await getText('.specs/security/security-decisions.md');}catch(e){return;}
+  let fence=false,n=0;for(const l of src.split('\n')){if(/^\s*(```|~~~)/.test(l))fence=!fence;else if(!fence&&/^### /.test(l))n++;}
+  const t=$('#ovDec');if(PROJECT!==pj||curView!=='overview'||!t)return;t.querySelector('.v').textContent=String(n);t.hidden=false;
 }
 $('#ovBox').addEventListener('click',e=>{
   const t=e.target.closest('[data-task]');
   if(t){const [col,i]=t.dataset.task.split(':');go('board');openTask(col,+i);return;}
+  const p=e.target.closest('[data-prompt]');if(p){copyText(p.getAttribute('data-prompt'));return;}
+  if(e.target.closest('[data-copypath]')){copyText(DATA.project.root);return;}
   const g=e.target.closest('[data-go]');if(g)go(g.dataset.go,g.dataset.f);
 });
 

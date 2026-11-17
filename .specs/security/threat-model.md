@@ -1,6 +1,6 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-11-16 (BL-TB-08 Spec Report)
+lastUpdated: 2026-11-17 (BL-166 Spec Report)
 version: 1.53
 contributors: [girishr]
 relatedFiles:
@@ -239,7 +239,7 @@ Same audit and status as SEC-002.12. The principal is a web page the user visits
 | `POST /api/setup` (removed by BL-103) | JSON `{projectType, language?, framework?, apiParadigm, handle, ide}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB, fixed keys, fixed choices, handle allowlist | New files only, staged then created exclusively; existing files kept (SEC-002.5 j) |
 | `.specpilot-setup-*` folders at `serve` startup | Disk read (`lstat`, marker file) | ✅ exact name pattern, real folder, marker present as a regular file; skipped with `--read-only` | Removed with contents; nothing else touched (SEC-002.5 j) |
 | `POST /api/projects`                 | JSON `{path}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; one key, string ≤ 4096, no NUL, `~` expanded, absolute, `realpath`, directory, not home / a root / a served root; 405 with `--read-only` | One more served root (then the per-root guards); one registry entry (SEC-002.5 k) |
-| `GET /api/projects`, `POST /api/projects/remove` | none / JSON `{path}` + token + `Origin` | ✅ Host (and the write checks on remove); remove matches the stored string only | Registry listed or one entry removed; no folder touched (SEC-002.5 k) |
+| `GET /api/projects`, `POST /api/projects/remove` | none / JSON `{path}` + token + `Origin` | ✅ Host (and the write checks on remove); remove matches the stored string only | Registry listed or one entry removed, and the served project with that path closed for the run, its number retired (SEC-004.37); no folder touched (SEC-002.5 k) |
 | `GET /api/projects/new` (removed by BL-103) | none                 | ✅ Host check; 405 with `--read-only` | `init`'s questions; reads no folder, writes nothing (SEC-002.5 l) |
 | `POST /api/projects/new` (removed by BL-103) | JSON `{parent, name, projectType, language, framework?, apiParadigm, handle, ide, whatItDoes, targetUsers?, expectedScale?, constraints?}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; fixed keys and choices; parent through `checkOpenPath()`, no `.specs` segment; name allowlist, ≤ 214; handle allowlist; context answers single-line, ≤ 1000, no control characters or U+2028 / U+2029; 405 with `--read-only` | One new folder (or an existing empty one) with the files `init` writes, staged then created exclusively; then one more served root and one registry entry (SEC-002.5 l) |
 | `POST /api/projects/clone`           | JSON `{url, parent, name}`, `X-SpecPilot-Token`, `Origin` | ✅ Host, Origin, token, JSON only, ≤ 16 KB; three string keys; URL allowlist (https, `ssh://`, `user@host:path`; ≤ 2048, no whitespace or control character, no leading `-`, no credentials); parent and name as `POST /api/projects/new`; target missing or empty; one clone at a time; 405 with `--read-only` | One `git clone --progress` started without a shell (stderr read for a stage and a percentage only, BL-PM-009; https or ssh only, no submodules, no prompt, 10 minutes at most) into one new or empty folder, cleaned up on failure; then one more served root and one registry entry (SEC-002.5 m) |

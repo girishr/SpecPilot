@@ -103,7 +103,8 @@ function renderProject(){
     $('#projList').innerHTML='';$('#curGrp').textContent='';$('#curGrp').title='';$('#curBranch').textContent='';
     $('#subName').textContent='';$('#subPath').textContent='';document.title='SpecPilot';return;}
   const name=projectLabel(p), where=p.root+(p.branch?' · '+p.branch:'');
-  $('#projList').innerHTML=DATA.projects.map((q,i)=>{const n=projectLabel(q),cur=i===PROJECT&&!NOPROJ.includes(curView);
+  $('#projList').innerHTML=DATA.projects.map((q,i)=>{if(q.closed)return ''; // BL-166: a closed project keeps its slot, no tile
+    const n=projectLabel(q),cur=i===PROJECT&&!NOPROJ.includes(curView);
     return `<button class="tile blue${cur?' cur':''}" data-project="${i}" data-tip="${esc(n)}" data-path="${esc(q.root+(q.branch?' · '+q.branch:''))}" aria-label="${esc(n)}"${cur?' aria-current="true"':''}><span aria-hidden="true">${esc(initials(n))}</span></button>`;}).join('');
   $('#curGrp').textContent=name;$('#curGrp').title=p.root;
   $('#curBranch').textContent=p.branch||'';
@@ -155,12 +156,26 @@ function go(v,sub){
 let urlOk=true,memHash='';
 try{history.replaceState(null,'',location.href);}catch(e){urlOk=false;}
 try{memHash=location.hash;}catch(e){memHash='';}
+/* The indices of closed projects (BL-166): their slots stay in DATA.projects as {closed: true}. */
+function closedProjects(){return DATA&&DATA.projects?DATA.projects.flatMap((q,i)=>q.closed?[i]:[]):[];}
+/* Project n closed (BL-166): the rail redrawn from `projects`; if it was the shown one, Home and a toast naming it. */
+function projectClosed(n,projects){
+  const q=DATA.projects[n];if(!q||q.closed)return;
+  DATA.projects=projects||DATA.projects.map((x,i)=>i===n?{closed:true}:x);renderProject();
+  toast(`${projectLabel(q)} was closed.`);
+  if(n!==PROJECT)return;
+  if(es){es.close();es=null;}
+  go('home');
+  // behind Home, the first open project's data (or the no-project state), so no view shows the closed one's
+  // the index from the server's list, not this page's: a close this page did not hear of may have moved the first open one
+  fetch('/api/specs',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&PROJECT===n){PROJECT=d.project?d.projects.findIndex(q=>!q.closed):0;showProject(d,true);}}).catch(()=>{});
+}
 function curHash(){if(!urlOk)return memHash;try{return location.hash;}catch(e){return memHash;}}
 function setHash(v,sub){const h='#'+(PROJECT&&!NOPROJ.includes(v)?PROJECT+'/':'')+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
   if(!urlOk)return;
   try{history.replaceState(null,'',h);}catch(e){urlOk=false;}}
 function route(){
-  const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1,!!TOKEN);
+  const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1,!!TOKEN,closedProjects());
   if(NOPROJ.includes(r.view)){go(r.view);return;} // Home and #new belong to no project: the shown one stays loaded behind them
   if(r.project!==PROJECT){switchProject(r.project,true);return;}
   go(r.view,r.sub);
@@ -1212,6 +1227,7 @@ function listen(missed){
   es.addEventListener('clone',e=>onCloneEvent(e.data));
   es.addEventListener('setup',e=>onSetupEvent(e.data));
   es.addEventListener('mcp',e=>{let d=null;try{d=JSON.parse(e.data);}catch(_){}if(d&&DATA){DATA.mcp=d;if(curView==='setup'||curView==='new')suStatus();}});
+  es.addEventListener('closed',()=>projectClosed(PROJECT)); // this project was closed from another page (BL-166)
   es.addEventListener('change',e=>{let paths=null;try{paths=JSON.parse(e.data).paths;}catch(_){}refresh(Array.isArray(paths)?paths:null);});
   const mine=es; // a refusal or a 503 closes it for good: reopen it in 5 s unless it was replaced meanwhile (BL-144)
   es.onerror=()=>{dropped=true;if(mine.readyState===2)setTimeout(()=>{if(es===mine)listen(true);},5000);}; // otherwise EventSource retries by itself
@@ -1397,7 +1413,7 @@ async function browseFolder(btn,field,pick){
 async function removeRecent(path){
   let out;
   try{out=await postPath(path,'/api/projects/remove');}catch(e){toast('The server did not answer.');return;}
-  if(out.r.status===200){drawRecent(out.res);if(curView==='home')drawRecent(out.res,true);}else toast(out.res.error||`Nothing was removed (HTTP ${out.r.status}).`);
+  if(out.r.status===200){if(out.res.closed!=null)projectClosed(out.res.closed,out.res.projects);drawRecent(out.res);if(curView==='home')drawRecent(out.res,true);}else toast(out.res.error||`Nothing was removed (HTTP ${out.r.status}).`);
 }
 addBtn.onclick=()=>{go('home');$('#homeOpen').focus();}; // every new project starts from Home (BL-PM-014); only Home's buttons open the sheet
 homeBtn.onclick=()=>go('home');

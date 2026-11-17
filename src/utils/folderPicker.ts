@@ -12,7 +12,9 @@ export const BROWSE_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_PATH = 4096;
 const MAX_LINE = 300;
 const PROMPT = 'Choose a project folder';
-const OSASCRIPT = ['-e', 'activate', '-e', `POSIX path of (choose folder with prompt "${PROMPT}" default location (path to home folder))`];
+// JavaScript for Automation: AppKit's activateIgnoringOtherApps puts the dialog in front at once, where AppleScript's
+// `activate` waited about 2 s (BL-187); guarded, so a macOS without it still shows the dialog.
+const OSASCRIPT = ['-l', 'JavaScript', '-e', `try { ObjC.import("AppKit"); $.NSApplication.sharedApplication.activateIgnoringOtherApps(true); } catch (e) {} var a = Application.currentApplication(); a.includeStandardAdditions = true; a.chooseFolder({withPrompt: "${PROMPT}", defaultLocation: a.pathTo("home folder")}).toString()`];
 const POWERSHELL = [
   '-NoProfile',
   '-NonInteractive',

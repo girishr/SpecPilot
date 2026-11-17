@@ -27,7 +27,7 @@ pwd > "$STUB_LOG.cwd"
 echo $$ > "$STUB_LOG.pid"
 if read line; then echo open > "$STUB_LOG.stdin"; else echo closed > "$STUB_LOG.stdin"; fi
 case "$STUB_MODE" in
-  cancel) [ "$0" != "\${0%osascript}" ] && echo "execution error: User canceled. (-128)" >&2; exit 1 ;;
+  cancel) [ "$0" != "\${0%osascript}" ] && echo "execution error: Error: Error: User canceled. (-128)" >&2; exit 1 ;;
   fail) printf 'Gtk-WARNING: cannot open display: :0\\nsecond line\\n' >&2; exit 3 ;;
   silentfail) exit 4 ;;
   hang) exec /bin/sleep 30 ;;
@@ -113,6 +113,16 @@ describe('dialogPrograms()', () => {
     expect(ps.args[4]).toContain('TopMost = $true');
   });
 
+  it('macOS: one JavaScript for Automation script, its activation guarded, no AppleScript activate step (BL-187)', () => {
+    const [osa] = dialogPrograms('/Users/me', 'darwin');
+    expect(osa.file).toBe('osascript');
+    expect(osa.args.slice(0, 3)).toEqual(['-l', 'JavaScript', '-e']);
+    expect(osa.args).toHaveLength(4);
+    expect(osa.args).not.toContain('activate');
+    expect(osa.args[3].startsWith('try { ObjC.import("AppKit"); $.NSApplication.sharedApplication.activateIgnoringOtherApps(true); } catch (e) {} ')).toBe(true);
+    expect(osa.args[3]).toContain('defaultLocation: a.pathTo("home folder")');
+  });
+
   it('has no program on another platform', async () => {
     expect(dialogPrograms('/home/me', 'freebsd')).toEqual([]);
     expect(await pickFolder('/home/me', { platform: 'freebsd' })).toEqual({ error: 'No folder dialog is available on this machine. Type the path instead.' });
@@ -123,7 +133,7 @@ describe('dialogPrograms()', () => {
   it('macOS: osascript with the constant script, in the home folder\'s root, stdin closed; the folder picked', async () => {
     installStub('osascript');
     expect(await pickFolder(ODD_HOME, { platform: 'darwin' })).toEqual({ path: '/Users/me/dev/My Project' });
-    expect(args()).toEqual(['-e', 'activate', '-e', 'POSIX path of (choose folder with prompt "Choose a project folder" default location (path to home folder))']);
+    expect(args()).toEqual(['-l', 'JavaScript', '-e', 'try { ObjC.import("AppKit"); $.NSApplication.sharedApplication.activateIgnoringOtherApps(true); } catch (e) {} var a = Application.currentApplication(); a.includeStandardAdditions = true; a.chooseFolder({withPrompt: "Choose a project folder", defaultLocation: a.pathTo("home folder")}).toString()']);
     expect(logged('cwd').trim()).toBe('/');
     expect(logged('stdin').trim()).toBe('closed');
   });

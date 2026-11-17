@@ -72,12 +72,12 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-187 | bug | P2 | On macOS, Browse… (`#browseBtn`, `#cloneBrowseBtn`, `#suBrowse`) waits about 2 s before the folder dialog opens. The cause is the bare `activate` in `OSASCRIPT` (`src/utils/folderPicker.ts`): it asks `osascript`, which is not a regular app, to come to the front, and macOS gives up after a fixed timeout. Timed 2026-11-17 with no dialog: `osascript -e 'return 1'` 0.03–0.05 s, `osascript -e 'path to home folder'` 0.06–0.08 s, `osascript -e activate -e 'return 1'` 2.09 s on each of 3 runs. The server does no work before starting the dialog (`handleBrowse` in `specServer.ts`). `activate` likely keeps the dialog in front of the browser (no reason recorded in `context.md` or `architecture.md`), so the fix must keep the dialog in front without the wait, for example by showing it through an app such as System Events. Not tested. Found 2026-11-17. |
 
 ## Review
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-187 | bug | P2 | On macOS, Browse… (`#browseBtn`, `#cloneBrowseBtn`, `#suBrowse`) waits about 2 s before the folder dialog opens. The cause is the bare `activate` in `OSASCRIPT` (`src/utils/folderPicker.ts`): it asks `osascript`, which is not a regular app, to come to the front, and macOS gives up after a fixed timeout. Timed 2026-11-17 with no dialog: `osascript -e 'return 1'` 0.03–0.05 s, `osascript -e 'path to home folder'` 0.06–0.08 s, `osascript -e activate -e 'return 1'` 2.09 s on each of 3 runs. The server does no work before starting the dialog (`handleBrowse` in `specServer.ts`). `activate` likely keeps the dialog in front of the browser (no reason recorded in `context.md` or `architecture.md`), so the fix must keep the dialog in front without the wait, for example by showing it through an app such as System Events. Not tested. Found 2026-11-17. Approved 2026-11-17. |
 
 ## Won't do
 

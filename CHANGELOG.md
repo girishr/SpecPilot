@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Browse… opens the folder dialog at once on macOS** (BL-187): in `specpilot serve`, the macOS folder dialog took about 2 seconds to appear, and could open behind the browser. It now comes to the front in about half a second.
 - **Restarting `specpilot serve` keeps the rail's order** (BL-186): the projects it reopens now come back in the order they were first added to `~/.specpilot/projects.json`, so the project you opened last no longer jumps to the front, and its `#<n>/` links and MCP project number stay the same. Which projects reopen when there are more than 20 is still decided pinned first, then most recently opened.
 - **Back and Forward move between sections** (BL-192): in `specpilot serve`, opening a section (a sidebar row, a project tile, Home, a link on Overview) now adds a browser history entry, so Back returns to the section before and Forward to the one after. Moves the page makes on its own, such as going Home when the shown project closes, add none, so Back never loops.
 - **Removing an open project on Home closes it** (BL-166): its tile stayed on the rail until `specpilot serve` restarted. Now its tile goes, a page showing it goes to Home with `<name> was closed.`, and its routes and MCP number stop working, while every other project keeps its number. Opening it again gives it a new number. Since a closed number is never reused, one run can open at most 100 projects in all (20 at a time, as before).

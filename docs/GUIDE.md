@@ -63,7 +63,7 @@ SDD addresses modern development challenges:
 
 ### Prerequisites
 
-- **Node.js**: `^22.23.5 || ^24.22.3 || >=26.13.1` (a patched 22, 24 or 26; BL-170)
+- **Node.js**: `^22.23.5 || ^24.22.3 || >=26.13.1` (a patched 22, 24 or 26; BL-170). On another version every command prints a warning on stderr and still runs (BL-189)
 - **npm**: >= 8.0.0
 
 ### Global Installation

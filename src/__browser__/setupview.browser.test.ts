@@ -152,7 +152,7 @@ browserTest('a .specs/ written outside the page replaces the Setup view with Tas
     await waitView(page, 'v-setup');
     mkdirSync(join(bare, '.specs', 'planning'), { recursive: true });
     writeFileSync(join(bare, '.specs', 'planning', 'tasks.md'), '# Tasks\n\n## Backlog\n\n| ID | Description |\n|---|---|\n| BL-001 | Fixture row |\n');
-    await waitView(page, 'v-board');
+    await waitView(page, 'v-overview');
   } finally {
     await srv.close();
   }
@@ -294,7 +294,7 @@ browserTest('420px, no sideways scroll: Open and New, idle, connected and MCP of
   }
 }, [/Failed to load resource/]);
 
-browserTest('Open: the IDE\'s calls move the rows from not started to running to done, then Tasks; 420px, light and dark', b, async open => {
+browserTest('Open: the IDE\'s calls move the rows from not started to running to done, then the project\'s Overview; 420px, light and dark', b, async open => {
   for (const light of [false, true]) {
     const folder = join(env.home, 'dev', `bare-${light ? 'light' : 'dark'}`);
     mkdirSync(folder);
@@ -313,7 +313,7 @@ browserTest('Open: the IDE\'s calls move the rows from not started to running to
       expect(await noSideScroll(page)).toBe(true);
       const r = await tool(srv, 'specpilot_setup_project', { path: folder, answers: BARE_ANSWERS, asked: ['handle'] });
       expect(r.isError).toBeUndefined();
-      await waitView(page, 'v-board'); // .specs/ appeared: the existing live reload opens the project
+      await waitView(page, 'v-overview'); // .specs/ appeared: the existing live reload opens the project
       const s2 = await seen(page);
       expect(s2.seen).toEqual(expect.arrayContaining(['5 from the code, 1 from you (Handle)', `${r.structuredContent.written.length} files`, `${r.structuredContent.validate.errors.length} errors, ${r.structuredContent.validate.warnings.length} warnings`]));
       expect(s2.wide.every(Boolean)).toBe(true);
@@ -340,7 +340,7 @@ browserTest('New: the rows run under #new, then the page switches to the created
     expect(await noSideScroll(page)).toBe(true);
     const r = await tool(srv, 'specpilot_setup_project', { path: target, answers: { projectType: 'greenfield', language: 'typescript', framework: 'none', apiParadigm: 'rest', handle: 'jsmith', ide: 'vscode', whatItDoes: 'Tracks parcels' }, asked: ['whatItDoes'] });
     expect(r.structuredContent.project).toBe(1);
-    await waitView(page, 'v-board');
+    await waitView(page, 'v-overview');
     await page.waitForFunction(() => location.hash.startsWith('#1/'));
     expect(await page.locator('#projList .tile').count()).toBe(2);
     const s2 = await seen(page);

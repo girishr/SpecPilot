@@ -2,7 +2,7 @@
 /* Hash routing for the serve UI, kept free of the DOM so Jest can require it.
    Loaded as /assets/route.js in the browser. */
 (function (root) {
-const VIEWS=['board','explorer','security','instructions','commands','skills'];
+const VIEWS=['overview','board','explorer','security','instructions','commands','skills'];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* "#file/quality/tests.md" → {project:0, view:'file', sub:'quality/tests.md', missing:false}.
@@ -24,7 +24,7 @@ function resolveRoute(hash,files,count,home,closed){
   if(home&&top)return {project:first,view:top[1],sub:'',missing:false};
   if(home&&(count===0||first>=count))return {project:first,view:'home',sub:'',missing:false};
   if(m){
-    if(!/^(0|[1-9][0-9]*)$/.test(m[1])||Number(m[1])>=(count||1))return {project:first,view:'board',sub:'',missing:false};
+    if(!/^(0|[1-9][0-9]*)$/.test(m[1])||Number(m[1])>=(count||1))return {project:first,view:'overview',sub:'',missing:false};
     if(home&&closed.includes(Number(m[1])))return {project:first,view:'home',sub:'',missing:false};
     project=Number(m[1]);h=m[2];
   }
@@ -34,7 +34,7 @@ function resolveRoute(hash,files,count,home,closed){
   try{sub=decodeURIComponent(sub);}catch(e){}
   if(view==='file'&&sub)return {project,view:'file',sub,missing:!Object.prototype.hasOwnProperty.call(files||{},sub)};
   if(VIEWS.includes(view))return {project,view,sub,missing:false};
-  return {project,view:'board',sub:'',missing:false};
+  return {project,view:'overview',sub:'',missing:false}; // Overview is the landing (BL-171, REQ-002.H.76)
 }
 
 /* The whole content of a view whose file is gone: its path, and that it no longer exists. */
@@ -105,11 +105,11 @@ function openOutcome(status,res,created){
   return {project:null,specs:null,toast:res.error||`Nothing was ${did} (HTTP ${status}).`};
 }
 
-/* The view a live-reload payload forces, or null to stay: setup when .specs/ is gone, Tasks when it
+/* The view a live-reload payload forces, or null to stay: setup when .specs/ is gone, Overview (BL-171) when it
    appeared while the setup view was shown. Home and the new-project chat belong to no project, so they never move. */
 function reloadView(curView,hadSpecs,hasSpecs){
   if(!hasSpecs&&curView!=='setup'&&curView!=='home'&&curView!=='new')return 'setup';
-  if(!hadSpecs&&hasSpecs&&curView==='setup')return 'board';
+  if(!hadSpecs&&hasSpecs&&curView==='setup')return 'overview';
   return null;
 }
 

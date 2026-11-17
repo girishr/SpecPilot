@@ -45,7 +45,7 @@ const quit = async (page: Page, accept: boolean) => {
 };
 
 browserTest('Quit dismissed sends nothing; accepted stops the server once, shows the notice and does not reconnect', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const quits = watch(page, /^\/api\/quit$/);
   await quit(page, false);
@@ -65,7 +65,7 @@ browserTest('Quit dismissed sends nothing; accepted stops the server once, shows
 });
 
 browserTest('a refused or unanswered Quit is toasted and the page stays', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.route('**/api/quit', route => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: 'This request did not carry the page token, so it was refused. Reload the page and try again.' }) }));
   await quit(page, true);
@@ -79,7 +79,7 @@ browserTest('a refused or unanswered Quit is toasted and the page stays', b, asy
 }, [/Failed to load resource/]);
 
 browserTest('at 420px Quit is reachable and nothing scrolls sideways: idle, after an error, after the notice', b, async open => {
-  const { page } = await open(srv, '', { width: 420 });
+  const { page } = await open(srv, '#board', { width: 420 });
   await waitView(page, 'v-board');
   expect(await noSideScroll(page)).toBe(true);
   await page.click('#menuBtn');
@@ -105,7 +105,7 @@ describe('with --read-only', () => {
   afterEach(async () => ro.close());
 
   browserTest('there is no Quit', b, async open => {
-    const { page } = await open(ro);
+    const { page } = await open(ro, '#board');
     await waitView(page, 'v-board');
     expect(await page.locator('#quitBtn').isHidden()).toBe(true);
   });

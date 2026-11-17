@@ -49,7 +49,7 @@ const hold = async (page: Page, before: () => void = () => undefined) => {
 };
 
 browserTest('Edit is on a Backlog row only, with a token; not Current Sprint, Review, Completed or Won\'t do', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   await page.click('#boardMode .gl[data-col="wontDo"] [data-fold]'); // the strip folded by default
   await page.waitForFunction(() => document.querySelector('#boardMode .gl[data-col="wontDo"] [data-fold]')?.getAttribute('aria-expanded') === 'true');
@@ -67,7 +67,7 @@ browserTest('Edit is on a Backlog row only, with a token; not Current Sprint, Re
 browserTest('with --read-only there is no Edit', b, async o => {
   const ro = await serve(env, [env.project], { readOnly: true });
   try {
-    const { page } = await o(ro);
+    const { page } = await o(ro, '#board');
     await waitView(page, 'v-board');
     await open(page, 'backlog', 0);
     expect(await page.locator('#edBtn, #edForm').count()).toBe(0);
@@ -77,7 +77,7 @@ browserTest('with --read-only there is no Edit', b, async o => {
 });
 
 browserTest('the form holds the cell text and counts; Enter saves the one cell, Shift+Enter does nothing; then Save saves', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   await open(page, 'backlog', 0);
   await page.click('#edBtn');
@@ -106,7 +106,7 @@ browserTest('the form holds the cell text and counts; Enter saves the one cell, 
 });
 
 browserTest('Escape and Cancel write nothing and keep the panel open; typed text goes when the panel closes or another card opens', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   await open(page, 'backlog', 0);
@@ -138,7 +138,7 @@ browserTest('Escape and Cancel write nothing and keep the panel open; typed text
 });
 
 browserTest('a refusal and no answer keep the typed text with the error; a plain Backlog row saves too', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   await open(page, 'backlog', 0);
@@ -164,7 +164,7 @@ browserTest('a refusal and no answer keep the typed text with the error; a plain
 }, [/Failed to load resource/]);
 
 browserTest('a 409: still in Backlog keeps the form; moved to Current Sprint, the panel there with no Edit; gone, the panel closed', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   await open(page, 'backlog', 0);
@@ -204,7 +204,7 @@ browserTest('a 409: still in Backlog keeps the form; moved to Current Sprint, th
 
 for (const isLight of [false, true]) {
   browserTest(`at 420px the form fits with nothing scrolling sideways: idle, saving, after an error, after a 409 move (${isLight ? 'light' : 'dark'})`, b, async o => {
-    const { page } = await o(srv, '', { width: 420, light: isLight });
+    const { page } = await o(srv, '#board', { width: 420, light: isLight });
     await waitView(page, 'v-board');
     await open(page, 'backlog', 0);
     await page.click('#edBtn');

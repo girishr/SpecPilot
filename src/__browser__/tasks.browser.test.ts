@@ -43,7 +43,7 @@ const laneAdd = (page: Page, col: string) => page.locator(`#boardMode .gl[data-c
 const focusOn = (page: Page, col: string) => page.waitForFunction(c => document.activeElement?.matches(`#boardMode [data-add="${c}"]`) ?? false, col);
 
 browserTest('Alt+ArrowRight moves a Backlog row to Current Sprint as one line, and the toast Undo puts the file back byte for byte', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   const first = rowsIn(before, 'Backlog')[0];
@@ -61,7 +61,7 @@ browserTest('Alt+ArrowRight moves a Backlog row to Current Sprint as one line, a
 });
 
 browserTest('dragging a Current Sprint row onto the Backlog moves it there', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const first = rowsIn(read(env.tasks()), 'Current Sprint')[0];
   await row(page, 'currentSprint', 0).dragTo(page.locator('#boardMode .gl[data-col="backlog"] .gh'));
@@ -71,7 +71,7 @@ browserTest('dragging a Current Sprint row onto the Backlog moves it there', b, 
 
 for (const section of ['backlog', 'currentSprint'] as const) {
   browserTest(`New Task adds the next ID to ${section === 'backlog' ? 'Backlog' : 'Current Sprint'}, selects the row and opens the inspector`, b, async open => {
-    const { page } = await open(srv);
+    const { page } = await open(srv, '#board');
     await waitView(page, 'v-board');
     const before = read(env.tasks());
     const id = taskMover.nextTaskId(section === 'backlog' ? 'BL' : 'CS', [before, archive()]);
@@ -94,7 +94,7 @@ browserTest(
   'New Task shows the server reason in the dialog for a description with | and writes nothing',
   b,
   async open => {
-    const { page } = await open(srv);
+    const { page } = await open(srv, '#board');
     await waitView(page, 'v-board');
     const before = read(env.tasks());
     await laneAdd(page, 'backlog').click();
@@ -115,7 +115,7 @@ browserTest(
     // live reload slowed to a minute, so the page still holds the old hash when the dialog is sent
     const slow = await serve(env, [env.project], { pollMs: 60000 });
     try {
-      const { page } = await open(slow);
+      const { page } = await open(slow, '#board');
       await waitView(page, 'v-board');
       const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
       writeFileSync(env.tasks(), changed);
@@ -136,7 +136,7 @@ browserTest('--read-only has no Add or Archive buttons, no drag handles and no H
   const completed = addCompletedRows(40); // past the limit, so Archive would be due with a token (BL-TB-06)
   const ro = await serve(env, [env.project], { readOnly: true });
   try {
-    const { page } = await open(ro);
+    const { page } = await open(ro, '#board');
     await waitView(page, 'v-board');
     await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
     expect(await page.locator('#newTask').count()).toBe(0); // gone since BL-TB-05
@@ -164,7 +164,7 @@ browserTest('--read-only has no Add or Archive buttons, no drag handles and no H
 });
 
 browserTest('a row written to tasks.md outside the page appears through live reload, without a page load', b, async open => {
-  const t = await open(srv);
+  const t = await open(srv, '#board');
   await waitView(t.page, 'v-board');
   const lines = read(env.tasks()).split('\n');
   const sep = lines.findIndex((l, i) => i > lines.findIndex(x => x.trim() === '## Current Sprint') && /^\|---/.test(l));
@@ -175,7 +175,7 @@ browserTest('a row written to tasks.md outside the page appears through live rel
 });
 
 browserTest('the inspector link opens tasks.md at the row line, and follows the row when lines are written above it', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await row(page, 'backlog', 0).click();
   const link = page.locator('#insp .actions a');
@@ -199,7 +199,7 @@ browserTest('Tasks is the board alone: no switch, no list, the lanes in order, e
   writeFileSync(env.tasks(), lines.join('\n'));
   const backlog = rowsIn(read(env.tasks()), 'Backlog').length;
   expect(backlog).toBeGreaterThan(6);
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
   expect(await page.locator('#modeSeg').count()).toBe(0);
@@ -272,7 +272,7 @@ const laneGeom = (page: Page, col: string) =>
 // in place; the page does not scroll, with the inspector open either; a live reload keeps the box's scroll.
 browserTest('the lanes fit the window at 1280px: the page does not scroll, a long lane does inside its box, and live reload keeps the box\'s scroll', b, async open => {
   const backlog = addBacklogRows();
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
   expect(await pageScrolls(page)).toBe(false);
@@ -308,7 +308,7 @@ browserTest('the lanes fit the window at 1280px: the page does not scroll, a lon
 browserTest('Completed shows every row at 1280px with no Show All, and a long Completed lane scrolls inside its box', b, async open => {
   const completed = addCompletedRows();
   expect(completed).toBeGreaterThan(8);
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
   expect(await page.locator('#boardMode [data-more]').count()).toBe(0);
@@ -337,7 +337,7 @@ const addGeom = (page: Page, col: string) =>
 
 browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the dialog for its lane with the next ID, Enter adds, and focus comes back', b, async open => {
   const backlog = addBacklogRows();
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
   expect(await page.locator('#boardMode [data-add]').count()).toBe(2);
@@ -417,7 +417,7 @@ browserTest('Add sits in the Backlog and Current Sprint lane headers, opens the 
 // Completed step with the CLI's plan and block; within the limit a ticked limit gate sends {force:true}.
 browserTest('Archive sits in the Completed header; past the limit on main the dialog has no box to tick, one click archives the oldest rows as the CLI does, and the next open says nothing is left', b, async open => {
   const completed = addCompletedRows(40);
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
   expect(await page.locator('#boardMode [data-archive]').count()).toBe(1);
@@ -483,7 +483,7 @@ browserTest('Archive sits in the Completed header; past the limit on main the di
 browserTest('off main and within the limit the dialog warns twice, Archive waits for both ticks, a redraw keeps a tick and shows the new branch, and a ticked limit gate forces the rows past the newest 10', b, async open => {
   const completed = addCompletedRows(19); // 20 rows, 25 lines: within the limit
   writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
   const archiveBefore = archive();
@@ -549,7 +549,7 @@ browserTest('off main and within the limit the dialog warns twice, Archive waits
 for (const light of [false, true]) {
   browserTest(`the Archive dialog names the payload's limit and keep and the rows that stay, within, over (fewer than 10 fit) and with nothing left, at 420px (${light ? 'light' : 'dark'})`, b, async open => {
     const dialog = async () => {
-      const { page } = await open(srv, '', { width: 420, light });
+      const { page } = await open(srv, '#board', { width: 420, light });
       await waitView(page, 'v-board');
       await laneArchive(page).click();
       await archOpen(page);
@@ -585,9 +585,9 @@ browserTest(
     const completed = addCompletedRows(40);
     const slow = await serve(env, [env.project], { pollMs: 60000 }); // the page still holds the old hash when Archive is clicked
     try {
-      const { page } = await open(slow);
-      const narrow = (await open(slow, '', { width: 420 })).page; // the error state at 420px too, on a page that also holds the old hash
-      const narrowLight = (await open(slow, '', { width: 420, light: true })).page; // and in the light theme (BL-123)
+      const { page } = await open(slow, '#board');
+      const narrow = (await open(slow, '#board', { width: 420 })).page; // the error state at 420px too, on a page that also holds the old hash
+      const narrowLight = (await open(slow, '#board', { width: 420, light: true })).page; // and in the light theme (BL-123)
       for (const pg of [page, narrow, narrowLight]) {
         await waitView(pg, 'v-board');
         await pg.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed);
@@ -627,8 +627,8 @@ browserTest('a missing heading shows a Warning and an unknown heading a Note at 
   const before = read(env.tasks());
   const odd = '## <b>Parked</b> & co';
   writeFileSync(env.tasks(), before.replace('## Backlog', '### backlog') + `\n${odd}\n\n| ID | Description |\n|---|---|\n| PK-001 | Parked row |\n| PK-002 | Parked row two |\n\n## Later\n\nNothing tabled yet.\n`);
-  const wide = (await open(srv)).page;
-  const narrow = (await open(srv, '', { width: 420 })).page;
+  const wide = (await open(srv, '#board')).page;
+  const narrow = (await open(srv, '#board', { width: 420 })).page;
   for (const page of [wide, narrow]) {
     await waitView(page, 'v-board');
     await page.locator('#gHead .msg.warn').waitFor({ state: 'visible' });
@@ -684,7 +684,7 @@ browserTest('a `## backlog` heading gets one Warning and no Note, and a lane wit
   const lines = read(env.tasks()).split('\n');
   const at = lines.findIndex(l => l.trim() === '## Completed');
   writeFileSync(env.tasks(), lines.slice(0, at).join('\n').replace('## Backlog', '## backlog') + '\n');
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
   expect(await page.locator('#gHead .msg.info').count()).toBe(0);
@@ -713,8 +713,8 @@ browserTest('a section whose tasks are lines or a list, not a table, gets a Warn
   const [bs, be] = bounds('## Backlog');
   lines.splice(bs + 1, be - bs - 1, '', '[BL-001] Line one', '[BL-002] Line two', '[BL-003] Line three', '');
   writeFileSync(env.tasks(), lines.join('\n'));
-  const wide = (await open(srv)).page;
-  const narrow = (await open(srv, '', { width: 420 })).page;
+  const wide = (await open(srv, '#board')).page;
+  const narrow = (await open(srv, '#board', { width: 420 })).page;
   for (const page of [wide, narrow]) {
     await waitView(page, 'v-board');
     await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 2);
@@ -758,8 +758,8 @@ browserTest('a table with the wrong column count gets a Warning per section at 1
   lines.splice(cs + 1, ce - cs - 1, '', '| ID | Task |', '|---|---|', '| CD-fixture-002 | Two cells, not three |', '| CD-fixture-003 | Another two-cell row |', '');
   header('## Backlog', '| ID | Description | Owner | Due |', '|---|---|---|---|');
   writeFileSync(env.tasks(), lines.join('\n'));
-  const wide = (await open(srv)).page;
-  const narrow = (await open(srv, '', { width: 420 })).page;
+  const wide = (await open(srv, '#board')).page;
+  const narrow = (await open(srv, '#board', { width: 420 })).page;
   for (const page of [wide, narrow]) {
     await waitView(page, 'v-board');
     await page.waitForFunction(() => document.querySelectorAll('#gHead .msg.warn').length === 3);
@@ -790,7 +790,7 @@ browserTest('a table with the wrong column count gets a Warning per section at 1
 });
 
 browserTest('the tasks.md intro sits above the lanes, folded on load, and stays open through a live reload', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   expect(await page.evaluate(() => (document.querySelector('#gConv')!.compareDocumentPosition(document.querySelector('#boardMode')!) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0)).toBe(true);
   expect(await page.locator('#gIntro').getAttribute('open')).toBeNull();
@@ -810,7 +810,7 @@ browserTest('the Tasks view, a task\'s details, the New Task dialog, the card me
   const backlog = addBacklogRows();
   const completed = addCompletedRows(40); // past the limit: Archive is drawn (BL-TB-06)
   writeFileSync(join(env.project, '.git', 'HEAD'), 'ref: refs/heads/feature\n');
-  const { page } = await open(srv, '', { width: 420 });
+  const { page } = await open(srv, '#board', { width: 420 });
   await waitView(page, 'v-board');
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="backlog"]').length === n, backlog);
   await page.waitForFunction(n => document.querySelectorAll('#boardMode .row[data-col="completed"]').length === n, completed); // BL-TB-07: every Completed row
@@ -930,7 +930,7 @@ async function item(page: Page, label: string) {
 }
 
 browserTest('a card\'s menu opens by right-click, Shift+F10 and the ⋯ button; its items come from the move table; a move from it is one line with Undo, a Completed card offers details and Copy ID only', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   const first = rowsIn(before, 'Backlog')[0];
@@ -1047,7 +1047,7 @@ const REVIEW_ROW = '| CS-801 | chore |  | Fixture review row Sent back 2026-10-0
 const mark = (suffix: string) => REVIEW_ROW.slice(0, -2) + suffix + ' |';
 
 browserTest('the five lanes: the Review header\'s HITL abbr and empty text, the Won\'t do strip folded by default, opened and closed by its title, read-only with the Reason in the panel; lanes without their heading are not drawn', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const hitl = page.locator('#boardMode .gl[data-col="review"] .gh abbr.hitl');
   expect(await hitl.textContent()).toBe('HITL');
@@ -1059,7 +1059,7 @@ browserTest('the five lanes: the Review header\'s HITL abbr and empty text, the 
   const fills = (p: Page) => p.evaluate(() => { const c = document.querySelector('#content')!; const cs = getComputedStyle(c); return Math.abs(document.querySelector('#v-board')!.getBoundingClientRect().width - (c.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))) < 1; });
   expect(await fills(page)).toBe(true);
   expect(await page.locator('#v-board').evaluate(e => e.getBoundingClientRect().width)).toBeGreaterThan(880);
-  const wide = (await open(srv, '', { width: 1920 })).page;
+  const wide = (await open(srv, '#board', { width: 1920 })).page;
   await waitView(wide, 'v-board');
   await wide.waitForFunction(() => document.querySelectorAll('#boardMode .gl[data-col]').length === 5);
   expect(await fills(wide)).toBe(true);
@@ -1118,7 +1118,7 @@ browserTest('the five lanes: the Review header\'s HITL abbr and empty text, the 
 });
 
 browserTest('Approve from the panel appends the dated marker as one line, shows the chip, toasts with Undo and ×; Undo puts the file back; the × hides a toast early and a toast left alone hides on its timer', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   await row(page, 'review', 0).click();
@@ -1171,7 +1171,7 @@ browserTest('Approve from the panel appends the dated marker as one line, shows 
 });
 
 browserTest('Send back with a note (a line break and a | typed) writes one space and \\|, moves the row to the top of Current Sprint, closes the panel and toasts; Undo restores the file; no note gives the dot form; Escape and Cmd+Enter; the menu items', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   await row(page, 'review', 0).click();
@@ -1312,7 +1312,7 @@ browserTest('Send back with a note (a line break and a | typed) writes one space
 browserTest('a Send back refused by the server (the file changed under a slow poll) shows the text in the footer with the note kept; the Review panel, its note box, its error, the strip and the lanes have no sideways scroll at 420px', b, async open => {
   const slow = await serve(env, [env.project], { pollMs: 60000 });
   try {
-    const { page } = await open(slow, '', { width: 420 });
+    const { page } = await open(slow, '#board', { width: 420 });
     await waitView(page, 'v-board');
     expect(await page.$$eval('#boardMode .gl[data-col]', els => els.map(e => (e as HTMLElement).dataset.col))).toEqual(['backlog', 'currentSprint', 'review', 'completed', 'wontDo']);
     expect(await noSideScroll(page)).toBe(true);
@@ -1376,7 +1376,7 @@ function plainSprint(): void {
 }
 
 browserTest('the card shows Priority, then Type, then Approved on its bottom line; P1 stands out; an empty cell shows nothing', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const i = await page.$$eval('#boardMode .row[data-col="backlog"]', els => els.findIndex(e => e.textContent!.includes('Fixture backlog row one')));
   expect(await trail(page, 'backlog', i)).toEqual(['pill chip pri v-p1:P1', 'pill chip ty v-feat:feat']);
@@ -1399,7 +1399,7 @@ browserTest('the card shows Priority, then Type, then Approved on its bottom lin
 });
 
 browserTest('inspOpen() returns once the panel has finished sliding in (BL-163)', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.locator('#insp').evaluate(e => void (e.style.transitionDuration = '2s')); // a slide long enough to be caught mid-way; the CSP refuses a style tag
   await row(page, 'backlog', 0).click();
@@ -1408,7 +1408,7 @@ browserTest('inspOpen() returns once the panel has finished sliding in (BL-163)'
 });
 
 browserTest('the detail panel sets Priority and Type on choice, arrow keys move and choose, and the card follows', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await row(page, 'backlog', 0).click(); // BL-901, both empty
   await inspOpen(page);
@@ -1441,7 +1441,7 @@ browserTest('the detail panel sets Priority and Type on choice, arrow keys move 
 });
 
 browserTest('New Task offers Priority and Type for a typed lane and writes them', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const id = taskMover.nextTaskId('BL', [read(env.tasks()), archive()]);
   await laneAdd(page, 'backlog').click();
@@ -1463,7 +1463,7 @@ browserTest('New Task offers Priority and Type for a typed lane and writes them'
 
 browserTest('a plain Current Sprint: the panel says it has no columns, New Task offers none, the shapes warning shows, a valued row cannot move in', b, async open => {
   plainSprint();
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.waitForFunction(() => Array.from(document.querySelectorAll('#gHead .msg.warn')).some(e => e.textContent!.includes('Backlog, Current Sprint and Review have different table shapes')));
   const warn = (await page.locator('#gHead .msg.warn').allTextContents()).find(t => t.includes('different table shapes'))!;
@@ -1496,7 +1496,7 @@ browserTest('a plain Current Sprint: the panel says it has no columns, New Task 
 browserTest('with --read-only the panel shows Priority and Type as text', b, async open => {
   const ro = await serve(env, [env.project], { readOnly: true });
   try {
-    const { page } = await open(ro);
+    const { page } = await open(ro, '#board');
     await waitView(page, 'v-board');
     const i = await page.$$eval('#boardMode .row[data-col="backlog"]', els => els.findIndex(e => e.textContent!.includes('Fixture backlog row one')));
     await row(page, 'backlog', i).click();
@@ -1511,7 +1511,7 @@ browserTest('with --read-only the panel shows Priority and Type as text', b, asy
 browserTest('Priority and Type at 420px: the panel idle, a write in progress, a refused write with the earlier choice restored, the plain-lane line and the shapes warning, with no sideways scroll', b, async open => {
   const slow = await serve(env, [env.project], { pollMs: 60000 }); // the page keeps the old hash while the file changes under it
   try {
-    const { page } = await open(slow, '', { width: 420 });
+    const { page } = await open(slow, '#board', { width: 420 });
     await waitView(page, 'v-board');
     await row(page, 'backlog', 0).click();
     await inspOpen(page);
@@ -1545,7 +1545,7 @@ browserTest('Priority and Type at 420px: the panel idle, a write in progress, a 
     await slow.close();
   }
   plainSprint();
-  const { page } = await open(srv, '', { width: 420 });
+  const { page } = await open(srv, '#board', { width: 420 });
   await waitView(page, 'v-board');
   await page.waitForFunction(() => Array.from(document.querySelectorAll('#gHead .msg.warn')).some(e => e.textContent!.includes('different table shapes')));
   expect(await noSideScroll(page)).toBe(true); // the shapes warning
@@ -1563,7 +1563,7 @@ function allPlain(): void {
 browserTest('all three lanes plain: a Note, not a Warning, says why there is no Type or Priority, with its prompt; hidden, it stays hidden through a reload; at 420px too', b, async open => {
   allPlain();
   expect(rowsIn(read(env.tasks()), 'Backlog')).toContain('| BL-001 | Fixture backlog row one |');
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await page.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).waitFor();
   expect(await page.locator('#gHead .msg.warn').count()).toBe(0);
@@ -1574,7 +1574,7 @@ browserTest('all three lanes plain: a Note, not a Warning, says why there is no 
   await waitToast(page, /Copied\./);
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("In .specs/planning/tasks.md, give the Backlog, Current Sprint and Review tables ID, Type, Priority and Description columns, with empty Type and Priority cells in every row, keeping every task's ID and text, so SpecPilot's Tasks board can show and set Type and Priority.");
   expect(await row(page, 'backlog', 0).locator('.trail .chip').count()).toBe(0);
-  const narrow = (await open(srv, '', { width: 420 })).page;
+  const narrow = (await open(srv, '#board', { width: 420 })).page;
   await waitView(narrow, 'v-board');
   await narrow.locator('#gHead .msg.info', { hasText: 'Type and Priority are off' }).waitFor();
   expect(await noSideScroll(narrow)).toBe(true);
@@ -1606,7 +1606,7 @@ const busyButtonsInView = (page: Page) => page.evaluate(() => ['#busyCancel', '#
 
 browserTest('on a branch a move asks first with the branch paragraph; Cancel, Escape and the backdrop write nothing; a reorder asks too; Move anyway moves and its Undo does not ask', b, async open => {
   writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const before = read(env.tasks());
   const first = rowsIn(before, 'Backlog')[0];
@@ -1647,7 +1647,7 @@ browserTest('on a branch a move asks first with the branch paragraph; Cancel, Es
 });
 
 browserTest('after a write from outside the page a move asks with the activity paragraph; two files name one and 1 more; with a detached HEAD too both paragraphs, branch first', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await reloadThrough(page, 'CS-900');
   const before = read(env.tasks());
@@ -1695,7 +1695,7 @@ browserTest('after a write from outside the page a move asks with the activity p
 });
 
 browserTest('on main with nothing written from outside, moves go through with no dialog, the page\'s own echo included; the window runs out after 120 seconds', b, async open => {
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   const first = rowsIn(read(env.tasks()), 'Backlog')[0];
   await row(page, 'backlog', 0).focus();
@@ -1726,7 +1726,7 @@ browserTest('on main with nothing written from outside, moves go through with no
 
 browserTest('Send back by any gesture and the Completed hint never ask, on a branch after a write from outside', b, async open => {
   writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await reloadThrough(page, 'CS-900');
   const before = read(env.tasks());
@@ -1760,7 +1760,7 @@ browserTest('Send back by any gesture and the Completed hint never ask, on a bra
 
 browserTest('Move anyway after the row left its lane writes nothing and says so; with a stale page it is refused with the move\'s 409 text, at 420px too', b, async open => {
   writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
-  const { page } = await open(srv);
+  const { page } = await open(srv, '#board');
   await waitView(page, 'v-board');
   await row(page, 'backlog', 0).focus();
   await page.keyboard.press('Alt+ArrowRight');
@@ -1773,7 +1773,7 @@ browserTest('Move anyway after the row left its lane writes nothing and says so;
   expect(read(env.tasks())).toBe(gone);
   const slow = await serve(env, [env.project], { pollMs: 60000 }); // the page keeps the old hash
   try {
-    const narrow = (await open(slow, '', { width: 420 })).page;
+    const narrow = (await open(slow, '#board', { width: 420 })).page;
     await waitView(narrow, 'v-board');
     const changed = read(env.tasks()).replace('# Task Tracking', '# Task Tracking\n\nEdited outside the page.');
     writeFileSync(env.tasks(), changed);
@@ -1794,7 +1794,7 @@ browserTest('a project switch while the dialog is open closes it, and neither pr
   const other = makeProject(join(env.home, 'dev'), 'other-project'); // the fixture again: BL-001 in both
   const two = await serve(env, [env.project, other]);
   try {
-    const { page } = await open(two);
+    const { page } = await open(two, '#board');
     await waitView(page, 'v-board');
     const mine = read(env.tasks()), theirs = read(env.tasks(other));
     expect(rowsIn(mine, 'Backlog')[1]).toMatch(/^\| BL-001 \|/);
@@ -1813,7 +1813,7 @@ browserTest('a project switch while the dialog is open closes it, and neither pr
 
 browserTest('the dialog at 420px: idle, the branch paragraph, both, the activity paragraph alone, and a move in progress, with no sideways scroll and both buttons in view', b, async open => {
   writeFileSync(HEAD(), 'ref: refs/heads/feature\n');
-  const { page } = await open(srv, '', { width: 420 });
+  const { page } = await open(srv, '#board', { width: 420 });
   await waitView(page, 'v-board');
   expect(await noSideScroll(page)).toBe(true); // idle
   const check = async (n: number) => {

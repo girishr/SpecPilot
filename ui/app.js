@@ -116,11 +116,11 @@ function renderAll(){drawMcp();renderProject();if(!DATA.project)return;renderTas
 
 /* ---------------- views ---------------- */
 const homeBtn=$('#homeBtn');
-const VIEWS={board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills',setup:'',home:'',new:''};
+const VIEWS={overview:'Overview',board:'Tasks',explorer:'Explorer',security:'Security',instructions:'Instructions',commands:'Commands',skills:'Skills',setup:'',home:'',new:''};
 const NOPROJ=['home','new']; // views that belong to no project (BL-PM-001, BL-PM-004)
 const TITLES={'planning/roadmap.md':'Roadmap','project/requirements.md':'Requirements','architecture/architecture.md':'Architecture','quality/tests.md':'Tests'};
 const NAV=[['board'],['file','planning/roadmap.md'],['file','project/requirements.md'],['explorer'],['file','architecture/architecture.md'],['file','quality/tests.md'],['security'],['instructions'],['commands'],['skills']];
-let curView='board',curFile='';
+let curView='overview',curFile='';
 function syncNav(){
   $$('.src .srow').forEach(b=>{
     const on=b.dataset.v==='file'?(curView==='file'&&b.dataset.f===curFile):(b.dataset.v===curView);
@@ -131,9 +131,9 @@ function syncNav(){
     t.classList.toggle('cur',cur);if(cur)t.setAttribute('aria-current','true');else t.removeAttribute('aria-current');});
 }
 function go(v,sub){
-  if(v==='file'){if(!DATA||!sub)v='board';else curFile=sub;}
-  else if(NOPROJ.includes(v)){if(!TOKEN)v='board';} // no Home and no #new with --read-only
-  else if(!VIEWS[v]||v==='setup')v='board';
+  if(v==='file'){if(!DATA||!sub)v='overview';else curFile=sub;} // Overview is the landing (BL-171)
+  else if(NOPROJ.includes(v)){if(!TOKEN)v='overview';} // no Home and no #new with --read-only
+  else if(!VIEWS[v]||v==='setup')v='overview';
   if(!NOPROJ.includes(v)&&DATA&&!DATA.project)v='home'; // no project served: Home is the only view (BL-080)
   else if(!NOPROJ.includes(v)&&DATA&&DATA.project.specs===false)v='setup'; // no .specs/ yet: every route of the project shows the setup view (BL-055)
   curView=v;
@@ -149,6 +149,7 @@ function go(v,sub){
   if(v==='file')renderFile(sub);
   if(v==='explorer')renderExplorer();
   if(v==='security')renderSecurity();
+  if(v==='overview')renderOverview();
   setHash(v,v==='file'?sub:null);
   $('#content').scrollTop=0;
 }
@@ -433,6 +434,67 @@ async function saveEdit(col,i){
   if(c){openTask(c,findRow(c,t.id,0),true);$('#inspX').focus();}
   toast(msg);
 }
+/* ---------------- Overview (BL-171, REQ-002.H.76) ----------------
+   The landing: cards from the payload (and roadmap.md's text), every text the files' own; a card with nothing to show is left
+   out. Counts are of rows or files another view lists, and each opens that view (REQ-002.H.5's Overview exception). */
+const OV_TYPES=['feat','bug','chore'],OV_PRIS=['P1','P2','P3'];
+function ovCard(key,title,body){return body?`<div class="gl ovcard" data-card="${key}"><div class="gh">${esc(title)}</div><div class="box">${body}</div></div>`:'';}
+function ovTask(col,i,t){return `<button type="button" class="row act" data-task="${col}:${i}"><div class="body"><div class="ttl clamp"><span class="id" translate="no">${mdi(t.id)}</span> ${mdi(t.description)}</div></div></button>`;}
+function ovMore(go,label){return `<button type="button" class="row act ovmore" data-go="${go}">${esc(label)}</button>`;}
+function renderOverview(){
+  const box=$('#ovBox');if(!box||!DATA||!DATA.project)return;
+  const O=DATA.overview||{project:{},commits:[],prompts:[]},T=DATA.tasks,N=DATA.nav,F=DATA.files||{};
+  const pm=F['project/project.yaml']||{};
+  const kv=[...['name','description','version','language','framework','license'].map(k=>[k,O.project[k]]),['lastUpdated',pm.lastUpdated]].filter(([,v])=>v!==null&&v!==undefined);
+  const project=kv.map(([k,v])=>`<div class="row ovkv"><span class="k" translate="no">${esc(k)}</span><span class="v">${esc(String(v))}</span></div>`).join('');
+  let tasks='',review='',sprint='';
+  if(T){
+    const lanes=['backlog','currentSprint','review','completed'].map(c=>`<button type="button" class="ovlane" data-go="board"><span class="n">${(T[c]||[]).length}</span><span class="l">${esc(COLS[c])}</span></button>`).join('');
+    const open=[...(T.backlog||[]),...(T.currentSprint||[]),...(T.review||[])];
+    const line=(label,key,vals)=>{const parts=vals.map(v=>[v,open.filter(t=>t[key]===v).length]).filter(([,n])=>n);
+      return parts.length?`<button type="button" class="row act ovcount" data-go="board"><span class="k">${label}</span><span class="v" translate="no">${parts.map(([v,n])=>`${esc(v)} ${n}`).join(' · ')}</span></button>`:'';};
+    tasks=`<div class="ovlanes">${lanes}</div>`+line('Type','type',OV_TYPES)+line('Priority','priority',OV_PRIS);
+    review=(T.review||[]).map((t,i)=>ovTask('review',i,t)).join('');
+    const cs=T.currentSprint||[];
+    sprint=cs.slice(0,5).map((t,i)=>ovTask('currentSprint',i,t)).join('')+(cs.length>5?ovMore('board',`All ${cs.length} in Tasks`):'');
+  }
+  const commits=(O.commits||[]).map(c=>`<div class="row ovcommit"><span class="mono" translate="no">${esc(c.hash)}</span><span class="m">${esc(c.message)}</span><span class="det">${esc(when(c.date))}</span></div>`).join('');
+  const prompts=(O.prompts||[]).map(p=>`<button type="button" class="row act" data-go="file" data-f="development/prompts.md"><div class="body"><div class="ttl ovclamp">${esc(p)}</div></div></button>`).join('');
+  const done=T?(T.completed||[]).slice().sort((a,b)=>Number(b.num)-Number(a.num)).slice(0,3).map(t=>`<button type="button" class="row act" data-go="board"><div class="body"><div class="ttl clamp"><span class="id" translate="no">${esc(t.num)}</span> <span class="id" translate="no">${mdi(t.id)}</span> ${mdi(t.description)}</div></div></button>`).join(''):'';
+  const recent=[commits,prompts,done].filter(Boolean).join('');
+  const I=N.instructions,gen=a=>a.filter(f=>f.generated).length;
+  const cmds=[...N.commands,...N.prompts];
+  const ide=`<button type="button" class="row act ovcount" data-go="instructions"><span class="k">Instructions</span><span class="v">${I.filter(f=>f.exists).length} of ${I.length}</span></button>`
+    +`<button type="button" class="row act ovcount" data-go="commands"><span class="k">Commands</span><span class="v">From SpecPilot ${gen(cmds)} · Yours ${cmds.length-gen(cmds)}</span></button>`
+    +`<button type="button" class="row act ovcount" data-go="skills"><span class="k">Skills</span><span class="v">From SpecPilot ${gen(N.skills)} · Yours ${N.skills.length-gen(N.skills)}</span></button>`;
+  const specs=N.specs.slice().sort((a,b)=>{const x=(F[a]||{}).lastUpdated,y=(F[b]||{}).lastUpdated;
+    if(x&&y&&x!==y)return x<y?1:-1;if(!x!==!y)return x?-1:1;return a<b?-1:a>b?1:0;});
+  const files=specs.slice(0,8).map(p=>{const line=metaLine(F[p]);return `<button type="button" class="row act" data-go="file" data-f="${esc(p)}"><div class="body"><div class="ttl" translate="no">${esc(p)}</div>${line?`<div class="det" translate="no">${esc(line)}</div>`:''}</div></button>`;}).join('')
+    +(specs.length>8?ovMore('explorer',`All ${specs.length} in Explorer`):'');
+  box.innerHTML=ovCard('project','Project',project)+ovCard('tasks','Tasks',tasks)+ovCard('review','Review',review)+ovCard('sprint','Current Sprint',sprint)
+    +'<div id="ovRoad"></div>'+ovCard('recent','Recent activity',recent)+ovCard('ide','AI IDE',ide)+ovCard('files','Spec files',files);
+  ovRoadmap();
+}
+/* The last ### under ## Timeline in roadmap.md and its first five non-empty lines, rendered as the file view renders them. */
+async function ovRoadmap(){
+  const pj=PROJECT;if(!('planning/roadmap.md' in (DATA.files||{})))return;
+  let src;try{src=await getText('.specs/planning/roadmap.md');}catch(e){return;}
+  const slot=$('#ovRoad');if(PROJECT!==pj||curView!=='overview'||!slot)return;
+  const lines=src.split('\n');
+  const t=lines.findIndex(l=>/^## Timeline\b/.test(l.trim()));if(t<0)return;
+  let end=lines.findIndex((l,i)=>i>t&&/^## /.test(l.trim()));if(end<0)end=lines.length;
+  let h=-1;for(let i=t+1;i<end;i++)if(/^### /.test(lines[i].trim()))h=i;
+  if(h<0)return;
+  let stop=lines.findIndex((l,i)=>i>h&&/^#{1,3} /.test(l.trim()));if(stop<0||stop>end)stop=end;
+  const body=lines.slice(h+1,stop).filter(l=>l.trim()).slice(0,5);
+  slot.outerHTML=ovCard('roadmap','Roadmap',`<div class="ovroad md">${md([lines[h],...body].join('\n'))}</div>`+`<button type="button" class="row act ovmore" data-go="file" data-f="planning/roadmap.md">Open roadmap.md</button>`);
+}
+$('#ovBox').addEventListener('click',e=>{
+  const t=e.target.closest('[data-task]');
+  if(t){const [col,i]=t.dataset.task.split(':');go('board');openTask(col,+i);return;}
+  const g=e.target.closest('[data-go]');if(g)go(g.dataset.go,g.dataset.f);
+});
+
 /* ---------------- Type and Priority (BL-125) ----------------
    A row of a typed Backlog, Current Sprint or Review table carries a Type and a Priority: chips on the card's bottom
    line, two radio groups in the detail panel that write through POST /api/tasks/fields on choice, the same two in
@@ -813,6 +875,7 @@ const palVeil=$('#palVeil'),palIn=$('#palIn'),palList=$('#palList');
 function items(q){q=q.toLowerCase();
   const T=DATA?DATA.tasks:null;
   const it=[
+    {l:'Overview',k:'view',go:()=>go('overview')}, // BL-171: first, with no digit key, so NAV and 1 to 9 stay
     ...NAV.map(n=>n[0]==='file'?{l:'.specs/'+n[1],k:'file',go:()=>go('file',n[1])}:{l:VIEWS[n[0]],k:'view',go:()=>go(n[0])}),
     ...(DATA?DATA.nav.specs:[]).filter(p=>!NAV.some(n=>n[1]===p)).map(p=>({l:'.specs/'+p,k:'file',go:()=>go('file',p)})),
     ...(T?['currentSprint','review','backlog','completed','wontDo'].flatMap(c=>(T[c]||[]).map((t,i)=>({l:t.id+'  '+t.description,k:'task',go:()=>{go('board');openTask(c,i)}}))):[])
@@ -1207,6 +1270,7 @@ async function apply(d,paths){
   if(to){go(to);return;}
   if(curView==='file')await renderFile(curFile);
   if(curView==='explorer')renderExplorer();
+  if(curView==='overview')renderOverview();
   if(curView==='security')await renderSecurity();
   if(was&&was.kind==='task'){
     const i=findRow(was.col,was.id,was.i);
@@ -1249,10 +1313,10 @@ function showProject(d,keepRoute){
   Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
   DATA=d;selected=null;setRegenNote([]);
   renderAll();listen();
-  if(keepRoute)route();else go('board');
+  if(keepRoute)route();else go('overview');
 }
 $('#projList').addEventListener('click',e=>{const b=e.target.closest('[data-project]');if(!b)return;
-  if(+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);else if(NOPROJ.includes(curView))go('board');});
+  if(+b.dataset.project!==PROJECT)switchProject(+b.dataset.project);else if(NOPROJ.includes(curView))go('overview');});
 
 /* ---------------- open a project (BL-067) ----------------
    The + tile opens the mockup's sheet on its Folder tab. The list is GET /api/projects; opening is
@@ -1344,7 +1408,7 @@ async function showOutcome(o){
   closeSheet();
   if(o.specs){PROJECT=o.project;showProject(o.specs,false);}
   else if(o.project!==PROJECT)await switchProject(o.project);
-  else if(wasHome)go('board');
+  else if(wasHome)go('overview');
   toast(o.toast);
   if(wasHome)$('#content').focus(); // Home is gone from the screen: focus goes to the project's view, not to a hidden control
 }

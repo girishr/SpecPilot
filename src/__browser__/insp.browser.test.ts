@@ -43,7 +43,7 @@ const drag = async (page: Page, dx: number, escape = false) => {
 };
 
 browserTest('the handle is a separator on the open panel\'s left edge, hidden and out of the tab order while the panel is closed', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   expect(await gripShown(page)).toBe(false);
   await openTask(page);
@@ -73,7 +73,7 @@ browserTest('the handle is a separator on the open panel\'s left edge, hidden an
 });
 
 browserTest('a drag widens and narrows, clamped at 320px and at the pane minus 160px; the width is kept and survives a reload', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   await openTask(page);
   await drag(page, -100);
@@ -101,7 +101,7 @@ browserTest('a drag widens and narrows, clamped at 320px and at the pane minus 1
 });
 
 browserTest('keys, a double-click reset, and Escape during a drag', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   await openTask(page);
   await page.focus('#inspGrip');
@@ -126,7 +126,7 @@ browserTest('keys, a double-click reset, and Escape during a drag', b, async o =
 });
 
 browserTest('a smaller window clamps the width without rewriting it; the ARIA values follow; a bad stored value means 400', b, async o => {
-  const { page } = await o(srv);
+  const { page } = await o(srv, '#board');
   await waitView(page, 'v-board');
   await openTask(page);
   await drag(page, -300);
@@ -149,7 +149,7 @@ browserTest('a smaller window clamps the width without rewriting it; the ARIA va
 
 for (const isLight of [false, true]) {
   browserTest(`at 420px no handle and a full-width panel with nothing scrolling sideways: closed, a task open, the Edit form, an Edit error (${isLight ? 'light' : 'dark'})`, b, async o => {
-    const { page } = await o(srv, '', { width: 420, light: isLight });
+    const { page } = await o(srv, '#board', { width: 420, light: isLight });
     await page.evaluate(() => localStorage.setItem('sp-insp-width', '700'));
     await page.reload();
     await waitView(page, 'v-board');

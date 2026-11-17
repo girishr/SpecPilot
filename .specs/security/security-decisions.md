@@ -1,6 +1,6 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-11-17 (BL-166 Spec Report: SEC-004.37)
+lastUpdated: 2026-11-17 (BL-171 Spec Report: SEC-004.38)
 version: 1.44
 contributors: [girishr]
 relatedFiles:
@@ -413,6 +413,17 @@ This file records security-related architectural and implementation decisions ma
   - Reusing the closed number for the next folder opened — rejected: a held number would then mean a different folder.
   - A separate close route — rejected for now: the developer's choice is that removing the entry closes it; a close without removing is a later row if wanted.
 - **Reference**: SEC-004.13, REQ-002.H.20, REQ-002.H.75
+
+### [SEC-004.38] Overview reads `.git/logs/HEAD` as a file and `project.yaml`'s top-level keys, and starts no process
+
+- **Date**: 2026-11-17 (BL-171 Spec Report, Architectural)
+- **Decision**: `GET /api/specs` gains `overview`. Its commits come from reading the served project's `.git/logs/HEAD` as a file, the way `readBranch()` reads `.git/HEAD` (a worktree's `gitdir:` followed only when its realpath ends in `/.git/worktrees/<name>`, else no commits): `lstat` first, a link or anything but a regular file refused, only the last 64 KB read, each line parsed by a fixed pattern, nothing written. Only the short hash, the date and the commit message reach the page; the author name and email in each entry are dropped on the server. No `git` process is started, as SEC-004.14 and SEC-004.24 keep it. `overview` is page-only: no MCP tool returns it, so the MCP read surface does not widen. `project.yaml` is read with the existing `loadRepoYaml()` (CORE_SCHEMA, its 256 KB cap) for six top-level keys, each sent only as a string, number or boolean. The page shows every value through `esc()` or the markdown renderer it already uses for file text.
+- **Rationale**: Overview wants recent commits; a process per page load is what SEC-004.24 refused for the remote URL, and the reflog file gives the commits made in this clone with no process. It is read-only and bounded. For a plain clone it is inside the served folder's own `.git`; a linked worktree's reflog sits in the main clone's `.git/worktrees/<name>`, so the `gitdir:` target must have that shape, and any other target (a submodule's `.git/modules/...`, a planted path) gives no commits. (`readBranch()` follows `gitdir:` to any path but sends only a pattern-checked ref; BL-188 applies this check to it.) The email is personal data the page does not need.
+- **Alternatives considered**:
+  - `git log` per request — rejected: a third process started for a request (SEC-004.24's reason), the developer chose the file (2026-11-17).
+  - Reading commit objects under `.git/objects` — rejected: zlib, packs and a walk for five messages; the reflog has them.
+  - Sending the author — rejected: personal data the cards do not show.
+- **Reference**: SEC-004.14, SEC-004.24, REQ-002.H.76
 
 ### [SEC-004.33] An earlier program's browser state on the origin: the token only into a top-level load, its worker removed
 

@@ -68,7 +68,7 @@ browserTest('a page on another port opens 8 streams, 8 frames and 8 images to /a
     await other.goto(`http://127.0.0.1:${(hostile.address() as AddressInfo).port}/`);
     await pause(1000);
     expect(srv.handle.streams()).toBe(0);
-    const { page } = await open(srv);
+    const { page } = await open(srv, '#board');
     await waitView(page, 'v-board');
     await until(() => srv.handle.streams() === 1, 'the page to hold its stream');
     writeRow('Written while another page tried');
@@ -86,7 +86,7 @@ for (const width of [1280, 420]) {
     b,
     async open => {
       const release = await holdSlots();
-      const { page } = await open(srv, '', { width });
+      const { page } = await open(srv, '#board', { width });
       await waitView(page, 'v-board');
       if (width === 420) expect(await noSideScroll(page)).toBe(true); // refused
       writeRow('Written while refused');
@@ -105,7 +105,7 @@ browserTest(
   b,
   async open => {
     const release = await holdSlots();
-    const { page } = await open(srv);
+    const { page } = await open(srv, '#board');
     await waitView(page, 'v-board');
     // The first, refused stream has finished before the route is added; the route holds the 5 s reopen.
     await page.waitForFunction(() => performance.getEntriesByType('resource').some(e => e.name.includes('/api/events')));
@@ -125,7 +125,7 @@ browserTest(
   b,
   async open => {
     const release = await holdSlots();
-    const { page } = await open(srv);
+    const { page } = await open(srv, '#board');
     await waitView(page, 'v-board');
     await page.evaluate(() => (location.hash = '#1/board'));
     await page.waitForFunction(() => document.querySelector('#projList .tile[data-project="1"]')?.getAttribute('aria-current') === 'true');
@@ -142,7 +142,7 @@ browserTest(
   b,
   async open => {
     const release = await holdSlots();
-    const { page } = await open(srv);
+    const { page } = await open(srv, '#board');
     await waitView(page, 'v-board');
     page.once('dialog', d => void d.accept());
     await page.click('#setBtn');
@@ -170,7 +170,7 @@ test('close() finishes every time with a page open (20 stops)', async () => {
       const handle = await server.startSpecServer([env.project], 0, VERSION, { pollMs: 250 });
       const at = (handle.server.address() as AddressInfo).port;
       await page.goto(`http://127.0.0.1:${at}/`);
-      await waitView(page, 'v-board');
+      await waitView(page, 'v-overview');
       await pause(200 + (i % 5) * 500);
       const closed = await Promise.race([handle.close().then(() => true), pause(4000).then(() => false)]);
       if (!closed) handle.server.closeAllConnections();

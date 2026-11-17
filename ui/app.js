@@ -166,21 +166,25 @@ function projectClosed(n,projects){
   toast(`${projectLabel(q)} was closed.`);
   if(n!==PROJECT)return;
   if(es){es.close();es=null;}
-  go('home');
+  replacing(()=>go('home')); // the page's own move: no history entry (BL-192)
   // behind Home, the first open project's data (or the no-project state), so no view shows the closed one's
   // the index from the server's list, not this page's: a close this page did not hear of may have moved the first open one
   fetch('/api/specs',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(d&&PROJECT===n){PROJECT=d.project?d.projects.findIndex(q=>!q.closed):0;showProject(d,true);}}).catch(()=>{});
 }
 function curHash(){if(!urlOk)return memHash;try{return location.hash;}catch(e){return memHash;}}
+/* BL-192 (REQ-002.H.77): a section the person opens adds a history entry, so Back and Forward walk them; what the page does
+   on its own (route() resolving a hash, the go-Home when the shown project closes, a forced view on live reload) replaces it. */
+let navReplace=false;
+function replacing(fn){const was=navReplace;navReplace=true;try{return fn();}finally{navReplace=was;}}
 function setHash(v,sub){const h='#'+(PROJECT&&!NOPROJ.includes(v)?PROJECT+'/':'')+v+(sub?'/'+sub:'');if(curHash()===h)return;memHash=h;
   if(!urlOk)return;
-  try{history.replaceState(null,'',h);}catch(e){urlOk=false;}}
-function route(){
+  try{history[navReplace?'replaceState':'pushState'](null,'',h);}catch(e){urlOk=false;}}
+function route(){replacing(()=>{ // inside route() itself, so showProject()'s re-entry after a project's fetch replaces too
   const r=resolveRoute(curHash(),DATA?DATA.files:{},DATA?DATA.projects.length:1,!!TOKEN,closedProjects());
   if(NOPROJ.includes(r.view)){go(r.view);return;} // Home and #new belong to no project: the shown one stays loaded behind them
   if(r.project!==PROJECT){switchProject(r.project,true);return;}
   go(r.view,r.sub);
-}
+});}
 if(urlOk)window.addEventListener('hashchange',route);
 $$('.src .srow[data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v,b.dataset.f));
 function setNav(on){const w=$('#win');w.classList.toggle('nav',on);$('#scrim').hidden=!on;$('#menuBtn').setAttribute('aria-expanded',on?'true':'false');}
@@ -1303,7 +1307,7 @@ async function apply(d,paths){
   DATA=d;
   renderAll();
   const to=reloadView(curView,hadSpecs,!d.project||d.project.specs!==false); // .specs/ gone: offer setup; appeared another way: Tasks; Home stays
-  if(to){go(to);return;}
+  if(to){replacing(()=>go(to));return;} // a forced view replaces the entry (BL-192)
   if(curView==='file')await renderFile(curFile);
   if(curView==='explorer')renderExplorer();
   if(curView==='overview')renderOverview();

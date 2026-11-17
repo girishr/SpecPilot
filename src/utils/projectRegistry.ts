@@ -20,6 +20,8 @@ export const MAX_REGISTRY_ENTRIES = 50;
 
 /** Most projects one server serves; `POST /api/projects` refuses past it (the command line is not capped). */
 export const MAX_PROJECTS = 20;
+/** Indices one run may use (BL-166): a closed project's index is never reused, so this bounds them. */
+export const MAX_SLOTS = 100;
 
 const VERSION = 1;
 

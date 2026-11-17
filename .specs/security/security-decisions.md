@@ -1,6 +1,6 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-11-16 (BL-TB-08 Spec Report: SEC-004.36)
+lastUpdated: 2026-11-17 (BL-166 Spec Report: SEC-004.37)
 version: 1.44
 contributors: [girishr]
 relatedFiles:
@@ -164,7 +164,7 @@ This file records security-related architectural and implementation decisions ma
   - A `DELETE` method or a query parameter for removal: rejected, a JSON `POST` keeps the single `writeAllowed()` path with its content-type check and leaves nothing in URLs or logs.
   - Repairing or truncating a corrupt registry: rejected, the only copy of the user's list; refuse and say so.
   - Recording every command-line folder unconditionally: rejected, `specpilot serve` alone would write outside the project on first use; folders are recorded only when the file already exists (open question for the developer). Revisited by BL-080 (2026-10-17, D5): every served root is recorded at startup and the file created when missing, because the registry is the desktop app's project list; the write is the same atomic one, the content is still paths only, with zero served roots nothing is written, and the registry still never chooses what is served (ARCH-004.58).
-  - Letting a request remove a served project from the running server: rejected, it would renumber or orphan indices other pages hold; the list is append-only for the run and the registry entry alone is removable.
+  - Letting a request remove a served project from the running server: rejected, it would renumber or orphan indices other pages hold; the list is append-only for the run and the registry entry alone is removable. (Narrowed by SEC-004.37, BL-166: removing the entry closes the project, its number retired and never reused, nothing renumbered.)
   - Storing the project name and branch in the registry: rejected, stale copies shown as fact; they are read live once the folder is served.
 - **Reference**: SEC-002.5 (k), REQ-002.H.18, REQ-002.H.19, REQ-002.H.20, ARCH-004.42
 
@@ -402,6 +402,17 @@ This file records security-related architectural and implementation decisions ma
   - Every lane (Current Sprint and Review too) — rejected: Review rows carry the dated markers only Approve and Send back may write (SEC-004.31), and BL-TB-08 asks for Backlog.
   - Escaping a typed `|` as `\|` — rejected for the same reason as in SEC-004.18.
 - **Reference**: SEC-004.18, SEC-004.31, SEC-004.32, REQ-002.H.73
+
+### [SEC-004.37] Remove closes a served project: its number retired, never reused, nothing renumbered
+
+- **Date**: 2026-11-17 (BL-166 Spec Report, Architectural)
+- **Decision**: `POST /api/projects/remove` (every guard of SEC-004.13's routes: Host, exact `Origin`, the per-start token, `application/json`, 16 KB, the lock; absent with `--read-only`) also closes the served project whose root equals the removed entry's stored `path` byte for byte (no `realpath` or `stat`, as for the entry itself). The roots stay append-only as an array: the closed index is marked, never deleted, never reused, and every other index keeps its project, so a number another page or an MCP client holds can only ever mean the folder it meant or nothing. One check, `projectIndex()`, refuses a closed number for every route that takes `project`, and the MCP's project check does the same, so no route reads or writes a closed root; every write route and the MCP's `taskWrite` repeat that check as the first step under the one lock, so a write queued behind the remove is refused, not run on the closed root. An MCP call with no `project` keeps meaning project 0 and is refused when 0 is closed, never moved to another folder. Its poller stops and its streams end (`event: closed`, no path or name), so nothing more is read from the folder. Numbers are bounded: 20 open projects as before, and 100 numbers per run (`MAX_SLOTS`), since closed numbers are never reused.
+- **Rationale**: SEC-004.13 rejected removing a served project because it "would renumber or orphan indices other pages hold". Renumbering was the danger (a held number silently pointing at another folder); retiring the number avoids it. An orphaned number is now an explicit 404 or MCP refusal, which every caller already handles for a number that was never served. A forged remove that passed every layer could close a project for the run, a visible, recoverable change (open it again from Home); it already could remove the entry.
+- **Alternatives considered**:
+  - Renumbering the remaining projects — rejected, as in SEC-004.13.
+  - Reusing the closed number for the next folder opened — rejected: a held number would then mean a different folder.
+  - A separate close route — rejected for now: the developer's choice is that removing the entry closes it; a close without removing is a later row if wanted.
+- **Reference**: SEC-004.13, REQ-002.H.20, REQ-002.H.75
 
 ### [SEC-004.33] An earlier program's browser state on the origin: the token only into a top-level load, its worker removed
 

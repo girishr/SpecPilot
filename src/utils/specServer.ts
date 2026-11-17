@@ -12,7 +12,7 @@ import { answersShapeError, checkTarget, createProject, newProjectQuestions, new
 import { chatQuestions, CliQuestion, DESIGN_GATED, OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
 import { cloneRepository, cloneShapeError, emptyTarget, probeGit, repoNameFromUrl } from './gitClone';
 import { pickFolder } from './folderPicker';
-import { checkOpenPath, homeDir, MAX_PROJECTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
+import { checkOpenPath, homeDir, MAX_PROJECTS, MAX_SLOTS, pathShapeError, readRegistry, RegistryEntry, removeEntry, sortEntries, upsertEntry, writeRegistry } from './projectRegistry';
 import { IDE_SIGNALS, projectIdes, SlashCommandBackfillResult, SpecBackfiller } from './specBackfiller';
 import { isSpecPilotCommand, isSpecPilotSkill, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { resolveTarget, SLASH_COMMANDS } from '../core/slashCommands';
@@ -195,21 +195,26 @@ export function displayRoot(root: string, home = homedir()): string {
   return root.startsWith(home + sep) ? '~' + root.slice(home.length) : root;
 }
 
-/** One entry per served project, in index order: what the rail shows (BL-054). */
-function projectList(roots: string[]) {
-  return roots.map(root => {
+/** One entry per served project, in index order: what the rail shows (BL-054); a closed one keeps its slot as {closed: true} (BL-166). */
+function projectList(roots: string[], closed: ReadonlySet<number> = new Set()) {
+  return roots.map((root, i) => {
+    if (closed.has(i)) return { closed: true as const };
     const yamlFile = resolveAllowedPath(root, '.specs/project/project.yaml');
     return { name: projectName(yamlFile ? readFileSync(yamlFile, 'utf-8') : undefined), root: displayRoot(root), branch: readBranch(root) };
   });
 }
 
-/** `?project=<n>` → index into the served roots: omitted = 0 when a project 0 exists (BL-080); one canonical whole number in range, else null (404). */
-function projectIndex(url: URL, count: number): number | null {
+/** `?project=<n>` → index into the served roots: omitted = the first open project (BL-080, BL-166); one canonical whole
+ *  number in range and not closed (REQ-002.H.75), else null (404). */
+function projectIndex(url: URL, count: number, closed: ReadonlySet<number> = new Set()): number | null {
   const given = url.searchParams.getAll('project');
-  if (given.length === 0) return 0 < count ? 0 : null;
+  if (given.length === 0) {
+    for (let i = 0; i < count; i++) if (!closed.has(i)) return i;
+    return null;
+  }
   if (given.length > 1 || !/^(0|[1-9][0-9]*)$/.test(given[0])) return null;
   const n = Number(given[0]);
-  return n < count ? n : null;
+  return n < count && !closed.has(n) ? n : null;
 }
 
 const SECURITY_HEADERS = {
@@ -301,6 +306,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   // life of the server, so an index never changes and nothing is dropped.
   const roots = [...initialRoots];
   const namedFlags = roots.map((_, i) => opts.named?.[i] ?? true);
+  // Closed projects (BL-166, REQ-002.H.75, SEC-004.37): removing a served project's entry retires its index; the
+  // slot stays so no other index moves, and the index is never reused. openRoots() is the one view of the open
+  // roots: the array with each closed slot blanked to '', which no path equals, so every lookup by path skips it.
+  const closed = new Set<number>();
+  const openRoots = () => roots.map((root, i) => (closed.has(i) ? '' : root));
 
   // ---- live reload (BL-052): streams, heartbeat, and one poller per project (BL-054) that runs
   // only while that project has a stream open; the heartbeat runs while any stream is open
@@ -331,6 +341,17 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     clearInterval(heartbeat);
     heartbeat = null;
   };
+  /** Close project i for the run (BL-166): its index retired, its poller stopped, its streams told and ended. */
+  const closeProject = (i: number) => {
+    closed.add(i);
+    const { streams, poller } = projects[i];
+    poller.stop();
+    for (const res of [...streams]) {
+      res.write('event: closed\ndata: {}\n\n');
+      res.end();
+      drop(i, res);
+    }
+  };
   const openStream = (i: number | null, req: IncomingMessage, res: ServerResponse) => {
     if (allStreams().length >= MAX_EVENT_STREAMS) return send(res, 503, TEXT, 'Too many open event streams\n');
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', Connection: 'keep-alive', ...SECURITY_HEADERS });
@@ -357,7 +378,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   // `named`: whether the Setup view is offered there (REQ-002.H.15's current-directory rule, BL-103).
   const payload = (i: number) => {
     const p = buildSpecsPayload(roots[i], specpilotVersion);
-    return { ...p, project: { ...p.project, named: namedFlags[i] }, projects: projectList(roots), mcp: { client: mcpClient } };
+    return { ...p, project: { ...p.project, named: namedFlags[i] }, projects: projectList(roots, closed), mcp: { client: mcpClient } };
   };
   /** Run `fn` under the write lock and settle with its outcome; a throw never breaks the chain for later writes. */
   const locked = <T>(fn: () => T | Promise<T>): Promise<T> => {
@@ -429,7 +450,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   const handleMove = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
     // The project is picked only now, so a request that failed the checks above learns nothing about it (SEC-004.11).
-    const i = projectIndex(url, roots.length);
+    const i = projectIndex(url, roots.length, closed);
     if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       const problem = moveShapeError(body);
@@ -437,6 +458,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
       if (!ifMatch) return sendJson(res, 428, { error: 'The move needs an If-Match header with the file hash the page last loaded.' });
       underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
         let out;
         try {
           out = moveTask(roots[i], body as TaskMove, ifMatch);
@@ -453,7 +475,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   /** New Task (BL-PM-005): the move route's checks, then one line appended under the same lock. */
   const handleNewTask = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
-    const i = projectIndex(url, roots.length);
+    const i = projectIndex(url, roots.length, closed);
     if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       const problem = newTaskShapeError(body);
@@ -462,6 +484,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (!ifMatch) return sendJson(res, 428, { error: 'A new task needs an If-Match header with the file hash the page last loaded.' });
       const { description, section, type, priority } = body as NewTask;
       underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
         let out;
         try {
           out = newTask(roots[i], { description, section, type, priority }, ifMatch);
@@ -478,7 +501,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   /** Review (BL-113): approve or send back one Review row, or undo either; the move route's checks, under the same lock. */
   const handleReview = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
-    const i = projectIndex(url, roots.length);
+    const i = projectIndex(url, roots.length, closed);
     if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       const problem = reviewShapeError(body);
@@ -487,6 +510,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (!ifMatch) return sendJson(res, 428, { error: 'This action needs an If-Match header with the file hash the page last loaded.' });
       const { id, action, note, date, toIndex } = body as ReviewRequest;
       underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
         let out;
         try {
           out = reviewTask(roots[i], { id, action, note, date, toIndex }, ifMatch);
@@ -503,7 +527,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   /** Type and Priority (BL-125): one row's two cells set or cleared; the move route's checks, under the same lock. */
   const handleFields = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
-    const i = projectIndex(url, roots.length);
+    const i = projectIndex(url, roots.length, closed);
     if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       const problem = fieldsShapeError(body);
@@ -512,6 +536,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (!ifMatch) return sendJson(res, 428, { error: 'This change needs an If-Match header with the file hash the page last loaded.' });
       const { id, type, priority, description } = body as FieldsRequest;
       underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
         let out;
         try {
           out = setTaskFields(roots[i], { id, type, priority, description }, ifMatch);
@@ -528,7 +553,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   /** Archive Completed (BL-TB-06): the Completed step of `specpilot archive`, the move route's checks, under the same lock. */
   const handleArchive = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
-    const i = projectIndex(url, roots.length);
+    const i = projectIndex(url, roots.length, closed);
     if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       // {} or {force: <boolean>} and nothing else (D8: force archives a section within its limit)
@@ -540,6 +565,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const ifMatch = String(req.headers['if-match'] ?? '').replace(/^W\//, '').replace(/"/g, '').trim();
       if (!ifMatch) return sendJson(res, 428, { error: 'The archive needs an If-Match header with the file hash the page last loaded.' });
       underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
         let out;
         try {
           out = archiveCompleted(roots[i], ifMatch, force === true);
@@ -556,13 +582,14 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   /** Regenerate All (BL-PM-006): `specpilot backfill`'s command step for the named project, under the write lock. */
   const handleRegenerate = (req: IncomingMessage, res: ServerResponse, url: URL) => {
     if (!writeAllowed(req, res)) return;
-    const i = projectIndex(url, roots.length);
+    const i = projectIndex(url, roots.length, closed);
     if (i === null) return send(res, 404, TEXT, 'Not Found\n');
     readJson(req, res, body => {
       if (body === null || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length) {
         return sendJson(res, 422, { error: 'Regenerate All takes an empty JSON object, {}.' });
       }
       underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
         if (specsMissing(roots[i])) return sendJson(res, 422, { error: `No .specs/ folder in ${displayRoot(roots[i])}.` });
         // The skill is its own step (BL-PM-012): the MCP tool calls only the command step.
         const report = regenerateReport(new SpecBackfiller().backfillSlashCommands(roots[i], false), new SlashCommandGenerator().refreshSkill(roots[i], '.specs', false));
@@ -588,7 +615,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     return {
       path: displayRoot(registry!, home),
       entries: entries.map(e => {
-        const i = roots.indexOf(e.path);
+        const i = openRoots().indexOf(e.path);
         return { path: e.path, root: displayRoot(e.path, home), lastOpened: e.lastOpened, pinned: e.pinned, project: i >= 0 ? i : null, exists: isDir(e.path) };
       }),
       error: read.error,
@@ -609,6 +636,10 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   };
 
   const TOO_MANY_PROJECTS = `This server already serves ${MAX_PROJECTS} projects. Start another specpilot serve for more.`;
+  const TOO_MANY_SLOTS = `This server has opened ${MAX_SLOTS} projects since it started. Quit and start specpilot serve again to open more.`;
+  /** Why one more project cannot be opened now, or null: open ones against MAX_PROJECTS, every index against MAX_SLOTS (BL-166). */
+  const capError = (pending: number) =>
+    roots.length - closed.size + pending >= MAX_PROJECTS ? TOO_MANY_PROJECTS : roots.length + pending >= MAX_SLOTS ? TOO_MANY_SLOTS : null;
   /**
    * Serve `root` as the next index and record it in the registry: the success body of an open, or null
    * after answering 422 because the folder's allowlisted files cannot be read (it is then not half-opened).
@@ -626,7 +657,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     namedFlags.push(true);
     projects.push(project);
     const error = changeRegistry(entries => upsertEntry(entries, root, new Date()));
-    return { project: n, specs: { ...specs, project: { ...specs.project, named: true }, projects: projectList(roots), mcp: { client: mcpClient } }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
+    return { project: n, specs: { ...specs, project: { ...specs.project, named: true }, projects: projectList(roots, closed), mcp: { client: mcpClient } }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
   };
   /** `addRoot()` for a route: answers 422 itself when the folder cannot be read (it is then not half-opened). */
   const serveRoot = (res: ServerResponse, root: string) => {
@@ -644,10 +675,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const problem = pathShapeError(body);
       if (problem) return sendJson(res, 422, { error: problem });
       underLock(res, () => {
-        const check = checkOpenPath((body as { path: string }).path, roots, home);
+        const check = checkOpenPath((body as { path: string }).path, openRoots(), home);
         if ('status' in check) return sendJson(res, check.status, check.project === undefined ? { error: check.error } : { error: check.error, project: check.project });
         if (cloningTarget && (check.root === cloningTarget || check.root.startsWith(cloningTarget + sep))) return sendJson(res, 409, { error: `${cloningTarget} is being cloned. Wait for it to finish.` });
-        if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
+        const cap = capError(cloningTarget ? 1 : 0);
+        if (cap) return sendJson(res, 409, { error: cap });
         const body200 = serveRoot(res, check.root);
         if (body200) sendJson(res, 200, body200);
       });
@@ -664,8 +696,9 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (problem) return sendJson(res, 422, { error: problem });
       const { parent, name } = body as { parent: string; name: string };
       underLock(res, () => {
-        if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
-        const out = checkTarget(parent, name, roots, home, cloningTarget);
+        const cap = capError(cloningTarget ? 1 : 0);
+        if (cap) return sendJson(res, 409, { error: cap });
+        const out = checkTarget(parent, name, openRoots(), home, cloningTarget);
         if ('status' in out) pendingTarget = null; // a refusal leaves no path writable that the page no longer shows (BL-104)
         if ('status' in out) return sendJson(res, out.status, out.project === undefined ? { error: out.error } : { error: out.error, project: out.project });
         pendingTarget = out.target;
@@ -688,8 +721,9 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     let reserved: { target: string; created: boolean } | undefined;
     await underLock(res, () => {
       if (signal.aborted) return;
-      if (roots.length >= MAX_PROJECTS) return sendJson(res, 409, { error: TOO_MANY_PROJECTS });
-      const r = reserveTarget(parent, name, roots, home);
+      const cap = capError(0);
+      if (cap) return sendJson(res, 409, { error: cap });
+      const r = reserveTarget(parent, name, openRoots(), home);
       if (!('status' in r)) {
         reserved = r;
         cloningTarget = r.target;
@@ -785,9 +819,13 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const problem = pathShapeError(body);
       if (problem) return sendJson(res, 422, { error: problem });
       underLock(res, () => {
-        const error = changeRegistry(entries => removeEntry(entries, (body as { path: string }).path));
+        const path = (body as { path: string }).path;
+        const error = changeRegistry(entries => removeEntry(entries, path));
         if (error) return sendJson(res, 422, { error });
-        sendJson(res, 200, registryBody());
+        // BL-166: the served project with that stored path, byte for byte (no realpath or stat, REQ-002.H.20), closes
+        const i = openRoots().indexOf(path);
+        if (i >= 0) closeProject(i);
+        sendJson(res, 200, { ...registryBody(), closed: i >= 0 ? i : null, projects: projectList(roots, closed) });
       });
     });
   };
@@ -803,6 +841,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   const mcpProject = (args: Record<string, unknown>): number => {
     const n = args.project ?? 0;
     if (!Number.isInteger(n) || (n as number) < 0 || (n as number) >= roots.length) throw new ToolRefusal(`No project ${String(n)} is served. specpilot_list_projects lists them.`);
+    if (closed.has(n as number)) throw new ToolRefusal(closedRefusal(n as number));
     return n as number;
   };
   const mcpHash = (args: Record<string, unknown>): string => {
@@ -811,11 +850,17 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   };
   const asJson = (data: Record<string, unknown>) => ({ text: JSON.stringify(data, null, 2), data });
   /** A task write's outcome as the tool's answer: the page's refusals, with the stale one worded for an agent. */
-  const taskWrite = async <T extends { status: number }>(write: () => T): Promise<T & { status: 200 }> => {
+  const closedRefusal = (n: number) => `Project ${n} was closed. specpilot_list_projects lists the open ones.`;
+  /** A task write for project i under the lock; i is checked again there, since a remove may have closed it meanwhile (BL-166). */
+  const taskWrite = async <T extends { status: number }>(i: number, write: () => T): Promise<T & { status: 200 }> => {
     let out: T;
     try {
-      out = await locked(write);
-    } catch {
+      out = await locked(() => {
+        if (closed.has(i)) throw new ToolRefusal(closedRefusal(i));
+        return write();
+      });
+    } catch (err) {
+      if (err instanceof ToolRefusal) throw err;
       throw new ToolRefusal('planning/tasks.md could not be written. Nothing was changed.');
     }
     if (out.status !== 200) {
@@ -846,7 +891,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         return r;
       }
     };
-    const index = roots.findIndex(r => r === norm || real(r) === norm);
+    const index = openRoots().findIndex(r => r && (r === norm || real(r) === norm));
     if (index >= 0 && namedFlags[index]) {
       if (!specsMissing(roots[index])) throw new ToolRefusal(BACKFILL(norm));
       return { kind: 'existing', root: roots[index], index };
@@ -910,10 +955,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (!same) throw new ToolRefusal(`${t.kind === 'new' ? t.target : t.root} changed while it was being set up. Call specpilot_setup_questions again.`);
       emitSetup(t, { row: 'questions', state: 'done', ...counts });
       emitSetup(t, { row: 'write', state: 'running' });
+      let cap: string | null;
       let out;
       if (t.kind === 'existing') out = await setupProject(t.root, a);
-      else if (roots.length + (cloningTarget ? 1 : 0) >= MAX_PROJECTS) out = { status: 409 as const, error: TOO_MANY_PROJECTS };
-      else out = await createProject(dirname(t.target), basename(t.target), a, roots, home, cloningTarget);
+      else if ((cap = capError(cloningTarget ? 1 : 0))) out = { status: 409 as const, error: cap };
+      else out = await createProject(dirname(t.target), basename(t.target), a, openRoots(), home, cloningTarget);
       if (out.status !== 200) {
         emitSetup(t, { row: 'write', state: 'idle' });
         throw new ToolRefusal(out.error);
@@ -944,9 +990,10 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     if (name === 'specpilot_setup_project') return setupProjectTool(args);
     if (name === 'specpilot_list_projects') {
       return asJson({
-        projects: roots.map((root, n) => {
+        projects: roots.flatMap((root, n) => {
+          if (closed.has(n)) return []; // BL-166: open projects only, each with its own number
           const p = buildSpecsPayload(root, specpilotVersion);
-          return { project: n, name: p.project.name, root: displayRoot(root), branch: p.project.branch, specs: p.project.specs, files: p.nav.specs.map(f => '.specs/' + f) };
+          return [{ project: n, name: p.project.name, root: displayRoot(root), branch: p.project.branch, specs: p.project.specs, files: p.nav.specs.map(f => '.specs/' + f) }];
         }),
       });
     }
@@ -966,7 +1013,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const problem = newTaskShapeError(task);
       if (problem) throw new ToolRefusal(problem);
       const hash = mcpHash(args);
-      const out = await taskWrite(() => newTask(roots[i], task as NewTask, hash));
+      const out = await taskWrite(i, () => newTask(roots[i], task as NewTask, hash));
       return asJson({ id: out.id, section: out.section, index: out.index, sha256: out.sha256 });
     }
     if (name === 'specpilot_move_task') {
@@ -974,7 +1021,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const problem = moveShapeError(move);
       if (problem) throw new ToolRefusal(problem);
       const hash = mcpHash(args);
-      const out = await taskWrite(() => moveTask(roots[i], move as TaskMove, hash));
+      const out = await taskWrite(i, () => moveTask(roots[i], move as TaskMove, hash));
       return asJson({ from: out.from, fromIndex: out.fromIndex, sha256: out.sha256 });
     }
     if (name === 'specpilot_set_task') {
@@ -982,7 +1029,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       const problem = fieldsShapeError(req, false);
       if (problem) throw new ToolRefusal(problem);
       const hash = mcpHash(args);
-      const out = await taskWrite(() => setTaskFields(roots[i], req as FieldsRequest, hash));
+      const out = await taskWrite(i, () => setTaskFields(roots[i], req as FieldsRequest, hash));
       return asJson({ sha256: out.sha256 });
     }
     if (name === 'specpilot_validate_specs') {
@@ -1159,11 +1206,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       if (url.pathname !== '/api/specs' && url.pathname !== '/api/file' && url.pathname !== '/api/events') return send(res, 404, TEXT, 'Not Found\n');
       // No project served yet (BL-080): the page learns the state from /api/specs and listens for the
       // server-level events; the one place the omitted-project rule bends (REQ-002.H.44).
-      if (!roots.length && !url.searchParams.has('project')) {
+      if (roots.length === closed.size && !url.searchParams.has('project')) { // none served, or none open (BL-166)
         if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ project: null, projects: [], files: {}, specpilotVersion, mcp: { client: mcpClient } }));
         if (url.pathname === '/api/events') return openStream(null, req, res);
       }
-      const i = projectIndex(url, roots.length);
+      const i = projectIndex(url, roots.length, closed);
       if (i === null) return send(res, 404, TEXT, 'Not Found\n');
       if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify(payload(i)));
       if (url.pathname === '/api/file') {

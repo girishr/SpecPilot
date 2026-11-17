@@ -19,7 +19,7 @@ import * as specSetupModule from '../utils/specSetup';
 import * as specSlash from '../utils/slashCommandGenerator';
 import { STAGING_MARKER } from '../utils/specSetup';
 import { REVIEW_INSTRUCTIONS, SETUP_INSTRUCTIONS } from '../utils/mcpLocal';
-import { MAX_PROJECTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
+import { MAX_PROJECTS, MAX_SLOTS, readRegistry, registryPath, RegistryEntry, writeRegistry } from '../utils/projectRegistry';
 import { initOptions, InitAnswers } from '../utils/initQuestions';
 import { render } from '../core/render';
 import { OPTIONAL_FIELD_LIMITS } from '../core/chatFlow';
@@ -1268,7 +1268,7 @@ describe('UI routing (ui/route.js)', () => {
     onboardingPrompt: (src: string) => string;
     repoNameFromUrl: (url: string) => string;
     projectLabel: (p: { name: string | null; root: string }) => string;
-    resolveRoute: (hash: string, files: Record<string, unknown>, count?: number, home?: boolean) => { project: number; view: string; sub: string; missing: boolean };
+    resolveRoute: (hash: string, files: Record<string, unknown>, count?: number, home?: boolean, closed?: number[]) => { project: number; view: string; sub: string; missing: boolean };
     goneHtml: (path: string) => string;
     recentHtml: (reg: unknown, home: boolean, projects?: unknown[], chev?: string) => string;
     openOutcome: (status: number, res: unknown, created?: boolean | 'cloned') => { project: number | null; specs: unknown; toast: string };
@@ -1322,6 +1322,21 @@ describe('UI routing (ui/route.js)', () => {
       'Add this to ~/.codex/config.toml. Codex reads SPECPILOT_MCP_TOKEN from the environment.',
       'Add this to .agents/mcp_config.json in your project, put your SPECPILOT_MCP_TOKEN value in place of <SPECPILOT_MCP_TOKEN value>, and add .agents/mcp_config.json to .gitignore.',
     ]);
+  });
+
+  it('with closed projects (BL-166): a closed index goes Home, a route without an index and the fallbacks to the first open one', () => {
+    const r = (hash: string, closed: number[], count = 3) => resolveRoute(hash, files, count, true, closed);
+    expect(r('#1/board', [1])).toEqual({ project: 0, view: 'home', sub: '', missing: false });
+    expect(r('#0/tasks', [0])).toEqual({ project: 1, view: 'home', sub: '', missing: false });
+    expect(r('#board', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(r('#file/quality/tests.md', [0, 1])).toEqual({ project: 2, view: 'file', sub: 'quality/tests.md', missing: false });
+    expect(r('', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(r('#/', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(r('#9/board', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(r('#nothing', [0])).toEqual({ project: 1, view: 'board', sub: '', missing: false });
+    expect(r('#2/explorer', [0])).toEqual({ project: 2, view: 'explorer', sub: '', missing: false });
+    expect(r('#board', [0, 1, 2])).toEqual({ project: 3, view: 'home', sub: '', missing: false }); // none open: Home
+    expect(resolveRoute('#1/board', files, 3)).toEqual({ project: 1, view: 'board', sub: '', missing: false }); // no fifth argument: as before
   });
 
   it('opens a listed file', () => {
@@ -3662,6 +3677,126 @@ describe('no project served (BL-080)', () => {
 
 // Project registry and opening a folder from the page (BL-067). Every test runs under the temp HOME.
 
+describe('removing an open project closes it (BL-166, REQ-002.H.75)', () => {
+  let p: ReturnType<typeof makeProject>;
+  let q: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const good = (over: Record<string, string | undefined> = {}) => ({ Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token, ...over });
+  const open = async (path: string) => post(port, JSON.stringify({ path }), good(), '/api/projects');
+  const remove = (path: string) => post(port, JSON.stringify({ path }), good(), '/api/projects/remove');
+  const specs = async (q = '') => hit(port, '/api/specs' + q);
+  const tool = async (name: string, args: Record<string, unknown> = {}) =>
+    (await post(port, JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }), { Host: `127.0.0.1:${port}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'X-SpecPilot-Token': token, 'MCP-Protocol-Version': '2025-11-25' }, '/mcp')).json.result;
+  const CLOSED = (n: number) => `Project ${n} was closed. specpilot_list_projects lists the open ones.`;
+
+  beforeEach(async () => {
+    p = makeProject();
+    q = makeProject();
+    spec = await startSpecServer([p.root], 0, '0.0.0-test', { registry: regFile(), mcp: true, pollMs: 250 });
+    port = (spec.server.address() as AddressInfo).port;
+    token = (/<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body) || [])[1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+    q.cleanup();
+  });
+
+  it('answers closed and the rail list; every route treats the index as unserved; its stream gets event: closed; the others keep their numbers', async () => {
+    expect((await open(q.root)).json.project).toBe(1);
+    const events = await openEvents(port, `127.0.0.1:${port}`, '/api/events?project=1');
+    await events.waitFor(/retry: 2000/);
+    const r = await remove(realpathSync(q.root));
+    expect(r.status).toBe(200);
+    expect(r.json.closed).toBe(1);
+    expect(r.json.projects[1]).toEqual({ closed: true });
+    expect(r.json.projects[0]).toMatchObject({ name: 'Fixture Project' });
+    expect(await events.waitFor(/event: closed\ndata: \{\}\n\n/)).toBeTruthy();
+    events.close();
+    expect(spec.streams()).toBe(0);
+    for (const path of ['/api/specs?project=1', '/api/file?project=1&p=project/project.yaml', '/api/events?project=1']) expect((await hit(port, path)).status).toBe(404);
+    expect((await post(port, JSON.stringify({ id: 'BL-001', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': 'a'.repeat(64) }), '/api/tasks/move?project=1')).status).toBe(404);
+    expect(JSON.parse((await specs('?project=0')).body).projects).toEqual([expect.objectContaining({ name: 'Fixture Project' }), { closed: true }]);
+    const back = await open(q.root); // opened again: a new number, never the closed one
+    expect(back.json.project).toBe(2);
+    expect(JSON.parse((await hit(port, '/api/projects')).body).entries[0].project).toBe(2);
+    expect((await specs('?project=1')).status).toBe(404);
+  });
+
+  it('removing an entry no project serves closes nothing', async () => {
+    writeRegistry(regFile(), [{ path: '/seed/elsewhere', lastOpened: new Date().toISOString(), pinned: false }]);
+    const r = await remove('/seed/elsewhere');
+    expect(r.status).toBe(200);
+    expect(r.json.closed).toBeNull();
+    expect(r.json.projects).toHaveLength(1);
+  });
+
+  it('a command-line folder closes the same way; with 0 closed no `project` means the first open one, and MCP keeps 0 and refuses it', async () => {
+    writeRegistry(regFile(), [{ path: p.root, lastOpened: new Date().toISOString(), pinned: false }]);
+    await open(q.root);
+    expect((await remove(p.root)).json.closed).toBe(0);
+    expect(JSON.parse((await specs()).body).project.root).toBe(realpathSync(q.root));
+    expect((await tool('specpilot_read_spec', { path: 'project/project.yaml' })).content[0].text).toBe(CLOSED(0));
+    expect((await tool('specpilot_list_tasks', { project: 0 })).content[0].text).toBe(CLOSED(0));
+    expect((await tool('specpilot_list_projects')).structuredContent.projects.map((x: { project: number }) => x.project)).toEqual([1]);
+    expect((await tool('specpilot_list_tasks', { project: 1 })).isError).toBeUndefined();
+    // the last open one closed: the no-project state, as with none served
+    expect((await remove(realpathSync(q.root))).json.closed).toBe(1);
+    expect(JSON.parse((await specs()).body)).toMatchObject({ project: null, projects: [] });
+    const server = await openEvents(port);
+    expect(server.status).toBe(200);
+    server.close();
+  });
+
+  it('a write that passed the project check and then waited is refused once the project has closed', async () => {
+    await open(q.root);
+    const body = JSON.stringify({ id: 'BL-001', toSection: 'currentSprint', toIndex: 0 });
+    let send: () => void = () => undefined;
+    const done = new Promise<number>((resolve, reject) => {
+      const req = request({ host: '127.0.0.1', port, path: '/api/tasks/move?project=1', method: 'POST', headers: { ...good({ 'If-Match': 'a'.repeat(64) }), 'Content-Length': String(Buffer.byteLength(body)) } }, res => {
+        res.resume();
+        res.on('end', () => resolve(res.statusCode!));
+      });
+      req.on('error', reject);
+      req.flushHeaders(); // the headers now, the body after the remove: the route has checked the project before it closes
+      send = () => req.end(body);
+    });
+    await new Promise(r => setTimeout(r, 150));
+    expect((await remove(realpathSync(q.root))).json.closed).toBe(1);
+    const before = readFileSync(join(q.root, '.specs/planning/tasks.md'), 'utf-8');
+    send();
+    expect(await done).toBe(404);
+    expect(readFileSync(join(q.root, '.specs/planning/tasks.md'), 'utf-8')).toBe(before);
+  });
+
+  it(`with ${MAX_PROJECTS} open, closing one lets an open through; ${MAX_SLOTS} numbers in a run give 409 with no registry change`, async () => {
+    const base = mkdtempSync(join(os.tmpdir(), 'specpilot-slots-'));
+    try {
+      for (let i = 1; i < MAX_PROJECTS; i++) {
+        mkdirSync(join(base, `p${i}`, '.specs'), { recursive: true });
+        expect((await open(join(base, `p${i}`))).status).toBe(200);
+      }
+      expect((await open(q.root)).status).toBe(409);
+      expect((await remove(realpathSync(join(base, 'p1')))).json.closed).toBe(1);
+      expect((await open(q.root)).status).toBe(200); // index 20
+      for (let n = 21; n < MAX_SLOTS; n++) {
+        expect((await remove(realpathSync(q.root))).status).toBe(200);
+        expect((await open(q.root)).json.project).toBe(n);
+      }
+      expect((await remove(realpathSync(q.root))).status).toBe(200);
+      const sha = createHash('sha256').update(readFileSync(regFile())).digest('hex');
+      const r = await open(q.root);
+      expect(r.status).toBe(409);
+      expect(r.json).toEqual({ error: `This server has opened ${MAX_SLOTS} projects since it started. Quit and start specpilot serve again to open more.` });
+      expect(createHash('sha256').update(readFileSync(regFile())).digest('hex')).toBe(sha);
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
+  }, 60000);
+});
+
 describe('project registry over HTTP', () => {
   let p: ReturnType<typeof makeProject>;
   let q: ReturnType<typeof makeProject>;
@@ -3888,15 +4023,16 @@ describe('project registry over HTTP', () => {
     expect(paths).toContain(realpathSync(q.root));
   });
 
-  it('removes an entry without touching the folder, and the served project stays served', async () => {
+  it('removes an entry without touching the folder, and closes the served project (BL-166)', async () => {
     await open(q.root);
     const tree = snapshot(q.root);
     const r = await remove(realpathSync(q.root));
     expect(r.status).toBe(200);
     expect(r.json.entries).toEqual([]);
+    expect(r.json.closed).toBe(1);
     expect(snapshot(q.root)).toEqual(tree);
     expect(readRegistry(regFile()).entries).toEqual([]);
-    expect((await hit(port, '/api/specs?project=1')).status).toBe(200);
+    expect((await hit(port, '/api/specs?project=1')).status).toBe(404);
     expect(tmpFiles()).toEqual([]);
   });
 

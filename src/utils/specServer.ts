@@ -21,6 +21,7 @@ import { aiContextTarget } from '../core/ideConfig';
 import { SpecValidator } from './specValidator';
 import { answerMcp, MCP_TOOLS, mcpClientName, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
 import { newestPrompts } from './specArchiver';
+import { nodeStatus, RELEASE } from './nodeCheck';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
@@ -350,6 +351,8 @@ export interface SpecServerOptions {
   onQuit?: () => void;
   /** `SPECPILOT_MCP_TOKEN`, already checked by the command: /mcp's token instead of a per-start one. */
   mcpToken?: string;
+  /** Tests only: the Node.js version the banner judges (BL-190); no flag or environment variable sets it. */
+  nodeVersion?: string;
 }
 
 export interface SpecServer {
@@ -370,6 +373,8 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   // The served roots: the command line's, then those opened from the page (BL-067). Append-only for the
   // life of the server, so an index never changes and nothing is dropped.
   const roots = [...initialRoots];
+  // The server's Node.js against engines.node (BL-190, REQ-002.H.78): computed once, in every body the page reads, never in an MCP result.
+  const node = { ...nodeStatus(opts.nodeVersion), release: RELEASE };
   const namedFlags = roots.map((_, i) => opts.named?.[i] ?? true);
   // Closed projects (BL-166, REQ-002.H.75, SEC-004.37): removing a served project's entry retires its index; the
   // slot stays so no other index moves, and the index is never reused. openRoots() is the one view of the open
@@ -443,7 +448,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
   // `named`: whether the Setup view is offered there (REQ-002.H.15's current-directory rule, BL-103).
   const payload = (i: number) => {
     const p = buildSpecsPayload(roots[i], specpilotVersion);
-    return { ...p, project: { ...p.project, named: namedFlags[i] }, projects: projectList(roots, closed), mcp: { client: mcpClient } };
+    return { ...p, project: { ...p.project, named: namedFlags[i] }, projects: projectList(roots, closed), mcp: { client: mcpClient }, node };
   };
   /** Run `fn` under the write lock and settle with its outcome; a throw never breaks the chain for later writes. */
   const locked = <T>(fn: () => T | Promise<T>): Promise<T> => {
@@ -722,7 +727,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
     namedFlags.push(true);
     projects.push(project);
     const error = changeRegistry(entries => upsertEntry(entries, root, new Date()));
-    return { project: n, specs: { ...specs, project: { ...specs.project, named: true }, projects: projectList(roots, closed), mcp: { client: mcpClient } }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
+    return { project: n, specs: { ...specs, project: { ...specs.project, named: true }, projects: projectList(roots, closed), mcp: { client: mcpClient }, node }, registry: { ...registryBody(), ...(error ? { error } : {}) } };
   };
   /** `addRoot()` for a route: answers 422 itself when the folder cannot be read (it is then not half-opened). */
   const serveRoot = (res: ServerResponse, root: string) => {
@@ -1272,7 +1277,7 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       // No project served yet (BL-080): the page learns the state from /api/specs and listens for the
       // server-level events; the one place the omitted-project rule bends (REQ-002.H.44).
       if (roots.length === closed.size && !url.searchParams.has('project')) { // none served, or none open (BL-166)
-        if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ project: null, projects: [], files: {}, specpilotVersion, mcp: { client: mcpClient } }));
+        if (url.pathname === '/api/specs') return send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ project: null, projects: [], files: {}, specpilotVersion, mcp: { client: mcpClient }, node }));
         if (url.pathname === '/api/events') return openStream(null, req, res);
       }
       const i = projectIndex(url, roots.length, closed);

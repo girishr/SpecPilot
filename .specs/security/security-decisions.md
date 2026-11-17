@@ -1,6 +1,6 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-11-17 (BL-187: SEC-004.22 wording)
+lastUpdated: 2026-11-17 (BL-190 Spec Report: SEC-004.39)
 version: 1.44
 contributors: [girishr]
 relatedFiles:
@@ -424,6 +424,16 @@ This file records security-related architectural and implementation decisions ma
   - Reading commit objects under `.git/objects` — rejected: zlib, packs and a walk for five messages; the reflog has them.
   - Sending the author — rejected: personal data the cards do not show.
 - **Reference**: SEC-004.14, SEC-004.24, REQ-002.H.76
+
+### [SEC-004.39] The server's Node.js version is shown to the page
+
+- **Date**: 2026-11-17 (BL-190 Spec Report, Feature)
+- **Decision**: `GET /api/specs` carries `node: {version, ok, patched, release}`, the server's Node.js version and whether it is inside `engines.node`, so the page can warn about an unpatched runtime. Accepted, Low. It goes out only over the read routes BL-144 guards (Host, `Sec-Fetch-Site` and `Origin`, SEC-004.35), like `specpilotVersion` already does; the page sets it as text only; it is computed once from `process.versions.node`, and the option that overrides it (`nodeVersion`) is for tests, with no flag or environment variable. No MCP tool result carries it. The banner's `Read the advisory` is the page's first link to another site, `https://nodejs.org/en/blog/vulnerability`: it opens a new tab with `rel="noopener noreferrer"`, so no referrer (the page's localhost address) and no opener go with it, and it loads nothing, so the CSP (`default-src 'self'`) is unchanged; its `href` is set in `app.js` because the page-shell test refuses an external `src` or `href` in `index.html`.
+- **Rationale**: A page that cannot read our responses cannot learn it, and anyone who can (a local process) can run `node -v` anyway; telling the user their server runs on a Node.js with known holes is worth more than hiding the version from the one page that may read it.
+- **Alternatives considered**:
+  - Only `ok`, no version — rejected: the banner names the version to update from, as the CLI notice does.
+  - The banner text from the server — rejected by the architect (BL-189/190 decision Q4): the payload carries data, the page its words.
+- **Reference**: SEC-004.35, REQ-002.A.17, REQ-002.H.78
 
 ### [SEC-004.33] An earlier program's browser state on the origin: the token only into a top-level load, its worker removed
 

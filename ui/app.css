@@ -37,7 +37,7 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;background:var(--ground);color:var(--label);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden}
+body{margin:0;background:var(--ground);color:var(--label);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased;overflow:hidden;display:flex;flex-direction:column}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:none;border:0;padding:0;text-align:left;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background-color var(--t),color var(--t),border-color var(--t)}
 a,.row,.opt{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -55,7 +55,18 @@ a{color:var(--accent);text-decoration:none}
 
 
 /* ---------- window ---------- */
-.win{display:grid;grid-template-columns:60px 252px minmax(0,1fr);height:100%}
+.win{display:grid;grid-template-columns:60px 252px minmax(0,1fr);flex:1;min-height:0}
+/* BL-190 (REQ-002.H.78): the server's Node.js has known holes; above the rail and top bar */
+.nodebar{flex:none;display:flex;align-items:center;gap:10px;padding:4px 8px 4px 14px;background:var(--orange-soft);border-bottom:1px solid var(--orange);color:var(--label);font-size:13px;line-height:1.45}
+.nodebar[hidden]{display:none}
+.nodebar>.ico{flex:none;width:18px;height:18px;color:var(--orange-ink)}
+.nodebar p{margin:0;flex:1;min-width:0;padding:6px 0}
+.nodebar a{color:var(--orange-ink);font-weight:600;text-decoration:underline;white-space:nowrap;display:inline-flex;align-items:center;min-height:40px;vertical-align:middle}
+.nodebar button{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;background:none;border-radius:var(--rs);color:var(--orange-ink);cursor:pointer}
+.nodebar button:hover{background:color-mix(in srgb,var(--orange) 18%,transparent)}
+.nodebar button .ico{width:14px;height:14px}
+.nodebar .nb-short{display:none}
+@media (max-width:420px){.nodebar .nb-long{display:none}.nodebar .nb-short{display:inline}}
 /* ---------- project rail ---------- */
 .rail{background:var(--side);border-right:1px solid var(--sep);display:flex;flex-direction:column;align-items:center;gap:6px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;padding:calc(10px + env(safe-area-inset-top,0px)) 8px calc(10px + env(safe-area-inset-bottom,0px)) calc(8px + env(safe-area-inset-left,0px))}
 .rail::-webkit-scrollbar{display:none}

@@ -119,6 +119,7 @@ export async function serve(env: Env, roots: string[], opts: import('../utils/sp
   const handle = await server.startSpecServer(roots, 0, VERSION, {
     pollMs: 250,
     registry: opts.readOnly ? undefined : env.registryFile,
+    nodeVersion: '26.13.1', // BL-190: a patched Node, so no banner, whichever Node runs the suite
     ...opts,
   });
   const host = `127.0.0.1:${(handle.server.address() as import('net').AddressInfo).port}`;

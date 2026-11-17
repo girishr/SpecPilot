@@ -75,6 +75,11 @@
 </defs></svg>
 
 <a class="skip" href="#content">Skip to Content</a>
+<div class="nodebar" id="nodeBar" role="status" hidden><!-- BL-190, REQ-002.H.78: the server's Node.js has known holes -->
+  <svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield"/></svg>
+  <p><span class="nb-long" id="nodeLong"></span><span class="nb-short" id="nodeShort"></span> <a id="nodeLink" target="_blank" rel="noopener noreferrer"><span class="nb-long">Read the advisory</span><span class="nb-short">Advisory</span></a></p>
+  <button type="button" id="nodeX" aria-label="Dismiss"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
+</div>
 <div class="win" id="win">
 <nav class="rail" id="rail" aria-label="Projects">
   <svg class="logo" aria-hidden="true" focusable="false"><use href="#logo"/></svg>

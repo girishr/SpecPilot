@@ -4369,17 +4369,17 @@ describe('serveCommand and the registry (BL-067)', () => {
     });
     const HINT = 'Tasks can be moved in the page (only .specs/planning/tasks.md, .specs/planning/tasks-archive.md and specpilot-* command files are written). Open pages update when a spec file changes. Press Ctrl+C to stop.';
 
-    it('serves the remembered projects in display order after a cwd without .specs/, prints the lines in order, and leaves the file byte for byte', async () => {
+    it('serves the remembered projects in the file\'s order (BL-186), not newest first, after a cwd without .specs/, prints the lines in order, and leaves the file byte for byte', async () => {
       writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-01-02T00:00:00.000Z')]);
       const before = fileHash();
       const { port, out } = await serveAndStop([]);
       expect(out.slice(0, 8)).toEqual([
         `SpecPilot is serving 2 projects at http://127.0.0.1:${port}`,
-        `  0  ${realpathSync(b.root)}`,
-        `  1  ${realpathSync(a.root)}`,
+        `  0  ${realpathSync(a.root)}`,
+        `  1  ${realpathSync(b.root)}`,
         `No .specs/ folder in ${empty}. Open a project from the page, or run specpilot serve <folder>.`,
-        `Specs: ${join(realpathSync(b.root), '.specs')}`,
         `Specs: ${join(realpathSync(a.root), '.specs')}`,
+        `Specs: ${join(realpathSync(b.root), '.specs')}`,
         'Reopened 2 remembered projects from ~/.specpilot/projects.json.',
         HINT,
       ]);
@@ -4400,6 +4400,51 @@ describe('serveCommand and the registry (BL-067)', () => {
       writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z', true), entry(b.root, '2026-01-02T00:00:00.000Z')]);
       const two = await serveAndStop([]);
       expect(two.out[1]).toBe(`  0  ${realpathSync(a.root)}`);
+    });
+
+    it('a project opened again keeps its place in the file: a restart serves by the file, whatever lastOpened says (BL-186)', async () => {
+      writeRegistry(regFile(), [entry(b.root, '2026-01-01T00:00:00.000Z'), entry(a.root, '2026-03-01T00:00:00.000Z')]);
+      const first = await serveAndStop([]);
+      expect(first.out.slice(1, 3)).toEqual([`  0  ${realpathSync(b.root)}`, `  1  ${realpathSync(a.root)}`]);
+      logs.length = 0;
+      writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-03-01T00:00:00.000Z')]);
+      const second = await serveAndStop([]);
+      expect(second.out.slice(1, 3)).toEqual([`  0  ${realpathSync(a.root)}`, `  1  ${realpathSync(b.root)}`]);
+    });
+
+    it('a folder named for the first time is served first and appended to the file, then served after the older ones on a plain restart (BL-186)', async () => {
+      const c = makeProject();
+      try {
+        writeRegistry(regFile(), [entry(a.root, '2026-01-01T00:00:00.000Z'), entry(b.root, '2026-01-02T00:00:00.000Z')]);
+        const first = await serveAndStop([c.root]);
+        expect(first.out.slice(1, 4)).toEqual([`  0  ${realpathSync(c.root)}`, `  1  ${realpathSync(a.root)}`, `  2  ${realpathSync(b.root)}`]);
+        expect(readRegistry(regFile()).entries!.map(e => e.path)).toEqual([realpathSync(a.root), realpathSync(b.root), realpathSync(c.root)]);
+        logs.length = 0;
+        const second = await serveAndStop([]);
+        expect(second.out.slice(1, 4)).toEqual([`  0  ${realpathSync(a.root)}`, `  1  ${realpathSync(b.root)}`, `  2  ${realpathSync(c.root)}`]);
+      } finally {
+        c.cleanup();
+      }
+    });
+
+    it('a project that cannot be read takes no slot under the cap, and the Not reopened lines print in display order (BL-186)', async () => {
+      const many = Array.from({ length: 19 }, () => makeProject());
+      const bad = [makeProject(), makeProject()];
+      try {
+        bad.forEach(x => chmodSync(join(x.root, '.specs/planning/tasks.md'), 0o000));
+        // the two unreadable ones are the newest, so the pick meets them first; the older one is listed first in the file
+        writeRegistry(regFile(), [entry(bad[0].root, '2026-03-01T00:00:00.000Z'), ...many.map((m, i) => entry(m.root, `2026-01-${String(i + 1).padStart(2, '0')}T00:00:00.000Z`)), entry(bad[1].root, '2026-03-02T00:00:00.000Z')]);
+        const { out } = await serveAndStop([b.root]); // 1 named + 19 readable = the cap, nothing past it
+        expect(out[0]).toMatch(new RegExp(`^SpecPilot is serving ${MAX_PROJECTS} projects`));
+        const notReopened = out.filter(l => l.startsWith('Not reopened: '));
+        expect(notReopened.map(l => l.slice('Not reopened: '.length, l.indexOf(' (')))).toEqual([realpathSync(bad[1].root), realpathSync(bad[0].root)]);
+        expect(out).toContain('Reopened 19 remembered projects from ~/.specpilot/projects.json.');
+        expect(out.join('\n')).not.toContain('not reopened: this server already serves');
+        expect(out.slice(2, 21)).toEqual(many.map(m => expect.stringContaining(realpathSync(m.root))));
+      } finally {
+        bad.forEach(x => chmodSync(join(x.root, '.specs/planning/tasks.md'), 0o644));
+        [...many, ...bad].forEach(m => m.cleanup());
+      }
     });
 
     it('serves a named folder once, at index 0, records it, and leaves the reopened entry as it was', async () => {

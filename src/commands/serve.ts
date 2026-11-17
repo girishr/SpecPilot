@@ -216,11 +216,15 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
       // Every entry in display order that passes the open route's path rule and has .specs/; the registry
       // itself is not rewritten for these (lastOpened stays the user's). Past the cap nothing is read but
       // what the path rule and the .specs/ check need.
+      // BL-186: which entries reopen is picked in display order (pinned, then newest), every check made here, so a
+      // `Not reopened` entry takes no cap slot; the picked ones are then served in the file's own order, the order the
+      // projects were first added, so a restart keeps the rail's order.
       let pastCap = 0;
+      const picked = new Map<string, string>(); // registry path → root
       for (const entry of sortEntries(read.entries)) {
-        const check = checkOpenPath(entry.path, roots, home);
+        const check = checkOpenPath(entry.path, [...roots, ...picked.values()], home);
         if (!('root' in check) || specsMissing(check.root)) continue;
-        if (roots.length >= MAX_PROJECTS) {
+        if (roots.length + picked.size >= MAX_PROJECTS) {
           pastCap++;
           continue;
         }
@@ -230,7 +234,12 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
           reopenLines.push(`Not reopened: ${check.root} (${(err as Error).message}).`);
           continue;
         }
-        roots.push(check.root);
+        picked.set(entry.path, check.root);
+      }
+      for (const entry of read.entries) {
+        const root = picked.get(entry.path);
+        if (root === undefined) continue;
+        roots.push(root);
         named.push(true);
         reopened++;
       }

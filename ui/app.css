@@ -542,22 +542,65 @@ body.resizing{user-select:none;cursor:col-resize}
 .welcome .fine{display:flex;gap:8px;align-items:center;flex-wrap:wrap;color:var(--label-3);font-size:13px}
 .welcome .fine i{width:7px;height:7px;border-radius:50%;background:var(--green);flex:none}
 
-/* Overview (BL-171, REQ-002.H.76): two columns when the content area allows, one below; lane tiles two by two when narrow */
-#v-overview{container-type:inline-size}
-.ovgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}
-@container (min-width:901px){.ovgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ovkv,.ovcount{display:flex;gap:12px;align-items:baseline;min-height:36px;padding:6px 12px}
-.ovkv .k,.ovcount .k{flex:none;min-width:96px;color:var(--label-2);font-size:13px}
-.ovkv .v,.ovcount .v{min-width:0;overflow-wrap:anywhere}
-.ovlanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--sep-2);border-bottom:1px solid var(--sep-2)}
-@container (max-width:520px){.ovlanes{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.ovlane{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;background:var(--group);text-align:left;min-width:0}
-.ovlane:hover{background:var(--hover)}
-.ovlane .n{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
-.ovlane .l{font-size:12.5px;color:var(--label-2);overflow-wrap:anywhere}
-.ovcommit{display:flex;gap:10px;align-items:baseline;padding:6px 12px;min-height:36px;flex-wrap:wrap}
-.ovcommit .m{flex:1 1 12em;min-width:0;overflow-wrap:anywhere}
-.ovcommit .det{color:var(--label-3);font-size:12px}
-.row .ttl.ovclamp{white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.ovroad{padding:10px 12px;min-width:0;overflow-wrap:anywhere}
-.ovmore{color:var(--green-ink);font-size:13px;padding:8px 12px}
+/* Overview (BL-171, REQ-002.H.76; the BL-191 redesign): a top band, two columns that stack on their own (7 to 5), Spec files
+   last; one column in a window 1100px wide or narrower; lane tiles two by two and tiles in one column at 860px */
+.ovgrid{max-width:1200px;display:flex;flex-direction:column;gap:16px}
+.ovcols{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:16px;align-items:start}
+.ovcol{display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:1100px){.ovcols{grid-template-columns:minmax(0,1fr)}}
+.ovcard{background:var(--group);border:1px solid var(--sep-2);border-radius:10px;min-width:0;display:flex;flex-direction:column}
+.ovcard.flag{border-color:var(--orange)}
+.ovch{display:flex;align-items:center;gap:8px;padding:14px 16px 10px}
+.ovch>.ico{color:var(--label-3)}
+.ovch h3{margin:0;font-size:13.5px;font-weight:600;color:var(--label)}
+.ovcount{font:12px var(--mono);color:var(--label-3)}
+.ovsrc{margin-left:auto;font:11.5px var(--mono);color:var(--label-3);overflow-wrap:anywhere;text-align:right}
+.ovcb{padding:0 16px 14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.ovcf{border-top:1px solid var(--sep);padding:4px 8px}
+.ovlink{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 8px;border-radius:var(--rs);font-size:13.5px;font-weight:500;color:var(--blue-ink)}
+.ovlink .ico{width:14px;height:14px}
+.ovhero{padding:20px;gap:18px}
+.ovident{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.ovbig{width:56px;height:56px;border-radius:12px;background:var(--blue-soft);color:var(--blue-ink);display:grid;place-items:center;font-weight:700;font-size:19px;flex:none}
+.ovtxt{flex:1;min-width:min(260px,100%)}
+.ovname{margin:0;font-size:22px;line-height:1.25;font-weight:600;overflow-wrap:anywhere}
+.ovdesc{margin:4px 0 10px;color:var(--label-2);overflow-wrap:anywhere}
+.ovfacts{display:flex;flex-wrap:wrap;gap:6px}
+.ovfact{font:12px var(--mono);padding:3px 8px;border-radius:999px;background:var(--hover);color:var(--label-2);overflow-wrap:anywhere}
+.ovacts{display:flex;gap:8px;flex-wrap:wrap}
+.ovacts .btn{min-height:40px}
+.ovlanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ovlane{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--r);border:1px solid var(--sep);min-height:84px;text-align:left;min-width:0}
+.ovlane .n{font-size:28px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
+.ovlane .l{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--label-2);overflow-wrap:anywhere}
+.ovlane .st{width:8px;height:8px;border-radius:50%;flex:none}
+.ovmixes{display:flex;flex-wrap:wrap;gap:8px 20px}
+.ovmix{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:40px;padding:0 6px;margin:0 -6px;border-radius:var(--rs)}
+.ovmix .k{font-size:12.5px;color:var(--label-3);margin-right:2px}
+.ovrows{display:flex;flex-direction:column;margin:0 -8px}
+.ovrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:10px 8px;min-height:44px;border-radius:var(--rs);text-align:left;width:auto;min-width:0}
+.ovrows>.ovrow+.ovrow{border-top:1px solid var(--sep)}
+.ovrow .id{font:12.5px var(--mono);color:var(--label-2);white-space:nowrap}
+.ovrow .d{min-width:0;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical}
+.ovprompt .d{grid-column:1/-1;white-space:pre-wrap}
+.ovrow .when{font:12px var(--mono);color:var(--label-3);white-space:nowrap}
+.ovchips{display:flex;gap:4px;flex:none}
+.ovsub{display:flex;align-items:center;gap:6px;margin:4px 0 -4px;font-size:12px;font-weight:600;color:var(--label-3)}
+.ovsub .ico{width:14px;height:14px}
+.ovempty{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:var(--r);background:var(--hover);color:var(--label-2)}
+.ovempty .ico{color:var(--violet-ink);margin-top:3px}
+.ovroad{min-width:0;overflow-wrap:anywhere}
+.ovbanner{max-width:1200px}
+.ovtiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ovtile{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:var(--r);border:1px solid var(--sep);min-height:44px;min-width:0;text-align:left}
+.ovtile.wide{grid-column:1/-1}
+.ovtile .k{font-size:12.5px;color:var(--label-3)}
+.ovtile .v{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.ovtile small{font:11.5px var(--mono);color:var(--label-3);overflow-wrap:anywhere}
+.ovsecs{display:flex;flex-direction:column;margin:0 -8px}.ovsecs>.ovfile:first-child{border-top:0}
+.ovfiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0 -8px}
+.ovfile{display:flex;flex-direction:column;gap:2px;padding:9px 8px;border-top:1px solid var(--sep);border-radius:var(--rs);min-height:44px;text-align:left;min-width:0}
+.ovfile .p{font:13px var(--mono);overflow-wrap:anywhere}
+.ovfile .m{font:11.5px var(--mono);color:var(--label-3);overflow-wrap:anywhere}
+.ovlane:hover,.ovmix:hover,.ovrow:is(button):hover,.ovtile:hover,.ovfile:hover,.ovlink:hover{background:var(--hover)}
+@media (max-width:860px){.ovlanes{grid-template-columns:repeat(2,minmax(0,1fr))}.ovtiles,.ovfiles{grid-template-columns:minmax(0,1fr)}.ovrow{grid-template-columns:auto minmax(0,1fr)}.ovrow .ovchips,.ovrow .when{grid-column:2}.ovhero{padding:16px}}

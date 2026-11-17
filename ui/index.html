@@ -45,6 +45,8 @@
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.7 4.8L18.5 9.5l-4.8 1.7L12 16l-1.7-4.8L5.5 9.5l4.8-1.7z"/><path d="M18 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>
 </defs>
 </symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
 <symbol id="i-board" viewBox="0 0 24 24"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="4" width="5" height="10" rx="1"/><rect x="17" y="4" width="4" height="13" rx="1"/></symbol>
 <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
 <symbol id="i-req" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6l1 1 2-2M4 12l1 1 2-2M4 18l1 1 2-2"/></symbol>
@@ -88,7 +90,7 @@
   <div class="top"><b id="curGrp" translate="no"></b><span class="br mono" id="curBranch" translate="no"></span></div>
   <button class="search" id="palBtn"><svg class="ico ico-13" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>Search<kbd>&#8984;K</kbd></button>
   <div class="snav">
-    <button class="srow on" data-v="overview"><svg aria-hidden="true" focusable="false"><use href="#i-spark"/></svg><span class="t">Overview</span></button>
+    <button class="srow on" data-v="overview"><svg aria-hidden="true" focusable="false"><use href="#i-grid"/></svg><span class="t">Overview</span></button>
     <div class="grp" id="gPlan">Plan</div>
     <div role="group" aria-labelledby="gPlan">
       <button class="srow" data-v="board"><svg aria-hidden="true" focusable="false"><use href="#i-board"/></svg><span class="t">Tasks</span><span class="meta" translate="no">tasks.md</span></button>
@@ -102,7 +104,7 @@
       <button class="srow" data-v="file" data-f="quality/tests.md"><svg aria-hidden="true" focusable="false"><use href="#i-test"/></svg><span class="t">Tests</span><span class="meta" translate="no">quality/</span></button>
       <button class="srow" data-v="security"><svg aria-hidden="true" focusable="false"><use href="#i-shield"/></svg><span class="t">Security</span><span class="meta" translate="no">security/</span></button>
     </div>
-    <div class="grp" id="gAuto">Automation</div>
+    <div class="grp" id="gAuto">Agent Guidance</div>
     <div role="group" aria-labelledby="gAuto">
       <button class="srow" data-v="instructions"><svg aria-hidden="true" focusable="false"><use href="#i-file"/></svg><span class="t">Instructions</span><span class="meta" id="insMeta" translate="no"></span></button>
       <button class="srow" data-v="commands"><svg aria-hidden="true" focusable="false"><use href="#i-term"/></svg><span class="t">Commands</span></button>

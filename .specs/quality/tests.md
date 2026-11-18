@@ -1,7 +1,7 @@
 ---
 fileID: TESTS-001
-lastUpdated: 2026-11-17 (BL-190 built)
-version: 3.02
+lastUpdated: 2026-11-18 (v2.21.0 prepared)
+version: 3.03
 contributors: [girishr]
 relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 ---
@@ -9,6 +9,8 @@ relatedFiles: [project.yaml, requirements.md, architecture.md, tasks.md]
 # Testing
 
 ## Current Coverage [TESTS-001.1]
+
+**Release runs (docs/RELEASING.md section 2):** v2.21.0, 2026-11-18, on `main` with the release prep: Jest 2120/2120 with `FORCE_COLOR=1` and `FORCE_COLOR=0`, `npm run test:browser` 192/192 on three runs, on Node.js 25.9.0, which is outside `engines.node`; the run on a supported Node.js (22, 24 or 26) that BL-170's architect decision (Q3) requires is owed before `npm publish`, and is recorded here when made.
 
 **17 test suites, 1019 tests, all passing** (Jest) — 216 before BL-050, +10 in `specReader.test.ts` (BL-050), +12 in `specArchiver.test.ts` (BL-057), +71 in `specServer.test.ts` (BL-051), +18 in `specPoller.test.ts` and +23 in `specServer.test.ts` (BL-052); +30 in `taskMover.test.ts` and +22 in `specServer.test.ts` (BL-053); +43 in `specArchiver.test.ts` (BL-061); +12 in `slashCommandGenerator.test.ts` and +2 in `specBackfiller.test.ts` (BL-058); +2 in `specArchiver.test.ts` (BL-060); +33 in `specServer.test.ts` (BL-054); +9 in `specBackfiller.test.ts` and +4 in `specValidator.test.ts` (BL-066, three tests rewritten); +2 net in `specBackfiller.test.ts` (BL-069: 5 tests of removed Multi-Dev Notes insertion and the old 2-item counts replaced by 7); +55 in `specSetup.test.ts`, +34 in `specServer.test.ts` and +6 in `slashCommandGenerator.test.ts` (BL-055; the "folder without .specs/ exits 1" case of BL-054 became the setup startup test); +4 in `specGenerator.test.ts` (BL-073: 7 prompt tests replaced by 11 keep tests); +42 in the new `projectRegistry.test.ts` and +51 in `specServer.test.ts` (BL-067); +16 in `specServer.test.ts` (BL-PM-001); +12 in the new `init.test.ts` (BL-075); +65 in `specSetup.test.ts` and +17 in `specServer.test.ts` (BL-PM-003); +131 in the new `gitClone.test.ts`, +3 in `specSetup.test.ts` and +7 in `specServer.test.ts` (BL-PM-002); +34 in `specSetup.test.ts` and +5 in `specServer.test.ts` (BL-PM-004, the sheet build then the chat); +28 in the new `specCore.test.ts` (BL-032)
 

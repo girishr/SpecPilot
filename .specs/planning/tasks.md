@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-01 (v2.20.0 shipped, row 263)
-version: 7.107
+lastUpdated: 2026-11-18 (v2.21.0 prepared, row 300)
+version: 7.108
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -118,3 +118,4 @@ Notes
 | 297 | [CD-girishr-206] [BL-187] | Browse… opens the macOS folder dialog at once (REQ-002.H.36 and SEC-004.22 as changed; found 2026-11-17): AppleScript's bare `activate` held the dialog about 2 s and, from a shell, never brought it to the front; the dialog is now a constant JavaScript for Automation script, AppKit's `activateIgnoringOtherApps(true)` inside try/catch, then `chooseFolder` with `pathTo("home folder")`. In front after 534 ms through `pickFolder`; a cancel still exits 1 with `-128`; no System Events, so no Automation prompt. One new `folderPicker.test.ts` case. Jest 2087/2087, browser 185/185. Approved 2026-11-17. Feature commit 26c7a3f. |
 | 298 | [CD-girishr-207] [BL-189] | A notice on stderr when Node.js is outside `engines.node` (REQ-002.A.17, ARCH-004.80; the developer, 2026-11-17; architect decision: Feature, supersedes BL-170's no-run-time-check line, the advisory's words): `src/utils/nodeCheck.ts` reads `engines.node` from `package.json` (parsed by hand, fail-safe to no notice) and `src/cli.ts` prints three lines on stderr before the command's own output, the risk types as the November 2026 advisory names them (no remote code execution claimed), the versions to update to and the advisory link; warn only, exit code and stdout unchanged, nothing for `--version`, `--help` or `help`, amber `!` on a TTY without `NO_COLOR`. 31 new tests. Jest 2118/2118. Approved 2026-11-17. Feature commit 95fcfd9. |
 | 299 | [CD-girishr-208] [BL-190] | A banner on the `serve` page when the server's Node.js is outside `engines.node` (REQ-002.H.78, SEC-004.39, ARCH-004.80; the developer, 2026-11-17; the BL-189/190 architect decision: Feature, the advisory's words, payload `node: {version, ok, patched, release}`): `GET /api/specs` and every body the page reads carry `node` (not MCP results); an amber banner above the rail and top bar on Home and every project, its text from the payload as text only, `Read the advisory` in a new tab (`noopener noreferrer`, the href set in `app.js`), a short form at 420px, Dismiss for the tab, shown with `--read-only`. Two `specServer.test.ts` cases, 7 browser tests. Jest 2120/2120, browser 192/192. Approved 2026-11-17. Feature commit c3cf22d. |
+| 300 | [CD-girishr-209] | v2.21.0 release prepared (BL-123, BL-128, BL-152, BL-154 to BL-161, BL-164 to BL-166, BL-168, BL-170, BL-171, BL-175 to BL-177, BL-186, BL-187, BL-189 to BL-192, BL-CL-02, BL-TB-02, BL-TB-08, BL-UI-02): version bumped, CHANGELOG [Unreleased] promoted to [2.21.0], annotated tag v2.21.0; not pushed or published |

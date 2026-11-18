@@ -1,7 +1,7 @@
 ---
 fileID: ROADMAP-001
-lastUpdated: 2026-11-01 (v2.20.0 prepared)
-version: 1.50
+lastUpdated: 2026-11-18 (v2.21.0 prepared)
+version: 1.51
 contributors: [girishr]
 relatedFiles: [tasks.md, project.yaml, requirements.md]
 ---
@@ -77,7 +77,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-08-02: v2.2.3 — two "Press Enter" pauses on the `init` success screen, skipped under `--no-prompts` (CS-091)
 - 2026-09-27: v2.2.4 — `archive` handles a table-shaped `## Completed` (BL-057); a shared section-bounds helper and a pure spec reader
 
-### v2.3.0–v2.20.0 - `specpilot serve` (September–November 2026)
+### v2.3.0–v2.21.0 - `specpilot serve` (September–November 2026)
 
 - 2026-09-29: v2.3.0 — `specpilot serve`, a read-only local web UI over `.specs/` with live reload (BL-051, BL-052); `fs-extra` removed
 - 2026-09-29: v2.4.0 — move tasks in `specpilot serve` (BL-053); `archive` takes the oldest `prompts.md` entries (BL-061)
@@ -98,6 +98,7 @@ One line per release, dated by its git tag (or by CHANGELOG where no tag exists:
 - 2026-10-21: v2.18.0 — the Review lane (BL-113): `## Review` between Current Sprint and Completed, a human-in-the-loop check with Approve and Send back on the card through `POST /api/tasks/review`, `## Won't do` shown read-only, the agent rule in the generated mandates and the MCP server, every view uncapped; a close button on every toast and 8-second toasts (BL-UI-03); `specpilot validate` checks tasks.md's section headings with `--fix` renames (BL-111) and the Tasks view explains missing, unknown and untabled sections (BL-112, BL-116); the onboarding prompt's tasks.md line fixed (BL-117); `init` writes tasks.md as tables (BL-118)
 - 2026-10-25: v2.19.0 — Type and Priority columns in tasks.md (BL-125): Backlog, Current Sprint and Review read `ID, Type, Priority, Description` or `ID, Description`, coloured chips on the cards, Priority and Type set from the task details and by the MCP's `specpilot_set_task` through `POST /api/tasks/fields`; a blocking warning before a move or Archive while work is in progress, on a branch or while `.specs/` changes from outside the page (BL-127); the wrong-column-count warning on the Tasks view and in `validate` (BL-120); the Tasks mandate and the local MCP name the table shapes (BL-122).
 - 2026-11-01: v2.20.0 — security audit run-1 fixed: no command writes or reads through a symbolic link (BL-077, BL-130, BL-134, BL-135), a bounded code analysis (BL-136) and YAML read (BL-137), repository text stripped of terminal escapes (BL-133), a project name kept to one line (BL-131), no program started from the project folder on Windows (BL-132), the page's Markdown in linear time (BL-138), the `serve` page closed to leftover service workers, framing and other pages (BL-142, BL-143, BL-144), audit hardening and the stop hang fixed (BL-146), the leads validated in Linux and WebKit (BL-145); the Design & UI setup step (BL-129); a browser test race fixed (BL-151)
+- 2026-11-18: v2.21.0 — Overview, each project's landing page, and its redesign (BL-171, BL-191); Node.js `^22.23.5 || ^24.22.3 || >=26.13.1` required (BL-170, breaking) with a warning on every command and a banner on the page on an unpatched Node.js (BL-189, BL-190); every IDE's files in the Commands, Instructions and Skills views and setup that records the IDE (BL-152, BL-154 to BL-161, BL-164, BL-168, BL-175, `--ide` BL-159); edit a Backlog description (BL-TB-08) and resize the details panel (BL-TB-02); Back and Forward (BL-192), Settings in the rail (BL-UI-02), Home's purpose (BL-165); a removed project closes (BL-166), the rail keeps its order on restart (BL-186), Browse at once on macOS (BL-187); `validate` checks `api.yaml` (BL-177) and REST `api.yaml` is OpenAPI 3.0 (BL-176); the Completed limit 25 lines, keep 10 (BL-123); the archive branch warning (BL-128) and the `Specs:` startup line (BL-CL-02)
 
 ### Next - SpecPilot Local complete (planned) [ROADMAP-003.1]
 

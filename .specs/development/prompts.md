@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-11-01 (v2.20.0 shipped)
-version: 2.209
+lastUpdated: 2026-11-18 (v2.21.0 prepared)
+version: 2.210
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-18: the developer: `get ready for release`: docs/RELEASING.md read, the read-only checks run on `main` `bf448c6` (Jest 2120/2120 with FORCE_COLOR 1 and 0, browser 192/192 three runs, lint 0 errors, validate clean on a scratch copy, build, pack 187 files); `version 2.21`, the major items and the full CHANGELOG shown; `yes, proceed`: v2.21.0 prepared on `main` (the version, CHANGELOG [2.21.0] with the BL-170 line updated for BL-189/190 and BL-171's card name, roadmap, context, row 300), committed and tagged; not pushed or published. `node -v` is 25.9.0, outside `engines.node`: the run on a supported Node (BL-170 Q3) is owed before publish.
 - 2026-11-17: the developer: `Approve and commit` for BL-189 (feature `95fcfd9`, row 298 `c3adb60`, merge `dd8dd87`; Jest 2118/2118, browser 185/185 on `main`), `push` (`c60d0ce..dd8dd87`); `Do BL-190`: Spec Report on `feat/bl-190-node-banner` under the BL-189/190 architect decision; spec-reviewer FIX, applied, PASS on the re-run; built (Jest 2120/2120, browser 192/192; the advisory href moved to app.js after the page-shell test). Nothing committed.
 - 2026-11-17: the developer: `Approve and commit` for BL-187 (fix `26c7a3f`, row 297 `b04284a`, merge `c60d0ce`; Jest 2087/2087, browser 185/185 on `main`), `push` (`078e5ca..c60d0ce`); `whats next?`; `do BL-189 + BL-190`: one Spec Report on `feat/bl-189-node-notice` (advisory re-read on nodejs.org: no RCE claimed); spec-reviewer ESCALATE; architect DECIDE (Feature; BL-170's no-check line superseded; the advisory's words; BL-189 then BL-190 from `main`, BL-190 back to Backlog here; payload `{version, ok, patched, release}`); BL-189 specs written; spec-reviewer FIX (wiring test wording), applied; built (Jest 2087 → 2118). Nothing committed.
 - 2026-11-17: the developer: `do next BL item`: BL-187 (macOS Browse waits about 2 s) on `fix/bl-187-browse-delay`. Timed the dialog variants for real (front app by `lsappinfo`); Spec Report: a guarded JXA `activateIgnoringOtherApps` in place of AppleScript's `activate`; spec-reviewer FIX (branch, guard, CHANGELOG, architecture quote, exact test), PASS on the re-run; built (the real dialog in front after 534 ms through pickFolder; Jest 2087/2087, browser 185/185). Nothing committed.

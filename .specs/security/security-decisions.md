@@ -1,7 +1,7 @@
 ---
 fileID: SEC-003
-lastUpdated: 2026-11-17 (BL-190 Spec Report: SEC-004.39)
-version: 1.44
+lastUpdated: 2026-11-19 (BL-193: footer brought up to date)
+version: 1.45
 contributors: [girishr]
 relatedFiles:
   [security/threat-model.md, architecture/architecture.md, project/project.yaml]
@@ -486,4 +486,4 @@ This file records security-related architectural and implementation decisions ma
 
 ---
 
-_Last updated: 2026-10-28_
+_Last updated: 2026-11-19_

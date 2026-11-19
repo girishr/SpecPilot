@@ -1,7 +1,7 @@
 ---
 fileID: SEC-001
-lastUpdated: 2026-11-17 (BL-171 Spec Report)
-version: 1.53
+lastUpdated: 2026-11-19 (BL-193: footer brought up to date)
+version: 1.54
 contributors: [girishr]
 relatedFiles:
   [
@@ -267,4 +267,4 @@ Same audit and status as SEC-002.12. The principal is a web page the user visits
 
 ---
 
-_Last updated: 2026-10-31_
+_Last updated: 2026-11-19_

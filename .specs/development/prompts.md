@@ -1,7 +1,7 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-11-18 (v2.21.0 shipped)
-version: 2.211
+lastUpdated: 2026-11-19 (BL-193)
+version: 2.212
 contributors: [girishr]
 relatedFiles:
   [development/context.md, development/prompts-archive.md, project/project.yaml]
@@ -29,6 +29,7 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-19: the developer: `push` (`97271ec..c6db0ae`, the shipped record); `whats next?`; `is the readme, and all the related spec files updated to match the release 2.21.0?`: checked; stale: tests.md's coverage summary and table, GUIDE's serve intro, README without Back and Forward, two security footers; `Yes, fix them`: BL-193 on `docs/bl-193-release-docs`, docs only; spec-reviewer FIX (threat-model front matter, the GUIDE's list of page writes), applied, no re-run (wording only). Nothing committed.
 - 2026-11-18: the developer: `get ready for release`: docs/RELEASING.md read, the read-only checks run on `main` `bf448c6` (Jest 2120/2120 with FORCE_COLOR 1 and 0, browser 192/192 three runs, lint 0 errors, validate clean on a scratch copy, build, pack 187 files); `version 2.21`, the major items and the full CHANGELOG shown; `yes, proceed`: v2.21.0 prepared on `main` (the version, CHANGELOG [2.21.0] with the BL-170 line updated for BL-189/190 and BL-171's card name, roadmap, context, row 300), committed and tagged; not pushed or published. `node -v` is 25.9.0, outside `engines.node`: the run on a supported Node (BL-170 Q3) is owed before publish.
 - 2026-11-18: the developer: `brew install node@26` (Node.js 25.9.0 upgraded to 26.13.1), `git push origin main v2.21.0` (`bf448c6..97271ec`, the tag); a first `npm publish` stopped at `npm: command not found` mid-upgrade, nothing published; the owed run on Node.js 26.13.1: build, Jest 2120/2120, browser 192/192, no notice; recorded in `tests.md`, not committed. Nothing published yet.
 - 2026-11-18: the developer: `npm publish` (first refused: npm 401 on the new npm 11.20.0; `npm login` as the developer, then the publish confirmed in the browser: `+ specpilot@2.21.0`), `gh release create v2.21.0 --notes-from-tag`; checked: `origin/main` `97271ec`, the tag on origin, npm `latest` 2.21.0, the GitHub release live; release row 300 reworded and shipped row 301 added. Not committed.

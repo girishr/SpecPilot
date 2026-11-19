@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-18 (v2.21.0 shipped, row 301)
-version: 7.109
+lastUpdated: 2026-11-19 (BL-193 to Current Sprint)
+version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -75,6 +75,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-193 | chore | P3 | Docs brought up to v2.21.0 (found 2026-11-19 on the developer's check after the release): `.specs/quality/tests.md`'s coverage summary (it said 17 suites and 1019 tests; Jest 29 and 2120, browser 20 and 192) and suite table (counts for v2.21.0, 11 suites added); `docs/GUIDE.md`'s `specpilot serve` intro (Overview, every write the page makes, the Node.js banner); README's Back and Forward (BL-192); the `_Last updated_` footers of `security-decisions.md` and `threat-model.md`. Docs only. Approved 2026-11-19. |
 
 ## Won't do
 

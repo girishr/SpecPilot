@@ -1,17 +1,46 @@
 import chalk from 'chalk';
 import { ProjectMigrator } from '../utils/projectMigrator';
 import { Logger, terminalText } from '../utils/logger';
+import { cursorLegacy, removeOldCursorRules, renameCursorRules } from '../utils/cursorLegacy';
 
 export interface MigrateOptions {
   dir: string;
   from: string;
   to: string;
   backup: boolean;
+  cursorRules?: boolean;
+  removeOld?: boolean;
+}
+
+/**
+ * `specpilot migrate --cursor-rules` (BL-194, REQ-002.A.18): rename SpecPilot's old `.cursor/rules/project.mdc`,
+ * or with both files and `--remove-old` remove it. `--from`, `--to` and `--backup` are not read; the keep list is not.
+ */
+function migrateCursorRules(options: MigrateOptions): void {
+  const s = cursorLegacy(options.dir, null);
+  const both = s.state === 'duplicate' || s.state === 'edited';
+  if (s.state === 'edited') {
+    console.log(`It has ${s.onlyOldCount} lines that specpilot.mdc does not have:`);
+    for (const line of s.onlyOld) console.log(`  ${terminalText(line)}`);
+    if (s.onlyOldCount > s.onlyOld.length) console.log(`  and ${s.onlyOldCount - s.onlyOld.length} more`);
+  }
+  const out = both && options.removeOld ? removeOldCursorRules(options.dir) : renameCursorRules(options.dir);
+  if (out.ok) {
+    console.log(out.message);
+    return;
+  }
+  if (s.state === 'none' && !s.yours && !s.refused) {
+    console.log(out.error); // nothing to do
+    return;
+  }
+  console.error(terminalText(out.error));
+  process.exit(1);
 }
 
 export async function migrateCommand(options: MigrateOptions) {
   const logger = new Logger();
-  
+  if (options.cursorRules) return migrateCursorRules(options);
+
   try {
     logger.info('🔄 Starting project migration...');
     

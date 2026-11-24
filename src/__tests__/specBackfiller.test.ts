@@ -3,8 +3,12 @@ import { backfillCommand } from '../commands/backfill';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
 import { buildCopilotInstructions } from '../core/ideConfig';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync, symlinkSync } from 'fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
+import { tmpdir } from 'os';
+
+/** The front matter SpecPilot wrote on .cursor/rules/project.mdc before v2.1.0 (BL-194). */
+const OLD_FRONT = '---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -906,13 +910,42 @@ rules:
         tasksMd: makeFullTasksMd('girishr'),
       });
       mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
-      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), FULL_MD, 'utf-8');
+      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), OLD_FRONT + FULL_MD, 'utf-8');
 
       const result = await backfiller.backfill(testDir, '.specs', false, true);
       const warnResult = result.ideFiles.find((r) => r.path === '.cursor/rules/project.mdc');
 
       expect(warnResult).toMatchObject({ action: 'warn' });
-      expect(warnResult?.reason).toContain('specpilot.mdc');
+      expect(warnResult?.reason).toBe(".cursor/rules/project.mdc is SpecPilot's old Cursor rules file (before v2.1.0). Run specpilot migrate --cursor-rules to rename it to specpilot.mdc.");
+    });
+
+    it('BL-194: no warning for a project.mdc that is the user\'s own rule', async () => {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+      mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+      writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), '---\ndescription: My own rule\n---\n\nUse tabs.\n', 'utf-8');
+      const result = await backfiller.backfill(testDir, '.specs', false, true);
+      expect(result.ideFiles.find((r) => r.path === '.cursor/rules/project.mdc')).toBeUndefined();
+    });
+
+    it('BL-194: warns with both files, and not once the project is kept on this machine', async () => {
+      const home = mkdtempSync(join(tmpdir(), 'sp-home-'));
+      const saved = process.env.HOME;
+      process.env.HOME = home;
+      try {
+        scaffoldSpecs(testDir, { projectYaml: FULL_YAML, copilotMd: FULL_MD, tasksMd: makeFullTasksMd('girishr') });
+        mkdirSync(join(testDir, '.cursor', 'rules'), { recursive: true });
+        writeFileSync(join(testDir, '.cursor', 'rules', 'project.mdc'), OLD_FRONT + 'Rule one.\n', 'utf-8');
+        writeFileSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'), OLD_FRONT + 'Rule one.\n', 'utf-8');
+        const both = await backfiller.backfill(testDir, '.specs', true, true);
+        expect(both.ideFiles.find((r) => r.path === '.cursor/rules/project.mdc')?.reason).toContain('loads the rules twice');
+        mkdirSync(join(home, '.specpilot'));
+        writeFileSync(join(home, '.specpilot', 'cursor-rules.json'), JSON.stringify({ version: 1, keepBoth: [realpathSync(testDir)] }));
+        const kept = await backfiller.backfill(testDir, '.specs', true, true);
+        expect(kept.ideFiles.find((r) => r.path === '.cursor/rules/project.mdc')).toBeUndefined();
+      } finally {
+        process.env.HOME = saved;
+        rmSync(home, { recursive: true, force: true });
+      }
     });
 
     it('does not emit migration warning when specpilot.mdc already exists', async () => {

@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-19 (BL-193 to Current Sprint)
+lastUpdated: 2026-11-24 (BL-194 to Completed)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -65,6 +65,7 @@ Notes
 | BL-148 | bug | P2 | Bug, P2, Windows only. `cloneRepository()` (`src/utils/gitClone.ts`) spawns the bare name `git` with `cwd: dirname(target)`, so a clone into a folder inside an earlier hostile clone may run that clone's `git.exe`: give it `cwd: parse(homedir()).root` as `probeGit` has (the target is absolute). Attribution: found on the BL-132 Spec Report (spec-reviewer, 2026-10-30), SEC-002.12 (d), audit item 3. |
 | BL-149 | bug | P3 | Bug, P3. `CodeAnalyzer.findTestFiles()` stores a test file found in a subfolder relative to that subfolder (`fullPath.replace(dir + '/', '')` with `dir` the current folder, as `findTodos()` does for TODO file names), so `analyzeTests()` reads `join(root, name)`, misses it and counts none of its tests; `add-specs` reports 0 tests for a project whose tests are all under `src/` or `tests/`. Store paths relative to the walk's root. Found on the BL-136 build (2026-10-30). |
 | BL-188 | bug | P3 | `readBranch()` (`src/utils/specServer.ts`) follows a `.git` file's `gitdir:` to any path; apply BL-171's worktree check to it (follow only when the realpath ends in `/.git/worktrees/<name>`, else no branch). It sends only a pattern-checked ref today, so the risk is low. Filed by the architect, BL-171, 2026-11-17. |
+| BL-195 | feat | P3 | Undo Keep both for SpecPilot's old Cursor rules file (BL-194): a page action, or a `specpilot migrate --cursor-rules` option, that removes the project's path from `~/.specpilot/cursor-rules.json`; until then the only way is editing that file by hand. Filed by the BL-194 architect decision 2026-11-20. |
 
 ## Current Sprint
 
@@ -121,3 +122,4 @@ Notes
 | 300 | [CD-girishr-209] | v2.21.0 release prepared and shipped (BL-123, BL-128, BL-152, BL-154 to BL-161, BL-164 to BL-166, BL-168, BL-170, BL-171, BL-175 to BL-177, BL-186, BL-187, BL-189 to BL-192, BL-CL-02, BL-TB-02, BL-TB-08, BL-UI-02): version bumped, CHANGELOG `[Unreleased]` promoted to `[2.21.0]`, annotated tag `v2.21.0`; pushed and published by the developer (row 301) |
 | 301 | [CD-girishr-210] | v2.21.0 shipped (BL-123, BL-128, BL-152, BL-154 to BL-161, BL-164 to BL-166, BL-168, BL-170, BL-171, BL-175 to BL-177, BL-186, BL-187, BL-189 to BL-192, BL-CL-02, BL-TB-02, BL-TB-08, BL-UI-02): pushed (`bf448c6..97271ec` and the tag), npm `specpilot@2.21.0` latest, GitHub release live (2026-11-18); tested on Node.js 26.13.1 before publish (BL-170) |
 | 302 | [CD-girishr-211] [BL-193] | Docs brought up to v2.21.0: `tests.md`'s coverage summary (Jest 29 suites and 2120 tests, browser 20 and 192) and suite table (per-file counts from `jest --json`, 11 suites added); `docs/GUIDE.md`'s `serve` intro (Overview, every `tasks.md` write the page makes, the Node.js banner); README's Back and Forward (BL-192); the security files' `_Last updated_` footers. Docs only; validate clean, Jest 2120/2120. Approved 2026-11-19. Feature commit 5bdda5b. |
+| 303 | [CD-girishr-212] [BL-194] | SpecPilot's old Cursor rules file (`.cursor/rules/project.mdc`, before v2.1.0) found and fixed: `specpilot migrate --cursor-rules` (link-then-unlink rename, never over `specpilot.mdc`) and `--remove-old`; warnings in `validate`, `backfill` and `serve`'s startup output; `project.cursorLegacy` and `POST /api/ide/cursor-rules` (rename, remove, keep; sha256-pinned); the Instructions view's `old name`, `duplicate`, `edited copy` and `kept both` rows; Keep both per machine in `~/.specpilot/cursor-rules.json`. REQ-002.A.18, REQ-002.H.79, ARCH-004.81, SEC-004.40; BL-195 filed. Jest 2157, browser 201. Commit ead82fa. |

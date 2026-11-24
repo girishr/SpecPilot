@@ -8,6 +8,7 @@ import { join, resolve, win32 } from 'path';
 import { buildSpecsPayload, displayRoot, SpecServer, startSpecServer } from '../utils/specServer';
 import { removeStaleStaging, specsMissing } from '../utils/specSetup';
 import { checkOpenPath, childEnv, homeDir, MAX_PROJECTS, readRegistry, registryPath, sortEntries, upsertEntry, writeRegistry } from '../utils/projectRegistry';
+import { cursorStartupLine } from '../utils/cursorLegacy';
 import { Logger } from '../utils/logger';
 
 const packageJson = require('../../package.json');
@@ -270,7 +271,11 @@ export async function serveCommand(folders: string[], options: ServeOptions, com
   if (noProject !== null) console.log(`No .specs/ folder in ${noProject}. Open a project from the page, or run specpilot serve <folder>.`);
   const empty = roots.filter(root => specsMissing(root));
   for (const root of roots) { // BL-CL-02: each served folder gets its .specs/ path, or the line saying it has none
-    if (!empty.includes(root)) console.log(`Specs: ${join(root, '.specs')}`);
+    if (!empty.includes(root)) {
+      console.log(`Specs: ${join(root, '.specs')}`);
+      const cursor = cursorStartupLine(root, home, !!options.readOnly); // BL-194: only projects served at startup
+      if (cursor) console.log(cursor);
+    }
     else console.log(options.readOnly ? `No .specs/ in ${root}.` : `No .specs/ in ${root} yet. Open the page to set it up.`);
   }
   for (const line of reopenLines) console.log(line);

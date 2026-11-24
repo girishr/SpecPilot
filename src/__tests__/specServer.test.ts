@@ -3655,6 +3655,31 @@ describe('serveCommand with a folder that has no .specs/ (BL-055)', () => {
     ]);
   });
 
+  it('prints the Cursor line under a project\'s Specs: line for SpecPilot\'s old rules file, the read-only form too (BL-194)', async () => {
+    const OLD = '---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\nRule one.\n';
+    write(a.root, '.cursor/rules/project.mdc', OLD);
+    const specsLine = `Specs: ${join(realpathSync(a.root), '.specs')}`;
+    const rw = await serveAndStop([a.root]);
+    expect(rw.out.slice(1, 3)).toEqual([specsLine, "Cursor: .cursor/rules/project.mdc is SpecPilot's old rules file (before v2.1.0). Fix it on the page, or run specpilot migrate --cursor-rules."]);
+    logs.length = 0;
+    const ro = await serveAndStop([a.root], { readOnly: true });
+    expect(ro.out.slice(1, 3)).toEqual([specsLine, "Cursor: .cursor/rules/project.mdc is SpecPilot's old rules file (before v2.1.0). Run specpilot migrate --cursor-rules."]);
+    // both files, kept on this machine: no line, and --read-only never creates the keep list
+    write(a.root, '.cursor/rules/specpilot.mdc', OLD);
+    logs.length = 0;
+    expect((await serveAndStop([a.root], { readOnly: true })).out.some(l => l.startsWith('Cursor: '))).toBe(true);
+    expect(existsSync(join(process.env.HOME!, '.specpilot', 'cursor-rules.json'))).toBe(false);
+    mkdirSync(join(process.env.HOME!, '.specpilot'), { recursive: true });
+    writeFileSync(join(process.env.HOME!, '.specpilot', 'cursor-rules.json'), JSON.stringify({ version: 1, keepBoth: [realpathSync(a.root)] }));
+    logs.length = 0;
+    expect((await serveAndStop([a.root])).out.some(l => l.startsWith('Cursor: '))).toBe(false);
+    // the user's own project.mdc: no line
+    rmSync(join(a.root, '.cursor'), { recursive: true });
+    write(a.root, '.cursor/rules/project.mdc', '---\ndescription: mine\n---\n');
+    logs.length = 0;
+    expect((await serveAndStop([a.root])).out.some(l => l.startsWith('Cursor: '))).toBe(false);
+  });
+
   it('removes only marked stale staging folders at startup, and none with --read-only', async () => {
     const marked = (root: string, name: string) => {
       mkdirSync(join(root, name));
@@ -5557,7 +5582,7 @@ describe('serve routes match api.yaml (BL-178)', () => {
       'Every response',
       'GET /api/events, /api/specs, /api/file, /api/projects from another page',
     ]);
-    expect(specRoutes).toHaveLength(19);
+    expect(specRoutes).toHaveLength(20);
     expect(codeRoutes(source)).toEqual(specRoutes);
   });
 
@@ -5609,5 +5634,171 @@ describe('node in GET /api/specs (BL-190)', () => {
     p.cleanup();
     await start();
     expect(JSON.parse((await hit(port, '/api/specs')).body).node).toEqual({ ...nodeStatus(process.versions.node), release: RELEASE });
+  });
+});
+
+// ─── SpecPilot's old Cursor rules file (BL-194) ──────────────────────────────
+
+describe("SpecPilot's old Cursor rules file in the payload and POST /api/ide/cursor-rules (BL-194)", () => {
+  const OLD_FRONT = '---\ndescription: Project mandates and AI coding rules\nglobs:\nalwaysApply: true\n---\n\n';
+  const OLD = '.cursor/rules/project.mdc';
+  const NEW = '.cursor/rules/specpilot.mdc';
+  const ROUTE = '/api/ide/cursor-rules';
+  let p: ReturnType<typeof makeProject>;
+  let spec: SpecServer;
+  let port: number;
+  let token: string;
+  const at = (rel: string) => join(p.root, rel);
+  const sha = (rel = OLD) => createHash('sha256').update(readFileSync(at(rel))).digest('hex');
+  const good = () => ({ Host: `127.0.0.1:${port}`, Origin: `http://127.0.0.1:${port}`, 'Content-Type': 'application/json', 'X-SpecPilot-Token': token });
+  const fix = (action: string, sha256 = sha(), headers: Record<string, string | undefined> = good()) => post(port, JSON.stringify({ action, sha256 }), headers, ROUTE + '?project=0');
+  const keepFile = () => join(process.env.HOME!, '.specpilot', 'cursor-rules.json');
+
+  beforeEach(async () => {
+    p = makeProject();
+    rmSync(at('CLAUDE.md')); // no other IDE signal, so `uses` shows only what the Cursor file gives
+    spec = await startSpecServer([p.root], 0, '0.0.0-test');
+    port = (spec.server.address() as AddressInfo).port;
+    token = /<meta name="specpilot-token" content="([0-9a-f]{64})">/.exec((await hit(port, '/')).body)![1];
+  });
+  afterEach(async () => {
+    await spec.close();
+    p.cleanup();
+    rmSync(keepFile(), { force: true });
+  });
+
+  it('sends null without a file and for the user\'s own project.mdc, which is not Cursor\'s signal', () => {
+    expect(buildSpecsPayload(p.root, 'x').project.cursorLegacy).toBeNull();
+    write(p.root, OLD, '---\ndescription: my rule\n---\n\nUse tabs.\n');
+    const { project } = buildSpecsPayload(p.root, 'x');
+    expect(project.cursorLegacy).toBeNull();
+    expect(project.cursor).toBe(false);
+    expect(project.uses).toEqual([]);
+  });
+
+  it('counts the old file alone as Cursor\'s signal without an ides list, and not with one', () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    const { project } = buildSpecsPayload(p.root, 'x');
+    expect(project.cursorLegacy).toEqual({ state: 'old', sha256: sha(), onlyOld: [], onlyOldCount: 0 });
+    expect(project.cursor).toBe(true);
+    expect(project.uses).toEqual(['cursor']);
+    write(p.root, '.specs/project/project.yaml', 'name: "F"\nides: [claude-code]\n');
+    const listed = buildSpecsPayload(p.root, 'x').project;
+    expect(listed.cursor).toBe(false);
+    expect(listed.uses).toEqual(['claude-code']);
+    expect(listed.cursorLegacy!.state).toBe('old');
+  });
+
+  it('gives duplicate, edited with the lines only in the old file, and kept', () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\nRule two.\n');
+    write(p.root, NEW, OLD_FRONT + '  Rule one.\nRule two.\nNew rule.\n');
+    expect(buildSpecsPayload(p.root, 'x').project.cursorLegacy!.state).toBe('duplicate');
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\nMine.\nMine.\nAlso mine.\n');
+    expect(buildSpecsPayload(p.root, 'x').project.cursorLegacy).toMatchObject({ state: 'edited', onlyOld: ['Mine.', 'Also mine.'], onlyOldCount: 2 });
+    mkdirSync(join(process.env.HOME!, '.specpilot'), { recursive: true });
+    writeFileSync(keepFile(), JSON.stringify({ version: 1, keepBoth: [realpathSync(p.root)] }));
+    expect(buildSpecsPayload(p.root, 'x').project.cursorLegacy).toMatchObject({ state: 'kept', onlyOld: ['Mine.', 'Also mine.'] });
+  });
+
+  (process.platform === 'win32' || (typeof process.getuid === 'function' && process.getuid() === 0) ? it.skip : it)('serves the payload with cursorLegacy null when project.mdc cannot be read', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    chmodSync(at(OLD), 0o000);
+    try {
+      const res = await hit(port, '/api/specs');
+      expect(res.status).toBe(200);
+      expect(JSON.parse(res.body).project.cursorLegacy).toBeNull();
+    } finally {
+      chmodSync(at(OLD), 0o644);
+    }
+  });
+
+  it('renames the old file and answers with the payload; /api/file never serves the old file', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    expect((await hit(port, `/api/file?p=${encodeURIComponent(OLD)}`)).status).toBe(404);
+    const bytes = readFileSync(at(OLD));
+    const res = await fix('rename');
+    expect(res.status).toBe(200);
+    expect(res.json.message).toBe(`Renamed ${OLD} to ${NEW}.`);
+    expect(res.json.specs.project.cursorLegacy).toBeNull();
+    expect(existsSync(at(OLD))).toBe(false);
+    expect(readFileSync(at(NEW))).toEqual(bytes);
+  });
+
+  it('refuses a stale hash, a changed state and the user\'s file with 409 and the payload, writing nothing', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    const stale = await fix('rename', 'a'.repeat(64));
+    expect(stale.status).toBe(409);
+    expect(stale.json.error).toBe('The file changed since the page read it.');
+    expect(stale.json.specs.project.cursorLegacy.state).toBe('old');
+    expect(existsSync(at(NEW))).toBe(false);
+    expect((await fix('remove')).status).toBe(409); // only one file: nothing to remove
+    expect((await fix('keep')).status).toBe(409);
+    write(p.root, OLD, '---\ndescription: mine\n---\n');
+    const mine = await fix('rename');
+    expect(mine.status).toBe(409);
+    expect(mine.json.error).toContain('is not SpecPilot\'s');
+    expect(existsSync(at(OLD))).toBe(true);
+  });
+
+  it('removes the old file with both files, and keeps both on this machine in a 0600 file', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\nMine.\n');
+    write(p.root, NEW, OLD_FRONT + 'Rule one.\n');
+    expect((await fix('rename')).status).toBe(409);
+    const kept = await fix('keep');
+    expect(kept.status).toBe(200);
+    expect(kept.json.specs.project.cursorLegacy.state).toBe('kept');
+    expect(JSON.parse(readFileSync(keepFile(), 'utf-8'))).toEqual({ version: 1, keepBoth: [realpathSync(p.root)] });
+    if (process.platform !== 'win32') {
+      expect(statSync(keepFile()).mode & 0o777).toBe(0o600);
+    }
+    expect((await fix('keep')).status).toBe(200); // already kept: no second entry
+    expect(JSON.parse(readFileSync(keepFile(), 'utf-8')).keepBoth).toHaveLength(1);
+    const removed = await fix('remove');
+    expect(removed.status).toBe(200);
+    expect(removed.json.message).toBe(`Removed ${OLD}.`);
+    expect(existsSync(at(OLD))).toBe(false);
+    expect(existsSync(at(NEW))).toBe(true);
+  });
+
+  it('refuses a keep list it cannot read with 422 and leaves it as it is', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    write(p.root, NEW, OLD_FRONT + 'Rule one.\n');
+    mkdirSync(join(process.env.HOME!, '.specpilot'), { recursive: true });
+    writeFileSync(keepFile(), 'not json');
+    const res = await fix('keep');
+    expect(res.status).toBe(422);
+    expect(res.json.error).toContain('not valid JSON');
+    expect(readFileSync(keepFile(), 'utf-8')).toBe('not json');
+    expect(buildSpecsPayload(p.root, 'x').project.cursorLegacy!.state).toBe('duplicate');
+  });
+
+  it('refuses a bad body (422), a missing token (403), another type (415), and a link as the old file', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    for (const body of ['{}', '{"action":"rename"}', '{"action":"delete","sha256":"' + 'a'.repeat(64) + '"}', '{"action":"rename","sha256":"x"}', '[]']) {
+      expect((await post(port, body, good(), ROUTE)).status).toBe(422);
+    }
+    expect((await fix('rename', sha(), { ...good(), 'X-SpecPilot-Token': undefined })).status).toBe(403);
+    expect((await fix('rename', sha(), { ...good(), 'Content-Type': 'text/plain' })).status).toBe(415);
+    if (process.platform !== 'win32') {
+      write(p.root, 'elsewhere.mdc', OLD_FRONT + 'Rule one.\n');
+      rmSync(at(OLD));
+      symlinkSync(at('elsewhere.mdc'), at(OLD));
+      expect(buildSpecsPayload(p.root, 'x').project.cursorLegacy).toBeNull();
+      expect((await fix('rename', createHash('sha256').update(readFileSync(at('elsewhere.mdc'))).digest('hex'))).status).toBe(409);
+      expect(existsSync(at(NEW))).toBe(false);
+    }
+  });
+
+  it('answers 405 with --read-only', async () => {
+    write(p.root, OLD, OLD_FRONT + 'Rule one.\n');
+    const ro = await startSpecServer([p.root], 0, '0.0.0-test', { readOnly: true });
+    const roPort = (ro.server.address() as AddressInfo).port;
+    try {
+      const res = await post(roPort, JSON.stringify({ action: 'rename', sha256: sha() }), { Host: `127.0.0.1:${roPort}`, Origin: `http://127.0.0.1:${roPort}`, 'Content-Type': 'application/json' }, ROUTE);
+      expect(res.status).toBe(405);
+      expect(existsSync(at(OLD))).toBe(true);
+    } finally {
+      await ro.close();
+    }
   });
 });

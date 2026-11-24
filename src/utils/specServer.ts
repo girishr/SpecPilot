@@ -22,6 +22,7 @@ import { SpecValidator } from './specValidator';
 import { answerMcp, MCP_TOOLS, mcpClientName, mirroredHeaders, rpcError, ToolRefusal } from './mcpLocal';
 import { newestPrompts } from './specArchiver';
 import { nodeStatus, RELEASE } from './nodeCheck';
+import { cursorLegacy, keepBoth, removeOldCursorRules, renameCursorRules } from './cursorLegacy';
 
 // Local server behind `specpilot serve` (BL-051, ARCH-004.33, SEC-004.8). Every request re-reads disk;
 // nothing is cached. The server writes nothing itself: task moves go through taskMover.ts (BL-053),
@@ -199,8 +200,11 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     const real = resolveAllowedPath(root, path);
     return { path, exists: real !== null, bytes: real ? statSync(real).size : 0 };
   });
+  // SpecPilot's old Cursor rules file (BL-194, REQ-002.H.79): alone, it is Cursor's signal too
+  const legacy = cursorLegacy(root, homeDir());
+  const signal = (s: { ide: string; signalFile: string }) => instructions.some(f => f.path === s.signalFile && f.exists) || (s.ide === 'cursor' && legacy.state === 'old');
   // The IDEs the project uses: its list, else the IDEs whose instruction file is shown present (BL-161, REQ-002.H.69)
-  const uses = ides ?? IDE_SIGNALS.filter(s => instructions.some(f => f.path === s.signalFile && f.exists)).map(s => s.ide);
+  const uses = ides ?? IDE_SIGNALS.filter(signal).map(s => s.ide);
   const writesFor = (path: string) => uses.filter(ide => aiContextTarget(ide) === path || agentTargets(ide).includes(path));
   return {
     project: {
@@ -211,8 +215,9 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
       ides, // project.yaml's IDEs, or null without a list (BL-158, REQ-002.A.13)
       // with a list, whether it names Cursor; else the file SpecPilot writes for Cursor, exactly this path, so a link
       // to another allowlisted file is false (REQ-002.H.34, BL-153)
-      cursor: ides ? ides.includes('cursor') : resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null,
+      cursor: ides ? ides.includes('cursor') : resolveAllowedPath(root, CURSOR_RULES, [CURSOR_RULES]) !== null || legacy.state === 'old',
       uses,
+      cursorLegacy: legacy.state === 'none' ? null : { state: legacy.state, sha256: legacy.sha256, onlyOld: legacy.onlyOld, onlyOldCount: legacy.onlyOldCount },
     },
     specpilotVersion, // top level since BL-080: the page's footer reads it with or without a project
     files,
@@ -664,6 +669,27 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
         // The skill is its own step (BL-PM-012): the MCP tool calls only the command step.
         const report = regenerateReport(new SpecBackfiller().backfillSlashCommands(roots[i], false), new SlashCommandGenerator().refreshSkill(roots[i], '.specs', false));
         sendJson(res, 200, { ...report, specs: payload(i) });
+      });
+    });
+  };
+
+  /** SpecPilot's old Cursor rules file (BL-194, REQ-002.H.79, SEC-004.40): rename, remove or keep both, under the write lock. */
+  const handleCursorRules = (req: IncomingMessage, res: ServerResponse, url: URL) => {
+    if (!writeAllowed(req, res)) return;
+    const i = projectIndex(url, roots.length, closed);
+    if (i === null) return send(res, 404, TEXT, 'Not Found\n');
+    readJson(req, res, body => {
+      const b = body as Record<string, unknown> | null;
+      if (!b || typeof b !== 'object' || Array.isArray(b) || Object.keys(b).sort().join() !== 'action,sha256' || !['rename', 'remove', 'keep'].includes(b.action as string) || typeof b.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(b.sha256)) {
+        return sendJson(res, 422, { error: 'The request must be {action: "rename", "remove" or "keep", sha256: the old file\'s hash}.' });
+      }
+      const sha = b.sha256 as string;
+      underLock(res, () => {
+        if (closed.has(i)) return send(res, 404, TEXT, 'Not Found\n'); // closed while this write waited for the lock (BL-166)
+        const out = b.action === 'rename' ? renameCursorRules(roots[i], sha) : b.action === 'remove' ? removeOldCursorRules(roots[i], sha) : keepBoth(roots[i], homeDir(), sha);
+        if (out.ok) return sendJson(res, 200, { message: out.message, specs: payload(i) });
+        if (out.status === 409) return sendJson(res, 409, { error: out.error, specs: payload(i) });
+        sendJson(res, 422, { error: out.error });
       });
     });
   };
@@ -1244,6 +1270,11 @@ export function createSpecServer(initialRoots: string[], specpilotVersion: strin
       }
       if (url.pathname === '/api/tasks/archive') {
         if (req.method === 'POST' && token) return handleArchive(req, res, url);
+        res.setHeader('Allow', token ? 'POST' : '');
+        return send(res, 405, TEXT, 'Method Not Allowed\n');
+      }
+      if (url.pathname === '/api/ide/cursor-rules') {
+        if (req.method === 'POST' && token) return handleCursorRules(req, res, url);
         res.setHeader('Allow', token ? 'POST' : '');
         return send(res, 405, TEXT, 'Method Not Allowed\n');
       }

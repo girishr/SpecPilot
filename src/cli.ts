@@ -56,6 +56,8 @@ program
   .option('--from <structure>', 'Source structure (complex, project-spec)', 'complex')
   .option('--to <structure>', 'Target structure (simple)', 'simple')
   .option('--backup', 'Create backup before migration')
+  .option('--cursor-rules', "Only rename SpecPilot's old .cursor/rules/project.mdc (before v2.1.0) to specpilot.mdc")
+  .option('--remove-old', 'With --cursor-rules and both files present, remove the old project.mdc')
   .action(migrateCommand);
 
 // List templates command

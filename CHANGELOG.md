@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **SpecPilot's old Cursor rules file is found and fixed** (BL-194): projects set up before v2.1.0 have Cursor's rules in `.cursor/rules/project.mdc`, which SpecPilot no longer looked for, so `specpilot serve` showed Cursor's rules file as missing, and regenerating left both files with the rules loaded twice. Now `specpilot migrate --cursor-rules` renames it to `specpilot.mdc` (never over an existing one), `--remove-old` removes it when both exist, and `specpilot validate`, `specpilot backfill` and `serve`'s startup output warn. On the `serve` page's Instructions view the file gets an `old name` pill and a Rename button, or with both files Remove old file, Keep both (remembered on this machine in `~/.specpilot/cursor-rules.json`) and Compare. A `project.mdc` that is your own rule (without SpecPilot's front matter) is left alone.
+
 ## [2.21.0] - 2026-11-18
 
 ### Added

@@ -376,10 +376,10 @@ describe('SpecGenerator', () => {
     expect(out.some(l => l.startsWith('Kept as they were: .vscode/settings.json, .vscode/extensions.json, .github/copilot-instructions.md, '))).toBe(true);
   });
 
-  describe('refine --update follows project.yaml ides (BL-168, REQ-002.A.13)', () => {
+  describe('refine --update follows project.yaml ides and keeps project.yaml (BL-168, BL-198, REQ-002.A.13)', () => {
     const yamlFile = () => join(testDir, '.specs', 'project', 'project.yaml');
     const setIdes = (lines: string) => writeFileSync(yamlFile(), readFileSync(yamlFile(), 'utf-8').replace(/^ides: .*$/m, lines));
-    const idesLine = () => readFileSync(yamlFile(), 'utf-8').match(/^ides:.*$/m)?.[0];
+    const yaml = () => readFileSync(yamlFile(), 'utf-8');
     const refine = async () => {
       jest.spyOn(console, 'log').mockImplementation(() => {});
       await refineCommand('A new description', { dir: testDir, specsName: '.specs', prompts: false, update: true });
@@ -388,52 +388,87 @@ describe('SpecGenerator', () => {
       await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir, ide: 'cursor' });
       setIdes(ides);
     };
+    const refineKeepsYaml = async () => {
+      const before = yaml();
+      await refine();
+      expect(yaml()).toBe(before);
+    };
 
-    test('ides: [cursor] → Cursor files, no .vscode, the record kept', async () => {
+    test('ides: [cursor] → missing Cursor files created, no .vscode, project.yaml unchanged', async () => {
       await cursorProject('ides: [cursor]');
       rmSync(join(testDir, '.cursor'), { recursive: true, force: true });
-      await refine();
+      await refineKeepsYaml();
       expect(existsSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'))).toBe(true);
       expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(false);
-      expect(idesLine()).toBe('ides: [cursor]');
     });
 
-    test('ides: [cursor, claude-code] → files for the first only, the whole list kept', async () => {
+    test('ides: [cursor, claude-code] → files for the first only, project.yaml unchanged', async () => {
       await cursorProject('ides: [cursor, claude-code]');
-      await refine();
+      await refineKeepsYaml();
       expect(existsSync(join(testDir, '.cursor', 'rules', 'specpilot.mdc'))).toBe(true);
       expect(existsSync(join(testDir, 'CLAUDE.md'))).toBe(false);
       expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(false);
-      expect(idesLine()).toBe('ides: [cursor, claude-code]');
     });
 
-    test('a block list with a repeat → [cursor]; an unknown value is dropped', async () => {
+    test('a block list with a repeat, or an unknown value → Cursor files, the list left as written', async () => {
       await cursorProject('ides:\n  - Cursor\n  - cursor');
-      await refine();
+      await refineKeepsYaml();
       expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(false);
-      expect(idesLine()).toBe('ides: [cursor]');
-      setIdes('ides: [cursor, cursr]');
-      await refine();
-      expect(idesLine()).toBe('ides: [cursor]');
+      writeFileSync(yamlFile(), yaml().replace('ides:\n  - Cursor\n  - cursor', 'ides: [cursor, cursr]'));
+      await refineKeepsYaml();
+      expect(yaml()).toMatch(/^ides: \[cursor, cursr\]$/m);
     });
 
-    test('ides: [] → VS Code files, the empty list kept', async () => {
+    test('ides: [] → VS Code files, project.yaml unchanged', async () => {
       await cursorProject('ides: []');
-      await refine();
+      await refineKeepsYaml();
       expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(true);
-      expect(idesLine()).toBe('ides: []');
     });
 
-    test('no ides key, or only unknown values → VS Code files and ides: [vscode], as before', async () => {
+    test('no ides key, or only unknown values → VS Code files, project.yaml unchanged (no ides key added)', async () => {
       await cursorProject('');
-      await refine();
+      await refineKeepsYaml();
       expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(true);
-      expect(idesLine()).toBe('ides: [vscode]');
+      expect(yaml()).not.toMatch(/^ides:/m);
       rmSync(join(testDir, '.vscode'), { recursive: true, force: true });
       setIdes('ides: [cursr]');
-      await refine();
+      await refineKeepsYaml();
       expect(existsSync(join(testDir, '.vscode', 'settings.json'))).toBe(true);
-      expect(idesLine()).toBe('ides: [vscode]');
+    });
+  });
+
+  describe('refine --update keeps existing .specs/ files (BL-198, REQ-002.A.6)', () => {
+    const specs = (...p: string[]) => join(testDir, '.specs', ...p);
+
+    test('a Backlog row, a context.md edit and project.yaml kept; the new overview kept; a deleted spec file recreated; the success line', async () => {
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+      const tasks = readFileSync(specs('planning', 'tasks.md'), 'utf-8').replace('## Backlog\n', '## Backlog\n\n| BL-001 | bug | P1 | My row |\n');
+      writeFileSync(specs('planning', 'tasks.md'), tasks);
+      const context = readFileSync(specs('development', 'context.md'), 'utf-8') + '\nMy decision.\n';
+      writeFileSync(specs('development', 'context.md'), context);
+      const yaml = readFileSync(specs('project', 'project.yaml'), 'utf-8') + '# mine\n';
+      writeFileSync(specs('project', 'project.yaml'), yaml);
+      rmSync(specs('quality', 'tests.md'));
+      const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      await refineCommand('A brand new overview', { dir: testDir, specsName: '.specs', prompts: false, update: true });
+
+      expect(readFileSync(specs('planning', 'tasks.md'), 'utf-8')).toBe(tasks);
+      expect(readFileSync(specs('development', 'context.md'), 'utf-8')).toContain('My decision.');
+      expect(readFileSync(specs('project', 'project.yaml'), 'utf-8')).toBe(yaml);
+      expect(readFileSync(specs('project', 'requirements.md'), 'utf-8')).toContain('## Project Overview\nA brand new overview\n');
+      expect(existsSync(specs('quality', 'tests.md'))).toBe(true);
+      const out = log.mock.calls.map(c => stripVTControlCharacters(String(c[0])));
+      expect(out.some(l => l.includes('Missing spec and IDE files created; existing files kept'))).toBe(true);
+      expect(out.some(l => l.includes('Regenerated specifications'))).toBe(false);
+      expect(out.filter(l => l.startsWith('Kept as they were:')).some(l => l.includes('.specs/'))).toBe(false);
+    });
+
+    test('generateSpecs() without keepSpecs still replaces an existing .specs/ file (init and add-specs)', async () => {
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+      writeFileSync(specs('planning', 'tasks.md'), 'mine\n');
+      await specGenerator.generateSpecs({ ...baseOptions, targetDir: testDir });
+      expect(readFileSync(specs('planning', 'tasks.md'), 'utf-8')).not.toBe('mine\n');
     });
   });
 

@@ -221,7 +221,7 @@ The SpecPilot SDD CLI is a Node.js/TypeScript CLI tool that generates specificat
 3. The `.specs/` renderers run in `SPEC_FILES` order (`api.yaml` skipped for `none`); the onboarding prompt is kept aside
 4. The files outside `.specs/` are rendered for the IDE: the agent file or the settings pair, the AI context file, the eight command files, `.gitattributes`
 5. `render()` returns `{ files, onboardingPrompt }`; nothing has been written
-6. `generateSpecs()` creates the folders, writes the `.specs/` files, creates the others with `writeNew()` (kept when present), merges `.gitattributes`
+6. `generateSpecs()` creates the folders, writes the `.specs/` files (with `keepSpecs`, which only `refine --update` passes, an existing `.specs/` file is kept and a missing one created: `writeInside(..., { create: true })`, BL-198), creates the others with `writeNew()` (kept when present), merges `.gitattributes`
 7. It returns `{ onboardingPrompt, kept, appended }` exactly as before
 
 ## Assumptions [ARCH-007]

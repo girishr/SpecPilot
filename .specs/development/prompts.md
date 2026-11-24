@@ -1,6 +1,6 @@
 ---
 fileID: PROMPT-001
-lastUpdated: 2026-11-19 (BL-193)
+lastUpdated: 2026-11-25 (BL-198)
 version: 2.212
 contributors: [girishr]
 relatedFiles:
@@ -29,6 +29,9 @@ For full project context, read .specs/project/project.yaml.
 ```
 
 ## Latest Entries [PROMPT-002]
+- 2026-11-25: the developer: `commit` (BL-198 approved). Feature commit, completion commit (BL-198 to Completed), `--no-ff` merge into `main`, tests on `main`, branch deleted; other sessions' BL-196, BL-197, BL-199, BL-200 rows, their 2026-11-24 prompts.md line and `.claude/launch.json` left uncommitted. No push.
+- 2026-11-25: the developer: `approved` (BL-198 in Review). The row already ended `Approved 2026-11-25` (from the card); nothing committed, waiting for `commit`.
+- 2026-11-25: BL-198, in a session started from the task-agents session (`Do BL-198`): branch `fix/bl-198-refine-update-keeps` from `main` (`339ca4f`). Spec Report (Feature-sized bug) → spec-reviewer ESCALATE → architect DECIDE (keep `project.yaml` too, superseding BL-168 decisions (1) and (3); kept `.specs/` files not reported; new success line; BL-201 filed) → re-run FIX (api.yaml wording, applied). Built `keepSpecs` in `generateSpecs()`, passed by `refine --update`. Jest 2159. Uncommitted.
 - 2026-11-24: the developer: `Still approved, commit` (after the pre-commit check stopped on BL-194 back in Current Sprint with no marker, and other sessions' BL-196 to BL-200 rows and a 2026-11-24 prompts.md line in the tree). Approval restored; feature commit `ead82fa` and the completion commit carry only BL-194's lines; the other rows and line stay uncommitted. While writing the completion, a script truncated the working `tasks.md` (opened for writing before reading); it was rebuilt from the staged copy plus BL-196 to BL-200 recovered verbatim from the session that filed them (`e677876d`), checked against the diff read before, and `validate` passes.
 - 2026-11-20: BL-194 build (same session, no new prompt): spec-reviewer ESCALATE → architect DECIDE (keep list in its own file, `--read-only` line keeps the CLI hint, Remove on the page, link-then-unlink rename, backfill honours the keep list; BL-195 filed) → re-run FIX (REQ-002.H.5 wording, applied). Built `cursorLegacy.ts`, `migrate --cursor-rules`/`--remove-old`, the validate and backfill warnings, `POST /api/ide/cursor-rules`, `project.cursorLegacy`, the startup line, the Instructions rows; README, GUIDE, CHANGELOG. Jest 2157 (after the build review fix), browser 201 (new file three runs alone). Uncommitted on `fix/bl-194-cursor-legacy-rules`.
 - 2026-11-20: the developer: `do 194` (in the task-agents base session, then `Do it here`). Session renamed to `BL-194 legacy Cursor project.mdc migrate`. Branch `fix/bl-194-cursor-legacy-rules` from `main` (`b355f8b`). Spec Report written (Architectural): REQ-002.A.18, REQ-002.H.79, ARCH-004.81, SEC-004.40, threat model, `api.yaml`, planned tests, the context entry; no code yet.

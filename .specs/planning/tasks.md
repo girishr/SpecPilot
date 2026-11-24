@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-24 (BL-194 to Completed)
+lastUpdated: 2026-11-25 (BL-198 approved)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -66,6 +66,7 @@ Notes
 | BL-149 | bug | P3 | Bug, P3. `CodeAnalyzer.findTestFiles()` stores a test file found in a subfolder relative to that subfolder (`fullPath.replace(dir + '/', '')` with `dir` the current folder, as `findTodos()` does for TODO file names), so `analyzeTests()` reads `join(root, name)`, misses it and counts none of its tests; `add-specs` reports 0 tests for a project whose tests are all under `src/` or `tests/`. Store paths relative to the walk's root. Found on the BL-136 build (2026-10-30). |
 | BL-188 | bug | P3 | `readBranch()` (`src/utils/specServer.ts`) follows a `.git` file's `gitdir:` to any path; apply BL-171's worktree check to it (follow only when the realpath ends in `/.git/worktrees/<name>`, else no branch). It sends only a pattern-checked ref today, so the risk is low. Filed by the architect, BL-171, 2026-11-17. |
 | BL-195 | feat | P3 | Undo Keep both for SpecPilot's old Cursor rules file (BL-194): a page action, or a `specpilot migrate --cursor-rules` option, that removes the project's path from `~/.specpilot/cursor-rules.json`; until then the only way is editing that file by hand. Filed by the BL-194 architect decision 2026-11-20. |
+| BL-201 | feat | P3 | `specpilot refine` updates the `description:` line in `.specs/project/project.yaml` along with requirements.md, as one more pending change: shown in the diff preview, written through `writeInside`, quoted by the template's YAML rule (BL-085). Today only requirements.md gets the new description, so the `serve` Overview hero (`P.description`) keeps the old one. Filed by the BL-198 architect decision 2026-11-25. |
 
 ## Current Sprint
 
@@ -76,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-198 | bug | P1 | `specpilot refine --update` empties planning/tasks.md: it rewrites every .specs/ file from the templates (`SpecGenerator.generateSpecs` replaces files inside .specs/). Reproduced on v2.21.0 with a Backlog row, which was gone afterwards. Limit --update to the overview, or keep existing files. Documented as a warning on docs.specpilot.dev/reference/cli/refine (SpecPilot-Docs BL-063); update that page when fixed Approved 2026-11-25 |
 
 ## Won't do
 

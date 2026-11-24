@@ -8,6 +8,8 @@ import { folderError, writeError, writeInside } from './specPaths';
 export interface SpecGeneratorOptions extends RenderOptions {
   targetDir: string;
   specsName: string;
+  /** Keep an existing `.specs/` file and create only the missing ones (`refine --update`, BL-198). */
+  keepSpecs?: boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ export class SpecGenerator {
 
   /**
    * Writes `.specs/` and the IDE files. Inside `.specs/` a file is written as it is rendered (replaced
-   * when present, which `refine --update` relies on). Outside `.specs/` a file that already exists is
+   * when present; with `keepSpecs` kept, BL-198). Outside `.specs/` a file that already exists is
    * never changed (BL-073): `kept` lists those paths in generator order; `appended` counts lines added
    * to `.gitattributes`, which is the one file merged rather than created (REQ-002.B.8).
    */
@@ -42,7 +44,7 @@ export class SpecGenerator {
         continue;
       }
       if (inSpecs(file.path)) {
-        writeInside(options.targetDir, file.path, file.content);
+        writeInside(options.targetDir, file.path, file.content, { create: options.keepSpecs });
         continue;
       }
       mkdirSync(dirname(target), { recursive: true });

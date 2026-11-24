@@ -78,7 +78,7 @@ program
   .option('-d, --dir <directory>', 'Project directory', '.')
   .option('--specs-name <name>', 'Name for specs folder', '.specs')
   .option('--no-prompts', 'Skip interactive prompts')
-  .option('-u, --update', 'Regenerate specs with new description')
+  .option('-u, --update', 'Replace the overview and create missing spec and IDE files')
   .action(refineCommand);
 
 // Archive command

@@ -189,12 +189,12 @@ commands:
         description: Skip confirmation prompt (write directly)
       --update:
         type: boolean
-        description: Regenerate specs with new description
+        description: Replace the overview and create missing spec and IDE files
     behavior:
       - Collects pending changes to requirements.md, context.md, prompts.md
       - Shows line-level diff preview before writing
       - Prompts for confirmation unless --no-prompts is set
-      - "--update regenerates .specs/; files outside .specs/ that already exist are kept and listed, as for add-specs (BL-073)"
+      - "--update replaces the overview, keeps existing .specs/ files (project.yaml and tasks.md included) and creates the missing ones, without reporting kept .specs/ files; files outside .specs/ that already exist are kept and listed (BL-073, BL-198)"
     exit-codes:
       0: Success (or no changes needed)
       1: Error

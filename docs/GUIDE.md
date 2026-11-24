@@ -289,7 +289,7 @@ specpilot refine "new feature" --no-prompts
 
 **Options:**
 
-- `--update, -u`: Regenerate specifications with new context
+- `--update, -u`: Replace the overview and create missing spec and IDE files; existing files, `tasks.md` and `project.yaml` included, are kept
 - `--dir, -d <directory>`: Project directory · default: `.`
 - `--specs-name <name>`: Custom name for the specs folder · default: `.specs`
 - `--no-prompts`: Skip diff preview — write files without confirmation

@@ -140,12 +140,12 @@ export async function refineCommand(description: string | undefined, options: Re
       logger.success(`✅ Updated ${change.label}`);
     }
 
-    // If update flag is set, regenerate specs with new context
+    // --update: create the missing files, keep every existing one (BL-198)
     if (options.update) {
-      logger.info('🔄 Regenerating specifications with updated context...');
+      logger.info('🔄 Creating missing spec and IDE files...');
 
       const specGenerator = new SpecGenerator();
-      // The recorded IDEs (REQ-002.A.13): files for the first, the list written back; none recorded → vscode.
+      // The recorded IDEs (REQ-002.A.13): files for the first; none recorded → vscode. project.yaml is kept (BL-198).
       const ides = projectIdes(options.dir, options.specsName) ?? undefined;
 
       const result = await specGenerator.generateSpecs({
@@ -157,9 +157,10 @@ export async function refineCommand(description: string | undefined, options: Re
         description: projectDescription,
         ide: ides?.[0],
         ides,
+        keepSpecs: true,
       });
 
-      logger.success('✅ Regenerated specifications with new description');
+      logger.success('✅ Missing spec and IDE files created; existing files kept');
       keepReport(result).forEach(line => logger.info(line));
     }
 

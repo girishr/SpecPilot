@@ -49,7 +49,7 @@ export type RegistryRead = { entries: RegistryEntry[]; exists: boolean; error: n
 const code = (err: unknown) => (err as NodeJS.ErrnoException).code;
 
 /** The folder the registry lives in must not exist, or be a real folder (never a link). Null when fine. */
-function folderProblem(dir: string): string | null {
+export function folderProblem(dir: string): string | null {
   try {
     const st = lstatSync(dir);
     if (st.isSymbolicLink()) return `${dir} is a symbolic link`;
@@ -123,6 +123,15 @@ export function readRegistry(file: string): RegistryRead {
 export function writeRegistry(file: string, entries: RegistryEntry[]): void {
   const current = readRegistry(file);
   if (current.error !== null) throw new Error(current.error);
+  writeHomeFile(file, JSON.stringify({ version: VERSION, projects: entries }, null, 2) + '\n');
+}
+
+/**
+ * Write `text` to `file` in `~/.specpilot` (the registry, and since BL-194 `cursor-rules.json`): the folder is
+ * created with mode 0700 when missing, the content goes to a temp file (mode 0600) in that folder, `fsync`, then
+ * `rename`. The caller has already refused a folder or file its reader would refuse.
+ */
+export function writeHomeFile(file: string, text: string): void {
   const dir = dirname(file);
   try {
     mkdirSync(dir, { mode: 0o700 });
@@ -132,7 +141,7 @@ export function writeRegistry(file: string, entries: RegistryEntry[]): void {
   const tmp = `${file}.${randomBytes(6).toString('hex')}.tmp`;
   const fd = openSync(tmp, 'wx', 0o600);
   try {
-    writeSync(fd, JSON.stringify({ version: VERSION, projects: entries }, null, 2) + '\n');
+    writeSync(fd, text);
     fsyncSync(fd);
     closeSync(fd);
     renameSync(tmp, file);

@@ -3,6 +3,8 @@ import { basename, dirname, join, relative, sep } from 'path';
 import * as yaml from 'js-yaml';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT, planCompletedArchive, planPromptsArchive } from './specArchiver';
 import { resolveAllowedPath, writeError, writeInside } from './specPaths';
+import { cursorLegacy, cursorLegacyWarning } from './cursorLegacy';
+import { homeDir } from './projectRegistry';
 import { loadRepoYaml, readSpecs, REQUIRED_TASK_HEADINGS, SHAPED_HEADINGS, TASK_COLUMNS, TASK_PRIORITIES, TASK_TYPES, TaskHeadings, taskHeadings, YAML_TOO_LARGE } from './specReader';
 
 /**
@@ -291,6 +293,10 @@ export class SpecValidator {
 
     // Validate api.yaml content (BL-177)
     this.validateApiYaml(specsDir, result);
+
+    // SpecPilot's old Cursor rules file (BL-194, REQ-002.A.18): a warning, never fixed by --fix
+    const cursor = cursorLegacyWarning(cursorLegacy(dirname(specsDir), homeDir()).state);
+    if (cursor) result.warnings.push(cursor);
 
     // Validate mandate compliance
     await this.validateMandates(specsDir, result);

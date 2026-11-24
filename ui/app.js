@@ -756,13 +756,56 @@ function absentTrail(f,uses){
   return f.ides.length?{pill:'<span class="pill orange">missing</span>',det:`SpecPilot writes it for ${esc(names(f.ides))}.`}
     :{pill:'<span class="pill gray">not needed</span>',det:`This project uses ${esc(names(uses))}.`};
 }
+/* SpecPilot's old Cursor rules file (BL-194, REQ-002.H.79): the server sends its state; the page names it and offers the fix. */
+const OLD_MDC='.cursor/rules/project.mdc',NEW_MDC='.cursor/rules/specpilot.mdc';
+let cursorNote='',cursorBusy='',cursorOpen=false; // the last refusal, the action in flight, Compare shown
+function oldMdcActs(L,both){
+  const ed=`<a class="btn sm" href="${esc(editorUrl(DATA.project.root+'/'+OLD_MDC,0,DATA.project.cursor?'cursor':undefined))}">Open in editor</a>`;
+  const b=(act,label,busy)=>TOKEN?`<button type="button" class="btn sm" data-mdc="${act}"${cursorBusy?' disabled':''}>${cursorBusy===act?busy:label}</button>`:'';
+  const cmp=L.onlyOld.length?`<button type="button" class="btn sm" data-mdc-cmp aria-expanded="${cursorOpen}">Compare</button>`:'';
+  return `<div class="acts">${both?b('remove','Remove old file','Removing…')+(L.state==='kept'?'':b('keep','Keep both','Keeping…'))+cmp:b('rename','Rename','Renaming…')}${ed}</div>`
+    +(both&&cursorOpen&&L.onlyOld.length?`<div class="cmp"><div class="det">Only in project.mdc (${L.onlyOldCount} lines):</div><pre class="raw" translate="no">${esc(L.onlyOld.join('\n'))}</pre></div>`:'')
+    +(cursorNote?`<p class="note" role="alert">${esc(cursorNote)}</p>`:'');
+}
+function oldMdcRow(L){
+  const kept=L.state==='kept';
+  const pill=kept?'<span class="pill gray">kept both</span>':`<span class="pill orange">${L.onlyOld.length?'edited copy':'duplicate'}</span>`;
+  const det=kept?'Kept on this machine: SpecPilot does not warn about it here.':"SpecPilot's old rules file. Cursor loads both files, so its rules are there twice.";
+  return `<div class="row mdc"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${OLD_MDC}</span></div><div class="det">${det}</div>${oldMdcActs(L,true)}</div><div class="trail">${pill}</div></div>`;
+}
 function renderIde(){
-  const I=DATA.nav.instructions,uses=DATA.project&&DATA.project.uses||[];
-  $('#insBox').innerHTML=I.map(f=>f.exists
+  const I=DATA.nav.instructions,uses=DATA.project&&DATA.project.uses||[],L=DATA.project&&DATA.project.cursorLegacy;
+  $('#insBox').innerHTML=I.map(f=>(f.exists
     ?`<button type="button" class="row act" data-open="${esc(f.path)}"><span class="st green" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div><div class="det">${f.bytes} bytes</div></div><div class="trail">${chev}</div></button>`
-    :(a=>`<div class="row"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div>${a.det?`<div class="det">${a.det}</div>`:''}</div><div class="trail">${a.pill}</div></div>`)(absentTrail(f,uses))).join('');
+    :f.path===NEW_MDC&&L&&L.state==='old'
+    ?`<div class="row mdc"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div><div class="det">Found as ${OLD_MDC}, its name before v2.1.0. Cursor still loads it; SpecPilot looks for specpilot.mdc.</div>${oldMdcActs(L,false)}</div><div class="trail"><span class="pill orange">old name</span></div></div>`
+    :(a=>`<div class="row"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span></div>${a.det?`<div class="det">${a.det}</div>`:''}</div><div class="trail">${a.pill}</div></div>`)(absentTrail(f,uses)))
+    +(f.path===NEW_MDC&&L&&L.state!=='old'?oldMdcRow(L):'')).join('');
   $('#insMeta').textContent=I.filter(f=>f.exists).length+' of '+I.length;
 }
+async function cursorFix(action){
+  const L=DATA.project.cursorLegacy,p=PROJECT;if(!L||cursorBusy)return;
+  if(action==='remove'){
+    const n=L.onlyOldCount,shown=L.onlyOld.slice(0,10);
+    if(!confirm(`Remove ${OLD_MDC}? This can't be undone unless the file is committed to git.`+(n?`\n\nThese ${n} lines are only in it and would be lost:\n${shown.join('\n')}${n>shown.length?`\nand ${n-shown.length} more`:''}`:'')))return;
+  }
+  cursorBusy=action;cursorNote='';renderIde();
+  let r,body={};
+  try{
+    r=await fetch('/api/ide/cursor-rules?'+pq(),{method:'POST',cache:'no-store',headers:{'Content-Type':'application/json','X-SpecPilot-Token':TOKEN},body:JSON.stringify({action,sha256:L.sha256})});
+    body=await r.json().catch(()=>({}));
+  }catch(e){r=null;}
+  cursorBusy='';
+  if(p!==PROJECT)return;
+  if(r&&r.status===200){cursorOpen=false;await apply(body.specs,null);if(action==='rename')toast('Renamed to '+NEW_MDC+'.');return;}
+  cursorNote=!r?'The server did not answer. Reload the page to see the file as it is now.':body.error||`It did not run (HTTP ${r.status}).`;
+  if(r&&body.specs)await apply(body.specs,null);else renderIde();
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-mdc],[data-mdc-cmp]');if(!b)return;
+  if(b.hasAttribute('data-mdc-cmp')){cursorOpen=!cursorOpen;renderIde();const c=$('[data-mdc-cmp]');if(c)c.focus();return;}
+  cursorFix(b.dataset.mdc);
+});
 function fileRows(list){
   return list.length?list.map(f=>{const fm=f.frontMatter||{};
     return `<button type="button" class="row act" data-open="${esc(f.path)}"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl"><span class="id" translate="no">${esc(f.path)}</span>${fm['argument-hint']!==undefined?`<span class="id" translate="no">${esc(fm['argument-hint'])}</span>`:''}</div>${fm.description!==undefined?`<div class="det">${esc(fm.description)}</div>`:''}</div><div class="trail">${fm['allowed-tools']!==undefined?`<span class="pill gray" translate="no">${esc(fm['allowed-tools'])}</span>`:''}${chev}</div></button>`;}).join('')
@@ -1363,7 +1406,7 @@ async function switchProject(n,keepRoute){
 function showProject(d,keepRoute){
   busyVeil.classList.remove('open');busyGo=null;busyFrom=null; // BL-127: a dialog never outlives its project
   Object.keys(fileCache).forEach(k=>{delete fileCache[k];});secShown.clear();
-  DATA=d;selected=null;setRegenNote([]);
+  DATA=d;selected=null;setRegenNote([]);cursorNote="";cursorOpen=false; // BL-194: a refusal or Compare belongs to its project
   renderAll();listen();
   if(keepRoute)route();else go('overview');
 }

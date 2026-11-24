@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-19 (BL-193 to Current Sprint)
+lastUpdated: 2026-11-24 (BL-194 approved)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -65,6 +65,7 @@ Notes
 | BL-148 | bug | P2 | Bug, P2, Windows only. `cloneRepository()` (`src/utils/gitClone.ts`) spawns the bare name `git` with `cwd: dirname(target)`, so a clone into a folder inside an earlier hostile clone may run that clone's `git.exe`: give it `cwd: parse(homedir()).root` as `probeGit` has (the target is absolute). Attribution: found on the BL-132 Spec Report (spec-reviewer, 2026-10-30), SEC-002.12 (d), audit item 3. |
 | BL-149 | bug | P3 | Bug, P3. `CodeAnalyzer.findTestFiles()` stores a test file found in a subfolder relative to that subfolder (`fullPath.replace(dir + '/', '')` with `dir` the current folder, as `findTodos()` does for TODO file names), so `analyzeTests()` reads `join(root, name)`, misses it and counts none of its tests; `add-specs` reports 0 tests for a project whose tests are all under `src/` or `tests/`. Store paths relative to the walk's root. Found on the BL-136 build (2026-10-30). |
 | BL-188 | bug | P3 | `readBranch()` (`src/utils/specServer.ts`) follows a `.git` file's `gitdir:` to any path; apply BL-171's worktree check to it (follow only when the realpath ends in `/.git/worktrees/<name>`, else no branch). It sends only a pattern-checked ref today, so the risk is low. Filed by the architect, BL-171, 2026-11-17. |
+| BL-195 | feat | P3 | Undo Keep both for SpecPilot's old Cursor rules file (BL-194): a page action, or a `specpilot migrate --cursor-rules` option, that removes the project's path from `~/.specpilot/cursor-rules.json`; until then the only way is editing that file by hand. Filed by the BL-194 architect decision 2026-11-20. |
 
 ## Current Sprint
 
@@ -75,6 +76,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-194 | bug | P1 | Projects with a legacy `.cursor/rules/project.mdc` (written before v2.1.0; CS-077 renamed it to `specpilot.mdc`) get no warning on upgrade: only `specpilot backfill` (`backfillIdeFiles()` in `specBackfiller.ts`) notices it, and it only says to rename it by hand. `specpilot serve` checks only `specpilot.mdc` (`CURSOR_RULES` and `buildSpecsPayload()` in `specServer.ts`, `ALLOWED_FILES` in `specPaths.ts`, `IDE_OF` in `ui/app.js`), so the page draws Cursor's rules file as missing, and without an `ides` list Cursor drops out of `uses` and the Open in Cursor button. Cursor itself still loads the old file; regenerating leaves both, so rules are duplicated. SpecPilot's old file is the one whose front matter has `description: Project mandates and AI coding rules` (v2.0.1 `generateCursorRules()`); a file without it is the user's own rule, left alone and never warned about. **One file (old only):** CLI `specpilot migrate --cursor-rules` renames it when it is SpecPilot's (refuses with a reason otherwise); `validate` warns; the page shows an "old name" pill with Rename (same migrate code) and Open in editor, the legacy file counted as the Cursor signal. **Both files:** never rename (it would overwrite); a true duplicate (every body line already in `specpilot.mdc`) offers Remove old file and Keep both; an edited one also offers Compare (the lines only in the old file), and the Remove confirm names the lines that would be lost; Remove always confirms that it cannot be undone unless the file is committed; the CLI removes only with `--remove-old`. **Keep both** is stored per machine in `~/.specpilot` (per project path), never in the repo, and the page, `serve` and `validate` all honour it. **`serve` startup:** one line under the project's `Specs:` line, only for a SpecPilot old file not dismissed: `Cursor: .cursor/rules/project.mdc is SpecPilot's old rules file (before v2.1.0). Fix it on the page, or run specpilot migrate --cursor-rules.` (`--read-only`: no migrate part); not repeated for projects opened later from the page. Browser test on fixture rows for each state (old name, renaming, refused, renamed, yours, duplicate, edited duplicate, kept), 420px in each. Command and endpoint names are placeholders for the Spec Report. Reported by the developer 2026-11-19 (as 2.20.0 → 2.21.0; the rename shipped in v2.1.0); checked by reading the code at v2.0.1, v2.20.0, v2.21.0 and `main`. Approved 2026-11-20 |
 
 ## Won't do
 

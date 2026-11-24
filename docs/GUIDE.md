@@ -251,6 +251,14 @@ specpilot migrate --from complex --to simple --backup
 - `--from <structure>`: Source structure type · default: `complex`
 - `--to <structure>`: Target structure type · default: `simple`
 - `--backup`: Create a backup before migrating
+- `--cursor-rules`: Only rename SpecPilot's old Cursor rules file, `.cursor/rules/project.mdc` (before v2.1.0), to `.cursor/rules/specpilot.mdc`. It never renames over an existing `specpilot.mdc`, and a `project.mdc` whose front matter has no `description: Project mandates and AI coding rules` line is your own rule and is left alone (exit 1). `--from`, `--to` and `--backup` are not used.
+- `--remove-old`: With `--cursor-rules`, when both files exist, remove the old `project.mdc` (printing any lines only in it first). No prompt.
+
+```bash
+# Cursor rules from before v2.1.0
+specpilot migrate --cursor-rules
+specpilot migrate --cursor-rules --remove-old   # both files exist
+```
 
 **When to use migrate:**
 
@@ -582,7 +590,7 @@ Each IDE/Agent selection generates one AI context file:
 |-------------|---------------------------------------|
 | GitHub Copilot | `.github/copilot-instructions.md`  |
 | Codex       | `.github/copilot-instructions.md`     |
-| Cursor      | `.cursor/rules/specpilot.mdc`         |
+| Cursor      | `.cursor/rules/specpilot.mdc` (before v2.1.0 `.cursor/rules/project.mdc`; `specpilot migrate --cursor-rules` renames it) |
 | Windsurf (Devin Desktop) | `.windsurfrules`         |
 | Antigravity | `.antigravity/rules.md`               |
 | Claude Code      | `CLAUDE.md`                           |

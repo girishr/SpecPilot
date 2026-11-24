@@ -615,3 +615,10 @@ body.resizing{user-select:none;cursor:col-resize}
 .ovfile .m{font:11.5px var(--mono);color:var(--label-3);overflow-wrap:anywhere}
 .ovlane:hover,.ovmix:hover,.ovrow:is(button):hover,.ovtile:hover,.ovfile:hover,.ovlink:hover{background:var(--hover)}
 @media (max-width:860px){.ovlanes{grid-template-columns:repeat(2,minmax(0,1fr))}.ovtiles,.ovfiles{grid-template-columns:minmax(0,1fr)}.ovrow{grid-template-columns:auto minmax(0,1fr)}.ovrow .ovchips,.ovrow .when{grid-column:2}.ovhero{padding:16px}}
+/* BL-194: SpecPilot's old Cursor rules file: the row's buttons, Compare's lines, a refusal */
+.row.mdc{align-items:flex-start}
+.row.mdc .acts{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 0}
+.row.mdc .cmp{padding:8px 0 0;min-width:0}
+.row.mdc .cmp pre{margin:4px 0 0;max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.row.mdc .note{margin:8px 0 0}
+.row.mdc .body{min-width:0}

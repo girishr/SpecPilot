@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-25 (BL-198 approved)
+lastUpdated: 2026-11-25 (BL-198 to Completed)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -77,7 +77,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-198 | bug | P1 | `specpilot refine --update` empties planning/tasks.md: it rewrites every .specs/ file from the templates (`SpecGenerator.generateSpecs` replaces files inside .specs/). Reproduced on v2.21.0 with a Backlog row, which was gone afterwards. Limit --update to the overview, or keep existing files. Documented as a warning on docs.specpilot.dev/reference/cli/refine (SpecPilot-Docs BL-063); update that page when fixed Approved 2026-11-25 |
 
 ## Won't do
 
@@ -125,3 +124,4 @@ Notes
 | 301 | [CD-girishr-210] | v2.21.0 shipped (BL-123, BL-128, BL-152, BL-154 to BL-161, BL-164 to BL-166, BL-168, BL-170, BL-171, BL-175 to BL-177, BL-186, BL-187, BL-189 to BL-192, BL-CL-02, BL-TB-02, BL-TB-08, BL-UI-02): pushed (`bf448c6..97271ec` and the tag), npm `specpilot@2.21.0` latest, GitHub release live (2026-11-18); tested on Node.js 26.13.1 before publish (BL-170) |
 | 302 | [CD-girishr-211] [BL-193] | Docs brought up to v2.21.0: `tests.md`'s coverage summary (Jest 29 suites and 2120 tests, browser 20 and 192) and suite table (per-file counts from `jest --json`, 11 suites added); `docs/GUIDE.md`'s `serve` intro (Overview, every `tasks.md` write the page makes, the Node.js banner); README's Back and Forward (BL-192); the security files' `_Last updated_` footers. Docs only; validate clean, Jest 2120/2120. Approved 2026-11-19. Feature commit 5bdda5b. |
 | 303 | [CD-girishr-212] [BL-194] | SpecPilot's old Cursor rules file (`.cursor/rules/project.mdc`, before v2.1.0) found and fixed: `specpilot migrate --cursor-rules` (link-then-unlink rename, never over `specpilot.mdc`) and `--remove-old`; warnings in `validate`, `backfill` and `serve`'s startup output; `project.cursorLegacy` and `POST /api/ide/cursor-rules` (rename, remove, keep; sha256-pinned); the Instructions view's `old name`, `duplicate`, `edited copy` and `kept both` rows; Keep both per machine in `~/.specpilot/cursor-rules.json`. REQ-002.A.18, REQ-002.H.79, ARCH-004.81, SEC-004.40; BL-195 filed. Jest 2157, browser 201. Commit ead82fa. |
+| 304 | [CD-girishr-213] [BL-198] | `specpilot refine --update` no longer empties `tasks.md`: `generateSpecs()` gains `keepSpecs` (`writeInside`'s `create`), passed only by `refine --update`, so existing `.specs/` files, `project.yaml` included, are kept and missing ones created; the `ides` line is no longer rewritten (BL-168 decisions (1) and (3) superseded by the BL-198 architect decision); new `--update` help and success line. REQ-002.A.6, REQ-002.A.13, REQ-002.E.15; BL-201 filed. Jest 2159. Commit 5161848. |

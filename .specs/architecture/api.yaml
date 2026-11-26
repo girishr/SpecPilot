@@ -220,6 +220,35 @@ commands:
       0: Success
       1: Archive error
 
+  compact:
+    description: List context.md entries for an agent to judge, or move the entries an agent's plan names to context-archive.md (BL-202, REQ-002.A.19)
+    usage: specpilot compact [options]
+    options:
+      --dir:
+        type: string
+        alias: -d
+        default: "."
+        description: Project directory
+      --apply:
+        type: boolean
+        description: Move the archive rows of .specs/development/compact-plan.md to context-archive.md, leaving a marker line for each
+      --dry-run:
+        type: boolean
+        description: With --apply, print what would move without writing any files
+      --force:
+        type: boolean
+        description: With --apply, skip the branch warning
+    behavior:
+      - Without --apply, read-only; prints each entry's lead, line count, size in KB and status (no-lead, no-id, open, unknown, finished, completed; first match wins)
+      - "With --apply and no plan file: prints 'No plan: .specs/development/compact-plan.md not found. Run /specpilot-compact first.', exit 1"
+      - With --apply, refuses the whole run, nothing written, exit 1, when a lead matches no entry or several, a lead is listed in two rows, an action is not keep or archive, an archive row has no reason, an archive row names an open task ID, an archive row names an entry that is already a marker, or the plan is not the three-column table (GFM cells, \\| a literal pipe)
+      - "A plan with no archive rows: prints 'Nothing to move: the plan has no archive rows', exit 0, writes nothing, keeps the plan"
+      - "Block heading ## Archived on YYYY-MM-DD HH:MM:SS (UTC); marker - **<lead>**: moved to context-archive.md on YYYY-MM-DD; a new context-archive.md has no header"
+      - Writes context-archive.md, then context.md, then removes compact-plan.md, after a round-trip check that the markers expand back to the original
+    exit-codes:
+      0: Success
+      1: Refused or error
+
   backfill:
     description: Backfill missing SpecPilot mandates into existing projects
     usage: specpilot backfill [options]

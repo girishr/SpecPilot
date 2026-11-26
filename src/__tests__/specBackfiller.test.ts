@@ -1,7 +1,7 @@
-import { projectIdes, SpecBackfiller, withTasksLine } from '../utils/specBackfiller';
+import { projectIdes, SpecBackfiller, withArchiveRow, withTasksLine } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
-import { buildCopilotInstructions } from '../core/ideConfig';
+import { ARCHIVE_ROW, buildClaudeMd, buildContextRoutingTable, buildCopilotInstructions } from '../core/ideConfig';
 import { join } from 'path';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
@@ -563,7 +563,7 @@ rules:
       scaffoldSpecs(testDir, { projectYaml: BARE_YAML, tasksMd: makeFullTasksMd('girishr'), copilotMd: buildCopilotInstructions({ projectName: 'x', language: 'typescript' }) });
       const before = readFileSync(mdFile(), 'utf-8');
       const result = await backfiller.backfill(testDir, '.specs', false, true);
-      expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 11, total: 11 });
+      expect(result.copilotInstructions).toMatchObject({ action: 'skipped', found: 12, total: 12 });
       expect(readFileSync(mdFile(), 'utf-8')).toBe(before);
     });
 
@@ -1286,7 +1286,7 @@ rules:
         const result = await backfiller.backfill(testDir, '.specs', false, true);
         const codex = result.slashCommands.find((r) => r.ide === 'codex')!;
         expect(codex.signalFile).toBe('CODEX_INSTRUCTIONS.md');
-        expect(codex.added).toHaveLength(8);
+        expect(codex.added).toHaveLength(9);
         expect(existsSync(join(testDir, '.codex', 'prompts', 'specpilot-archive.md'))).toBe(true);
         expect(readdirSync(home)).toEqual([]);
       } finally {
@@ -1541,6 +1541,53 @@ describe('the MCP Tasks line (BL-088)', () => {
       expect(result.ideFiles.find(r => r.path === 'CLAUDE.md')!.added).toEqual(['Tasks line (MCP)']);
       expect(readFileSync(file, 'utf-8')).toBe(input);
     });
+  });
+});
+
+describe('the archive lookup row (BL-202, REQ-002.A.19)', () => {
+  const TABLE = '## Context — read on demand by task type\n\n| Task type | Read |\n|---|---|\n| Session start | `.specs/project/project.yaml` |\n| Planning | + `planning/tasks.md` |';
+
+  it('goes after the last row of the routing table, nothing else changed', () => {
+    const input = `# CLAUDE.md\n\n${TABLE}\n\n## Code Rules\n\n1. Delete before add.\n`;
+    const lines = input.split('\n');
+    lines.splice(8, 0, ARCHIVE_ROW);
+    expect(withArchiveRow(input)).toBe(lines.join('\n'));
+  });
+
+  it('a table at the end of the file, and CRLF kept', () => {
+    expect(withArchiveRow(`# X\n\n${TABLE}`)).toBe(`# X\n\n${TABLE}\n${ARCHIVE_ROW}`);
+    const crlf = `# X\r\n\r\n${TABLE.replace(/\n/g, '\r\n')}\r\n`;
+    expect(withArchiveRow(crlf)).toBe(`# X\r\n\r\n${TABLE.replace(/\n/g, '\r\n')}\r\n${ARCHIVE_ROW}\r\n`);
+  });
+
+  it('nothing when the row is there or there is no routing table', () => {
+    expect(withArchiveRow(withArchiveRow(`# X\n\n${TABLE}\n`)!)).toBeNull();
+    expect(withArchiveRow(`# X\n\n${buildContextRoutingTable()}\n`)).toBeNull();
+    expect(withArchiveRow('# X\n\n## Code Rules\n\n1. Delete before add.\n')).toBeNull();
+    expect(withArchiveRow('# X\n\n## Context\n\nNo table here.\n\n## Next\n\n| a | b |\n')).toBeNull();
+  });
+
+  it('a new instruction file already has it', () => {
+    expect(buildClaudeMd({ projectName: 'X', language: 'typescript' } as never)).toContain(ARCHIVE_ROW);
+  });
+
+  it('through specpilot backfill: added to an existing CLAUDE.md once, and specpilot-compact added for Claude Code', async () => {
+    const testDir = makeTmpDir();
+    try {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      const input = `${FULL_MD_TERSE.trimEnd()}\n\n${TABLE}\n`;
+      writeFileSync(join(testDir, 'CLAUDE.md'), input);
+      writeFileSync(join(testDir, '.github', 'copilot-instructions.md'), FULL_MD);
+      const result = await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      expect(result.ideFiles.find(r => r.path === 'CLAUDE.md')!.added).toEqual(['Archive lookup row']);
+      const once = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
+      expect(once).toBe(withArchiveRow(input));
+      expect(existsSync(join(testDir, '.claude', 'commands', 'specpilot-compact.md'))).toBe(true);
+      await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      expect(readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8')).toBe(once);
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
   });
 });
 

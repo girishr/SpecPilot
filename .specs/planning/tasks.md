@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-25 (BL-198 to Completed)
+lastUpdated: 2026-11-26 (BL-202 approved)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -72,11 +72,14 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-203 | feat | P2 | `specpilot-compact` for `project/requirements.md`: the agent rewrites a line to current behaviour only, the original line goes to `project/requirements-archive.md` byte for byte under its ID, the CLI checks no REQ ID is lost and the new line is shorter, and the user reviews each rewritten line. Follows BL-202. The developer's 2026-11-25 ask (trim requirements.md too). |
+| BL-204 | feat | P2 | `specpilot compact` report before any agent read, after BL-203: for every file compact touches, size and ≈tokens (bytes ÷ 4): `tasks.md` and `prompts.md` with the exact saving from `planCompletedArchive()`/`planPromptsArchive()`, `context.md` with a likely range (entry statuses predicted as after archive) and the exact one in `--apply --dry-run`, `requirements.md` from BL-203's rewrites; avoidable tokens per read and per task (`--calls <n>`, default 50, as cache reads); compact's one-off run cost and payback in reads; `/specpilot-compact` shows it and asks before reading. The developer, 2026-11-26; held until BL-203 so requirements.md is covered. |
 
 ## Review
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-202 | feat | P2 | `specpilot compact` and the `specpilot-compact` slash command: an agent judges which `development/context.md` entries no longer bind the work and writes `compact-plan.md`; the user reviews it; `specpilot compact --apply` moves the picked entries byte for byte to `context-archive.md`, leaves a marker line for each and checks the round trip (REQ-002.A.19, REQ-002.E.19, ARCH-004.82). Runs `specpilot archive` first; `archive` stays. Devs report context.md and requirements.md spend tokens on entries no longer relevant; requirements.md is BL-203. The developer, 2026-11-25. Approved 2026-11-26 |
 
 ## Won't do
 

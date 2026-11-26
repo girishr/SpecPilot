@@ -16,7 +16,7 @@ export interface ArchiveResult {
   dryRun: boolean;
 }
 
-const SPECS_DIR_CANDIDATES = ['.specs', '.project-spec', 'specs', 'specifications'];
+export const SPECS_DIR_CANDIDATES = ['.specs', '.project-spec', 'specs', 'specifications'];
 
 export const PROMPTS_LINE_LIMIT = 100;
 /** Trim prompts.md to this many total lines after archiving. */
@@ -199,7 +199,8 @@ export function planCompletedArchive(lines: string[], force = false): CompletedA
   return { start: bodyStart, end: bodyStart + rows - keep, tableHeader: [lines[header], lines[header + 1]] };
 }
 
-const archivedOn = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
+/** The archive blocks' timestamp, UTC, `YYYY-MM-DD HH:MM:SS` (the script's `date -u`); shared with compact (BL-202). */
+export const archivedOn = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
 
 /**
  * The block `specpilot archive` appends to tasks-archive.md for `plan`: a table's header and separator

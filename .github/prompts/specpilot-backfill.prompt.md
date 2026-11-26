@@ -16,8 +16,8 @@ CANDIDATE_FILES=(
   ".antigravity/rules.md"
 )
 
-# Each check and append works on the loop's file, "$f": no positional parameters, since Claude Code
-# replaces a dollar sign before a digit in a command file with a command argument (BL-093).
+# Each check and append works on the loop's file, "$f": no positional parameters, since some AI IDEs
+# replace a dollar sign before a digit in a command file with a command argument (BL-093).
 has_critical() { grep -qF "Critical Mandates" "$f"; }
 has_philosophy() { grep -qF "## Code Philosophy — Write Only What Needed" "$f"; }
 has_rules() { grep -qF "## Code Rules" "$f"; }

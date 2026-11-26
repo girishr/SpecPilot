@@ -316,6 +316,31 @@ specpilot archive --dry-run
 - `development/prompts.md` → older entries moved to `development/prompts-archive.md`
 - `planning/tasks.md` Completed section → older entries moved to `planning/tasks-archive.md`
 
+`archive` never touches `development/context.md`; `specpilot compact` does, on an agent's plan.
+
+#### `specpilot compact [options]`
+
+Move `development/context.md` entries that no longer bind the work to `development/context-archive.md`. An agent decides which entries go (run `/specpilot-compact` in your AI IDE); this command does the move.
+
+```bash
+# List each entry's status, line count and title (read-only)
+specpilot compact
+
+# Move the archive rows of .specs/development/compact-plan.md
+specpilot compact --apply
+```
+
+**Options:**
+
+- `-d, --dir <directory>`: Project directory (default `.`)
+- `--apply`: Move the plan's archive rows, leaving a marker line in `context.md` for each, then remove the plan
+- `--dry-run`: With `--apply`, show what would move without writing any files
+- `--force`: With `--apply`, skip the branch warning
+
+**Statuses** (a hint for the agent, first match wins): `no-lead` (no `**…**` title), `no-id` (the title names no task), `open` (a task in Backlog, Current Sprint, Review or Won't do), `unknown` (a task in neither tasks file), `finished` (every task in `tasks-archive.md`), `completed` (every task done, one still in `## Completed`).
+
+**The plan** is one table in `.specs/development/compact-plan.md`: `| Entry | Action | Reason |`, the entry's title exactly as written, `keep` or `archive`, and why (`\|` for a `|` in a cell). `--apply` refuses the whole plan, writing nothing, when a title matches no entry or several, an action is not `keep` or `archive`, an archive row has no reason, an entry names a task that is still open, an entry is already a marker, or the file is not that table. Archived entries go, byte for byte and under their section's heading, into a `## Archived on <UTC time>` block with a Reasons table; each leaves `- **<title>**: moved to context-archive.md on <date>.` in `context.md`. Before writing, `--apply` checks that the markers expand back to the original file.
+
 #### `specpilot backfill [options]`
 
 Backfill missing SpecPilot mandates and slash commands into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates and commands added in later releases. Operates on `.specs/project/project.yaml`, IDE/agent instruction files (e.g. `.github/copilot-instructions.md`, `CLAUDE.md`), generates any missing `specpilot-*` slash command files for IDEs already configured in the project, and updates command files that are byte for byte a version an earlier SpecPilot generated. Never overwrites or deletes user-authored content: an edited command file is kept and listed.
@@ -390,7 +415,7 @@ The IDE then has nine tools: `specpilot_list_projects`, `specpilot_read_spec`, `
 
 ### Generated Slash Commands
 
-Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-*` slash/workflow commands for your selected IDE/Agent, mirroring key CLI operations as in-editor commands that work even without the CLI installed:
+Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-*` slash/workflow commands for your selected IDE/Agent, mirroring key CLI operations as in-editor commands that work even without the CLI installed (all but `specpilot-compact`, which runs it):
 
 | Command | Purpose |
 |---|---|
@@ -401,6 +426,7 @@ Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-
 | `specpilot-refine` | Refine `.specs/` requirements from a new requirement description, with a diff preview |
 | `specpilot-validate` | Validate `.specs/` structure, front-matter, and cross-references |
 | `specpilot-archive` | Archive oversized `.specs/` files, with a branch safety guard |
+| `specpilot-compact` | Pick the `context.md` entries that no longer bind the work, show you the plan, and on your typed `apply` move them with `specpilot compact --apply` (needs the CLI installed) |
 | `specpilot-backfill` | Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files |
 
 **Per-IDE output locations:**

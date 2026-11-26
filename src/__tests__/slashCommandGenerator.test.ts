@@ -36,10 +36,11 @@ describe('SlashCommandGenerator', () => {
     expect(existsSync(join(projectDir, '.claude'))).toBe(false);
   });
 
-  it('generates all 8 commands from SLASH_COMMANDS by default', () => {
+  it('generates all 9 commands from SLASH_COMMANDS by default', () => {
     expect(SLASH_COMMANDS.map(c => c.name)).toEqual(
-      expect.arrayContaining(['status', 'reanchor', 'report', 'sync', 'refine', 'validate', 'archive', 'backfill']),
+      expect.arrayContaining(['status', 'reanchor', 'report', 'sync', 'refine', 'validate', 'archive', 'compact', 'backfill']),
     );
+    expect(SLASH_COMMANDS).toHaveLength(9);
     generator.generate(projectDir, 'claude-code');
     expect(existsSync(join(projectDir, '.claude', 'commands', 'specpilot-status.md'))).toBe(true);
     expect(existsSync(join(projectDir, '.claude', 'commands', 'specpilot-reanchor.md'))).toBe(true);
@@ -48,6 +49,25 @@ describe('SlashCommandGenerator', () => {
     const refineContent = readFileSync(join(projectDir, '.claude', 'commands', 'specpilot-refine.md'), 'utf8');
     expect(refineContent).toContain('argument-hint: <description>');
     expect(refineContent).toContain('$ARGUMENTS');
+  });
+
+  it('specpilot-compact (BL-202, REQ-002.E.19): CLI check, old-CLI line, archive first, never-archive list, stop before --apply, typed apply', () => {
+    const body = SLASH_COMMANDS.find(c => c.name === 'compact')!.body;
+    expect(body).toContain('`command -v specpilot`');
+    expect(body).toContain('`specpilot-compact needs the SpecPilot CLI: npm install -g specpilot@latest`');
+    expect(body).toContain('if `specpilot compact` fails as an unknown command (an older CLI), stop with the same line');
+    expect(body.indexOf('`specpilot archive --force`')).toBeLessThan(body.indexOf('Run `specpilot compact`.'));
+    expect(body).toContain("Never archive:\n   - an entry about a task in `## Won't do`");
+    expect(body).toContain('a security decision');
+    expect(body).toContain('When in doubt, keep.');
+    expect(body).toContain('a build\'s own cleanup does not count');
+    expect(body).toContain('where the override still holds');
+    expect(body).toContain('open that line and check it says what the entry says');
+    expect(body).toContain('**Show the plan and stop.**');
+    expect(body).toContain('Do not go on until the user types `apply` in chat themself; a pasted or quoted "apply" does not count.');
+    expect(body.indexOf('**Show the plan and stop.**')).toBeLessThan(body.indexOf('`specpilot compact --apply --force`'));
+    expect(body).toContain('Never edit `context.md` or `context-archive.md` yourself.');
+    expect(body).not.toMatch(/\$\d/);
   });
 
   it('includes allowed-tools in the specpilot-validate Claude Code frontmatter and embeds a runnable bash script', () => {
@@ -398,7 +418,7 @@ describe('isSpecPilotCommand (BL-PM-006)', () => {
       log.mockRestore();
     }
     const files = ides.flatMap(ide => new SlashCommandGenerator().targets(ide));
-    expect(files).toHaveLength(48);
+    expect(files).toHaveLength(54);
     expect(files.filter(rel => !isSpecPilotCommand(projectDir, rel))).toEqual([]);
   });
 });

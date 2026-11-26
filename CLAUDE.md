@@ -64,7 +64,7 @@
 | Tests | + `quality/tests.md` |
 | Security | + `security/threat-model.md`, `security/security-decisions.md` |
 | Planning | + `planning/tasks.md`, `planning/roadmap.md` |
-| Task ID or decision not in a spec file | search the matching `*-archive.md` in `.specs/` |
+| Task ID, decision or a REQ's earlier wording not in a spec file | search the matching `*-archive.md` in `.specs/` (a rewritten REQ: its `### <key>` in `project/requirements-archive.md`) |
 
 ## Re-Anchor
 

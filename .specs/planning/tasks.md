@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-202 to Completed)
+lastUpdated: 2026-11-26 (BL-203 approved)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -67,18 +67,19 @@ Notes
 | BL-188 | bug | P3 | `readBranch()` (`src/utils/specServer.ts`) follows a `.git` file's `gitdir:` to any path; apply BL-171's worktree check to it (follow only when the realpath ends in `/.git/worktrees/<name>`, else no branch). It sends only a pattern-checked ref today, so the risk is low. Filed by the architect, BL-171, 2026-11-17. |
 | BL-195 | feat | P3 | Undo Keep both for SpecPilot's old Cursor rules file (BL-194): a page action, or a `specpilot migrate --cursor-rules` option, that removes the project's path from `~/.specpilot/cursor-rules.json`; until then the only way is editing that file by hand. Filed by the BL-194 architect decision 2026-11-20. |
 | BL-201 | feat | P3 | `specpilot refine` updates the `description:` line in `.specs/project/project.yaml` along with requirements.md, as one more pending change: shown in the diff preview, written through `writeInside`, quoted by the template's YAML rule (BL-085). Today only requirements.md gets the new description, so the `serve` Overview hero (`P.description`) keeps the old one. Filed by the BL-198 architect decision 2026-11-25. |
+| BL-206 | chore | P3 | The routing-table row (`ARCHIVE_ROW`, ARCH-004.82) also points agents at `project/requirements-archive.md` for the earlier wording of a REQ that is still in `requirements.md` (BL-203 keeps the key in place, so "not in a spec file" never sends them there). Changes the instruction-file golden recordings and BL-202's backfill insert (`withArchiveRow()` must also update the old row). Filed from the BL-203 architect decision F, 2026-11-26. |
 
 ## Current Sprint
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-203 | feat | P2 | `specpilot-compact` for `project/requirements.md`: the agent rewrites a line to current behaviour only, the original line goes to `project/requirements-archive.md` byte for byte under its ID, the CLI checks no REQ ID is lost and the new line is shorter, and the user reviews each rewritten line. Follows BL-202. The developer's 2026-11-25 ask (trim requirements.md too). |
 | BL-204 | feat | P2 | `specpilot compact` report before any agent read, after BL-203: for every file compact touches, size and ≈tokens (bytes ÷ 4): `tasks.md` and `prompts.md` with the exact saving from `planCompletedArchive()`/`planPromptsArchive()`, `context.md` with a likely range (entry statuses predicted as after archive) and the exact one in `--apply --dry-run`, `requirements.md` from BL-203's rewrites; avoidable tokens per read and per task (`--calls <n>`, default 50, as cache reads); compact's one-off run cost and payback in reads; `/specpilot-compact` shows it and asks before reading. The developer, 2026-11-26; held until BL-203 so requirements.md is covered. |
 
 ## Review
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-203 | feat | P2 | `specpilot-compact` for `project/requirements.md`: the agent rewrites a line to current behaviour only, the original line goes to `project/requirements-archive.md` byte for byte under its ID, the CLI checks no REQ ID is lost and the new line is shorter, and the user reviews each rewritten line. Follows BL-202. Rewritten items stay in place with their key; plan `development/compact-requirements.md`, applied with the context plan in one `--apply` (REQ-002.A.20, ARCH-004.83). The developer's 2026-11-25 ask (trim requirements.md too). Approved 2026-11-26 |
 
 ## Won't do
 

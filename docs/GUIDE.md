@@ -341,6 +341,8 @@ specpilot compact --apply
 
 **The plan** is one table in `.specs/development/compact-plan.md`: `| Entry | Action | Reason |`, the entry's title exactly as written, `keep` or `archive`, and why (`\|` for a `|` in a cell). `--apply` refuses the whole plan, writing nothing, when a title matches no entry or several, an action is not `keep` or `archive`, an archive row has no reason, an entry names a task that is still open, an entry is already a marker, or the file is not that table. Archived entries go, byte for byte and under their section's heading, into a `## Archived on <UTC time>` block with a Reasons table; each leaves `- **<title>**: moved to context-archive.md on <date>.` in `context.md`. Before writing, `--apply` checks that the markers expand back to the original file.
 
+**Requirements** (since BL-203): `specpilot compact` also lists `project/requirements.md`'s items (top-level list items ending in a bracketed key such as `[REQ-002.A.8]`), largest first, with each key's sha, size and line count. `/specpilot-compact` rewrites the largest to what the project does now and writes them to `.specs/development/compact-requirements.md`: one block per item, `### <key> <sha>`, a `Reason:` line, and the new item in a ```` ```text ```` fence. `--apply` applies it together with the context plan, all or nothing: each item is replaced in place and its original goes, byte for byte, to `project/requirements-archive.md` under `### <key>`. It refuses a block whose key matches no item or several, whose sha is not the item's current one, that has no reason or fence, whose new item is not one list item ending in the same key, or that is not shorter. `--dry-run` shows each item's bytes before and after and the backticked strings and IDs the rewrite drops, so you can check nothing current was lost. Items without a key are never rewritten.
+
 #### `specpilot backfill [options]`
 
 Backfill missing SpecPilot mandates and slash commands into a project that already has `.specs/`. Run this after upgrading SpecPilot to pick up new mandates and commands added in later releases. Operates on `.specs/project/project.yaml`, IDE/agent instruction files (e.g. `.github/copilot-instructions.md`, `CLAUDE.md`), generates any missing `specpilot-*` slash command files for IDEs already configured in the project, and updates command files that are byte for byte a version an earlier SpecPilot generated. Never overwrites or deletes user-authored content: an edited command file is kept and listed.
@@ -426,7 +428,7 @@ Every `init`, `add-specs`, or `backfill` run also generates a set of `specpilot-
 | `specpilot-refine` | Refine `.specs/` requirements from a new requirement description, with a diff preview |
 | `specpilot-validate` | Validate `.specs/` structure, front-matter, and cross-references |
 | `specpilot-archive` | Archive oversized `.specs/` files, with a branch safety guard |
-| `specpilot-compact` | Pick the `context.md` entries that no longer bind the work, show you the plan, and on your typed `apply` move them with `specpilot compact --apply` (needs the CLI installed) |
+| `specpilot-compact` | Pick the `context.md` entries that no longer bind the work and rewrite the largest `requirements.md` items to current behaviour, show you both plans, and on your typed `apply` apply them with `specpilot compact --apply` (needs the CLI installed) |
 | `specpilot-backfill` | Append missing mandate sections (Critical Mandates, Code Philosophy, Code Rules, Re-Anchor) to existing IDE files |
 
 **Per-IDE output locations:**

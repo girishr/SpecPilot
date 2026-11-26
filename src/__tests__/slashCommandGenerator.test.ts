@@ -63,11 +63,26 @@ describe('SlashCommandGenerator', () => {
     expect(body).toContain('a build\'s own cleanup does not count');
     expect(body).toContain('where the override still holds');
     expect(body).toContain('open that line and check it says what the entry says');
-    expect(body).toContain('**Show the plan and stop.**');
+    expect(body).toContain('**Show the plans and stop.**');
     expect(body).toContain('Do not go on until the user types `apply` in chat themself; a pasted or quoted "apply" does not count.');
-    expect(body.indexOf('**Show the plan and stop.**')).toBeLessThan(body.indexOf('`specpilot compact --apply --force`'));
-    expect(body).toContain('Never edit `context.md` or `context-archive.md` yourself.');
+    expect(body.indexOf('**Show the plans and stop.**')).toBeLessThan(body.indexOf('`specpilot compact --apply --force`'));
+    expect(body).toContain('Never edit `context.md`, `requirements.md` or their archives yourself.');
     expect(body).not.toMatch(/\$\d/);
+  });
+
+  it('specpilot-compact requirements steps (BL-203, REQ-002.E.19): largest first, 10 per run, 4 KB, keep and drop lists, dry run, one typed apply', () => {
+    const body = SLASH_COMMANDS.find(c => c.name === 'compact')!.body;
+    expect(body).toContain('largest first, at most 10, each at least 4 KB');
+    expect(body).toContain('- Keep: every command, flag, default, limit and number; every exact message or text in backticks;');
+    expect(body).toContain('and the task ID that introduced the behaviour, in a short `(BL-…)`');
+    expect(body).toContain('- Drop: who asked and when, Spec Report and architect narration, behaviour that was replaced (such as `40 until BL-123`)');
+    expect(body).toContain('it ends with the same key in brackets. It must be shorter.');
+    expect(body).toContain('`.specs/development/compact-requirements.md`');
+    expect(body).toContain('### <key> <sha>');
+    expect(body.indexOf('Run `specpilot compact --apply --dry-run`')).toBeLessThan(body.indexOf('Do not go on until the user types `apply`'));
+    expect(body).toContain('It applies both plans or neither.');
+    expect(body).toContain('The messages, routes and page text of a feature that was removed or replaced count as replaced behaviour.');
+    expect(body).toContain('read that requirement and the code before you rewrite, and keep only what still runs.');
   });
 
   it('includes allowed-tools in the specpilot-validate Claude Code frontmatter and embeds a runnable bash script', () => {

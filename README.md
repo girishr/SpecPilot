@@ -78,7 +78,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `add-specs`             | Add specs to existing project                                     |
 | `validate`              | Validate specification files                                      |
 | `archive`               | Archive oversized `prompts.md` / `tasks.md` entries               |
-| `compact`               | List `context.md` entries for `/specpilot-compact`; `--apply` moves the entries its plan picks to `context-archive.md` |
+| `compact`               | List `context.md` entries and `requirements.md` items for `/specpilot-compact`; `--apply` moves the picked entries to `context-archive.md` and applies the requirement rewrites, originals to `requirements-archive.md` |
 | `backfill`              | Backfill missing mandates, slash commands & the Claude Code skill     |
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |

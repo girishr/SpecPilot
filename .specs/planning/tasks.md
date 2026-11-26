@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-202 approved)
+lastUpdated: 2026-11-26 (BL-202 to Completed)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -79,7 +79,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-202 | feat | P2 | `specpilot compact` and the `specpilot-compact` slash command: an agent judges which `development/context.md` entries no longer bind the work and writes `compact-plan.md`; the user reviews it; `specpilot compact --apply` moves the picked entries byte for byte to `context-archive.md`, leaves a marker line for each and checks the round trip (REQ-002.A.19, REQ-002.E.19, ARCH-004.82). Runs `specpilot archive` first; `archive` stays. Devs report context.md and requirements.md spend tokens on entries no longer relevant; requirements.md is BL-203. The developer, 2026-11-25. Approved 2026-11-26 |
 
 ## Won't do
 
@@ -128,3 +127,4 @@ Notes
 | 302 | [CD-girishr-211] [BL-193] | Docs brought up to v2.21.0: `tests.md`'s coverage summary (Jest 29 suites and 2120 tests, browser 20 and 192) and suite table (per-file counts from `jest --json`, 11 suites added); `docs/GUIDE.md`'s `serve` intro (Overview, every `tasks.md` write the page makes, the Node.js banner); README's Back and Forward (BL-192); the security files' `_Last updated_` footers. Docs only; validate clean, Jest 2120/2120. Approved 2026-11-19. Feature commit 5bdda5b. |
 | 303 | [CD-girishr-212] [BL-194] | SpecPilot's old Cursor rules file (`.cursor/rules/project.mdc`, before v2.1.0) found and fixed: `specpilot migrate --cursor-rules` (link-then-unlink rename, never over `specpilot.mdc`) and `--remove-old`; warnings in `validate`, `backfill` and `serve`'s startup output; `project.cursorLegacy` and `POST /api/ide/cursor-rules` (rename, remove, keep; sha256-pinned); the Instructions view's `old name`, `duplicate`, `edited copy` and `kept both` rows; Keep both per machine in `~/.specpilot/cursor-rules.json`. REQ-002.A.18, REQ-002.H.79, ARCH-004.81, SEC-004.40; BL-195 filed. Jest 2157, browser 201. Commit ead82fa. |
 | 304 | [CD-girishr-213] [BL-198] | `specpilot refine --update` no longer empties `tasks.md`: `generateSpecs()` gains `keepSpecs` (`writeInside`'s `create`), passed only by `refine --update`, so existing `.specs/` files, `project.yaml` included, are kept and missing ones created; the `ides` line is no longer rewritten (BL-168 decisions (1) and (3) superseded by the BL-198 architect decision); new `--update` help and success line. REQ-002.A.6, REQ-002.A.13, REQ-002.E.15; BL-201 filed. Jest 2159. Commit 5161848. |
+| 305 | [CD-girishr-214] [BL-202] | `specpilot compact` and `/specpilot-compact`: an agent picks the `development/context.md` entries that no longer bind the work into `compact-plan.md`, the user reviews it and types `apply`, and `specpilot compact --apply` moves them byte for byte to `context-archive.md` with one marker line each, a round-trip check before any write, and a refusal for an open task's entry (Won't do included); the listing shows each entry's status, lines and size; the routing-table row (new files and backfill) points agents at the archives; `archive` unchanged. Scratch trial: 93 of 140 finished entries moved, 139 KB off context.md. REQ-002.A.19, REQ-002.E.19, ARCH-004.82; BL-203 and BL-204 filed. Jest 2200, browser 201. Approved 2026-11-26. Commit 94c9dc1. |

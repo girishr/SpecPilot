@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-206 approved)
+lastUpdated: 2026-11-26 (BL-206 to Completed)
 version: 7.113
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -77,7 +77,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-206 | chore | P3 | The routing-table row (`ARCHIVE_ROW`, ARCH-004.82) also points agents at `project/requirements-archive.md` for the earlier wording of a REQ that is still in `requirements.md` (BL-203 keeps the key in place, so "not in a spec file" never sends them there). Changes the instruction-file golden recordings and BL-202's backfill insert (`withArchiveRow()` must also update the old row). Filed from the BL-203 architect decision F, 2026-11-26. Approved 2026-11-26 |
 
 ## Won't do
 
@@ -120,3 +119,4 @@ Notes
 | 306 | [CD-girishr-215] [BL-203] | `specpilot compact` and `/specpilot-compact` rewrite `requirements.md` items: the agent rewrites the largest keyed items (at most 10, each at least 4 KB) to current behaviour into `development/compact-requirements.md` (`### <key> <sha>`, a `Reason:` line, a text fence); `--apply --dry-run` lists bytes before and after and the dropped backticked strings and IDs; one typed `apply` applies both plans, all or nothing; each item is replaced in place and its original kept byte for byte in `project/requirements-archive.md`; refusals for a stale sha, a longer rewrite, a rewrite not one item ending in the same key, a malformed heading; round-trip and key-set check before any write. Scratch trial: 10 items, 22.8 KB saved for about 170k tokens. REQ-002.A.20, REQ-002.E.19, ARCH-004.83; BL-206 filed. Jest 2233, browser 201. Approved 2026-11-26. Commit 758dbf6. |
 | 307 | [CD-girishr-216] [BL-205] | `specpilot serve` Explorer rows show each spec file's size, line count and ≈tokens after its front matter (`1.9 KB · 62 lines · ~477 tokens`): `GET /api/specs` `files[path]` gains `bytes`, `lines`, `tokens` (`ceil(bytes / 4)`, BL-204's rule, no tokenizer) in `buildSpecsPayload()`; `sizeLine()` picks the unit after `toFixed(1)`; Overview and MCP unchanged. REQ-002.H.80. Jest 2234, browser 203. Commit 20f360a. |
 | 308 | [CD-girishr-217] [BL-204] | `specpilot compact --report`: before any agent reads, one row per file compact touches (`tasks.md`, `prompts.md`, `context.md`, `requirements.md`) with size, ≈tokens (bytes ÷ 4), the saving (exact for what `specpilot archive` moves; likely for the agent: half of the `finished` context entries after archive less their markers, a fifth of the requirements it would rewrite, already-rewritten ones skipped), tokens avoided per read and per task (`--calls <n>`, default 50), and the agent run's cost and payback, or `Nothing for the agent to compact.`; `/specpilot-compact` shows it first and asks; `--apply --dry-run` adds exact before and after; plain `compact` unchanged (REQ-002.A.21, ARCH-004.84; commit 9146c3a) |
+| 309 | [CD-girishr-218] [BL-206] | The routing-table archive row also sends agents to `project/requirements-archive.md` for a rewritten REQ's earlier wording (`### <key>`); `specpilot backfill` replaces BL-202's row in place and reports `Archive lookup row (updated)`; this repo's `CLAUDE.md` and `.github/copilot-instructions.md` updated (REQ-002.A.19, ARCH-004.82; commit 04dea16) |

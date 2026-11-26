@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { join, resolve } from 'path';
+import { compactReport, tokens } from '../utils/compactReport';
 import { contextEntries, entryStatus, isMarker, planCompact, taskIds } from '../utils/contextCompactor';
 import { terminalText } from '../utils/logger';
 import { droppedTokens, planRequirements, requirementItems } from '../utils/requirementsCompactor';
@@ -12,6 +13,8 @@ export interface CompactOptions {
   apply?: boolean;
   dryRun?: boolean;
   force?: boolean;
+  report?: boolean;
+  calls?: string;
 }
 
 const say = (text: string) => console.log(terminalText(text));
@@ -21,6 +24,38 @@ const fail = (text: string) => {
 };
 const readOr = (path: string) => (existsSync(path) ? readFileSync(path, 'utf-8') : '');
 const kb = (bytes: number) => (bytes / 1024).toFixed(1);
+const tok = (n: number) => (n < 1000 ? String(n) : n < 1_000_000 ? `${(n / 1000).toFixed(1)}k` : `${(n / 1_000_000).toFixed(1)}M`);
+
+/** BL-204 (REQ-002.A.21): the report, from the files' contents; it reads nothing else and writes nothing. */
+function printReport(text: (file: string) => string | null, calls: number, date: string): void {
+  const r = compactReport({
+    tasks: text('planning/tasks.md'),
+    tasksArchive: text('planning/tasks-archive.md'),
+    prompts: text('development/prompts.md'),
+    context: text('development/context.md'),
+    requirements: text('project/requirements.md'),
+    requirementsArchive: text('project/requirements-archive.md'),
+  }, date);
+  say(`Compact report. Tokens ≈ bytes ÷ 4; per task = per read × ${calls} calls (--calls), mostly cache reads. Every number not marked exact is an estimate.`);
+  say('');
+  say(`${'file'.padEnd(24)} ${'size'.padStart(10)} ${'≈tokens'.padStart(8)} ${'saving'.padStart(10)} ${'per read'.padStart(9)} ${'per task'.padStart(9)}  how`);
+  const row = (name: string, size: string, toks: string, saving: number | null, how: string) => {
+    const per = saving === null ? '-' : tok(tokens(saving));
+    const task = saving === null ? '-' : tok(tokens(saving) * calls);
+    say(`${name.padEnd(24)} ${size.padStart(10)} ${toks.padStart(8)} ${(saving === null ? '-' : `${kb(saving)} KB`).padStart(10)} ${per.padStart(9)} ${task.padStart(9)}  ${how}`.trimEnd());
+  };
+  for (const f of r.files) {
+    const how = f.how === 'exact' ? 'exact (archive)'
+      : f.how === 'refuses' ? 'archive refuses'
+      : f.file === 'development/context.md' ? `likely (agent): half of ${kb(f.ceiling!)} KB in ${f.count} finished entries`
+      : `likely (agent): a fifth of ${kb(f.ceiling!)} KB in ${f.count} items`;
+    row(f.file, `${kb(f.bytes)} KB`, tok(tokens(f.bytes)), f.how === 'refuses' ? null : f.saving, how);
+  }
+  row('total', '', '', r.files.reduce((s, f) => s + f.saving, 0), '');
+  say('');
+  if (r.likelyPerRead === 0) return say('Nothing for the agent to compact.');
+  say(`Agent run: ≈${tok(r.agentTokens)} tokens once (finished context entries + 10k, 17k per requirement rewritten, from SpecPilot's own trials); paid back after ${Math.ceil(r.agentTokens / r.likelyPerRead)} reads`);
+}
 
 /**
  * BL-202 (REQ-002.A.19), BL-203 (REQ-002.A.20): list context.md's entries and requirements.md's items for an agent to
@@ -28,11 +63,16 @@ const kb = (bytes: number) => (bytes / 1024).toFixed(1);
  */
 export async function compactCommand(options: CompactOptions): Promise<void> {
   const root = resolve(options.dir ?? '.');
+  if (options.report && options.apply) return fail('--report cannot be used with --apply.');
+  if (options.calls !== undefined && !options.report && !(options.apply && options.dryRun)) return fail('--calls works only with --report or --apply --dry-run.');
+  const calls = options.calls === undefined ? 50 : /^\d+$/.test(options.calls) ? Number(options.calls) : NaN;
+  if (!(calls >= 1 && calls <= 1000)) return fail('--calls must be a whole number from 1 to 1000.');
   try {
     const specs = SPECS_DIR_CANDIDATES.find((name) => existsSync(join(root, name)));
     if (!specs) return fail('No .specs directory found. Run `specpilot init` first.');
     const rel = (file: string) => `${specs}/${file}`;
     const path = (file: string) => join(root, specs, ...file.split('/'));
+    if (options.report) return printReport((file) => (existsSync(path(file)) ? readFileSync(path(file), 'utf-8') : null), calls, archivedOn().slice(0, 10));
     const tasks = readOr(path('planning/tasks.md'));
     const tasksArchive = readOr(path('planning/tasks-archive.md'));
     if (!existsSync(path('development/context.md'))) return fail(`No ${rel('development/context.md')} found.`);
@@ -124,6 +164,15 @@ export async function compactCommand(options: CompactOptions): Promise<void> {
         }
         say(`Would rewrite ${rewrite.rewritten} requirements (${kb(rewrite.saved)} KB shorter) (dry run, nothing written).`);
       }
+      // BL-204 (REQ-002.A.21): the exact saving per file the plans would change.
+      const exact = (file: string, after: string) => {
+        const before = readFileSync(path(file), 'utf-8');
+        const fewer = tokens(Buffer.byteLength(before)) - tokens(Buffer.byteLength(after));
+        const n = Math.abs(fewer);
+        say(`${file}: ${kb(Buffer.byteLength(before))} KB → ${kb(Buffer.byteLength(after))} KB, ≈${tok(n)} ${fewer < 0 ? 'more' : 'fewer'} tokens per read, ≈${tok(n * calls)} over a ${calls}-call task`);
+      };
+      if (moved) exact('development/context.md', moved.newContext);
+      if (rewrite) exact('project/requirements.md', rewrite.newRequirements);
       return;
     }
 

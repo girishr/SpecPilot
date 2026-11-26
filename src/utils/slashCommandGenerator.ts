@@ -97,6 +97,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   '.agent/workflows/specpilot-compact.md': [
     '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
     '43bbe13ca3a984a07ada3c5511608fd785d5a0f43a8a24182ca79a139b649885',
+    '7d7a0fb53588693d078acb443d8ad0b78ffc7891c5624386439486d2cedf7229',
   ],
   '.agent/workflows/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -134,6 +135,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   '.claude/commands/specpilot-compact.md': [
     '19bae9e5047f5337a9e71ce9ea740e0e3aa4e2391a642c57e85cdfbf76538137',
     '4388e4c45acf7d029435a4520953e407e4fffd26b5294dc34f64f6ae5a7fd230',
+    '036fe67c40c4724bbe8b305d34e7c689674325f2ac01a85a9e9aaa54fd8c2709',
   ],
   '.claude/commands/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -171,6 +173,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   '.codex/prompts/specpilot-compact.md': [
     '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
     '43bbe13ca3a984a07ada3c5511608fd785d5a0f43a8a24182ca79a139b649885',
+    '7d7a0fb53588693d078acb443d8ad0b78ffc7891c5624386439486d2cedf7229',
   ],
   '.codex/prompts/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -208,6 +211,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   '.cursor/commands/specpilot-compact.md': [
     '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
     '43bbe13ca3a984a07ada3c5511608fd785d5a0f43a8a24182ca79a139b649885',
+    '7d7a0fb53588693d078acb443d8ad0b78ffc7891c5624386439486d2cedf7229',
   ],
   '.cursor/commands/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -245,6 +249,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   '.github/prompts/specpilot-compact.prompt.md': [
     'fcd906afde5c863c876ce4a095256f378fbcb36b470aac0fb5af7c47ce49879d',
     '6575ab12d1bf785b1a004aac82a670e2fc3988ad1834b8a7c577252cb13e4d40',
+    'c6570f89313784777e3b4ad8a82a8b4ce1b3090a0f65f342710b997a5cce2eb4',
   ],
   '.github/prompts/specpilot-reanchor.prompt.md': [
     '30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf',
@@ -282,6 +287,7 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
   '.windsurf/workflows/specpilot-compact.md': [
     '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
     '43bbe13ca3a984a07ada3c5511608fd785d5a0f43a8a24182ca79a139b649885',
+    '7d7a0fb53588693d078acb443d8ad0b78ffc7891c5624386439486d2cedf7229',
   ],
   '.windsurf/workflows/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',

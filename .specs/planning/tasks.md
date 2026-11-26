@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-205 to Completed)
-version: 7.110
+lastUpdated: 2026-11-26 (BL-204 to Completed)
+version: 7.111
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -73,7 +73,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-204 | feat | P2 | `specpilot compact` report before any agent read, after BL-203: for every file compact touches, size and ≈tokens (bytes ÷ 4): `tasks.md` and `prompts.md` with the exact saving from `planCompletedArchive()`/`planPromptsArchive()`, `context.md` with a likely range (entry statuses predicted as after archive) and the exact one in `--apply --dry-run`, `requirements.md` from BL-203's rewrites; avoidable tokens per read and per task (`--calls <n>`, default 50, as cache reads); compact's one-off run cost and payback in reads; `/specpilot-compact` shows it and asks before reading. The developer, 2026-11-26; held until BL-203 so requirements.md is covered. |
 
 ## Review
 
@@ -120,3 +119,4 @@ Notes
 | 305 | [CD-girishr-214] [BL-202] | `specpilot compact` and `/specpilot-compact`: an agent picks the `development/context.md` entries that no longer bind the work into `compact-plan.md`, the user reviews it and types `apply`, and `specpilot compact --apply` moves them byte for byte to `context-archive.md` with one marker line each, a round-trip check before any write, and a refusal for an open task's entry (Won't do included); the listing shows each entry's status, lines and size; the routing-table row (new files and backfill) points agents at the archives; `archive` unchanged. Scratch trial: 93 of 140 finished entries moved, 139 KB off context.md. REQ-002.A.19, REQ-002.E.19, ARCH-004.82; BL-203 and BL-204 filed. Jest 2200, browser 201. Approved 2026-11-26. Commit 94c9dc1. |
 | 306 | [CD-girishr-215] [BL-203] | `specpilot compact` and `/specpilot-compact` rewrite `requirements.md` items: the agent rewrites the largest keyed items (at most 10, each at least 4 KB) to current behaviour into `development/compact-requirements.md` (`### <key> <sha>`, a `Reason:` line, a text fence); `--apply --dry-run` lists bytes before and after and the dropped backticked strings and IDs; one typed `apply` applies both plans, all or nothing; each item is replaced in place and its original kept byte for byte in `project/requirements-archive.md`; refusals for a stale sha, a longer rewrite, a rewrite not one item ending in the same key, a malformed heading; round-trip and key-set check before any write. Scratch trial: 10 items, 22.8 KB saved for about 170k tokens. REQ-002.A.20, REQ-002.E.19, ARCH-004.83; BL-206 filed. Jest 2233, browser 201. Approved 2026-11-26. Commit 758dbf6. |
 | 307 | [CD-girishr-216] [BL-205] | `specpilot serve` Explorer rows show each spec file's size, line count and ≈tokens after its front matter (`1.9 KB · 62 lines · ~477 tokens`): `GET /api/specs` `files[path]` gains `bytes`, `lines`, `tokens` (`ceil(bytes / 4)`, BL-204's rule, no tokenizer) in `buildSpecsPayload()`; `sizeLine()` picks the unit after `toFixed(1)`; Overview and MCP unchanged. REQ-002.H.80. Jest 2234, browser 203. Commit 20f360a. |
+| 308 | [CD-girishr-217] [BL-204] | `specpilot compact --report`: before any agent reads, one row per file compact touches (`tasks.md`, `prompts.md`, `context.md`, `requirements.md`) with size, ≈tokens (bytes ÷ 4), the saving (exact for what `specpilot archive` moves; likely for the agent: half of the `finished` context entries after archive less their markers, a fifth of the requirements it would rewrite, already-rewritten ones skipped), tokens avoided per read and per task (`--calls <n>`, default 50), and the agent run's cost and payback, or `Nothing for the agent to compact.`; `/specpilot-compact` shows it first and asks; `--apply --dry-run` adds exact before and after; plain `compact` unchanged (REQ-002.A.21, ARCH-004.84; commit 9146c3a) |

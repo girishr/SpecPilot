@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-11-26 (BL-205 Spec Report: files[path] bytes, lines, tokens)
-# version: 2.71
+# lastUpdated: 2026-11-26 (BL-204 Spec Report: compact --report, --calls)
+# version: 2.72
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -238,7 +238,15 @@ commands:
       --force:
         type: boolean
         description: With --apply, skip the branch warning
+      --report:
+        type: boolean
+        description: Print only the compact report (BL-204, REQ-002.A.21); refused with --apply
+      --calls:
+        type: number
+        default: 50
+        description: Model calls per task for the per-task tokens, a whole number from 1 to 1000; refused without --report or --apply --dry-run ('--calls works only with --report or --apply --dry-run.', exit 1)
     behavior:
+      - "BL-204: --report prints only the compact report, plain compact is unchanged (per file compact touches: size, ≈tokens = ceil(bytes / 4), saving, per read, per task, and how: exact (archive), archive refuses, likely (agent): half of <X> KB in <N> finished entries, or likely (agent): a fifth of <X> KB in <N> items; the agent run's ≈tokens and payback in reads, or 'Nothing for the agent to compact.'); --apply --dry-run also prints '<file>: <before> KB → <after> KB, ≈<n> fewer tokens per read, ≈<m> over a <calls>-call task'"
       - Without --apply, read-only; prints each entry's lead, line count, size in KB and status (no-lead, no-id, open, unknown, finished, completed; first match wins)
       - "With --apply and no plan file: prints 'No plan: .specs/development/compact-plan.md not found. Run /specpilot-compact first.', exit 1"
       - With --apply, refuses the whole run, nothing written, exit 1, when a lead matches no entry or several, a lead is listed in two rows, an action is not keep or archive, an archive row has no reason, an archive row names an open task ID, an archive row names an entry that is already a marker, or the plan is not the three-column table (GFM cells, \\| a literal pipe)

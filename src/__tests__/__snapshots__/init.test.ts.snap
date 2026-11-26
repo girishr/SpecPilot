@@ -355,10 +355,11 @@ Files that would be created:
   <dir>/demo/.github/prompts/specpilot-refine.prompt.md
   <dir>/demo/.github/prompts/specpilot-validate.prompt.md
   <dir>/demo/.github/prompts/specpilot-archive.prompt.md
+  <dir>/demo/.github/prompts/specpilot-compact.prompt.md
   <dir>/demo/.github/prompts/specpilot-backfill.prompt.md
   <dir>/demo/.gitattributes
 
-(25 files, 11 directories)
+(26 files, 11 directories)
 
 💡 Run without --dry-run to create these files."
 `;

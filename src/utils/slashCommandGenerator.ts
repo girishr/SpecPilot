@@ -94,6 +94,9 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
     '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
   ],
+  '.agent/workflows/specpilot-compact.md': [
+    '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
+  ],
   '.agent/workflows/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
   ],
@@ -126,6 +129,9 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '16c9c26b3e63b6e77067dab0037cb49d51d344e9bf392a431f09f7918ee3c813',
     '14848ce3ddedac11c2422736e48bf289047a11d4aa04b20a670d24b558e0af01',
     '1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78',
+  ],
+  '.claude/commands/specpilot-compact.md': [
+    '19bae9e5047f5337a9e71ce9ea740e0e3aa4e2391a642c57e85cdfbf76538137',
   ],
   '.claude/commands/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -160,6 +166,9 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
     '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
   ],
+  '.codex/prompts/specpilot-compact.md': [
+    '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
+  ],
   '.codex/prompts/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
   ],
@@ -192,6 +201,9 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
     '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
+  ],
+  '.cursor/commands/specpilot-compact.md': [
+    '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
   ],
   '.cursor/commands/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',
@@ -226,6 +238,9 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '0845b5f0c35044f190644a78e3dc097383f8af57efa91543a19ddc70d12d46d5',
     '9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f',
   ],
+  '.github/prompts/specpilot-compact.prompt.md': [
+    'fcd906afde5c863c876ce4a095256f378fbcb36b470aac0fb5af7c47ce49879d',
+  ],
   '.github/prompts/specpilot-reanchor.prompt.md': [
     '30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf',
   ],
@@ -258,6 +273,9 @@ export const KNOWN_COMMAND_HASHES: Record<string, string[]> = {
     '1ea360060ab8356bc58e5cde5415ddbf0e3825162f58d1f7c7b7476d894a8737',
     'dfa92eee86a0056e2b81edb41e9ed20c89e391ae9c2b0191c3b6d31d46ba8609',
     '738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29',
+  ],
+  '.windsurf/workflows/specpilot-compact.md': [
+    '88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1',
   ],
   '.windsurf/workflows/specpilot-reanchor.md': [
     'd1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49',

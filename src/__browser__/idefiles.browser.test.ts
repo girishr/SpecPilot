@@ -48,7 +48,7 @@ const regenDone = (page: Page) =>
 browserTest("a Cursor-only project's commands show under From SpecPilot, its rules file under Instructions", b, async open => {
   const { page } = await open(srv, '#commands');
   await waitView(page, 'v-commands');
-  expect(await page.locator('#cmdSpCnt').textContent()).toBe('8');
+  expect(await page.locator('#cmdSpCnt').textContent()).toBe('9');
   expect(await page.locator('#cmdYouCnt').textContent()).toBe('0');
   expect(await page.locator('#cmdBox').textContent()).toContain('.cursor/commands/specpilot-status.md');
   await page.click('[data-open=".cursor/commands/specpilot-status.md"]');
@@ -102,7 +102,7 @@ browserTest('at 420px in both themes the Commands and Instructions views fit idl
     expect(await page.locator('#regenNote').innerText()).toBe('The server could not finish this request. Command files may have been partly written.');
     expect([theme, 'commands error', await noSideScroll(page)]).toEqual([theme, 'commands error', true]);
     await bareRows(page, `${theme} error`);
-    expect(await page.locator('#cmdSpCnt').textContent()).toBe('8');
+    expect(await page.locator('#cmdSpCnt').textContent()).toBe('9');
     await page.unroute('**/api/commands/regenerate**');
   }
 }, [/status of 500/]);

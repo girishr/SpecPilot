@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
-import { buildProcessMandatesMarkdown } from '../core/ideConfig';
+import { ARCHIVE_ROW, buildProcessMandatesMarkdown } from '../core/ideConfig';
 import { resolveAllowedPath, writeError, writeInside } from './specPaths';
 import { loadRepoYaml } from './specReader';
 import { cursorLegacy, cursorLegacyWarning, OLD_RULES } from './cursorLegacy';
@@ -233,6 +233,26 @@ export function withTasksLine(content: string): string | null {
   if (last === -1) last = heading;
   else while (last + 1 < end && /^\s+\S/.test(lines[last + 1])) last++; // an item's indented continuation lines
   lines.splice(last + 1, 0, TASKS_LINE);
+  return lines.join(eol);
+}
+
+const ARCHIVE_LABEL = 'Archive lookup row';
+
+/**
+ * BL-202 (REQ-002.A.19): the file with the routing table's archive row added after the table's last row, no other byte
+ * changed, or null when the row is there or there is no `## Context` routing table (one the user removed is not recreated).
+ */
+export function withArchiveRow(content: string): string | null {
+  if (content.includes(ARCHIVE_ROW)) return null;
+  const eol = content.includes('\r\n') ? '\r\n' : '\n';
+  const lines = content.split(eol);
+  const heading = lines.findIndex((l) => l.startsWith('## Context'));
+  if (heading === -1) return null;
+  let i = heading + 1;
+  while (i < lines.length && !lines[i].trim().startsWith('|') && !lines[i].startsWith('#')) i++;
+  if (i >= lines.length || !lines[i].trim().startsWith('|')) return null;
+  while (i + 1 < lines.length && lines[i + 1].trim().startsWith('|')) i++;
+  lines.splice(i + 1, 0, ARCHIVE_ROW);
   return lines.join(eol);
 }
 
@@ -504,10 +524,12 @@ export class SpecBackfiller {
     const missingMandates = mandates.filter((m) => !content.includes(m.fingerprint));
     const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
     const withTasks = withTasksLine(content);
-    const total = mandates.length + CODE_SECTIONS.length + 1;
-    const found = total - missingMandates.length - missingSections.length - (withTasks === null ? 0 : 1);
+    const withArchive = withArchiveRow(withTasks ?? content);
+    const archiveCounts = withArchive !== null || content.includes(ARCHIVE_ROW); // no routing table: not an item of this file
+    const total = mandates.length + CODE_SECTIONS.length + 1 + (archiveCounts ? 1 : 0);
+    const found = total - missingMandates.length - missingSections.length - (withTasks === null ? 0 : 1) - (withArchive === null ? 0 : 1);
 
-    if (missingMandates.length === 0 && missingSections.length === 0 && withTasks === null) {
+    if (missingMandates.length === 0 && missingSections.length === 0 && withTasks === null && withArchive === null) {
       return { action: 'skipped', found: total, total, added: [] };
     }
 
@@ -520,7 +542,7 @@ export class SpecBackfiller {
       if (missingSections.length > 0) {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
       }
-      const base = withTasks ?? content;
+      const base = withArchive ?? withTasks ?? content;
       writeInside(projectDir, '.github/copilot-instructions.md', toAppend ? base.trimEnd() + toAppend + '\n' : base);
     }
 
@@ -528,7 +550,7 @@ export class SpecBackfiller {
       action: 'updated',
       found,
       total,
-      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL])],
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL]), ...(withArchive === null ? [] : [ARCHIVE_LABEL])],
     };
   }
 
@@ -583,10 +605,12 @@ export class SpecBackfiller {
     const missingMandates = TERSE_MD_MANDATES.filter((m) => !content.includes(m.fingerprint));
     const missingSections = CODE_SECTIONS.filter((s) => !content.includes(s.fingerprint));
     const withTasks = withTasksLine(content);
-    const total = TERSE_MD_MANDATES.length + CODE_SECTIONS.length + 1;
-    const found = total - missingMandates.length - missingSections.length - (withTasks === null ? 0 : 1);
+    const withArchive = withArchiveRow(withTasks ?? content);
+    const archiveCounts = withArchive !== null || content.includes(ARCHIVE_ROW); // no routing table: not an item of this file
+    const total = TERSE_MD_MANDATES.length + CODE_SECTIONS.length + 1 + (archiveCounts ? 1 : 0);
+    const found = total - missingMandates.length - missingSections.length - (withTasks === null ? 0 : 1) - (withArchive === null ? 0 : 1);
 
-    if (missingMandates.length === 0 && missingSections.length === 0 && withTasks === null) {
+    if (missingMandates.length === 0 && missingSections.length === 0 && withTasks === null && withArchive === null) {
       return {
         path: relativePath,
         action: 'skipped',
@@ -604,7 +628,7 @@ export class SpecBackfiller {
       if (missingSections.length > 0) {
         toAppend += '\n\n' + missingSections.map((s) => s.content).join('\n\n');
       }
-      const base = withTasks ?? content;
+      const base = withArchive ?? withTasks ?? content;
       writeInside(projectDir, relativePath, toAppend ? base.trimEnd() + toAppend + '\n' : base);
     }
 
@@ -613,7 +637,7 @@ export class SpecBackfiller {
       action: 'updated',
       found,
       total,
-      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL])],
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL]), ...(withArchive === null ? [] : [ARCHIVE_LABEL])],
     };
   }
 

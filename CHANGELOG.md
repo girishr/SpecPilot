@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`specpilot compact` and `/specpilot-compact` shrink `context.md`** (BL-202): `context.md` keeps every decision ever made, so agents spend tokens on entries that no longer bind the work. Run `/specpilot-compact` in your AI IDE: it runs `specpilot archive` first, reads `context.md`, and writes a plan (`.specs/development/compact-plan.md`) of which entries to archive or keep and why. It never picks a Won't do task's context, a drop on purpose, a security decision or an entry that still binds. You review the plan (edit it or tell the agent), then type `apply`: `specpilot compact --apply` moves the picked entries byte for byte to `development/context-archive.md`, leaves one marker line per entry in `context.md`, checks that the markers expand back to the original, and refuses an entry whose task is still open. `specpilot compact` alone lists each entry's status (`finished`, `completed`, `open`, `unknown`, `no-id`, `no-lead`). `/specpilot-compact` needs the CLI installed. New instruction files, and `specpilot backfill` for existing ones, add a routing-table row telling agents to search the `*-archive.md` files for an ID or decision they cannot find. `specpilot archive` is unchanged.
+
 ### Fixed
 
 - **`specpilot refine --update` no longer empties `tasks.md`** (BL-198): after replacing the overview it rewrote every `.specs/` file from the templates, so Backlog rows, decisions, the prompt log and hand edits to `project.yaml` were lost. It now creates only the missing spec and IDE files and keeps every existing one byte for byte, `project.yaml` included, so its `ides` list is no longer rewritten (BL-168's normalising and its reset to `[vscode]` are gone; the files still follow the list). `--update`'s help now reads `Replace the overview and create missing spec and IDE files`.

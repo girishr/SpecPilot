@@ -42,6 +42,7 @@
 | Tests | + `quality/tests.md` |
 | Security | + `security/threat-model.md`, `security/security-decisions.md` |
 | Planning | + `planning/tasks.md`, `planning/roadmap.md` |
+| Task ID or decision not in a spec file | search the matching `*-archive.md` in `.specs/` |
 
 ## Code Philosophy — Write Only What Needed
 

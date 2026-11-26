@@ -224,7 +224,7 @@ describe('every IDE file SpecPilot writes is served and listed (BL-152)', () => 
     ]);
     expect(nav.instructions[3].bytes).toBe(6);
     const generated = nav.commands.filter(f => f.generated).map(f => f.path);
-    expect(generated).toHaveLength(7);
+    expect(generated).toHaveLength(8);
     expect(generated.every(f => f.startsWith('.cursor/commands/specpilot-'))).toBe(true);
     expect(nav.commands.filter(f => !f.generated).map(f => f.path).sort()).toEqual(['.claude/commands/a.md', '.codex/prompts/z.md', '.cursor/commands/mine.md', edited].sort());
     expect(nav.commands[0].path).toBe('.claude/commands/a.md');
@@ -2595,14 +2595,14 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
   it('adds the missing Claude Code commands and skill, lists them under From SpecPilot and reports their paths', async () => {
     const res = await regen();
     expect(res.status).toBe(200);
-    expect(res.json.added).toHaveLength(9);
-    expect(res.json.added.slice(0, 8).every((f: string) => f.startsWith('.claude/commands/specpilot-'))).toBe(true);
-    expect(res.json.added[8]).toBe(SKILL);
+    expect(res.json.added).toHaveLength(10);
+    expect(res.json.added.slice(0, 9).every((f: string) => f.startsWith('.claude/commands/specpilot-'))).toBe(true);
+    expect(res.json.added[9]).toBe(SKILL);
     expect(flag(res.json.specs.nav.skills, SKILL)).toBe(true);
     expect(res.json.updated).toEqual([]);
     expect(res.json.kept).toEqual([]);
     expect(res.json.message).toEqual([`Added: ${res.json.added.join(', ')}.`]);
-    expect(res.json.specs.nav.commands.map((f: { generated: boolean }) => f.generated)).toEqual(Array(8).fill(true));
+    expect(res.json.specs.nav.commands.map((f: { generated: boolean }) => f.generated)).toEqual(Array(9).fill(true));
     expect((await regen()).json.message).toEqual(['Every SpecPilot command file is current.']);
   });
 
@@ -2676,7 +2676,7 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
     write(p.root, '.cursor/rules/specpilot.mdc', 'rules\n');
     const res = await regen();
     const cursor = res.json.added.filter((f: string) => f.startsWith('.cursor/commands/'));
-    expect(cursor).toHaveLength(8);
+    expect(cursor).toHaveLength(9);
     expect(res.json.message.some((l: string) => l.startsWith('Not listed'))).toBe(false);
     for (const f of cursor) expect(flag(res.json.specs.nav.commands, f)).toBe(true);
   });
@@ -2695,7 +2695,7 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
     const res = await regen();
     expect(res.status).toBe(200);
     const linked = res.json.kept.filter((k: { path: string }) => k.path.startsWith('.github/prompts/'));
-    expect(linked).toHaveLength(8);
+    expect(linked).toHaveLength(9);
     expect(linked.every((k: { reason: string }) => k.reason === 'folder is a symbolic link or not a folder')).toBe(true);
     expect(res.json.message.some((l: string) => l.startsWith('Kept as they were: .github/prompts/specpilot-'))).toBe(true);
     expect(readdirSync(p.outside)).toEqual(['secret.txt']);
@@ -2706,7 +2706,7 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
     symlinkSync(p.outside, at('.github'));
     const res = await regen();
     const linked = res.json.kept.filter((k: { path: string }) => k.path.startsWith('.github/prompts/'));
-    expect(linked).toHaveLength(8);
+    expect(linked).toHaveLength(9);
     expect(linked.every((k: { reason: string }) => k.reason === 'folder is a symbolic link or not a folder')).toBe(true);
     expect(readdirSync(p.outside).sort()).toEqual(['copilot-instructions.md', 'secret.txt']);
   });
@@ -2714,8 +2714,8 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
   (process.platform === 'win32' ? it.skip : it)('skips a linked .claude folder', async () => {
     symlinkSync(p.outside, at('.claude'));
     const res = await regen();
-    expect(res.json.kept).toHaveLength(9); // the eight commands and the skill (BL-PM-012)
-    expect(res.json.kept[8]).toEqual({ path: SKILL, reason: 'folder is a symbolic link or not a folder' });
+    expect(res.json.kept).toHaveLength(10); // the nine commands and the skill (BL-PM-012)
+    expect(res.json.kept[9]).toEqual({ path: SKILL, reason: 'folder is a symbolic link or not a folder' });
     expect(res.json.added).toEqual([]);
     expect(readdirSync(p.outside)).toEqual(['secret.txt']);
   });
@@ -2766,7 +2766,7 @@ describe('Regenerate All over HTTP (BL-PM-006)', () => {
       post(port, JSON.stringify({ id: 'BL-002', toSection: 'currentSprint', toIndex: 0 }), good({ 'If-Match': ifMatch })),
     ]);
     expect([a.status, b.status]).toEqual([200, 200]);
-    expect(a.json.added).toHaveLength(9);
+    expect(a.json.added).toHaveLength(10);
   });
 
   it('answers 500 when the run throws, and the page adds that files may be partly written', async () => {

@@ -4,6 +4,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
 {
   ".claude/commands/specpilot-archive.md": "ec55bea41f120e53574517a061f72e841aaf18b7066cdffa4a984d409eb46c1c",
   ".claude/commands/specpilot-backfill.md": "1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78",
+  ".claude/commands/specpilot-compact.md": "19bae9e5047f5337a9e71ce9ea740e0e3aa4e2391a642c57e85cdfbf76538137",
   ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
   ".claude/commands/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
@@ -25,7 +26,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".specs/quality/tests.md": "0b54fa1bef850f4bf53d6a21c8e25afc876554d9ca2f829ef3cbd353a7f7b4f9",
   ".specs/security/security-decisions.md": "5dcd39091a6717990d93674c619322b8a139fe2968458be9ad31bfc37d18f6e2",
   ".specs/security/threat-model.md": "02526d9fb826d826b9b5c975cd77e35f5b1dd3c7f4146fbd483191924ad5e397",
-  "CLAUDE.md": "608d508744709ed19a012586a265ec30d4919978a5dfb8367aa5a53e74b813eb",
+  "CLAUDE.md": "dfc5a4032a025b1063e2b97cdf8743616a92f1acda41e7de0134d4e16b90193a",
 }
 `;
 
@@ -33,6 +34,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
 {
   ".codex/prompts/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".codex/prompts/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
+  ".codex/prompts/specpilot-compact.md": "88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1",
   ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
   ".codex/prompts/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
@@ -40,7 +42,7 @@ exports[`optional template fields (BL-032 phase 2) every field set: claude-code 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "81b3ce0e6c26a3e7a67d035889f3d4bb9be26785ad60f11d491c016de9e49e37",
+  ".github/copilot-instructions.md": "3161a97bb4490102d0098519dee769bc5c3b41470867fbce83e3a5e04a7ce34f",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "2b5a02976f95617ea29ae4320de7f9178df42762e81099f034388886349d7ee3",
   ".specs/architecture/architecture.md": "8f25ac0ea6dcd1cfc8491e3b6183de222b6e7ec5f56e7c7d5c6944f2154b52a3",
@@ -109,6 +111,7 @@ CHANGELOG.md merge=union
 | Tests | + \`quality/tests.md\` |
 | Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
 | Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+| Task ID or decision not in a spec file | search the matching \`*-archive.md\` in \`.specs/\` |
 
 ## Code Philosophy — Write Only What Needed
 
@@ -477,6 +480,35 @@ After running it:
 3. Never overwrite existing content in any file; every append goes to the end of the file.
 
 **Maintenance cost**: unlike the CLI's \`specBackfiller.ts\`, this command has no shared source-of-truth constant to import — its four fingerprint blocks above are a literal copy and must be manually kept in sync whenever \`CLAUDE.md\`/\`copilot-instructions.md\` generation changes (\`buildCriticalMandatesMarkdown()\`, \`buildCodePhilosophyMarkdown()\` in \`ideConfigGenerator.ts\`). If this command's output ever looks stale, check those functions first.",
+  ".github/prompts/specpilot-compact.prompt.md": "---
+mode: agent
+description: Move context.md entries that no longer bind the work to context-archive.md (you pick them, the SpecPilot CLI moves them)
+---
+
+Shrink \`.specs/development/context.md\` by moving entries that no longer bind the work to \`.specs/development/context-archive.md\`. You decide which entries go; the SpecPilot CLI does the move, byte for byte, and checks nothing was lost. Never edit \`context.md\` or \`context-archive.md\` yourself.
+
+1. **Check the CLI.** Run \`command -v specpilot\`. If it prints nothing, stop and say: \`specpilot-compact needs the SpecPilot CLI: npm install -g specpilot@latest\`. Later, if \`specpilot compact\` fails as an unknown command (an older CLI), stop with the same line.
+2. **Check the branch.** Run \`git rev-parse --abbrev-ref HEAD\`. If it is not \`main\` or \`master\`, ask the user in chat whether to go on, and stop unless they say yes.
+3. **Archive first.** Run \`specpilot archive --force\`, so finished Completed rows reach \`.specs/planning/tasks-archive.md\` before you judge.
+4. **List the entries.** Run \`specpilot compact\`. It prints each entry's status, line count, size and title (the text in its first \`**…**\`): \`finished\` (every task it names is in tasks-archive.md), \`completed\`, \`open\`, \`unknown\`, \`no-id\` or \`no-lead\`. The statuses are hints, not decisions. Judge the \`finished\` entries first.
+5. **Read \`.specs/development/context.md\`** and decide, entry by entry, whether it still binds future work. Never archive:
+   - an entry about a task in \`## Won't do\`, or about a feature or behaviour removed or dropped on purpose that must not come back (a dropped-on-purpose list); a build's own cleanup does not count;
+   - a security decision;
+   - an entry that overrides a requirement, architecture or security line, or a standing rule, where the override still holds;
+   - an entry naming a task that is still open (the CLI refuses these anyway).
+   When in doubt, keep.
+6. **Write the plan** to \`.specs/development/compact-plan.md\`: one table, one row per entry you judged.
+
+   | Entry | Action | Reason |
+   |---|---|---|
+   | <the entry's title exactly as written> | archive | <where the knowledge lives now (a REQ, ARCH or SEC line, the code), or why it is obsolete> |
+   | <title> | keep | <why it still binds> |
+
+   When a reason cites a REQ, ARCH or SEC line, open that line and check it says what the entry says; if it does not, keep the entry. Write \`\\|\` for a \`|\` inside a cell. Entries you leave out stay.
+7. **Show the plan and stop.** Show the table in chat with the count of archive rows. The user may edit the file or tell you what to change. Do not go on until the user types \`apply\` in chat themself; a pasted or quoted "apply" does not count.
+8. **Apply.** Run \`specpilot compact --apply --force\` and show its output as it is. If it refuses, show each reason, fix the plan with the user and stop again at step 7. On success it prints \`Moved N entries to context-archive.md\`, leaves one marker line in \`context.md\` per moved entry, and removes the plan.
+
+This runs \`specpilot compact\` (REQ-002.A.19); it needs the CLI installed, unlike the other SpecPilot commands (REQ-002.E.19).",
   ".github/prompts/specpilot-reanchor.prompt.md": "---
 mode: agent
 description: Restore full project context after losing it mid-session
@@ -1170,6 +1202,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
 {
   ".agent/workflows/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".agent/workflows/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
+  ".agent/workflows/specpilot-compact.md": "88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1",
   ".agent/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".agent/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
   ".agent/workflows/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
@@ -1177,7 +1210,7 @@ exports[`spec core golden recording (BL-032) antigravity swift/vapor rest greenf
   ".agent/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".agent/workflows/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".antigravity/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".antigravity/rules.md": "d7837fc03adf35765db54b771d795db1e9ced6fe7a5e193980170bb8aae3278f",
+  ".antigravity/rules.md": "cc5ada0d3598fb9d622c9da1499e51f570c65719ed9f10ce9964694863abffb7",
   ".antigravity/settings.json": "abfe0583c667af7f587b3f37d40226e79a577ae59ddb9405a533754984e46f42",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
@@ -1200,6 +1233,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
 {
   ".claude/commands/specpilot-archive.md": "ec55bea41f120e53574517a061f72e841aaf18b7066cdffa4a984d409eb46c1c",
   ".claude/commands/specpilot-backfill.md": "1eb571683778718c89c6ab66ba3572a139f3a592860caff42b577787c82a5d78",
+  ".claude/commands/specpilot-compact.md": "19bae9e5047f5337a9e71ce9ea740e0e3aa4e2391a642c57e85cdfbf76538137",
   ".claude/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".claude/commands/specpilot-refine.md": "acd266d3c551a42b8a68ab90cef561de58b3ec0fe3a37ebbbd734298d320b471",
   ".claude/commands/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
@@ -1221,7 +1255,7 @@ exports[`spec core golden recording (BL-032) claude-code javascript/react rest g
   ".specs/quality/tests.md": "c259ce6b0adb6ac3d1cf2564a61191b9a60447b10622894f3d131a4205e1f050",
   ".specs/security/security-decisions.md": "c07c1ac68d3fd4a9e66c07267808825c22506c208e5a4546d07bc250f1fd6da3",
   ".specs/security/threat-model.md": "f9162e7f074f2fa7918169990955ef7d5309c17eb7add6fd6f9f328888fb09ee",
-  "CLAUDE.md": "83c15222e4989441ba0b3cafcd25d5912f0c0209b0af70250bc4ff38a386e0d3",
+  "CLAUDE.md": "0020f034ee0c4bd5d2cfb00bc01f8fb37c36380eb3f6056bc779e9febd300126",
 }
 `;
 
@@ -1229,6 +1263,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
 {
   ".codex/prompts/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".codex/prompts/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
+  ".codex/prompts/specpilot-compact.md": "88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1",
   ".codex/prompts/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".codex/prompts/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
   ".codex/prompts/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
@@ -1236,7 +1271,7 @@ exports[`spec core golden recording (BL-032) codex typescript no framework rest 
   ".codex/prompts/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".codex/prompts/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "e46873b2b0e00e10fdf9b1d436494f5d29c8afa0395d9dafbcd932c1b9ea4e1d",
+  ".github/copilot-instructions.md": "613ad1855faac6f727561273eed1497479e86ff5accf7bed1bcfdf219fab37e4",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
   ".specs/architecture/api.yaml": "410a994dd339c515f09b21104aa1271c7622cce4b14b720027aee28671779100",
   ".specs/architecture/architecture.md": "3e14693f91a127e70d1c57432a284a35317e173b646a940870a3a903d06068d5",
@@ -1258,6 +1293,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
 {
   ".cursor/commands/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".cursor/commands/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
+  ".cursor/commands/specpilot-compact.md": "88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1",
   ".cursor/commands/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".cursor/commands/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
   ".cursor/commands/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
@@ -1265,7 +1301,7 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
   ".cursor/commands/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".cursor/commands/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
   ".cursor/extensions.json": "6de44d91c39ec042e7d6194f78d26f23fc78c685847a57cfa5962697ef7387df",
-  ".cursor/rules/specpilot.mdc": "8e784144deed9411ad51683bec9828f68cf785c8365bd456cdfc8cebb8809a01",
+  ".cursor/rules/specpilot.mdc": "c4d9f3a07027f0298d8f26f04cceb4e1287be3423ce73f4895e864bd58497643",
   ".cursor/settings.json": "040a19c3ec92aa93f255ee9d3c1b1c8f0c1e4991508d01bfb22421c84f72677d",
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
   ".specs/README.md": "abd7e1017b1e4756ab179fc8360be62d51e22dc26c1054f077ac9c8fe45d2e46",
@@ -1287,9 +1323,10 @@ exports[`spec core golden recording (BL-032) cursor python/fastapi rest greenfie
 exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "5382be791bac53e2426fd8b0dc9953b859e3d8f0024f1d652a9e6380677e8250",
+  ".github/copilot-instructions.md": "6ff8cd01f2d5da46fde1a54e6ecc859e5925a5de8aefa5874905c5b5c924678f",
   ".github/prompts/specpilot-archive.prompt.md": "f048aa2e38b8b2c1012e6335e2eb4c9e703356ef149e28a48eeb96d575fda2b1",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
+  ".github/prompts/specpilot-compact.prompt.md": "fcd906afde5c863c876ce4a095256f378fbcb36b470aac0fb5af7c47ce49879d",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
   ".github/prompts/specpilot-report.prompt.md": "6e72be94c576ac7000896d68e1509d21f4218e1a917ce90b1debd252fdfaddd5",
@@ -1317,9 +1354,10 @@ exports[`spec core golden recording (BL-032) vscode python/django graphql 1`] = 
 exports[`spec core golden recording (BL-032) vscode typescript/express cli 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "4b4e9a8b10c23ceb3a660fba8c6a555c34dad844649026a77610ed43b84d5e69",
+  ".github/copilot-instructions.md": "1a29f44070a38f54f11f8e4f1c2aec4959309a9a54ccf605bb59bd7bc8c49de0",
   ".github/prompts/specpilot-archive.prompt.md": "f048aa2e38b8b2c1012e6335e2eb4c9e703356ef149e28a48eeb96d575fda2b1",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
+  ".github/prompts/specpilot-compact.prompt.md": "fcd906afde5c863c876ce4a095256f378fbcb36b470aac0fb5af7c47ce49879d",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
   ".github/prompts/specpilot-report.prompt.md": "6e72be94c576ac7000896d68e1509d21f4218e1a917ce90b1debd252fdfaddd5",
@@ -1395,6 +1433,7 @@ CHANGELOG.md merge=union
 | Tests | + \`quality/tests.md\` |
 | Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
 | Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+| Task ID or decision not in a spec file | search the matching \`*-archive.md\` in \`.specs/\` |
 
 ## Code Philosophy — Write Only What Needed
 
@@ -1763,6 +1802,35 @@ After running it:
 3. Never overwrite existing content in any file; every append goes to the end of the file.
 
 **Maintenance cost**: unlike the CLI's \`specBackfiller.ts\`, this command has no shared source-of-truth constant to import — its four fingerprint blocks above are a literal copy and must be manually kept in sync whenever \`CLAUDE.md\`/\`copilot-instructions.md\` generation changes (\`buildCriticalMandatesMarkdown()\`, \`buildCodePhilosophyMarkdown()\` in \`ideConfigGenerator.ts\`). If this command's output ever looks stale, check those functions first.",
+  ".github/prompts/specpilot-compact.prompt.md": "---
+mode: agent
+description: Move context.md entries that no longer bind the work to context-archive.md (you pick them, the SpecPilot CLI moves them)
+---
+
+Shrink \`.specs/development/context.md\` by moving entries that no longer bind the work to \`.specs/development/context-archive.md\`. You decide which entries go; the SpecPilot CLI does the move, byte for byte, and checks nothing was lost. Never edit \`context.md\` or \`context-archive.md\` yourself.
+
+1. **Check the CLI.** Run \`command -v specpilot\`. If it prints nothing, stop and say: \`specpilot-compact needs the SpecPilot CLI: npm install -g specpilot@latest\`. Later, if \`specpilot compact\` fails as an unknown command (an older CLI), stop with the same line.
+2. **Check the branch.** Run \`git rev-parse --abbrev-ref HEAD\`. If it is not \`main\` or \`master\`, ask the user in chat whether to go on, and stop unless they say yes.
+3. **Archive first.** Run \`specpilot archive --force\`, so finished Completed rows reach \`.specs/planning/tasks-archive.md\` before you judge.
+4. **List the entries.** Run \`specpilot compact\`. It prints each entry's status, line count, size and title (the text in its first \`**…**\`): \`finished\` (every task it names is in tasks-archive.md), \`completed\`, \`open\`, \`unknown\`, \`no-id\` or \`no-lead\`. The statuses are hints, not decisions. Judge the \`finished\` entries first.
+5. **Read \`.specs/development/context.md\`** and decide, entry by entry, whether it still binds future work. Never archive:
+   - an entry about a task in \`## Won't do\`, or about a feature or behaviour removed or dropped on purpose that must not come back (a dropped-on-purpose list); a build's own cleanup does not count;
+   - a security decision;
+   - an entry that overrides a requirement, architecture or security line, or a standing rule, where the override still holds;
+   - an entry naming a task that is still open (the CLI refuses these anyway).
+   When in doubt, keep.
+6. **Write the plan** to \`.specs/development/compact-plan.md\`: one table, one row per entry you judged.
+
+   | Entry | Action | Reason |
+   |---|---|---|
+   | <the entry's title exactly as written> | archive | <where the knowledge lives now (a REQ, ARCH or SEC line, the code), or why it is obsolete> |
+   | <title> | keep | <why it still binds> |
+
+   When a reason cites a REQ, ARCH or SEC line, open that line and check it says what the entry says; if it does not, keep the entry. Write \`\\|\` for a \`|\` inside a cell. Entries you leave out stay.
+7. **Show the plan and stop.** Show the table in chat with the count of archive rows. The user may edit the file or tell you what to change. Do not go on until the user types \`apply\` in chat themself; a pasted or quoted "apply" does not count.
+8. **Apply.** Run \`specpilot compact --apply --force\` and show its output as it is. If it refuses, show each reason, fix the plan with the user and stop again at step 7. On success it prints \`Moved N entries to context-archive.md\`, leaves one marker line in \`context.md\` per moved entry, and removes the plan.
+
+This runs \`specpilot compact\` (REQ-002.A.19); it needs the CLI installed, unlike the other SpecPilot commands (REQ-002.E.19).",
   ".github/prompts/specpilot-reanchor.prompt.md": "---
 mode: agent
 description: Restore full project context after losing it mid-session
@@ -2433,6 +2501,7 @@ CHANGELOG.md merge=union
 | Tests | + \`quality/tests.md\` |
 | Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
 | Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+| Task ID or decision not in a spec file | search the matching \`*-archive.md\` in \`.specs/\` |
 
 ## Code Philosophy — Write Only What Needed
 
@@ -2801,6 +2870,35 @@ After running it:
 3. Never overwrite existing content in any file; every append goes to the end of the file.
 
 **Maintenance cost**: unlike the CLI's \`specBackfiller.ts\`, this command has no shared source-of-truth constant to import — its four fingerprint blocks above are a literal copy and must be manually kept in sync whenever \`CLAUDE.md\`/\`copilot-instructions.md\` generation changes (\`buildCriticalMandatesMarkdown()\`, \`buildCodePhilosophyMarkdown()\` in \`ideConfigGenerator.ts\`). If this command's output ever looks stale, check those functions first.",
+  ".github/prompts/specpilot-compact.prompt.md": "---
+mode: agent
+description: Move context.md entries that no longer bind the work to context-archive.md (you pick them, the SpecPilot CLI moves them)
+---
+
+Shrink \`.specs/development/context.md\` by moving entries that no longer bind the work to \`.specs/development/context-archive.md\`. You decide which entries go; the SpecPilot CLI does the move, byte for byte, and checks nothing was lost. Never edit \`context.md\` or \`context-archive.md\` yourself.
+
+1. **Check the CLI.** Run \`command -v specpilot\`. If it prints nothing, stop and say: \`specpilot-compact needs the SpecPilot CLI: npm install -g specpilot@latest\`. Later, if \`specpilot compact\` fails as an unknown command (an older CLI), stop with the same line.
+2. **Check the branch.** Run \`git rev-parse --abbrev-ref HEAD\`. If it is not \`main\` or \`master\`, ask the user in chat whether to go on, and stop unless they say yes.
+3. **Archive first.** Run \`specpilot archive --force\`, so finished Completed rows reach \`.specs/planning/tasks-archive.md\` before you judge.
+4. **List the entries.** Run \`specpilot compact\`. It prints each entry's status, line count, size and title (the text in its first \`**…**\`): \`finished\` (every task it names is in tasks-archive.md), \`completed\`, \`open\`, \`unknown\`, \`no-id\` or \`no-lead\`. The statuses are hints, not decisions. Judge the \`finished\` entries first.
+5. **Read \`.specs/development/context.md\`** and decide, entry by entry, whether it still binds future work. Never archive:
+   - an entry about a task in \`## Won't do\`, or about a feature or behaviour removed or dropped on purpose that must not come back (a dropped-on-purpose list); a build's own cleanup does not count;
+   - a security decision;
+   - an entry that overrides a requirement, architecture or security line, or a standing rule, where the override still holds;
+   - an entry naming a task that is still open (the CLI refuses these anyway).
+   When in doubt, keep.
+6. **Write the plan** to \`.specs/development/compact-plan.md\`: one table, one row per entry you judged.
+
+   | Entry | Action | Reason |
+   |---|---|---|
+   | <the entry's title exactly as written> | archive | <where the knowledge lives now (a REQ, ARCH or SEC line, the code), or why it is obsolete> |
+   | <title> | keep | <why it still binds> |
+
+   When a reason cites a REQ, ARCH or SEC line, open that line and check it says what the entry says; if it does not, keep the entry. Write \`\\|\` for a \`|\` inside a cell. Entries you leave out stay.
+7. **Show the plan and stop.** Show the table in chat with the count of archive rows. The user may edit the file or tell you what to change. Do not go on until the user types \`apply\` in chat themself; a pasted or quoted "apply" does not count.
+8. **Apply.** Run \`specpilot compact --apply --force\` and show its output as it is. If it refuses, show each reason, fix the plan with the user and stop again at step 7. On success it prints \`Moved N entries to context-archive.md\`, leaves one marker line in \`context.md\` per moved entry, and removes the plan.
+
+This runs \`specpilot compact\` (REQ-002.A.19); it needs the CLI installed, unlike the other SpecPilot commands (REQ-002.E.19).",
   ".github/prompts/specpilot-reanchor.prompt.md": "---
 mode: agent
 description: Restore full project context after losing it mid-session
@@ -3409,9 +3507,10 @@ relatedFiles: [security/security-decisions.md, architecture/architecture.md, pro
 exports[`spec core golden recording (BL-032) vscode typescript/react none inferred 1`] = `
 {
   ".gitattributes": "7bb2fc006317ecb2c56a34cb916b4167a8eca432f5bf0a881d71d1c23d390bb3",
-  ".github/copilot-instructions.md": "95c336a94ad060d1f41a1281b07b9be61b352a1d5b68dbe991a04bb2053ff627",
+  ".github/copilot-instructions.md": "37e82bfc445596821ba4cc0f34386c33f7ab6230d41f2dc73e7f6215e632527f",
   ".github/prompts/specpilot-archive.prompt.md": "f048aa2e38b8b2c1012e6335e2eb4c9e703356ef149e28a48eeb96d575fda2b1",
   ".github/prompts/specpilot-backfill.prompt.md": "9590f76409527edd6a8d061cf632afb731466debfe168e34409997da9439af1f",
+  ".github/prompts/specpilot-compact.prompt.md": "fcd906afde5c863c876ce4a095256f378fbcb36b470aac0fb5af7c47ce49879d",
   ".github/prompts/specpilot-reanchor.prompt.md": "30f915e1a37a02fe01650a99fd214401d035ad2544207766762b90ab8ede70cf",
   ".github/prompts/specpilot-refine.prompt.md": "2489f0176dbbb452163e2588f5ef7ce8ce397b5032c8989731837f24f1955cb6",
   ".github/prompts/specpilot-report.prompt.md": "6e72be94c576ac7000896d68e1509d21f4218e1a917ce90b1debd252fdfaddd5",
@@ -3455,12 +3554,13 @@ exports[`spec core golden recording (BL-032) windsurf kotlin/spring rest greenfi
   ".windsurf/settings.json": "24f529abe8c9c93f91ca9c1590151223a01ecf4cbbb37ae36200bf6004a96014",
   ".windsurf/workflows/specpilot-archive.md": "4e28478e9b97b06d98b08e12fd4538c50214c61a4065106430fe4d33d0f19bcb",
   ".windsurf/workflows/specpilot-backfill.md": "738de7737403216e1a8e5f223e66cacd356357e1436e29786f802b634313ce29",
+  ".windsurf/workflows/specpilot-compact.md": "88ccbd237ca405c8b11e91a0aa9d46e1da86599f95d5e454b8bbeddd3056bdd1",
   ".windsurf/workflows/specpilot-reanchor.md": "d1f606a725e98f320735b6fa87991a9b2c8cad7ecca750b44e054f079f746b49",
   ".windsurf/workflows/specpilot-refine.md": "08d7e7a6491f7928b6511322039e05d4d1b594075753f1e9046518dfa5b20596",
   ".windsurf/workflows/specpilot-report.md": "ba699b927c96fc7b4e9714a4021837a8bdb39cf5fdeb38c03749ae7ee92a4af1",
   ".windsurf/workflows/specpilot-status.md": "5e5b17110956ad9b061910450ed10337dc82032fbf319e90c63a0884f1d89102",
   ".windsurf/workflows/specpilot-sync.md": "1da5cdd9a0ec55d48c675434751bd60a874627c5954e9708925a388d9b5fe366",
   ".windsurf/workflows/specpilot-validate.md": "b047cf646dc581b021c79f88e4aaa8fb29e60397ba5ec20d11f4faf67d7c45a0",
-  ".windsurfrules": "389828326e013bd607fbe6b76770c76cde746653e2d89bad8b35ca7c273f8d22",
+  ".windsurfrules": "6ff67a40210b36b881aaaaa7472b542dbd01bba6f9c7d0a4a5d2619b30eb37ab",
 }
 `;

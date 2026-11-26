@@ -78,6 +78,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `add-specs`             | Add specs to existing project                                     |
 | `validate`              | Validate specification files                                      |
 | `archive`               | Archive oversized `prompts.md` / `tasks.md` entries               |
+| `compact`               | List `context.md` entries for `/specpilot-compact`; `--apply` moves the entries its plan picks to `context-archive.md` |
 | `backfill`              | Backfill missing mandates, slash commands & the Claude Code skill     |
 | `list`                  | Show available templates                                          |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
@@ -98,6 +99,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `list`      | `--lang` · `--verbose`                                                              |
 | `refine`    | `--update` · `--no-prompts`                                                         |
 | `archive`   | `--dry-run` · `--force`                                                             |
+| `compact`   | `--dir` · `--apply` · `--dry-run` · `--force`                                       |
 | `add-specs` | `--no-analysis` · `--no-prompts` · `--ide`                                          |
 | `backfill`  | `--dir` · `--specs-name` · `--dry-run` · `--no-prompts`                             |
 | `serve`     | `--port` · `--poll` · `--read-only` · `--open` · `--no-mcp` · `--stop`              |
@@ -311,7 +313,7 @@ For desktop IDEs: `.vscode/settings.json` (or `.cursor/`, `.windsurf/`, etc.)
 
 ### Generated Slash Commands
 
-Each IDE/Agent selection also generates 8 `specpilot-*` slash/workflow commands (`status`, `reanchor`, `report`, `sync`, `refine`, `validate`, `archive`, `backfill`) that mirror key CLI operations as in-editor commands — e.g. `.claude/commands/specpilot-status.md` for Claude Code, `.cursor/commands/` for Cursor, `.github/prompts/` for GitHub Copilot. Running `backfill` on an existing project fills in any commands missing for your already-configured IDE(s) and updates the ones you have not edited to the current version; edited files are kept and listed. Each command file is reported as added, updated (to the current version), or kept with its reason: `kept: modified` (you changed it; delete it and re-run `specpilot backfill` to get the latest version), `kept: CRLF line endings` (a known version saved with Windows line endings) `kept: symbolic link` (links are never written through), `kept: folder is a symbolic link or not a folder` (nothing is written through a linked `.claude/` or similar) or `kept: could not be written: <code>` (the write failed; the rest still run). The `specpilot serve` page's Regenerate All runs the same step. See the [Full Guide](docs/GUIDE.md#generated-slash-commands) for the complete list and per-IDE paths.
+Each IDE/Agent selection also generates 9 `specpilot-*` slash/workflow commands (`status`, `reanchor`, `report`, `sync`, `refine`, `validate`, `archive`, `compact`, `backfill`; `compact` needs the CLI installed) that mirror key CLI operations as in-editor commands — e.g. `.claude/commands/specpilot-status.md` for Claude Code, `.cursor/commands/` for Cursor, `.github/prompts/` for GitHub Copilot. Running `backfill` on an existing project fills in any commands missing for your already-configured IDE(s) and updates the ones you have not edited to the current version; edited files are kept and listed. Each command file is reported as added, updated (to the current version), or kept with its reason: `kept: modified` (you changed it; delete it and re-run `specpilot backfill` to get the latest version), `kept: CRLF line endings` (a known version saved with Windows line endings) `kept: symbolic link` (links are never written through), `kept: folder is a symbolic link or not a folder` (nothing is written through a linked `.claude/` or similar) or `kept: could not be written: <code>` (the write failed; the rest still run). The `specpilot serve` page's Regenerate All runs the same step. See the [Full Guide](docs/GUIDE.md#generated-slash-commands) for the complete list and per-IDE paths.
 
 SpecPilot's commands do not write through symbolic links in the project, even links that point inside it; replace the link with the file to have it updated.
 

@@ -194,6 +194,9 @@ export function buildCriticalMandatesMarkdown(): string {
    - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\``;
   }
 
+/** BL-202: agents look in the archives for an ID or decision the active files no longer hold. */
+export const ARCHIVE_ROW = '| Task ID or decision not in a spec file | search the matching `*-archive.md` in `.specs/` |';
+
 export function buildContextRoutingTable(): string {
     return `## Context — read on demand by task type
 
@@ -204,7 +207,8 @@ export function buildContextRoutingTable(): string {
 | Architecture | + \`architecture/architecture.md\` |
 | Tests | + \`quality/tests.md\` |
 | Security | + \`security/threat-model.md\`, \`security/security-decisions.md\` |
-| Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |`;
+| Planning | + \`planning/tasks.md\`, \`planning/roadmap.md\` |
+${ARCHIVE_ROW}`;
   }
 
 export function buildProcessMandatesMarkdown(): string {

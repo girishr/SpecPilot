@@ -22,7 +22,7 @@ export function currentBranch(start: string): string | null {
   }
 }
 
-function askConfirmation(question: string): Promise<boolean> {
+export function askConfirmation(question: string): Promise<boolean> {
   return new Promise(resolve => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     rl.question(question, answer => {

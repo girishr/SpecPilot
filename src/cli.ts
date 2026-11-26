@@ -10,6 +10,7 @@ import { refineCommand } from './commands/refine';
 import { addSpecsCommand } from './commands/add-specs';
 import { archiveCommand } from './commands/archive';
 import { backfillCommand } from './commands/backfill';
+import { compactCommand } from './commands/compact';
 import { COMPLETED_LINE_LIMIT, PROMPTS_LINE_LIMIT } from './utils/specArchiver';
 import { serveCommand } from './commands/serve';
 import { Logger } from './utils/logger';
@@ -89,6 +90,16 @@ program
   .option('--dry-run', 'Preview what would be archived without writing any files')
   .option('--force', 'Skip branch warning and archive without confirmation')
   .action(archiveCommand);
+
+// Compact command (BL-202): an agent's plan picks the context.md entries, this moves them
+program
+  .command('compact')
+  .description('List development/context.md entries for /specpilot-compact to judge; with --apply, move the entries its plan picks to context-archive.md')
+  .option('-d, --dir <directory>', 'Project directory', '.')
+  .option('--apply', 'Move the archive rows of .specs/development/compact-plan.md, leaving a marker line for each')
+  .option('--dry-run', 'With --apply, show what would move without writing any files')
+  .option('--force', 'With --apply, skip the branch warning')
+  .action(compactCommand);
 
 // Add-specs command
 program

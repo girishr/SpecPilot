@@ -71,6 +71,26 @@ function makeProject(): { root: string; outside: string; cleanup: () => void } {
   return { root, outside, cleanup: () => rmSync(base, { recursive: true, force: true }) };
 }
 
+describe('files[path] bytes, lines and tokens (BL-205, REQ-002.H.80)', () => {
+  test('a final newline or not, an empty file, a two-byte character; front matter kept', () => {
+    const p = makeProject();
+    try {
+      write(p.root, '.specs/planning/nl.md', 'a\nb\n');
+      write(p.root, '.specs/planning/no-nl.md', 'a\nb');
+      write(p.root, '.specs/planning/empty.md', '');
+      write(p.root, '.specs/planning/wide.md', 'é');
+      const f = buildSpecsPayload(p.root, '0.0.0-test').files as Record<string, { bytes: number; lines: number; tokens: number; fileID?: string }>;
+      expect(f['planning/nl.md']).toMatchObject({ bytes: 4, lines: 2, tokens: 1 });
+      expect(f['planning/no-nl.md']).toMatchObject({ bytes: 3, lines: 2, tokens: 1 });
+      expect(f['planning/empty.md']).toMatchObject({ bytes: 0, lines: 0, tokens: 0 });
+      expect(f['planning/wide.md']).toMatchObject({ bytes: 2, lines: 1, tokens: 1 });
+      expect(f['planning/tasks.md']).toMatchObject({ fileID: 'TASKS-001', bytes: 111, lines: 11, tokens: 28 });
+    } finally {
+      p.cleanup();
+    }
+  });
+});
+
 describe('an oversized project.yaml gives no name (BL-137)', () => {
   test('buildSpecsPayload reads no name from a project.yaml over 256 KB', () => {
     const p = makeProject();

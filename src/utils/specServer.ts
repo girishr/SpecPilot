@@ -194,7 +194,13 @@ export function buildSpecsPayload(root: string, specpilotVersion: string) {
     const real = resolveAllowedPath(root, p);
     if (real) contents[p.slice('.specs/'.length)] = readFileSync(real, 'utf-8');
   }
-  const { files, tasks } = readSpecs(contents);
+  const { files: meta, tasks } = readSpecs(contents);
+  // BL-205 (REQ-002.H.80): size, lines as an editor counts them, and ≈tokens by BL-204's bytes ÷ 4 rule
+  const files = Object.fromEntries(Object.entries(meta).map(([p, m]) => {
+    const text = contents[p], bytes = Buffer.byteLength(text, 'utf-8');
+    const lines = text === '' ? 0 : text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
+    return [p, { ...m, bytes, lines, tokens: Math.ceil(bytes / 4) }];
+  }));
   const ides = projectIdes(root);
   const instructions = ALLOWED_FILES.map(path => {
     const real = resolveAllowedPath(root, path);

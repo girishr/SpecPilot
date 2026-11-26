@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-203 to Completed)
+lastUpdated: 2026-11-26 (BL-205 approved)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -79,6 +79,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-205 | feat | P3 | `serve` page, Explorer: each file row also shows its size, line count and ≈tokens (bytes ÷ 4, BL-204's rule; no tokenizer dependency), e.g. `12.4 KB · 318 lines · ~3.1k tokens`, after its `metaLine()`. `readSpecs()` (`specReader.ts`) already holds each file's text, so `GET /api/specs` `files[path]` gains `bytes`, `lines`, `tokens` with no new read; decide in the Spec Report whether the Overview Spec files card (which also uses `metaLine()`) and the MCP tools that return `files` show them too. Browser test on fixture rows, 420px check. The developer, 2026-11-26. Approved 2026-11-26 |
 
 ## Won't do
 

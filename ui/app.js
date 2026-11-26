@@ -727,12 +727,20 @@ async function renderFile(path){
 }
 const gone=goneHtml; // one definition of the "no longer exists" markup: ui/route.js
 
-/* Explorer: the .specs/ tree, each row carrying that file's own front matter. */
+/* Size, lines and ≈tokens (BL-205, REQ-002.H.80): each unit picked after toFixed(1) rounds. */
+function sizeLine(m){
+  if(!m||m.bytes===undefined)return '';
+  const kb=(m.bytes/1024).toFixed(1);
+  const size=m.bytes<1024?`${m.bytes} B`:Number(kb)<1024?`${kb} KB`:`${(m.bytes/1048576).toFixed(1)} MB`;
+  const tok=m.tokens<1000?`~${m.tokens}`:`~${(m.tokens/1000).toFixed(1)}k`;
+  return `${size} · ${m.lines} line${m.lines===1?'':'s'} · ${tok} tokens`;
+}
+/* Explorer: the .specs/ tree, each row carrying that file's own front matter, then its size. */
 function renderExplorer(){
   const dirs={};
   DATA.nav.specs.forEach(p=>{const ix=p.indexOf('/'),d=ix<0?'':p.slice(0,ix);(dirs[d]=dirs[d]||[]).push(p);});
   $('#exBody').innerHTML=Object.keys(dirs).map(d=>`<div class="gl mb18"><div class="gh" translate="no">${esc(d?d+'/':'.specs/')}</div><div class="box">${dirs[d].map(p=>{
-    const line=metaLine(DATA.files[p]);
+    const line=[metaLine(DATA.files[p]),sizeLine(DATA.files[p])].filter(Boolean).join(' · ');
     return `<button type="button" class="row act" data-file="${esc(p)}"><span class="st hollow" aria-hidden="true"></span><div class="body"><div class="ttl" translate="no">${esc(d?p.slice(d.length+1):p)}</div>${line?`<div class="det" translate="no">${esc(line)}</div>`:''}</div><div class="trail">${chev}</div></button>`;}).join('')}</div></div>`).join('');
   $$('#exBody .row.act').forEach(b=>b.onclick=()=>go('file',b.dataset.file));
   $('#exNote').innerHTML=`${DATA.nav.specs.length} files under <span class="mono" translate="no">.specs/</span>. Every ID, version and date is that file’s own front matter.`;

@@ -1,6 +1,6 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-203 approved)
+lastUpdated: 2026-11-26 (BL-203 to Completed)
 version: 7.110
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
@@ -79,7 +79,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-203 | feat | P2 | `specpilot-compact` for `project/requirements.md`: the agent rewrites a line to current behaviour only, the original line goes to `project/requirements-archive.md` byte for byte under its ID, the CLI checks no REQ ID is lost and the new line is shorter, and the user reviews each rewritten line. Follows BL-202. Rewritten items stay in place with their key; plan `development/compact-requirements.md`, applied with the context plan in one `--apply` (REQ-002.A.20, ARCH-004.83). The developer's 2026-11-25 ask (trim requirements.md too). Approved 2026-11-26 |
 
 ## Won't do
 
@@ -129,3 +128,4 @@ Notes
 | 303 | [CD-girishr-212] [BL-194] | SpecPilot's old Cursor rules file (`.cursor/rules/project.mdc`, before v2.1.0) found and fixed: `specpilot migrate --cursor-rules` (link-then-unlink rename, never over `specpilot.mdc`) and `--remove-old`; warnings in `validate`, `backfill` and `serve`'s startup output; `project.cursorLegacy` and `POST /api/ide/cursor-rules` (rename, remove, keep; sha256-pinned); the Instructions view's `old name`, `duplicate`, `edited copy` and `kept both` rows; Keep both per machine in `~/.specpilot/cursor-rules.json`. REQ-002.A.18, REQ-002.H.79, ARCH-004.81, SEC-004.40; BL-195 filed. Jest 2157, browser 201. Commit ead82fa. |
 | 304 | [CD-girishr-213] [BL-198] | `specpilot refine --update` no longer empties `tasks.md`: `generateSpecs()` gains `keepSpecs` (`writeInside`'s `create`), passed only by `refine --update`, so existing `.specs/` files, `project.yaml` included, are kept and missing ones created; the `ides` line is no longer rewritten (BL-168 decisions (1) and (3) superseded by the BL-198 architect decision); new `--update` help and success line. REQ-002.A.6, REQ-002.A.13, REQ-002.E.15; BL-201 filed. Jest 2159. Commit 5161848. |
 | 305 | [CD-girishr-214] [BL-202] | `specpilot compact` and `/specpilot-compact`: an agent picks the `development/context.md` entries that no longer bind the work into `compact-plan.md`, the user reviews it and types `apply`, and `specpilot compact --apply` moves them byte for byte to `context-archive.md` with one marker line each, a round-trip check before any write, and a refusal for an open task's entry (Won't do included); the listing shows each entry's status, lines and size; the routing-table row (new files and backfill) points agents at the archives; `archive` unchanged. Scratch trial: 93 of 140 finished entries moved, 139 KB off context.md. REQ-002.A.19, REQ-002.E.19, ARCH-004.82; BL-203 and BL-204 filed. Jest 2200, browser 201. Approved 2026-11-26. Commit 94c9dc1. |
+| 306 | [CD-girishr-215] [BL-203] | `specpilot compact` and `/specpilot-compact` rewrite `requirements.md` items: the agent rewrites the largest keyed items (at most 10, each at least 4 KB) to current behaviour into `development/compact-requirements.md` (`### <key> <sha>`, a `Reason:` line, a text fence); `--apply --dry-run` lists bytes before and after and the dropped backticked strings and IDs; one typed `apply` applies both plans, all or nothing; each item is replaced in place and its original kept byte for byte in `project/requirements-archive.md`; refusals for a stale sha, a longer rewrite, a rewrite not one item ending in the same key, a malformed heading; round-trip and key-set check before any write. Scratch trial: 10 items, 22.8 KB saved for about 170k tokens. REQ-002.A.20, REQ-002.E.19, ARCH-004.83; BL-206 filed. Jest 2233, browser 201. Approved 2026-11-26. Commit 758dbf6. |

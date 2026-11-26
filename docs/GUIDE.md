@@ -326,6 +326,9 @@ Move `development/context.md` entries that no longer bind the work to `developme
 # List each entry's status, line count and title (read-only)
 specpilot compact
 
+# Before any agent reads: each file's size, ≈tokens and likely saving
+specpilot compact --report
+
 # Move the archive rows of .specs/development/compact-plan.md
 specpilot compact --apply
 ```
@@ -336,12 +339,16 @@ specpilot compact --apply
 - `--apply`: Move the plan's archive rows, leaving a marker line in `context.md` for each, then remove the plan
 - `--dry-run`: With `--apply`, show what would move without writing any files
 - `--force`: With `--apply`, skip the branch warning
+- `--report`: Print only the report below; not with `--apply`
+- `--calls <n>`: Model calls per task for the per-task tokens (1 to 1000, default 50), with `--report` or `--apply --dry-run`
 
 **Statuses** (a hint for the agent, first match wins): `no-lead` (no `**…**` title), `no-id` (the title names no task), `open` (a task in Backlog, Current Sprint, Review or Won't do), `unknown` (a task in neither tasks file), `finished` (every task in `tasks-archive.md`), `completed` (every task done, one still in `## Completed`).
 
 **The plan** is one table in `.specs/development/compact-plan.md`: `| Entry | Action | Reason |`, the entry's title exactly as written, `keep` or `archive`, and why (`\|` for a `|` in a cell). `--apply` refuses the whole plan, writing nothing, when a title matches no entry or several, an action is not `keep` or `archive`, an archive row has no reason, an entry names a task that is still open, an entry is already a marker, or the file is not that table. Archived entries go, byte for byte and under their section's heading, into a `## Archived on <UTC time>` block with a Reasons table; each leaves `- **<title>**: moved to context-archive.md on <date>.` in `context.md`. Before writing, `--apply` checks that the markers expand back to the original file.
 
 **Requirements** (since BL-203): `specpilot compact` also lists `project/requirements.md`'s items (top-level list items ending in a bracketed key such as `[REQ-002.A.8]`), largest first, with each key's sha, size and line count. `/specpilot-compact` rewrites the largest to what the project does now and writes them to `.specs/development/compact-requirements.md`: one block per item, `### <key> <sha>`, a `Reason:` line, and the new item in a ```` ```text ```` fence. `--apply` applies it together with the context plan, all or nothing: each item is replaced in place and its original goes, byte for byte, to `project/requirements-archive.md` under `### <key>`. It refuses a block whose key matches no item or several, whose sha is not the item's current one, that has no reason or fence, whose new item is not one list item ending in the same key, or that is not shorter. `--dry-run` shows each item's bytes before and after and the backticked strings and IDs the rewrite drops, so you can check nothing current was lost. Items without a key are never rewritten.
+
+**The report** (since BL-204): `specpilot compact --report` reads only and prints one row per file compact touches: size, ≈tokens (bytes ÷ 4), the saving, the tokens it saves per read and over a task (each later call in a task sends a file it read again, mostly as cache reads), and how sure. `tasks.md` and `prompts.md` are exact: what `specpilot archive` moves now. `context.md` is likely: half of the `finished` entries (as they will be after archive), less their marker lines. `requirements.md` is likely: a fifth of the items `/specpilot-compact` would rewrite (keyed, at least 4 KB, not rewritten before, the 10 largest). Those rates and the agent run's cost come from SpecPilot's own trials. `/specpilot-compact` shows the report first and stops for your yes; `--apply --dry-run` adds the exact before and after per file.
 
 #### `specpilot backfill [options]`
 

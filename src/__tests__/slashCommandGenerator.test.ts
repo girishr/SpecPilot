@@ -85,6 +85,19 @@ describe('SlashCommandGenerator', () => {
     expect(body).toContain('read that requirement and the code before you rewrite, and keep only what still runs.');
   });
 
+  it('specpilot-compact report step (BL-204, REQ-002.E.19): report first, stop on nothing, ask before reading, skip archived keys', () => {
+    const body = SLASH_COMMANDS.find(c => c.name === 'compact')!.body;
+    const report = body.indexOf('Run `specpilot compact --report`');
+    expect(report).toBeGreaterThan(body.indexOf('**Check the branch.**'));
+    expect(report).toBeLessThan(body.indexOf('`specpilot archive --force`'));
+    expect(report).toBeLessThan(body.indexOf('**Read `.specs/development/context.md`**'));
+    expect(body).toContain('If it prints `Nothing for the agent to compact.`, say so and stop.');
+    expect(body).toContain('ask the user in chat whether to go on, and stop unless they say yes. Do not read `context.md` or `requirements.md` before that yes.');
+    expect(body).toContain('Skip an item whose key is already a `### <key>` line in `.specs/project/requirements-archive.md`');
+    expect(body).toContain('and the exact saving per file.');
+    expect(body).toContain('stop again at step 9.');
+  });
+
   it('includes allowed-tools in the specpilot-validate Claude Code frontmatter and embeds a runnable bash script', () => {
     generator.generate(projectDir, 'claude-code');
     const content = readFileSync(join(projectDir, '.claude', 'commands', 'specpilot-validate.md'), 'utf8');

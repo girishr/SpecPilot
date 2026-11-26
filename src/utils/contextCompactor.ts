@@ -100,6 +100,9 @@ export function entryStatus(lead: string | null, ids: TaskIds): EntryStatus {
 
 export const isMarker = (line: string) => MARKER.test(line.replace(/\r$/, ''));
 
+/** The line an archived entry leaves in context.md; `date` is YYYY-MM-DD. Shared with the BL-204 report. */
+export const markerLine = (lead: string, date: string) => `- **${lead}**: moved to context-archive.md on ${date}.`;
+
 export interface PlanRow {
   lead: string;
   action: string;
@@ -211,7 +214,7 @@ export function planCompact(contextText: string, planText: string, tasksText: st
   for (const { entry, row } of picked) {
     out.push(...lines.slice(next, entry.start));
     moves.push({ index: out.length, lines: lines.slice(entry.start, entry.end) });
-    out.push(`- **${row.lead}**: moved to context-archive.md on ${date}.`);
+    out.push(markerLine(row.lead, date));
     next = entry.end;
   }
   out.push(...lines.slice(next));

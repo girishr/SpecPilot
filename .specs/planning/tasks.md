@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-205 to Completed)
-version: 7.110
+lastUpdated: 2026-11-26 (BL-204 approved)
+version: 7.111
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -73,12 +73,12 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-204 | feat | P2 | `specpilot compact` report before any agent read, after BL-203: for every file compact touches, size and ≈tokens (bytes ÷ 4): `tasks.md` and `prompts.md` with the exact saving from `planCompletedArchive()`/`planPromptsArchive()`, `context.md` with a likely range (entry statuses predicted as after archive) and the exact one in `--apply --dry-run`, `requirements.md` from BL-203's rewrites; avoidable tokens per read and per task (`--calls <n>`, default 50, as cache reads); compact's one-off run cost and payback in reads; `/specpilot-compact` shows it and asks before reading. The developer, 2026-11-26; held until BL-203 so requirements.md is covered. |
 
 ## Review
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-204 | feat | P2 | `specpilot compact` report before any agent read, after BL-203: for every file compact touches, size and ≈tokens (bytes ÷ 4): `tasks.md` and `prompts.md` with the exact saving from `planCompletedArchive()`/`planPromptsArchive()`, `context.md` with a likely range (entry statuses predicted as after archive) and the exact one in `--apply --dry-run`, `requirements.md` from BL-203's rewrites; avoidable tokens per read and per task (`--calls <n>`, default 50, as cache reads); compact's one-off run cost and payback in reads; `/specpilot-compact` shows it and asks before reading. The developer, 2026-11-26; held until BL-203 so requirements.md is covered. Approved 2026-11-26 |
 
 ## Won't do
 

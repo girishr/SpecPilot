@@ -341,3 +341,108 @@ describe('compactCommand() and requirements.md (BL-203)', () => {
     expect(readFileSync(p('project', 'requirements.md'), 'utf8')).toBe(REQS);
   });
 });
+
+describe('compactCommand() report (BL-204, REQ-002.A.21)', () => {
+  const CTX = '# Context\n\n## Key Decisions [CTX-003]\n\n- **BL-100 old decision**: done long ago.\n- **General note**: no id.\n';
+  const ARCHIVE = '## Archived on 2026-01-01 00:00:00\n\n| # | ID | Description |\n|---|---|---|\n| 1 | [CD-x-001] [BL-100] | done |\n\n---\n\n';
+  const REQS = '# Requirements\n\n## Core\n\n- Small. [REQ-1]\n- Untagged.\n';
+  // `specpilot compact` on this fixture, as main printed it before BL-204 (dist/cli.js, 2026-11-26).
+  const MAIN_LISTING = 'finished     1    0.0 KB  BL-100 old decision\nno-id        1    0.0 KB  General note\n\n2 entries: 1 finished, 1 no-id. Statuses are hints; /specpilot-compact decides.\n\nrequirements.md (largest first): key, sha, size, lines\nREQ-1            d218cce0    0.0 KB    1\nno-id            --------    0.0 KB    1  - Untagged.\n\n2 requirements items, 0.0 KB; 1 without a key (never rewritten).';
+  let base: string;
+  let out: string[];
+  const p = (...x: string[]) => join(base, '.specs', ...x);
+  const run = (opts: Record<string, unknown> = {}) => compactCommand({ dir: base, ...opts });
+  const text = () => out.join('\n');
+  const snapshot = () => ['development/context.md', 'planning/tasks.md', 'project/requirements.md'].map((f) => readFileSync(p(f), 'utf8'));
+
+  beforeEach(() => {
+    base = realpathSync(mkdtempSync(join(os.tmpdir(), 'specpilot-compact-report-')));
+    for (const d of ['development', 'planning', 'project']) mkdirSync(p(d), { recursive: true });
+    writeFileSync(p('development', 'context.md'), CTX);
+    writeFileSync(p('planning', 'tasks.md'), '# Tasks\n');
+    writeFileSync(p('planning', 'tasks-archive.md'), ARCHIVE);
+    writeFileSync(p('project', 'requirements.md'), REQS);
+    out = [];
+    jest.spyOn(console, 'log').mockImplementation((m?: unknown) => { out.push(String(m)); });
+    jest.spyOn(console, 'error').mockImplementation((m?: unknown) => { out.push(String(m)); });
+    process.exitCode = undefined;
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    rmSync(base, { recursive: true, force: true });
+    process.exitCode = undefined;
+  });
+
+  test('plain compact prints what main printed, no report', async () => {
+    await run();
+    expect(text()).toBe(MAIN_LISTING);
+  });
+
+  test('--report prints the report alone: one row per file, the total and the agent line', async () => {
+    writeFileSync(p('development', 'context.md'), CTX.replace('done long ago.', `done long ago. ${'x'.repeat(4000)}`));
+    await run({ report: true });
+    const t = text();
+    expect(t).toMatch(/^Compact report\. Tokens ≈ bytes ÷ 4; per task = per read × 50 calls/);
+    expect(t).toMatch(/planning\/tasks\.md\s+0\.0 KB\s+2\s+0\.0 KB\s+0\s+0\s+exact \(archive\)/);
+    expect(t).toMatch(/development\/context\.md\s+4\.0 KB\s+1\.0k\s+1\.9 KB\s+497\s+24\.9k\s+likely \(agent\): half of 3\.9 KB in 1 finished entries/);
+    expect(t).toMatch(/project\/requirements\.md\s+0\.1 KB\s+14\s+0\.0 KB\s+0\s+0\s+likely \(agent\): a fifth of 0\.0 KB in 0 items/);
+    expect(t).toMatch(/total\s+1\.9 KB\s+497\s+24\.9k/);
+    expect(t).toMatch(/Agent run: ≈11\.0k tokens once \(.*from SpecPilot's own trials\); paid back after 23 reads$/);
+    expect(t).not.toContain('requirements.md (largest first)');
+    expect(t).not.toContain('Statuses are hints');
+  });
+
+  test('--report with nothing to save says so; --calls changes per task', async () => {
+    await run({ report: true, calls: '10' });
+    expect(text()).toContain('per read × 10 calls');
+    expect(text()).toMatch(/Nothing for the agent to compact\.$/);
+    expect(text()).not.toContain('Agent run');
+  });
+
+  test.each([
+    [{ report: true, apply: true }, '--report cannot be used with --apply.'],
+    [{ calls: '10' }, '--calls works only with --report or --apply --dry-run.'],
+    [{ calls: '10', apply: true }, '--calls works only with --report or --apply --dry-run.'],
+    [{ report: true, calls: '0' }, '--calls must be a whole number from 1 to 1000.'],
+    [{ report: true, calls: '1001' }, '--calls must be a whole number from 1 to 1000.'],
+    [{ report: true, calls: '2.5' }, '--calls must be a whole number from 1 to 1000.'],
+  ])('%o is refused, exit 1, nothing written', async (opts, message) => {
+    const before = snapshot();
+    writeFileSync(p('development', 'compact-plan.md'), '| Entry | Action | Reason |\n|---|---|---|\n| BL-100 old decision | archive | x |\n');
+    await run({ force: true, ...opts });
+    expect(text()).toBe(message);
+    expect(process.exitCode).toBe(1);
+    expect(snapshot()).toEqual(before);
+    expect(existsSync(p('development', 'compact-plan.md'))).toBe(true);
+  });
+
+  test('--apply --dry-run prints the exact before and after, equal to what --apply writes', async () => {
+    const ctx = CTX.replace('done long ago.', `done long ago. ${'x'.repeat(3000)}`);
+    writeFileSync(p('development', 'context.md'), ctx);
+    const plan = '| Entry | Action | Reason |\n|---|---|---|\n| BL-100 old decision | archive | x |\n';
+    writeFileSync(p('development', 'compact-plan.md'), plan);
+    await run({ apply: true, dryRun: true, calls: '20' });
+    const line = /development\/context\.md: (\d+\.\d) KB → (\d+\.\d) KB, ≈(\d+) fewer tokens per read, ≈(\d+\.\dk) over a 20-call task/.exec(text());
+    expect(line).not.toBeNull();
+    const before = Buffer.byteLength(ctx);
+    await run({ apply: true, force: true });
+    const after = Buffer.byteLength(readFileSync(p('development', 'context.md'), 'utf8'));
+    expect(line![1]).toBe((before / 1024).toFixed(1));
+    expect(line![2]).toBe((after / 1024).toFixed(1));
+    const fewer = Math.ceil(before / 4) - Math.ceil(after / 4);
+    expect(Number(line![3])).toBe(fewer);
+    expect(line![4]).toBe(`${((fewer * 20) / 1000).toFixed(1)}k`);
+  });
+
+  test('--apply --dry-run says more when a marker is longer than its entry', async () => {
+    writeFileSync(p('development', 'compact-plan.md'), '| Entry | Action | Reason |\n|---|---|---|\n| BL-100 old decision | archive | x |\n');
+    await run({ apply: true, dryRun: true });
+    expect(text()).toMatch(/development\/context\.md: 0\.1 KB → 0\.1 KB, ≈7 more tokens per read, ≈350 over a 50-call task/);
+  });
+
+  test('report text goes through terminalText', async () => {
+    writeFileSync(p('development', 'context.md'), CTX.replace('done long ago.', `\x1b]0;x\x07 ${'x'.repeat(4000)}`));
+    await run({ report: true });
+    expect(text()).not.toMatch(/\x1b/);
+  });
+});

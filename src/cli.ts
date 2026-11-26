@@ -99,6 +99,8 @@ program
   .option('--apply', 'Move the archive rows of .specs/development/compact-plan.md, leaving a marker line for each')
   .option('--dry-run', 'With --apply, show what would move without writing any files')
   .option('--force', 'With --apply, skip the branch warning')
+  .option('--report', 'Print only the report: each file compact touches, its size, ≈tokens and likely saving (BL-204)')
+  .option('--calls <n>', 'Model calls per task for the per-task tokens, with --report or --apply --dry-run (default 50)')
   .action(compactCommand);
 
 // Add-specs command

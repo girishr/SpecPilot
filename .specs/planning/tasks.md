@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-204 to Completed)
-version: 7.111
+lastUpdated: 2026-11-26 (BL-206 approved)
+version: 7.113
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -67,7 +67,6 @@ Notes
 | BL-188 | bug | P3 | `readBranch()` (`src/utils/specServer.ts`) follows a `.git` file's `gitdir:` to any path; apply BL-171's worktree check to it (follow only when the realpath ends in `/.git/worktrees/<name>`, else no branch). It sends only a pattern-checked ref today, so the risk is low. Filed by the architect, BL-171, 2026-11-17. |
 | BL-195 | feat | P3 | Undo Keep both for SpecPilot's old Cursor rules file (BL-194): a page action, or a `specpilot migrate --cursor-rules` option, that removes the project's path from `~/.specpilot/cursor-rules.json`; until then the only way is editing that file by hand. Filed by the BL-194 architect decision 2026-11-20. |
 | BL-201 | feat | P3 | `specpilot refine` updates the `description:` line in `.specs/project/project.yaml` along with requirements.md, as one more pending change: shown in the diff preview, written through `writeInside`, quoted by the template's YAML rule (BL-085). Today only requirements.md gets the new description, so the `serve` Overview hero (`P.description`) keeps the old one. Filed by the BL-198 architect decision 2026-11-25. |
-| BL-206 | chore | P3 | The routing-table row (`ARCHIVE_ROW`, ARCH-004.82) also points agents at `project/requirements-archive.md` for the earlier wording of a REQ that is still in `requirements.md` (BL-203 keeps the key in place, so "not in a spec file" never sends them there). Changes the instruction-file golden recordings and BL-202's backfill insert (`withArchiveRow()` must also update the old row). Filed from the BL-203 architect decision F, 2026-11-26. |
 
 ## Current Sprint
 
@@ -78,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-206 | chore | P3 | The routing-table row (`ARCHIVE_ROW`, ARCH-004.82) also points agents at `project/requirements-archive.md` for the earlier wording of a REQ that is still in `requirements.md` (BL-203 keeps the key in place, so "not in a spec file" never sends them there). Changes the instruction-file golden recordings and BL-202's backfill insert (`withArchiveRow()` must also update the old row). Filed from the BL-203 architect decision F, 2026-11-26. Approved 2026-11-26 |
 
 ## Won't do
 

@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as readline from 'readline';
 import { CommandRefresh, SkillRefresh, SlashCommandGenerator } from './slashCommandGenerator';
 import { hasRulesKey } from './specValidator';
-import { ARCHIVE_ROW, buildProcessMandatesMarkdown } from '../core/ideConfig';
+import { ARCHIVE_ROW, OLD_ARCHIVE_ROW, buildProcessMandatesMarkdown } from '../core/ideConfig';
 import { resolveAllowedPath, writeError, writeInside } from './specPaths';
 import { loadRepoYaml } from './specReader';
 import { cursorLegacy, cursorLegacyWarning, OLD_RULES } from './cursorLegacy';
@@ -237,15 +237,22 @@ export function withTasksLine(content: string): string | null {
 }
 
 const ARCHIVE_LABEL = 'Archive lookup row';
+const archiveLabel = (content: string) => (content.includes(OLD_ARCHIVE_ROW) ? `${ARCHIVE_LABEL} (updated)` : ARCHIVE_LABEL);
 
 /**
  * BL-202 (REQ-002.A.19): the file with the routing table's archive row added after the table's last row, no other byte
  * changed, or null when the row is there or there is no `## Context` routing table (one the user removed is not recreated).
+ * BL-206: BL-202's row, where there is one, is replaced by the new one in place instead.
  */
 export function withArchiveRow(content: string): string | null {
   if (content.includes(ARCHIVE_ROW)) return null;
   const eol = content.includes('\r\n') ? '\r\n' : '\n';
   const lines = content.split(eol);
+  const old = lines.indexOf(OLD_ARCHIVE_ROW);
+  if (old !== -1) {
+    lines[old] = ARCHIVE_ROW;
+    return lines.join(eol);
+  }
   const heading = lines.findIndex((l) => l.startsWith('## Context'));
   if (heading === -1) return null;
   let i = heading + 1;
@@ -550,7 +557,7 @@ export class SpecBackfiller {
       action: 'updated',
       found,
       total,
-      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL]), ...(withArchive === null ? [] : [ARCHIVE_LABEL])],
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL]), ...(withArchive === null ? [] : [archiveLabel(content)])],
     };
   }
 
@@ -637,7 +644,7 @@ export class SpecBackfiller {
       action: 'updated',
       found,
       total,
-      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL]), ...(withArchive === null ? [] : [ARCHIVE_LABEL])],
+      added: [...missingMandates.map((m) => m.label), ...missingSections.map((s) => s.label), ...(withTasks === null ? [] : [TASKS_LABEL]), ...(withArchive === null ? [] : [archiveLabel(content)])],
     };
   }
 

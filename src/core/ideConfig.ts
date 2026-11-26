@@ -194,8 +194,10 @@ export function buildCriticalMandatesMarkdown(): string {
    - Architectural → update all affected specs, present Spec Report, wait for \`yes, proceed\``;
   }
 
-/** BL-202: agents look in the archives for an ID or decision the active files no longer hold. */
-export const ARCHIVE_ROW = '| Task ID or decision not in a spec file | search the matching `*-archive.md` in `.specs/` |';
+/** BL-202: agents look in the archives for an ID or decision the active files no longer hold; BL-206: and a REQ's earlier wording. */
+export const ARCHIVE_ROW = "| Task ID, decision or a REQ's earlier wording not in a spec file | search the matching `*-archive.md` in `.specs/` (a rewritten REQ: its `### <key>` in `project/requirements-archive.md`) |";
+/** BL-202's row, never released; `withArchiveRow()` replaces it in projects backfilled from main (BL-206). */
+export const OLD_ARCHIVE_ROW = '| Task ID or decision not in a spec file | search the matching `*-archive.md` in `.specs/` |';
 
 export function buildContextRoutingTable(): string {
     return `## Context — read on demand by task type

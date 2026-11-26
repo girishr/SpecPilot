@@ -1,7 +1,7 @@
 import { projectIdes, SpecBackfiller, withArchiveRow, withTasksLine } from '../utils/specBackfiller';
 import { backfillCommand } from '../commands/backfill';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
-import { ARCHIVE_ROW, buildClaudeMd, buildContextRoutingTable, buildCopilotInstructions } from '../core/ideConfig';
+import { ARCHIVE_ROW, OLD_ARCHIVE_ROW, buildClaudeMd, buildContextRoutingTable, buildCopilotInstructions } from '../core/ideConfig';
 import { join } from 'path';
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, rmSync, existsSync, symlinkSync } from 'fs';
 import * as os from 'os';
@@ -1569,6 +1569,45 @@ describe('the archive lookup row (BL-202, REQ-002.A.19)', () => {
 
   it('a new instruction file already has it', () => {
     expect(buildClaudeMd({ projectName: 'X', language: 'typescript' } as never)).toContain(ARCHIVE_ROW);
+    expect(buildClaudeMd({ projectName: 'X', language: 'typescript' } as never)).not.toContain(OLD_ARCHIVE_ROW);
+  });
+
+  it("BL-206: the row names requirements-archive.md for a REQ's earlier wording", () => {
+    expect(ARCHIVE_ROW).toBe("| Task ID, decision or a REQ's earlier wording not in a spec file | search the matching `*-archive.md` in `.specs/` (a rewritten REQ: its `### <key>` in `project/requirements-archive.md`) |");
+    expect(ARCHIVE_ROW.includes(OLD_ARCHIVE_ROW)).toBe(false);
+  });
+
+  it("BL-206: BL-202's row is replaced in place, the whole line, nothing else changed, CRLF kept", () => {
+    const input = `# CLAUDE.md\n\n${TABLE}\n${OLD_ARCHIVE_ROW}\n\n## Code Rules\n\n1. Delete before add.\n`;
+    expect(withArchiveRow(input)).toBe(input.replace(OLD_ARCHIVE_ROW, ARCHIVE_ROW));
+    expect(withArchiveRow(`# X\n\n${TABLE}\n${OLD_ARCHIVE_ROW}`)).toBe(`# X\n\n${TABLE}\n${ARCHIVE_ROW}`);
+    const crlf = `# X\r\n\r\n${TABLE.replace(/\n/g, '\r\n')}\r\n${OLD_ARCHIVE_ROW}\r\n`;
+    expect(withArchiveRow(crlf)).toBe(crlf.replace(OLD_ARCHIVE_ROW, ARCHIVE_ROW));
+  });
+
+  it('BL-206: a file with both rows is left as it is', () => {
+    expect(withArchiveRow(`# X\n\n${TABLE}\n${OLD_ARCHIVE_ROW}\n${ARCHIVE_ROW}\n`)).toBeNull();
+  });
+
+  it('BL-206: through specpilot backfill, the old row is reported updated, and a second run changes nothing', async () => {
+    const testDir = makeTmpDir();
+    try {
+      scaffoldSpecs(testDir, { projectYaml: FULL_YAML, tasksMd: makeFullTasksMd('girishr') });
+      const input = `${FULL_MD_TERSE.trimEnd()}\n\n${TABLE}\n${OLD_ARCHIVE_ROW}\n`;
+      writeFileSync(join(testDir, 'CLAUDE.md'), input);
+      writeFileSync(join(testDir, '.github', 'copilot-instructions.md'), FULL_MD);
+      const result = await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      const claude = result.ideFiles.find(r => r.path === 'CLAUDE.md')!;
+      expect(claude.added).toEqual(['Archive lookup row (updated)']);
+      expect(claude.found).toBe(claude.total - 1);
+      const once = readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8');
+      expect(once).toBe(input.replace(OLD_ARCHIVE_ROW, ARCHIVE_ROW));
+      const again = await new SpecBackfiller().backfill(testDir, '.specs', false, true);
+      expect(again.ideFiles.find(r => r.path === 'CLAUDE.md')!.action).toBe('skipped');
+      expect(readFileSync(join(testDir, 'CLAUDE.md'), 'utf-8')).toBe(once);
+    } finally {
+      rmSync(testDir, { recursive: true, force: true });
+    }
   });
 
   it('through specpilot backfill: added to an existing CLAUDE.md once, and specpilot-compact added for Claude Code', async () => {

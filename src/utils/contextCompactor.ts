@@ -133,8 +133,10 @@ export function parsePlan(text: string): { rows: PlanRow[] } | { refuse: string[
 }
 
 export interface Move {
-  /** The marker's line index in the new context.md. */
+  /** The marker's line index in the new file. */
   index: number;
+  /** How many lines of the new file the move replaced: 1 for a marker (BL-202), a rewrite's line count (BL-203). */
+  count?: number;
   /** The entry's lines, as they were. */
   lines: string[];
 }
@@ -143,7 +145,7 @@ export interface Move {
 export function putBack(newContext: string, moves: Move[]): string {
   const eol = newContext.includes('\r\n') ? '\r\n' : '\n';
   const lines = newContext.split(eol);
-  for (const m of [...moves].sort((a, b) => b.index - a.index)) lines.splice(m.index, 1, ...m.lines);
+  for (const m of [...moves].sort((a, b) => b.index - a.index)) lines.splice(m.index, m.count ?? 1, ...m.lines);
   return lines.join(eol);
 }
 

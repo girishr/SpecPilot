@@ -65,9 +65,9 @@ program
 program
   .command('list')
   .alias('ls')
-  .description('List available templates')
+  .description('List supported languages and frameworks')
   .option('--lang <language>', 'Filter by language')
-  .option('--verbose', 'Show template details')
+  .option('--verbose', 'Also list the files init writes in .specs/')
   .action(listCommand);
 
 // Refine command

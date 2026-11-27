@@ -80,7 +80,7 @@ This AI-assisted approach ensures comprehensive, high-quality specifications tai
 | `archive`               | Archive oversized `prompts.md` / `tasks.md` entries               |
 | `compact`               | List `context.md` entries and `requirements.md` items for `/specpilot-compact`; `--report` shows each file's size, ≈tokens and likely saving first; `--apply` moves the picked entries to `context-archive.md` and applies the requirement rewrites, originals to `requirements-archive.md` |
 | `backfill`              | Backfill missing mandates, slash commands & the Claude Code skill     |
-| `list`                  | Show available templates                                          |
+| `list`                  | Show supported languages and frameworks                           |
 | `migrate`               | Convert legacy `.project-spec` folder (rarely needed)             |
 | `refine [desc]`         | Refine project specifications                                     |
 | `serve [folders...]`    | Serve a local web UI over the `.specs/` of this project, or of each folder named, plus the projects remembered in `~/.specpilot/projects.json` (every project you serve or open; reopened at startup when they have `.specs/`); in a folder without `.specs/` and with nothing remembered, with no project open until you open one from the page (task moves, new tasks, Regenerate All for command files, the Setup view of a folder without `.specs/`, unless `--read-only`) |

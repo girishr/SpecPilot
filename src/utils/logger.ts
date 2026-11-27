@@ -122,41 +122,19 @@ export class Logger {
     this.displayWithLogo(content);
   }
 
-  // Template list with logo
-  displayTemplates(templates: Array<{ language: string; name: string; framework?: string; description: string; files: string[] }>, verbose: boolean): void {
-    const content = [
-      chalk.blue.bold('Available Templates'),
-      ''
-    ];
-
-    // Group templates by language
-    const grouped = templates.reduce((acc, template) => {
-      if (!acc[template.language]) {
-        acc[template.language] = [];
-      }
-      acc[template.language].push(template);
-      return acc;
-    }, {} as Record<string, typeof templates>);
-
-    Object.entries(grouped).forEach(([language, langTemplates]) => {
+  // Supported languages and frameworks with logo (BL-200); `files` with --verbose
+  displayLanguages(languages: Array<{ language: string; frameworks: string[] }>, files?: string[]): void {
+    const content = [chalk.blue.bold('Supported Languages and Frameworks'), ''];
+    for (const { language, frameworks } of languages) {
       content.push(chalk.blue(`📦 ${language.toUpperCase()}`));
-
-      langTemplates.forEach(template => {
-        const name = template.framework ?
-          `${template.name} (${template.framework})` :
-          template.name;
-
-        if (verbose) {
-          content.push(chalk.green(`  ✓ ${name}`));
-          content.push(chalk.gray(`    Description: ${template.description}`));
-          content.push(chalk.gray(`    Files: ${template.files.join(', ')}`));
-        } else {
-          content.push(chalk.green(`  ✓ ${name} - ${template.description}`));
-        }
-      });
+      for (const name of ['generic (no framework)', ...frameworks]) content.push(chalk.green(`  ✓ ${name}`));
       content.push('');
-    });
-
+    }
+    if (files) {
+      content.push(chalk.blue('Files init writes in .specs/ (every language):'));
+      for (const f of files) content.push(chalk.gray(`  ${f}`));
+      content.push('');
+    }
     this.displayWithLogo(content);
   }
 

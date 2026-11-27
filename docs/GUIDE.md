@@ -222,20 +222,20 @@ specpilot validate --fix
 
 #### `specpilot list [options]`
 
-List available templates and languages.
+List the languages `init` and `add-specs` accept and, for each, the frameworks their framework question offers. Every language writes the same `.specs/` files.
 
 ```bash
-# List all templates
+# Every supported language and its frameworks
 specpilot list
 
-# Verbose template information
+# Also list the files init writes in .specs/
 specpilot list --verbose
 ```
 
 **Options:**
 
-- `--lang <language>`: Filter templates by language
-- `--verbose`: Show detailed template information
+- `--lang <language>`: Show one supported language; any other value is refused (exit 1)
+- `--verbose`: Also list the files `init` writes in `.specs/`
 
 #### `specpilot migrate [options]`
 
@@ -470,7 +470,7 @@ DEBUG=specpilot specpilot init my-project
 # Verbose output
 specpilot validate --verbose
 
-# Check available templates
+# Check supported languages and frameworks
 specpilot list --verbose
 ```
 
@@ -665,11 +665,11 @@ npm config set prefix '~/.npm-global'
 #### Template Not Found
 
 ```bash
-# List available templates
+# List supported languages and frameworks
 specpilot list
 
 # Check language/framework support
-specpilot list --verbose
+specpilot list
 ```
 
 #### Validation Failures
@@ -711,7 +711,7 @@ DEBUG=specpilot specpilot init my-project
 # Verbose output
 specpilot validate --verbose
 
-# Check what templates are available
+# Check supported languages and frameworks
 specpilot list --verbose
 ```
 
@@ -813,7 +813,7 @@ specpilot validate --verbose
 
 ## Enterprise Integration
 
-> **Note**: SpecPilot is currently a CLI-first tool. Organizations can wrap SpecPilot with internal tooling and scripts. Use `specpilot list` to explore built-in templates and `specpilot --help` for available commands.
+> **Note**: SpecPilot is currently a CLI-first tool. Organizations can wrap SpecPilot with internal tooling and scripts. Use `specpilot list` to see the supported languages and frameworks and `specpilot --help` for available commands.
 
 ### Internal Tooling Integration
 

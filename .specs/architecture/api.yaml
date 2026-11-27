@@ -1,7 +1,7 @@
 # SpecPilot SDD CLI — Interface Specification
 # fileID: API-001
-# lastUpdated: 2026-11-26 (BL-204 Spec Report: compact --report, --calls)
-# version: 2.72
+# lastUpdated: 2026-11-27 (BL-200 Spec Report: list)
+# version: 2.73
 #
 # NOTE: SpecPilot is a CLI tool, not a REST service. This file documents
 # the command-line interface (commands, flags, arguments, exit codes).
@@ -126,17 +126,21 @@ commands:
       1: Validation errors found
 
   list:
-    description: List available language/framework templates
+    description: List supported languages and frameworks
     usage: specpilot list [options]
     options:
       --lang:
         type: string
-        description: Filter by language
+        description: Show one supported language only; any other value is refused (exit 1)
       --verbose:
         type: boolean
-        description: Show template details
+        description: Also list the files init writes in .specs/
+    behavior:
+      - "Read at run time from SUPPORTED_LANGUAGES, getFrameworksForLanguage() and targetsInSpecs(), so it cannot drift from the setup questions (BL-200, REQ-002.A.4): under each language `generic (no framework)`, then its frameworks"
+      - "An unknown --lang prints `Unsupported Language` with init's text and the supported languages, no `Initializing SDD project...` line, and exits 1"
     exit-codes:
       0: Success
+      1: Unsupported language
 
   migrate:
     description: Convert legacy .project-spec folder to current .specs/ structure

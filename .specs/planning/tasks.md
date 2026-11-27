@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-27 (BL-199 to Completed)
-version: 7.114
+lastUpdated: 2026-11-27 (BL-200 approved)
+version: 7.115
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-200 | bug | P3 | `specpilot list` shows an out-of-date fixed catalog (src/commands/list.ts TEMPLATES): Java and spring-boot, which init rejects; no Kotlin or Swift; `docs.md` in every file list. Build it from SUPPORTED_LANGUAGES and getFrameworksForLanguage, or drop the command. Noted on docs.specpilot.dev/reference/cli/list (SpecPilot-Docs BL-063); update that page when fixed. Approved 2026-11-27 |
 
 ## Won't do
 

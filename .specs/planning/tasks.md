@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-27 (BL-199 to Completed)
-version: 7.114
+lastUpdated: 2026-11-27 (BL-200 to Completed)
+version: 7.115
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -121,3 +121,4 @@ Notes
 | 308 | [CD-girishr-217] [BL-204] | `specpilot compact --report`: before any agent reads, one row per file compact touches (`tasks.md`, `prompts.md`, `context.md`, `requirements.md`) with size, ≈tokens (bytes ÷ 4), the saving (exact for what `specpilot archive` moves; likely for the agent: half of the `finished` context entries after archive less their markers, a fifth of the requirements it would rewrite, already-rewritten ones skipped), tokens avoided per read and per task (`--calls <n>`, default 50), and the agent run's cost and payback, or `Nothing for the agent to compact.`; `/specpilot-compact` shows it first and asks; `--apply --dry-run` adds exact before and after; plain `compact` unchanged (REQ-002.A.21, ARCH-004.84; commit 9146c3a) |
 | 309 | [CD-girishr-218] [BL-206] | The routing-table archive row also sends agents to `project/requirements-archive.md` for a rewritten REQ's earlier wording (`### <key>`); `specpilot backfill` replaces BL-202's row in place and reports `Archive lookup row (updated)`; this repo's `CLAUDE.md` and `.github/copilot-instructions.md` updated (REQ-002.A.19, ARCH-004.82; commit 04dea16) |
 | 310 | [CD-girishr-219] [BL-199] | `specpilot backfill --no-prompts` no longer asks for the handle when `team.devPrefix` is missing: `backfillCommand` reads Commander's `options.prompts === false` (it read `options.noPrompts`, never set); a test builds the CLI and runs the flag; the note on docs.specpilot.dev (SpecPilot-Docs BL-063) is still to be removed there (commit 7182576) |
+| 311 | [CD-girishr-220] [BL-200] | `specpilot list` reads `SUPPORTED_LANGUAGES` and `getFrameworksForLanguage()` instead of a fixed catalog (no Java or spring-boot, Kotlin and Swift listed, `generic (no framework)` first); `--verbose` lists the `.specs/` files from `targetsInSpecs()`; an unknown `--lang` is refused as `init` refuses it, exit 1; the docs.specpilot.dev list page (SpecPilot-Docs BL-063) is still to be updated there (commit 32874d8) |

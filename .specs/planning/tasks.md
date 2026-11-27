@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-26 (BL-206 to Completed)
-version: 7.113
+lastUpdated: 2026-11-27 (BL-199 approved)
+version: 7.114
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-199 | bug | P2 | `specpilot backfill --no-prompts` still asks for the handle when team.devPrefix is missing: Commander sets `options.prompts = false`, but `backfillCommand` reads `options.noPrompts` (src/commands/backfill.ts). Reproduced on v2.21.0. Read `options.prompts === false`. Noted on docs.specpilot.dev/reference/cli/backfill (SpecPilot-Docs BL-063); remove the note when fixed Approved 2026-11-27 |
 
 ## Won't do
 

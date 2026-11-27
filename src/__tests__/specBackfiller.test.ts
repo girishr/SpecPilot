@@ -3,7 +3,8 @@ import { backfillCommand } from '../commands/backfill';
 import { fillReleasedSkill, KNOWN_SKILL_TEMPLATES } from '../core/agentConfig';
 import { ARCHIVE_ROW, OLD_ARCHIVE_ROW, buildClaudeMd, buildContextRoutingTable, buildCopilotInstructions } from '../core/ideConfig';
 import { join } from 'path';
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, rmSync, existsSync, symlinkSync } from 'fs';
+import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync, readFileSync, readdirSync, realpathSync, rmSync, existsSync, symlinkSync } from 'fs';
+import { execFileSync, spawnSync } from 'child_process';
 import * as os from 'os';
 import { tmpdir } from 'os';
 
@@ -443,7 +444,7 @@ rules:
         process.exitCode = undefined;
       });
       afterEach(() => spies.forEach(s => s.mockRestore()));
-      const up = (dryRun: boolean) => backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true, dryRun });
+      const up = (dryRun: boolean) => backfillCommand({ dir: testDir, specsName: '.specs', prompts: false, dryRun });
 
       it.each([false, true])('no Copilot heading when another IDE is in use (dry run %s)', async dryRun => {
         scaffold();
@@ -643,7 +644,7 @@ rules:
       const out: string[] = [];
       jest.spyOn(console, 'log').mockImplementation((m?: unknown) => void out.push(String(m)));
       try {
-        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+        await backfillCommand({ dir: testDir, specsName: '.specs', prompts: false });
       } finally {
         jest.restoreAllMocks();
       }
@@ -1185,7 +1186,7 @@ rules:
       const out: string[] = [];
       jest.spyOn(console, 'log').mockImplementation((m?: unknown) => void out.push(String(m)));
       try {
-        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+        await backfillCommand({ dir: testDir, specsName: '.specs', prompts: false });
       } finally {
         jest.restoreAllMocks();
       }
@@ -1311,7 +1312,7 @@ rules:
         throw new Error('process.exit called');
       }) as never);
       try {
-        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+        await backfillCommand({ dir: testDir, specsName: '.specs', prompts: false });
       } finally {
         log.mockRestore();
         exit.mockRestore();
@@ -1332,7 +1333,7 @@ rules:
         out.push(String(m));
       });
       try {
-        await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
+        await backfillCommand({ dir: testDir, specsName: '.specs', prompts: false });
       } finally {
         log.mockRestore();
       }
@@ -1426,8 +1427,8 @@ describe('the IDEs project.yaml lists (BL-158, REQ-002.A.13)', () => {
     const out: string[] = [];
     log.mockImplementation((...a: unknown[]) => void out.push(a.join(' ')));
     try {
-      await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true });
-      await backfillCommand({ dir: testDir, specsName: '.specs', noPrompts: true }); // commands now current
+      await backfillCommand({ dir: testDir, specsName: '.specs', prompts: false });
+      await backfillCommand({ dir: testDir, specsName: '.specs', prompts: false }); // commands now current
     } finally {
       log.mockRestore();
     }
@@ -1711,5 +1712,29 @@ describe('the archive lookup row (BL-202, REQ-002.A.19)', () => {
     expect(readFileSync(join(shared, '.specs', 'planning', 'tasks.md'), 'utf-8')).toBe(TASKS_NO_CD);
     expect(result.projectYaml.reason).toBe('.specs is a symbolic link, so nothing was written.');
     expect(result.tasksMd.reason).toBe('.specs is a symbolic link, so nothing was written.');
+  });
+});
+
+// BL-199: `--no-prompts` reaches backfill through Commander (which sets `prompts: false`), so the handle is not asked for.
+describe('specpilot backfill --no-prompts through the CLI (BL-199)', () => {
+  const REPO = join(__dirname, '..', '..');
+  let dir: string;
+  beforeAll(() => {
+    dir = makeTmpDir();
+    execFileSync(process.execPath, [join(REPO, 'node_modules/typescript/bin/tsc'), '-p', join(REPO, 'tsconfig.build.json'), '--outDir', join(dir, 'dist')], { env: process.env });
+    symlinkSync(join(REPO, 'node_modules'), join(dir, 'node_modules'));
+    symlinkSync(join(REPO, 'ui'), join(dir, 'ui'));
+    copyFileSync(join(REPO, 'package.json'), join(dir, 'package.json'));
+  }, 120000);
+  afterAll(() => rmSync(dir, { recursive: true, force: true }));
+
+  it('uses contributors[0] without asking, and writes it to project.yaml', () => {
+    const project = join(dir, 'project');
+    scaffoldSpecs(project, { projectYaml: 'name: "P"\nlicense: MIT\nlanguage: typescript\ncontributors: ["girishr"]\n', tasksMd: makeFullTasksMd('girishr') });
+    const r = spawnSync(process.execPath, [join(dir, 'dist', 'cli.js'), 'backfill', '--no-prompts', '-d', project], { encoding: 'utf-8', input: '', timeout: 20000, env: { ...process.env, NO_COLOR: '1', HOME: dir } });
+    expect(r.stdout).not.toContain('Enter your short handle');
+    expect(r.stdout).toContain('team.devPrefix missing — using "girishr" from contributors as your short handle.');
+    expect(r.status).toBe(0);
+    expect(readFileSync(join(project, '.specs', 'project', 'project.yaml'), 'utf-8')).toContain('devPrefix: "girishr"');
   });
 });

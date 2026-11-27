@@ -14,7 +14,8 @@ export interface BackfillOptions {
   dir: string;
   specsName: string;
   dryRun?: boolean;
-  noPrompts?: boolean;
+  /** Commander's `--no-prompts` sets `prompts: false` (BL-199). */
+  prompts?: boolean;
 }
 
 export async function backfillCommand(options: BackfillOptions): Promise<void> {
@@ -32,7 +33,7 @@ export async function backfillCommand(options: BackfillOptions): Promise<void> {
       projectDir,
       options.specsName,
       options.dryRun ?? false,
-      options.noPrompts ?? false,
+      options.prompts === false,
     );
     displayResult(result, options.dryRun ?? false, logger);
   } catch (error) {

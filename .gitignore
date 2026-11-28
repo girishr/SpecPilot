@@ -73,3 +73,4 @@ final-test/
 
 .agents/skills/caveman/SKILL.md
 .mcp.json
+.claude/launch.json

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-28 (BL-197 to Review)
-version: 7.118
+lastUpdated: 2026-11-28 (BL-197 to Completed)
+version: 7.119
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,7 +77,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-197 | bug | P3 | `serve` page, Overview, Recent activity card: rows in the **Prompt log** group show the raw prompts.md table line, pipes included. Each `.ovrow.ovprompt` row is one `.d` span holding e.g. `\| 2026-11-20 \| @girishr \| Approved RV-003: commit it \| BL-047 moved from Review to Completed … \|`, so the date, author, prompt and outcome are not split into fields and backticks show as literal characters. Seen on SpecPilotWebsite-v2 (`#5/overview`), whose prompts.md log entries are table rows. Show the fields (date, prompt, outcome) as the Commits rows show theirs, with a browser test on fixture rows and the 420px check. Reported by the developer 2026-11-20; reproduced in the browser, cause not looked into. Approved 2026-11-28 |
 
 ## Won't do
 
@@ -124,3 +123,4 @@ Notes
 | 310 | [CD-girishr-219] [BL-199] | `specpilot backfill --no-prompts` no longer asks for the handle when `team.devPrefix` is missing: `backfillCommand` reads Commander's `options.prompts === false` (it read `options.noPrompts`, never set); a test builds the CLI and runs the flag; the note on docs.specpilot.dev (SpecPilot-Docs BL-063) is still to be removed there (commit 7182576) |
 | 311 | [CD-girishr-220] [BL-200] | `specpilot list` reads `SUPPORTED_LANGUAGES` and `getFrameworksForLanguage()` instead of a fixed catalog (no Java or spring-boot, Kotlin and Swift listed, `generic (no framework)` first); `--verbose` lists the `.specs/` files from `targetsInSpecs()`; an unknown `--lang` is refused as `init` refuses it, exit 1; the docs.specpilot.dev list page (SpecPilot-Docs BL-063) is still to be updated there (commit 32874d8) |
 | 312 | [CD-girishr-221] [BL-207] | `docs/GUIDE.md` is a short pointer page to docs.specpilot.dev, one line per old section, page paths only (SpecPilot-Docs REQ-009; website BL-069); README Full Guide link to https://docs.specpilot.dev and comparison link to the specpilot.dev Spec Kit post (was a missing `docs/comparison.md`); 29 links 200, `/reference/cli/compact` left out (404). Approved 2026-11-28. Feature commit 867d1fa. |
+| 313 | [CD-girishr-222] [BL-197] | `serve` Overview, Recent activity: Prompt log rows show the entry's text and its date instead of the raw prompts.md line; `newestPrompts()` returns `{date, text}` from one escape-aware `cells()` (a table row's non-date cells joined ` · `, a list item without its `- ` and date), the page renders the text inline with the date beside it, as on a Commits row (REQ-002.H.76). Jest 2268, browser 204. Approved 2026-11-28. Feature commit 9d21f91. |

@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-27 (BL-200 to Completed)
-version: 7.115
+lastUpdated: 2026-11-28 (BL-207 to Review)
+version: 7.116
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-207 | chore | P3 | `docs/GUIDE.md` becomes a short pointer page to docs.specpilot.dev (file and path kept, the docs site links to it): one line per old section with a link to its new page, page paths only, no `#anchors` (SpecPilot-Docs REQ-009 "Stable links"); README's Full Guide line links https://docs.specpilot.dev. Old sections with no docs page (Supported Languages & Frameworks, Configuration, CI/CD Integration, Team Collaboration, Enterprise Integration, API Usage, Development Setup) checked against the 2.21.0 source and reported as covered elsewhere, out of date or still needed; other inbound links to GUIDE.md listed, template links reported, not changed. Every new link checked with curl. Website repo BL-069; the developer, 2026-11-24 (do it now, not on App release day). Built 2026-11-28: GUIDE.md pointer page (29 links, all 200; `/reference/cli/compact` left out, 404), README Full Guide link and comparison link (was `docs/comparison.md`, no such file; now the specpilot.dev blog post), CHANGELOG Changed line; on `chore/bl-207-guide-pointer`. Approved 2026-11-28. |
 
 ## Won't do
 

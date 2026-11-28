@@ -648,12 +648,22 @@ describe('Overview data (BL-171, REQ-002.H.76, SEC-004.38)', () => {
     expect(readCommits(p.root)).toEqual([]);
   });
 
+  it('overview.prompts (BL-197): each entry split into its date as written and its text without it', () => {
+    expect(newestPrompts('## Latest Entries\n- no date here\n- 2026-11-03 without a colon\n', 3)).toEqual([{ date: '2026-11-03', text: 'without a colon' }, { date: null, text: 'no date here' }]);
+    const table = '## Prompt History\n\n| Date | Who | Prompt | Outcome |\n|---|---|---|---|\n| 2026-11-20 | @girishr | Approved `RV-003`: commit it | BL-047 moved \\| done |\n| 2026-11-21 |  | empty who | ok |\n';
+    expect(newestPrompts(table, 3)).toEqual([{ date: '2026-11-21', text: 'empty who · ok' }, { date: '2026-11-20', text: '@girishr · Approved `RV-003`: commit it · BL-047 moved | done' }]);
+    // an escaped pipe before the Date column: the date, and the order, from the real Date cell
+    const before = '## Prompt History\n\n| Prompt | Date |\n|---|---|\n| a \\| 2026-12-31 | 2026-11-01 |\n| b | 2026-11-05 |\n';
+    expect(newestPrompts(before, 3)).toEqual([{ date: '2026-11-05', text: 'b' }, { date: '2026-11-01', text: 'a | 2026-12-31' }]);
+    expect(newestPrompts('## Prompt History\n\n| Who | Prompt |\n|---|---|\n| @a | one |\n', 3)).toEqual([{ date: null, text: '@a · one' }]);
+  });
+
   it('overview.prompts: the newest three entries of a Latest Entries list or a Prompt History table, none without either', () => {
-    expect(newestPrompts('# P\n\n## Latest Entries\n- 2026-11-15: c\n- 2026-11-17: a\n  more of a\n- 2026-11-16: b\n- 2026-11-01: d\n', 3)).toEqual(['- 2026-11-17: a\n  more of a', '- 2026-11-16: b', '- 2026-11-15: c']);
-    expect(newestPrompts('## Prompt History\n\n| Date | Who | Prompt |\n|---|---|---|\n| 2026-11-01 | @a | one |\n| 2026-11-02 | @a | two |\n', 3)).toEqual(['| 2026-11-02 | @a | two |', '| 2026-11-01 | @a | one |']);
+    expect(newestPrompts('# P\n\n## Latest Entries\n- 2026-11-15: c\n- 2026-11-17: a\n  more of a\n- 2026-11-16: b\n- 2026-11-01: d\n', 3)).toEqual([{ date: '2026-11-17', text: 'a\n  more of a' }, { date: '2026-11-16', text: 'b' }, { date: '2026-11-15', text: 'c' }]);
+    expect(newestPrompts('## Prompt History\n\n| Date | Who | Prompt |\n|---|---|---|\n| 2026-11-01 | @a | one |\n| 2026-11-02 | @a | two |\n', 3)).toEqual([{ date: '2026-11-02', text: '@a · two' }, { date: '2026-11-01', text: '@a · one' }]);
     expect(newestPrompts('# nothing here\n', 3)).toEqual([]);
     write(p.root, '.specs/development/prompts.md', '## Latest Entries\n- 2026-11-17: one\n');
-    expect(buildSpecsPayload(p.root, 'x').overview.prompts).toEqual(['- 2026-11-17: one']);
+    expect(buildSpecsPayload(p.root, 'x').overview.prompts).toEqual([{ date: '2026-11-17', text: 'one' }]);
   });
 
   it('no MCP tool returns overview, commits or prompts', async () => {

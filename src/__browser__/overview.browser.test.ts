@@ -175,6 +175,35 @@ browserTest('Review always shows, with the board\'s sentence when empty; All <n>
   await page.waitForFunction(() => document.querySelector('#ovBox [data-card="project"]')?.textContent?.includes('Changed outside the page') ?? false);
 });
 
+const TABLE = '# Prompts\n\n## Prompt History\n\n| Date | Who | Prompt | Outcome |\n|---|---|---|---|\n| 2026-11-19 | @dev | Older one | ok |\n| 2026-11-20 | @dev | Approved `RV-003`: commit it | BL-047 moved \\| done |\n';
+browserTest('Prompt log rows (BL-197): a table row and a list entry show their text and date, no pipes, backticks as code; at 420px idle and during a live reload nothing scrolls sideways', b, async o => {
+  writeFileSync(specs('planning/roadmap.md'), ROAD_OK);
+  writeFileSync(specs('development/prompts.md'), TABLE);
+  const { page } = await o(srv, '#overview', { width: 420 });
+  await waitView(page, 'v-overview');
+  const rows = card(page, 'recent').locator('.ovprompt');
+  await rows.first().waitFor();
+  expect(await rows.locator('.when').allInnerTexts()).toEqual(['2026-11-20', '2026-11-19']);
+  const d = rows.first().locator('.d');
+  expect(await d.innerText()).toBe('@dev · Approved RV-003: commit it · BL-047 moved | done');
+  expect(await d.locator('code').innerText()).toBe('RV-003');
+  expect(await rows.locator('.d').allInnerTexts()).not.toContainEqual(expect.stringMatching(/^\||\|$/));
+  expect(await noSideScroll(page)).toBe(true);
+  // in progress: a live reload swaps the table for a list; the date leaves the text
+  const rev = await page.evaluate(() => Number(document.documentElement.dataset.rev || 0));
+  writeFileSync(specs('development/prompts.md'), '# Prompts\n\n## Latest Entries\n- 2026-11-21: a list entry with `code`\n  and a second line\n');
+  await page.waitForFunction(r => Number(document.documentElement.dataset.rev || 0) > r, rev);
+  await page.waitForFunction(() => document.querySelector('#ovBox .ovprompt .when')?.textContent === '2026-11-21');
+  expect(await noSideScroll(page)).toBe(true);
+  expect(await rows.first().locator('.d').innerText()).toBe('a list entry with code and a second line');
+  expect(await rows.first().locator('.d').evaluate(el => getComputedStyle(el).webkitLineClamp)).toBe('2');
+  await page.setViewportSize({ width: 1024, height: 900 });
+  const [db, wb] = await Promise.all([rows.first().locator('.d').boundingBox(), rows.first().locator('.when').boundingBox()]);
+  expect(wb!.x).toBeGreaterThan(db!.x + db!.width - 1); // the date beside the text, as on a commit row
+  await rows.first().click();
+  await waitView(page, 'v-file');
+});
+
 const ROAD_CASES: [string, string | null, string[], string, boolean][] = [
   ['norel', '# Roadmap\n\n## Timeline\n\nIntro only.\n', ['Warning ## Timeline in planning/roadmap.md has no ### release', 'The card shows the last ### heading under ## Timeline and its first lines, and there is none.', 'Fix: add a ### heading for the next release under ## Timeline, with its first lines, best done by your AI IDE.'], 'In .specs/planning/roadmap.md, add a ### heading for the next release under ## Timeline, with its first lines, so SpecPilot’s Overview shows the next release.', true],
   ['notl', '# Roadmap\n\n## Milestones\n\n### v1\n', ['Warning planning/roadmap.md has no ## Timeline', 'The card shows the last ### release under ## Timeline, and the file has no such section.', 'Fix: add a ## Timeline section with a ### heading for the next release, best done by your AI IDE.'], 'In .specs/planning/roadmap.md, add a ## Timeline section with a ### heading for the next release, so SpecPilot’s Overview shows the next release.', true],
@@ -262,6 +291,7 @@ const STATES: [string, () => void][] = [
   ['full', () => fill()],
   ['sparse, Review empty', () => { writeFileSync(specs('planning/roadmap.md'), ROAD_OK); rmSync(specs('development/prompts.md')); writeFileSync(env.tasks(), read(env.tasks()).replace(/\| CS-801 \|[^\n]*\n/, '')); }],
   ['no ### release', () => writeFileSync(specs('planning/roadmap.md'), '# Roadmap\n\n## Timeline\n\nIntro only.\n')],
+  ['no ### release, prompt table rows (BL-197)', () => { writeFileSync(specs('planning/roadmap.md'), '# Roadmap\n\n## Timeline\n\nIntro only.\n'); writeFileSync(specs('development/prompts.md'), TABLE + `| 2026-11-21 | @dev | ${'long '.repeat(200)} | ${'x'.repeat(400)} |\n`); }],
   ['no ## Timeline', () => writeFileSync(specs('planning/roadmap.md'), '# Roadmap\n\n## Milestones\n')],
   ['no roadmap.md', () => rmSync(specs('planning/roadmap.md'))],
   ['Copy folder path', () => { fill(); setIdes('ides: [claude-code]'); }],

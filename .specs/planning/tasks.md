@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-28 (BL-207 to Review)
-version: 7.116
+lastUpdated: 2026-11-28 (BL-207 to Completed)
+version: 7.117
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,7 +77,6 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
-| BL-207 | chore | P3 | `docs/GUIDE.md` becomes a short pointer page to docs.specpilot.dev (file and path kept, the docs site links to it): one line per old section with a link to its new page, page paths only, no `#anchors` (SpecPilot-Docs REQ-009 "Stable links"); README's Full Guide line links https://docs.specpilot.dev. Old sections with no docs page (Supported Languages & Frameworks, Configuration, CI/CD Integration, Team Collaboration, Enterprise Integration, API Usage, Development Setup) checked against the 2.21.0 source and reported as covered elsewhere, out of date or still needed; other inbound links to GUIDE.md listed, template links reported, not changed. Every new link checked with curl. Website repo BL-069; the developer, 2026-11-24 (do it now, not on App release day). Built 2026-11-28: GUIDE.md pointer page (29 links, all 200; `/reference/cli/compact` left out, 404), README Full Guide link and comparison link (was `docs/comparison.md`, no such file; now the specpilot.dev blog post), CHANGELOG Changed line; on `chore/bl-207-guide-pointer`. Approved 2026-11-28. |
 
 ## Won't do
 
@@ -123,3 +122,4 @@ Notes
 | 309 | [CD-girishr-218] [BL-206] | The routing-table archive row also sends agents to `project/requirements-archive.md` for a rewritten REQ's earlier wording (`### <key>`); `specpilot backfill` replaces BL-202's row in place and reports `Archive lookup row (updated)`; this repo's `CLAUDE.md` and `.github/copilot-instructions.md` updated (REQ-002.A.19, ARCH-004.82; commit 04dea16) |
 | 310 | [CD-girishr-219] [BL-199] | `specpilot backfill --no-prompts` no longer asks for the handle when `team.devPrefix` is missing: `backfillCommand` reads Commander's `options.prompts === false` (it read `options.noPrompts`, never set); a test builds the CLI and runs the flag; the note on docs.specpilot.dev (SpecPilot-Docs BL-063) is still to be removed there (commit 7182576) |
 | 311 | [CD-girishr-220] [BL-200] | `specpilot list` reads `SUPPORTED_LANGUAGES` and `getFrameworksForLanguage()` instead of a fixed catalog (no Java or spring-boot, Kotlin and Swift listed, `generic (no framework)` first); `--verbose` lists the `.specs/` files from `targetsInSpecs()`; an unknown `--lang` is refused as `init` refuses it, exit 1; the docs.specpilot.dev list page (SpecPilot-Docs BL-063) is still to be updated there (commit 32874d8) |
+| 312 | [CD-girishr-221] [BL-207] | `docs/GUIDE.md` is a short pointer page to docs.specpilot.dev, one line per old section, page paths only (SpecPilot-Docs REQ-009; website BL-069); README Full Guide link to https://docs.specpilot.dev and comparison link to the specpilot.dev Spec Kit post (was a missing `docs/comparison.md`); 29 links 200, `/reference/cli/compact` left out (404). Approved 2026-11-28. Feature commit 867d1fa. |

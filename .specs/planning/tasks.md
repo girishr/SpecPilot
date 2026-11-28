@@ -1,7 +1,7 @@
 ---
 fileID: TASKS-001
-lastUpdated: 2026-11-28 (BL-207 to Completed)
-version: 7.117
+lastUpdated: 2026-11-28 (BL-197 to Review)
+version: 7.118
 contributors: [girishr]
 relatedFiles: [roadmap.md, project.yaml, requirements.md, tasks-archive.md]
 ---
@@ -77,6 +77,7 @@ Notes
 
 | ID | Type | Priority | Description |
 |---|---|---|---|
+| BL-197 | bug | P3 | `serve` page, Overview, Recent activity card: rows in the **Prompt log** group show the raw prompts.md table line, pipes included. Each `.ovrow.ovprompt` row is one `.d` span holding e.g. `\| 2026-11-20 \| @girishr \| Approved RV-003: commit it \| BL-047 moved from Review to Completed … \|`, so the date, author, prompt and outcome are not split into fields and backticks show as literal characters. Seen on SpecPilotWebsite-v2 (`#5/overview`), whose prompts.md log entries are table rows. Show the fields (date, prompt, outcome) as the Commits rows show theirs, with a browser test on fixture rows and the 420px check. Reported by the developer 2026-11-20; reproduced in the browser, cause not looked into. Approved 2026-11-28 |
 
 ## Won't do
 

@@ -593,7 +593,7 @@ body.resizing{user-select:none;cursor:col-resize}
 .ovrows>.ovrow+.ovrow{border-top:1px solid var(--sep)}
 .ovrow .id{font:12.5px var(--mono);color:var(--label-2);white-space:nowrap}
 .ovrow .d{min-width:0;overflow:hidden;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical}
-.ovprompt .d{grid-column:1/-1;white-space:pre-wrap}
+.ovprompt{grid-template-columns:minmax(0,1fr) auto}
 .ovrow .when{font:12px var(--mono);color:var(--label-3);white-space:nowrap}
 .ovchips{display:flex;gap:4px;flex:none}
 .ovsub{display:flex;align-items:center;gap:6px;margin:4px 0 -4px;font-size:12px;font-weight:600;color:var(--label-3)}
@@ -614,7 +614,7 @@ body.resizing{user-select:none;cursor:col-resize}
 .ovfile .p{font:13px var(--mono);overflow-wrap:anywhere}
 .ovfile .m{font:11.5px var(--mono);color:var(--label-3);overflow-wrap:anywhere}
 .ovlane:hover,.ovmix:hover,.ovrow:is(button):hover,.ovtile:hover,.ovfile:hover,.ovlink:hover{background:var(--hover)}
-@media (max-width:860px){.ovlanes{grid-template-columns:repeat(2,minmax(0,1fr))}.ovtiles,.ovfiles{grid-template-columns:minmax(0,1fr)}.ovrow{grid-template-columns:auto minmax(0,1fr)}.ovrow .ovchips,.ovrow .when{grid-column:2}.ovhero{padding:16px}}
+@media (max-width:860px){.ovlanes{grid-template-columns:repeat(2,minmax(0,1fr))}.ovtiles,.ovfiles{grid-template-columns:minmax(0,1fr)}.ovrow{grid-template-columns:auto minmax(0,1fr)}.ovrow .ovchips,.ovrow .when{grid-column:2}.ovprompt{grid-template-columns:minmax(0,1fr)}.ovprompt .when{grid-column:1}.ovhero{padding:16px}}
 /* BL-194: SpecPilot's old Cursor rules file: the row's buttons, Compare's lines, a refusal */
 .row.mdc{align-items:flex-start}
 .row.mdc .acts{display:flex;flex-wrap:wrap;gap:8px;padding:8px 0 0}

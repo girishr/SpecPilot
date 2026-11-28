@@ -49,8 +49,11 @@ export interface LogEntry {
   date: number | null;
 }
 
-/** The log's entries: list items under "## Latest Entries", else rows under "## Prompt History". */
-export function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: string[] } | null {
+/** A table row's cells, split on a `|` not after `\`, each trimmed with `\|` shown as `|` (BL-197). */
+const cells = (row: string) => row.trim().replace(/^\|/, '').replace(/(?<!\\)\|$/, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|'));
+
+/** The log's entries: list items under "## Latest Entries", else rows under "## Prompt History" (dateCol: the table's Date column, else -1). */
+export function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: string[]; dateCol: number } | null {
   const list = findSectionBounds(lines, '## Latest Entries', true);
   if (list) {
     const entries: LogEntry[] = [];
@@ -62,24 +65,24 @@ export function findLog(lines: string[]): { entries: LogEntry[]; tableHeader: st
     }
     // An entry is dated by its leading `- YYYY-MM-DD`, else by the last date in it (BL-092): a date it only mentions never reorders the log.
     entries.forEach(e => (e.date = lastDate(/^[-*+] (\d{4}-\d{2}-\d{2})\b/.exec(lines[e.start])?.[1] ?? lines.slice(e.start, e.end).join('\n'))));
-    return { entries, tableHeader: [] };
+    return { entries, tableHeader: [], dateCol: -1 };
   }
   const table = findSectionBounds(lines, '## Prompt History', true);
   if (!table) return null;
   const header = lines.findIndex((l, i) => i > table.start && i < table.end - 1 && l.trim().startsWith('|') && TABLE_SEPARATOR.test(lines[i + 1].trim()));
-  if (header === -1) return { entries: [], tableHeader: [] };
-  const cells = (row: string) => row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+  if (header === -1) return { entries: [], tableHeader: [], dateCol: -1 };
   const dateCol = cells(lines[header]).findIndex(c => c.toLowerCase() === 'date');
   const entries: LogEntry[] = [];
   for (let i = header + 2; i < table.end && lines[i].trim().startsWith('|'); i++) {
     entries.push({ start: i, end: i + 1, date: lastDate(dateCol >= 0 ? cells(lines[i])[dateCol] ?? '' : lines[i]) });
   }
-  return { entries, tableHeader: [lines[header], lines[header + 1]] };
+  return { entries, tableHeader: [lines[header], lines[header + 1]], dateCol };
 }
 
-/** The newest `count` entries of prompts.md, each its lines as written (BL-171, REQ-002.H.76): newest date first; on a tie, a
- *  `## Latest Entries` list keeps file order (it is written newest first) and a table its reverse (rows are appended). */
-export function newestPrompts(text: string, count: number): string[] {
+/** The newest `count` entries of prompts.md (BL-171, REQ-002.H.76): newest date first; on a tie, a `## Latest Entries` list keeps
+ *  file order (it is written newest first) and a table its reverse (rows are appended). Each is its date as written (a list item's
+ *  leading YYYY-MM-DD, a table's Date cell, else null) and its text without it (a row's other non-empty cells joined ' · ', BL-197). */
+export function newestPrompts(text: string, count: number): { date: string | null; text: string }[] {
   const lines = text.split('\n');
   const log = findLog(lines);
   if (!log) return [];
@@ -88,7 +91,14 @@ export function newestPrompts(text: string, count: number): string[] {
     .map((e, i) => ({ e, i }))
     .sort((a, b) => (b.e.date ?? -1) - (a.e.date ?? -1) || (list ? a.i - b.i : b.i - a.i))
     .slice(0, count)
-    .map(({ e }) => lines.slice(e.start, e.end).join('\n'));
+    .map(({ e }) => {
+      if (!list) {
+        const c = cells(lines[e.start]);
+        return { date: log.dateCol >= 0 ? c[log.dateCol] || null : null, text: c.filter((v, k) => k !== log.dateCol && v).join(' · ') };
+      }
+      const m = /^[-*+] (?:(\d{4}-\d{2}-\d{2})\b:?\s*)?([\s\S]*)$/.exec(lines.slice(e.start, e.end).join('\n'))!;
+      return { date: m[1] ?? null, text: m[2] };
+    });
 }
 
 export type PromptsArchivePlan = { start: number; end: number; tableHeader: string[] } | { refuse: string } | null;
